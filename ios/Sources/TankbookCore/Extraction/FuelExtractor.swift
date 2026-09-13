@@ -661,7 +661,11 @@ enum TotalLabel {
         // `Käibemaks kokku 24,24` tied with the real `KOKKU` and forced an
         // abstention. VAT is never the receipt total; both the `Ä` and the
         // OCR'd `A` spelling are excluded.
-        "KÄIBEMAKS", "KAIBEMAKS"
+        "KÄIBEMAKS", "KAIBEMAKS",
+        // `NETO` is the Estonian net figure, not the charged amount. On the
+        // Tallinn Airport parking tickets it prints beside `TASU`/`MAKSTUD`
+        // (the fee and what was paid) and must never be read as the total.
+        "NETO"
     ]
     // `СУММА` is here in BOTH scripts on purpose. The Latin `SUMMA` is the
     // Estonian label; the Cyrillic `СУММА` is the Russian one, and until
@@ -671,8 +675,14 @@ enum TotalLabel {
     // `uppercased()` never bridges them; the exclusion list above already
     // carries the Cyrillic `СУММА НДС`, which is checked first, so a VAT line
     // still cannot be read as the total.
+    //
+    // The expense markers (`TASU` fee, `MAKSTUD` paid, `PAID`, `ШТРАФ` fine)
+    // live in the same list because one total finder serves both entry kinds
+    // (docs/EXTRACTION.md): a parking ticket prints `TASU: 4.00 EUR` /
+    // `MAKSTUD: 4.00 EUR` and no fuel-receipt total word.
     private static let primary = [
-        "ИТОГ", "ВСЕГО", "К ОПЛАТЕ", "TOTAL", "KOKKU", "SUMMA", "СУММА", "AMOUNT"
+        "ИТОГ", "ВСЕГО", "К ОПЛАТЕ", "TOTAL", "KOKKU", "SUMMA", "СУММА", "AMOUNT",
+        "TASU", "MAKSTUD", "PAID", "ШТРАФ"
     ]
     private static let payment = [
         "НАЛИЧНЫМИ", "БЕЗНАЛИЧНЫМИ", "ПЛАТ.КАРТОЙ", "ПЛАТ. КАРТОЙ", "КАРТОЙ", "KK MAKSE"

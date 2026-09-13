@@ -1,0 +1,15 @@
+# recognised.csv - what the extractor PRODUCED, written by `swift run ReceiptSpike fixtures/expenses`.
+# NEVER the oracle: ground truth is expected.csv, written by hand from the paper.
+filename,total,currency,date,kind
+parking-ru.txt,250.00,,,parking
+parking-en.txt,12.00,EUR,,parking
+wash-ru.txt,800.00,,,other:wash
+toll-ru.txt,1200.00,,,toll
+fine-ru.txt,500.00,,,fine
+insurance-ru.txt,12000.00,,,insurance
+tax-ru.txt,3500.00,,,tax
+parts-ru.txt,1240.00,,,parts
+accessory-ru.txt,2100.00,,,accessory
+ambiguous-fuel-ru.txt,4334.00,,,
+parking-tallinn-airport-et.txt,2.00,EUR,10.09.26,parking
+parking-tallinn-airport-et-2.txt,4.00,EUR,13.09.26,parking

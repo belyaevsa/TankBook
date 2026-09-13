@@ -15,6 +15,20 @@ would go stale the next time the corpus grows.
 | `pump` | pump mode stays behind its flag until it clears the B1 gate (`PumpPhotoGate`: 0.99 precision, 0.60 coverage) |
 | `fiscal` | only the rows that are OCR-scorable images are scored |
 | `screenshots` | **was re-baselined downward once - read below before "fixing" it** |
+| `expenses` | the expense read's four cells (kind, total, currency, date) scored from the `.txt` fixtures; first recorded 29/29 on 2026-09-13 |
+
+## The expense class (RV.277)
+
+`expenses/` joined the ratchet on 2026-09-13. It is the corpus's only non-fuel
+class and the only one scored from **text**, not a photograph: ten fixtures are
+hand-authored OCR dumps and two are Vision dumps of real tickets, and the `.txt`
+is the fixture either way. The four cells are the KIND (the `category` column the
+folder scored alone before RV.277), `total`, `currency` and `date`; `none` in the
+category column is a deliberate assertion that the vocabulary abstains, not a
+blank. The first score is **29/29** - every asserted cell resolved. A
+`recognised.csv` beside `expected.csv` records what the extractor produced on the
+last `swift run ReceiptSpike fixtures/expenses`; it is a review artefact and
+never the oracle.
 
 ## Why `screenshots` was re-baselined from 3/3 to 1/3
 

@@ -118,12 +118,14 @@ struct CorpusAccuracyGateTests {
         let pump: ClassScore
         let fiscal: ClassScore
         let screenshots: ClassScore
+        let expenses: ClassScore
 
         func recorded(for name: String) -> ClassScore {
             switch name {
             case "receipts": return receipts
             case "pump": return pump
             case "fiscal": return fiscal
+            case "expenses": return expenses
             default: return screenshots
             }
         }
@@ -132,13 +134,17 @@ struct CorpusAccuracyGateTests {
     @Test func corpusScoresDoNotRegress() throws {
         let highWater = try loadHighWater()
         var failures: [String] = []
-        for name in ["receipts", "pump", "fiscal", "screenshots"] {
+        for name in ["receipts", "pump", "fiscal", "screenshots", "expenses"] {
             // The pump class is scored under the re-scoped B1 metric (numeric
             // only, precision + coverage); the ratchet still guards its recall
-            // (hits may not fall, total may not shrink).
-            let scored = name == "pump"
-                ? try scorePump().scoredClass
-                : try scoreClass(name)
+            // (hits may not fall, total may not shrink). The expense class is
+            // scored from its `.txt` fixtures, not from Vision.
+            let scored: ScoredClass
+            switch name {
+            case "pump": scored = try scorePump().scoredClass
+            case "expenses": scored = try scoreExpenses().scoredClass
+            default: scored = try scoreClass(name)
+            }
             let recorded = highWater.recorded(for: name)
             if let violation = AccuracyRatchet.violation(
                 name: name,
@@ -154,10 +160,25 @@ struct CorpusAccuracyGateTests {
     }
 
     @Test func everyClassIsScored() throws {
-        for name in ["receipts", "pump", "fiscal", "screenshots"] {
-            let total = name == "pump" ? try scorePump().numericTotal : try scoreClass(name).total
+        for name in ["receipts", "pump", "fiscal", "screenshots", "expenses"] {
+            let total: Int
+            switch name {
+            case "pump": total = try scorePump().numericTotal
+            case "expenses": total = try scoreExpenses().total
+            default: total = try scoreClass(name).total
+            }
             #expect(total > 0, "\(name) scored no fields")
         }
+    }
+
+    /// RV.277: the expense class is a real, scored corpus class now, not only a
+    /// kind vocabulary. The recorded floor must cover every asserted cell (kind,
+    /// total, currency, date), so a fixture silently dropped from the folder
+    /// cannot shrink the total under the recorded one.
+    @Test func expenseClassScoresKindAndMoneyCells() throws {
+        let scored = try scoreExpenses()
+        #expect(scored.total >= 12, "the expense class must assert at least one cell per fixture")
+        #expect(scored.hits > 0, "the expense class resolved nothing")
     }
 
     /// RV.270: the whole-class guard the boilerplate failure needs. A wrong
@@ -249,6 +270,25 @@ struct CorpusAccuracyGateTests {
             records: records,
             expected: expected
         )
+    }
+
+    /// The expense class scored from its `.txt` fixtures directly. The
+    /// hand-authored fixtures have no photograph, and the two Tallinn tickets'
+    /// `.txt` IS the Vision dump the app reads, so scoring the `.txt` measures
+    /// the app's pipeline without a second OCR pass - and without a runtime the
+    /// CI machine may not have. The extractor is the shipped `FuelExtractor`.
+    private func scoreExpenses() throws -> ExpenseScore {
+        let folder = Self.fixturesRoot.appendingPathComponent("expenses")
+        let expected = try CorpusScorer.loadExpenseExpected(folder.appendingPathComponent("expected.csv"))
+        var fixtures: [(filename: String, lines: [OCRLine])] = []
+        for row in expected {
+            let url = folder.appendingPathComponent(row.filename)
+            guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
+            let lines = text.split(separator: "\n", omittingEmptySubsequences: true)
+                .map { OCRLine(text: String($0)) }
+            fixtures.append((row.filename, lines))
+        }
+        return CorpusScorer.scoreExpenses(name: "expenses", fixtures: fixtures, expected: expected)
     }
 
     private func extractRecords(folder: URL, images: [URL], expected: [String: ExpectedRow],

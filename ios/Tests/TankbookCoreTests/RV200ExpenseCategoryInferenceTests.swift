@@ -26,7 +26,8 @@ struct RV200ExpenseCategoryInferenceTests {
         .appendingPathComponent("Spike/ReceiptSpike/fixtures/expenses")
 
     /// One `expected.csv` row: the fixture file and the category its NAME says
-    /// it is.
+    /// it is. RV.277 extended the schema with `total,currency,date` columns;
+    /// this suite reads only the first two, the cells the vocabulary scores.
     private struct Row {
         let filename: String
         let expected: ExpenseCategory?
@@ -37,7 +38,7 @@ struct RV200ExpenseCategoryInferenceTests {
         let csv = try String(contentsOf: url, encoding: .utf8)
         return csv.split(separator: "\n").dropFirst().compactMap { line in
             let cells = line.split(separator: ",", omittingEmptySubsequences: false).map(String.init)
-            guard cells.count == 2 else { return nil }
+            guard cells.count >= 2 else { return nil }
             let filename = cells[0].trimmingCharacters(in: .whitespaces)
             let token = cells[1].trimmingCharacters(in: .whitespaces)
             return Row(filename: filename, expected: category(token))
@@ -78,7 +79,7 @@ struct RV200ExpenseCategoryInferenceTests {
     @Test("every expense fixture infers the category its filename oracle names")
     func everyFixtureMatchesItsFilenameOracle() throws {
         let rows = try Self.expectedRows()
-        #expect(rows.count == 11, "the expense fixture set changed size: \(rows.count)")
+        #expect(rows.count == 12, "the expense fixture set changed size: \(rows.count)")
         for row in rows {
             let inferred = try Self.infer(row.filename)
             let oracle = String(describing: row.expected)

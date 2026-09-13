@@ -26,7 +26,37 @@ struct FuelReceiptParser {
         "SUMA", "RAZEM", "DO ZAPLATY", "DO ZAPŁATY",
         "CELKEM", "K UHRADE", "K ÚHRADĚ",
         "ИТОГ", "К ОПЛАТЕ", "ВСЕГО",
+        // The expense words the corpus prints on a non-fuel receipt: the
+        // Estonian fee/paid pair (`TASU` / `MAKSTUD`), the English `PAID`, and
+        // the Russian fine `ШТРАФ`. The shipped parser carries the same
+        // vocabulary (`TankbookCore.TotalLabel`); this spike is the reference
+        // implementation, and the gate scores the shipped one.
+        "TASU", "MAKSTUD", "PAID", "ШТРАФ", "KOKKU", "SUMMA", "СУММА",
     ]
+
+    /// The kind a non-fuel receipt names, in the same stable codes
+    /// `expenses/expected.csv` uses (`parking`, `toll`, `other:wash`, ...). A
+    /// reference vocabulary for the spike's own score; the app's
+    /// `ExpenseCategoryInference` is the shipped one. `nil` is the deliberate
+    /// abstention for a receipt that names no separable kind.
+    static func expenseKind(lines: [String]) -> String? {
+        let text = lines.joined(separator: "\n").uppercased()
+        let rules: [(String, [String])] = [
+            ("other:wash", ["МОЙК", "МОЕЧН", "WASH", "CARWASH", "CAR WASH"]),
+            ("parking", ["ПАРКОВК", "СТОЯНК", "PARKING", "PARKHAUS", "PARKPLATZ",
+                         "PARKIMI", "PARKLA"]),
+            ("toll", ["ПЛАТН", "ТОЛЛ", "ВЗИМАН", "TOLL", "TOLLWAY"]),
+            ("fine", ["ШТРАФ", "ПОСТАНОВЛЕН", "ГИБДД", "PENALTY", "SPEEDING"]),
+            ("insurance", ["СТРАХОВ", "ОСАГО", "КАСКО", "ПОЛИС", "INSURANCE"]),
+            ("tax", ["НАЛОГ", "ГОСПОШЛИН", "ПОШЛИН", "VEHICLE TAX", "ROAD TAX"]),
+            ("parts", ["ЗАПЧАСТ", "ФИЛЬТР", "КОЛОДК", "PARTS", "FILTER", "BRAKE"]),
+            ("accessory", ["АКСЕССУАР", "КОВРИК", "ЧЕХОЛ", "ACCESSOR"]),
+        ]
+        for (code, stems) in rules where stems.contains(where: { text.contains($0) }) {
+            return code
+        }
+        return nil
+    }
     private static let volumeKeywords = [
         "LITER", "LITRE", "LITR", "LTR", "MENGE", "ILOSC", "ILOŚĆ", "OBJEM", "ЛИТР", "VOLUME", "QTY",
     ]

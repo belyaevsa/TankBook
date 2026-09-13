@@ -68,14 +68,30 @@ enum NumberScanner {
     /// True when the line is a bare value: an optional `=`/currency prefix then
     /// one number, with at most a stray letter of OCR noise. Sentences like
     /// "В ТОМ ЧИСЛЕ ВАША СКИДКА = 0.83" are excluded.
+    ///
+    /// Two shapes that are NOT a value, both witnessed:
+    ///
+    /// - **A date.** A parking ticket prints its entry and exit stamps
+    ///   (`13.09.26 08:22`, `13.09.26 08:45`); `value(in:)` reads each as
+    ///   `13.09`, so the two stamps became the modal "value" and the
+    ///   redundancy fallback returned the date as the total. A date is not
+    ///   money, however its digits parse.
+    /// - **An operand pair.** `43.61 Х 99.40` carries the multiplication
+    ///   operator and two decimals; it is a fuel line, not a right-aligned
+    ///   value. It used to pass (one stray Cyrillic `Х` is within the letter
+    ///   budget), so an `ИТОГ` label directly below it paired with the operand
+    ///   above instead of the total below.
     static func isValueLine(_ line: String) -> Bool {
         guard value(in: line) != nil else { return false }
+        if line.firstMatch(of: /\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4}/) != nil { return false }
+        if line.firstMatch(of: /\d{4}-\d{2}-\d{2}/) != nil { return false }
         var stripped = line.uppercased()
         for token in ["НДС", "РУБ", "RUB", "EUR", "ТЕНГЕ", "=", "≡", "#", "_",
                       "₽", "฿", "₴", "€", "$", " "] {
             stripped = stripped.replacingOccurrences(of: token, with: "")
         }
-        return stripped.filter { $0.isLetter }.count <= 2
+        guard stripped.filter { $0.isLetter }.count <= 2 else { return false }
+        return decimals(in: stripped).count <= 1
     }
 }
 

@@ -459,6 +459,31 @@ the RU/EN vocabulary abstained on until the Estonian parking stems were added. T
 every next photograph should take: the `.jpg` beside its OCR dump, the category from the file name. Merchant remains **not** resolved: guessing it from a shop receipt is a
 separate problem with its own corpus and was not assumed into this change.
 
+**The money fields are the fuel finder's, not a second one (RV.277).** The first ticket
+resolved its amount through `redundantValue` (the `2.00` printed twice); the second, a
+Tallinn Airport parking ticket of 13/09/2026, printed `TASU: 4.00 EUR` and `MAKSTUD: 4.00 EUR`
+and no fuel-receipt total word, so the shared finder abstained and the form opened empty. The
+fix is vocabulary, not a second implementation: `TotalLabel.primary` gains the expense words
+the corpus prints - `TASU` (fee), `MAKSTUD` (paid), `PAID`, `ШТРАФ` (fine) - and
+`TotalLabel.excluded` gains `NETO`, the Estonian net figure the ticket prints beside the
+charged amount. The expense read therefore runs the SAME `grandTotalRead` and
+`CurrencyDetection` the fill-up path runs; `ExpensePrefillBuilder` maps their result across.
+Two markers that agree (`TASU` = `MAKSTUD` here) resolve that value; two that disagree are an
+unbreakable tie and the finder abstains (hard rule 13) - `NETO` is never the total, however the
+pair falls out. The currency miss was the total's, not `CurrencyDetection`'s: `4.00 EUR` is the
+explicit-marker tier and resolved to EUR, so the pre-fill's currency was EUR and the RV.62
+home-currency boundary let it through - the amount was blank because the total was nil, and the
+expense form has no currency field of its own to show.
+
+**The expense folder is a scored corpus class now (RV.277).** `expenses/expected.csv` gained
+`total,currency,date` beside `category`, and the folder is ratcheted as its own class in
+`high-water.json` (kind + total + currency + date cells; 29/29 at introduction) by the same
+`AccuracyRatchet` and `AccuracyRatchetTests` the fuel classes use. The scorer reads the `.txt`
+fixtures directly - the hand-authored ones have no photograph, and the two Tallinn tickets'
+`.txt` IS the Vision dump the app reads - and `swift run ReceiptSpike fixtures/expenses` writes
+`recognised.csv` (what the extractor produced) beside `expected.csv` for review. `recognised.csv`
+is never the oracle: `expected.csv` stays hand-written from the paper.
+
 The contract that bounds the expense hand-off is the fill-up path's own:
 - An extraction that resolves nothing becomes an all-nil `ExpensePrefill` - the expense form
   opens EMPTY, never an error (hard rules 7 and 15). The F1 caption belongs to the fill-up

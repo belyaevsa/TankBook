@@ -275,6 +275,16 @@ extension FuelExtractor {
         // sits on its own row above or below the label.
         if index > 0, let value = adjacentValue(lines[index - 1]) { return value }
         if index + 1 < lines.count, let value = adjacentValue(lines[index + 1]) { return value }
+        // The label and its value on ONE line (`ИТОГО 250.00`, `TOTAL 12.00 EUR`,
+        // `KOKKU 150,00`). The line is not a `NumberScanner.isValueLine` - it
+        // carries the label's own letters - so the shared `adjacentValue` cannot
+        // read it, and the expense corpus's hand-authored fixtures print this
+        // shape. Checked last so a fuel receipt's separate value line (the shape
+        // the geometry and adjacency paths above already resolve) keeps winning.
+        if !isSubtractionLine(label.text), !NumberScanner.isNegativeAmount(label.text),
+           let value = NumberScanner.value(in: label.text) {
+            return value
+        }
         return nil
     }
 

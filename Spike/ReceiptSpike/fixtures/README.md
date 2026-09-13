@@ -18,8 +18,16 @@ fixtures/
               pump-021/022/023 are sun-glared; their values came from the photographer, not the photo
               pump-002 is the SAME fill as receipt-007: independent ground truth
   fiscal/     OFD documents + expected.csv       -> text layer where there is one, OCR where there is not (P2.6)
-  expenses/   expense-KIND fixtures + expected.csv -> the RV.200 category vocabulary (L1, text in)
-              10 hand-authored OCR dumps + 1 photograph with its Vision dump. See its README
+  expenses/   expense fixtures + expected.csv -> scored from the .txt input (L5, ratcheted)
+              10 hand-authored OCR dumps + 2 photographs with their Vision dumps.
+              Four cells per row: category, total, currency, date. See its README.
+              `swift run ReceiptSpike fixtures/expenses` also writes a committed
+              recognised.csv (what the extractor produced - a review artefact,
+              never the oracle). The fuel folders have no such file: their
+              per-image rules dump is already committed under vision-ab/, so a
+              recognised.csv there would be a second writer of the same data
+              with a different schema (liters/unitPrice/fuelKind vs the expense
+              cells) - a separate decision, not done here.
   screenshots/ e-receipt screenshots + expected.csv -> Vision OCR, rendered text
               8 screens, RU + Circle K EE/LV/LT. See its README on discounts vs the cross-check
 ```
@@ -130,7 +138,7 @@ hard rule 4 exists for.
 - **Breadth is still the limit, not count.** Every accuracy figure below a few
   dozen images per class is anecdote, not measurement. As of 2026-09-11 the
   corpus holds 64 receipts, 95 pump displays, 8 screenshots, 2 fiscal
-  documents and 1 non-fuel receipt photograph (a car-park ticket, under
+  documents and 2 non-fuel receipt photographs (two car-park tickets, under
   `expenses/`).
 - `receipt-001.heic` (Circle K, Tallinn, Estonian): the parser reads liters,
   unit price and total exactly, and the cross-check locks
