@@ -218,3 +218,7 @@ catch a truncated Russian label, and nothing except a person looking at the fram
 ## Snapshot 2026-09-12 20:58 (chart regenerated)
 
 `design/analysis/rv-backlog.png` recomputed from 380 commits: **269 filed, 231 closed, 38 open**, overall median **6.7 h** from filing to ticking (the 2026-09-11 snapshot read 214 / 173 / 41 at 6.2 h). 2026-09-12 is the best close day of the series - **37 closed against 26 filed** - and the first day since 2026-09-05 where the open band narrowed by more than ten; 2026-09-11 was the worst filing day (44), most of it the scenario walks writing down what the ticked rows had not covered. The day's median hours-to-close (9.2 h) is the series high because the rows that closed were the oldest ones the scenario order pulled forward, not because closing got slower. Every build dispatch of the day ran on flash; the fourteen walks ran on pro and, from tomorrow, run in the orchestrator's own hands (`docs/DEVELOPMENT-TIMELINE.md`, 2026-09-12).
+
+## Snapshot 2026-09-13 06:14 (the briefed queue is empty)
+
+`design/analysis/rv-backlog.png` recomputed from 393 commits: **274 filed, 241 closed, 33 open** (the 2026-09-12 snapshot read 269 / 231 / 38). Every open v1 row now waits on the owner's own device or photographs (`RV.114`, `RV.179`, `RV.205`, `RV.181`) or is deferred past v1; the rest of the 33 are `[v1.0.x]` / `[v1.1]` / `[v2]`. Every v1 scenario carries a status line except J8b and J13, held on `RV.181`'s device step.

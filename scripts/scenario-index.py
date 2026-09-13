@@ -30,7 +30,7 @@ JOURNEYS = DOCS / "JOURNEYS.md"
 # The id cell may carry a version marker after the id: `RV.118 **[v1.1]**`.
 ROW = re.compile(r"^\|\s*\*\*\[(x|~|!|cut| )\]\*\*\s*([A-Z]+\.[0-9]+[a-z]?)\b([^|]*)\|\s*(.*)$")
 # A row deferred past v1 does not hold a v1 story open; the review treats it as N/A.
-DEFERRED = re.compile(r"\[(v1\.[0-9x]+|v2)\]")
+DEFERRED = re.compile(r"\[(v1\.[0-9x.]+|v2)\]")
 SCENARIO = re.compile(r"\b(J[0-9]+[a-d]?|F[0-9]+[ab]?)\b")
 NO_SCENARIO = re.compile(r"no-scenario:\s*(\S.*?)(?:\||$)")
 HEADING = re.compile(r"^###\s+(J[0-9]+[a-d]?|F[0-9]+[ab]?)\s*[·.]?\s*(.*)$")

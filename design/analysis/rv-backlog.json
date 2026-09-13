@@ -3039,10 +3039,119 @@
    "filed": 269,
    "closed": 231,
    "open": 38
+  },
+  {
+   "h": "38e0303",
+   "date": "2026-09-12 21:13",
+   "subj": "RV.246: a late expense read carries the receipt's date",
+   "filed": 269,
+   "closed": 232,
+   "open": 37
+  },
+  {
+   "h": "2ea57a3",
+   "date": "2026-09-12 21:37",
+   "subj": "PJ.60: Expense.recurrence is dropped - the field, its type, its column and its schema entry",
+   "filed": 269,
+   "closed": 232,
+   "open": 37
+  },
+  {
+   "h": "c9d8128",
+   "date": "2026-09-12 21:39",
+   "subj": "TASKS: the open LPG-from-boilerplate row is RV.270 - it had been filed under RV.243, an id a shipped row already carried",
+   "filed": 270,
+   "closed": 232,
+   "open": 38
+  },
+  {
+   "h": "c1676fd",
+   "date": "2026-09-12 22:39",
+   "subj": "RV.240 + RV.268: the anomaly card dismisses in one tap; the reminder it creates is due next year",
+   "filed": 270,
+   "closed": 234,
+   "open": 36
+  },
+  {
+   "h": "701c0a2",
+   "date": "2026-09-12 23:03",
+   "subj": "RV.270: a fuel kind is never read from till boilerplate",
+   "filed": 270,
+   "closed": 235,
+   "open": 35
+  },
+  {
+   "h": "b7ee93a",
+   "date": "2026-09-13 02:34",
+   "subj": "TASKS: RV.234 ticked (a906dc35), RV.271 filed; QUEUE: RV.248 dispatched",
+   "filed": 271,
+   "closed": 236,
+   "open": 35
+  },
+  {
+   "h": "6aad8b1",
+   "date": "2026-09-13 03:21",
+   "subj": "RV.248: reminders keep their history - done and dismissed rows, with their reasons, in a History section",
+   "filed": 271,
+   "closed": 237,
+   "open": 34
+  },
+  {
+   "h": "fa285ad",
+   "date": "2026-09-13 03:24",
+   "subj": "J7c walked by the orchestrator after RV.247 + RV.248: implemented; PJ.24's [v1.x] marker leads its row",
+   "filed": 271,
+   "closed": 237,
+   "open": 34
+  },
+  {
+   "h": "206a729",
+   "date": "2026-09-13 04:09",
+   "subj": "RV.272 [!] and RV.273 filed from RV.271's gate: a scanned receipt's litres saved as gallons on an imperial car; J3's status line cleared",
+   "filed": 273,
+   "closed": 237,
+   "open": 36
+  },
+  {
+   "h": "c0fbef6",
+   "date": "2026-09-13 04:12",
+   "subj": "RV.271: the pace limit and the inbox volume values speak the car's units",
+   "filed": 273,
+   "closed": 238,
+   "open": 35
+  },
+  {
+   "h": "f2d343b",
+   "date": "2026-09-13 05:12",
+   "subj": "RV.274 filed and briefed: two per-litre prices under a per-gallon label (the price counterpart of RV.272/RV.273)",
+   "filed": 274,
+   "closed": 238,
+   "open": 36
+  },
+  {
+   "h": "156cf56",
+   "date": "2026-09-13 05:49",
+   "subj": "RV.272 + RV.273: a scanned receipt's litres cross into the car's unit at one boundary; every stored volume renders converted",
+   "filed": 274,
+   "closed": 240,
+   "open": 34
+  },
+  {
+   "h": "d0a452e",
+   "date": "2026-09-13 06:14",
+   "subj": "RV.274: every stored per-litre price renders in the car's unit",
+   "filed": 274,
+   "closed": 241,
+   "open": 33
   }
  ],
  "birth": {
   "RV.7": {
+   "date": "2026-09-03 00:18",
+   "h": "abd4243",
+   "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
+  },
+  "RV.6": {
    "date": "2026-09-03 00:18",
    "h": "abd4243",
    "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
@@ -3057,16 +3166,6 @@
    "h": "abd4243",
    "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
   },
-  "RV.6": {
-   "date": "2026-09-03 00:18",
-   "h": "abd4243",
-   "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
-  },
-  "RV.3": {
-   "date": "2026-09-03 00:18",
-   "h": "abd4243",
-   "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
-  },
   "RV.1": {
    "date": "2026-09-03 00:18",
    "h": "abd4243",
@@ -3077,22 +3176,12 @@
    "h": "abd4243",
    "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
   },
+  "RV.3": {
+   "date": "2026-09-03 00:18",
+   "h": "abd4243",
+   "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
+  },
   "RV.8": {
-   "date": "2026-09-03 01:25",
-   "h": "48e0eca",
-   "subj": "RV.8: show the cloud read while it runs; fix the cross-arch image build"
-  },
-  "RV.12": {
-   "date": "2026-09-03 01:25",
-   "h": "48e0eca",
-   "subj": "RV.8: show the cloud read while it runs; fix the cross-arch image build"
-  },
-  "RV.10": {
-   "date": "2026-09-03 01:25",
-   "h": "48e0eca",
-   "subj": "RV.8: show the cloud read while it runs; fix the cross-arch image build"
-  },
-  "RV.9": {
    "date": "2026-09-03 01:25",
    "h": "48e0eca",
    "subj": "RV.8: show the cloud read while it runs; fix the cross-arch image build"
@@ -3102,10 +3191,20 @@
    "h": "48e0eca",
    "subj": "RV.8: show the cloud read while it runs; fix the cross-arch image build"
   },
-  "RV.14": {
-   "date": "2026-09-03 02:04",
-   "h": "6d15b22",
-   "subj": "RV.5: a review step between the capture and the Confirm sheet"
+  "RV.10": {
+   "date": "2026-09-03 01:25",
+   "h": "48e0eca",
+   "subj": "RV.8: show the cloud read while it runs; fix the cross-arch image build"
+  },
+  "RV.12": {
+   "date": "2026-09-03 01:25",
+   "h": "48e0eca",
+   "subj": "RV.8: show the cloud read while it runs; fix the cross-arch image build"
+  },
+  "RV.9": {
+   "date": "2026-09-03 01:25",
+   "h": "48e0eca",
+   "subj": "RV.8: show the cloud read while it runs; fix the cross-arch image build"
   },
   "RV.15": {
    "date": "2026-09-03 02:04",
@@ -3113,6 +3212,11 @@
    "subj": "RV.5: a review step between the capture and the Confirm sheet"
   },
   "RV.13": {
+   "date": "2026-09-03 02:04",
+   "h": "6d15b22",
+   "subj": "RV.5: a review step between the capture and the Confirm sheet"
+  },
+  "RV.14": {
    "date": "2026-09-03 02:04",
    "h": "6d15b22",
    "subj": "RV.5: a review step between the capture and the Confirm sheet"
@@ -3132,17 +3236,17 @@
    "h": "39586f2",
    "subj": "RV.9 attachment viewer; log text format; 15 corpus fixtures"
   },
-  "RV.21": {
-   "date": "2026-09-03 11:42",
-   "h": "5f974e3",
-   "subj": "Register RV.19 (KZT from NBK), RV.20 (CIS feed ignores its date), RV.21 (Settings)"
-  },
   "RV.20": {
    "date": "2026-09-03 11:42",
    "h": "5f974e3",
    "subj": "Register RV.19 (KZT from NBK), RV.20 (CIS feed ignores its date), RV.21 (Settings)"
   },
   "RV.19": {
+   "date": "2026-09-03 11:42",
+   "h": "5f974e3",
+   "subj": "Register RV.19 (KZT from NBK), RV.20 (CIS feed ignores its date), RV.21 (Settings)"
+  },
+  "RV.21": {
    "date": "2026-09-03 11:42",
    "h": "5f974e3",
    "subj": "Register RV.19 (KZT from NBK), RV.20 (CIS feed ignores its date), RV.21 (Settings)"
@@ -3167,12 +3271,12 @@
    "h": "ac7db54",
    "subj": "Register RV.25: a car added from the switcher never appears in Garage"
   },
-  "RV.27": {
+  "RV.26": {
    "date": "2026-09-03 12:53",
    "h": "48e41e5",
    "subj": "Logs 2026-09-03: RV.14 confirmed wider, register RV.26 and RV.27"
   },
-  "RV.26": {
+  "RV.27": {
    "date": "2026-09-03 12:53",
    "h": "48e41e5",
    "subj": "Logs 2026-09-03: RV.14 confirmed wider, register RV.26 and RV.27"
@@ -3187,12 +3291,12 @@
    "h": "0168b7e",
    "subj": "Register RV.29: a foreign price rendered with the home currency symbol"
   },
-  "RV.30": {
+  "RV.31": {
    "date": "2026-09-03 13:16",
    "h": "aaa4754",
    "subj": "Register RV.30 (rates published count) and RV.31 (tab tap should pop)"
   },
-  "RV.31": {
+  "RV.30": {
    "date": "2026-09-03 13:16",
    "h": "aaa4754",
    "subj": "Register RV.30 (rates published count) and RV.31 (tab tap should pop)"
@@ -3237,17 +3341,17 @@
    "h": "7a785de",
    "subj": "Brief RV.22/23/26/33/34; register RV.39-RV.42 from a device walk"
   },
-  "RV.41": {
-   "date": "2026-09-03 21:20",
-   "h": "7a785de",
-   "subj": "Brief RV.22/23/26/33/34; register RV.39-RV.42 from a device walk"
-  },
   "RV.42": {
    "date": "2026-09-03 21:20",
    "h": "7a785de",
    "subj": "Brief RV.22/23/26/33/34; register RV.39-RV.42 from a device walk"
   },
   "RV.39": {
+   "date": "2026-09-03 21:20",
+   "h": "7a785de",
+   "subj": "Brief RV.22/23/26/33/34; register RV.39-RV.42 from a device walk"
+  },
+  "RV.41": {
    "date": "2026-09-03 21:20",
    "h": "7a785de",
    "subj": "Brief RV.22/23/26/33/34; register RV.39-RV.42 from a device walk"
@@ -3262,12 +3366,12 @@
    "h": "5647c16",
    "subj": "Register and brief RV.44: the backend's one role in notifications"
   },
-  "RV.46": {
+  "RV.45": {
    "date": "2026-09-04 08:33",
    "h": "72e19ff",
    "subj": "RV.46: the sync chip span forever after the sync finished"
   },
-  "RV.45": {
+  "RV.46": {
    "date": "2026-09-04 08:33",
    "h": "72e19ff",
    "subj": "RV.46: the sync chip span forever after the sync finished"
@@ -3322,7 +3426,12 @@
    "h": "7ca8728",
    "subj": "Mark RV.48 done and file RV.56 (the total finder)"
   },
-  "RV.57": {
+  "RV.58": {
+   "date": "2026-09-04 18:03",
+   "h": "a654cad",
+   "subj": "Register RV.57 (requirement) and RV.58-60 from the production log"
+  },
+  "RV.60": {
    "date": "2026-09-04 18:03",
    "h": "a654cad",
    "subj": "Register RV.57 (requirement) and RV.58-60 from the production log"
@@ -3332,12 +3441,7 @@
    "h": "a654cad",
    "subj": "Register RV.57 (requirement) and RV.58-60 from the production log"
   },
-  "RV.58": {
-   "date": "2026-09-04 18:03",
-   "h": "a654cad",
-   "subj": "Register RV.57 (requirement) and RV.58-60 from the production log"
-  },
-  "RV.60": {
+  "RV.57": {
    "date": "2026-09-04 18:03",
    "h": "a654cad",
    "subj": "Register RV.57 (requirement) and RV.58-60 from the production log"
@@ -3397,7 +3501,12 @@
    "h": "8fef724",
    "subj": "Register RV.71: warn when a scanned receipt's fuel kind is not the car's"
   },
-  "RV.76": {
+  "RV.73": {
+   "date": "2026-09-05 22:19",
+   "h": "4611320",
+   "subj": "Register the reminders gaps: one bug and five v1.1 rows"
+  },
+  "RV.77": {
    "date": "2026-09-05 22:19",
    "h": "4611320",
    "subj": "Register the reminders gaps: one bug and five v1.1 rows"
@@ -3407,12 +3516,7 @@
    "h": "4611320",
    "subj": "Register the reminders gaps: one bug and five v1.1 rows"
   },
-  "RV.73": {
-   "date": "2026-09-05 22:19",
-   "h": "4611320",
-   "subj": "Register the reminders gaps: one bug and five v1.1 rows"
-  },
-  "RV.79": {
+  "RV.76": {
    "date": "2026-09-05 22:19",
    "h": "4611320",
    "subj": "Register the reminders gaps: one bug and five v1.1 rows"
@@ -3422,7 +3526,7 @@
    "h": "4611320",
    "subj": "Register the reminders gaps: one bug and five v1.1 rows"
   },
-  "RV.77": {
+  "RV.79": {
    "date": "2026-09-05 22:19",
    "h": "4611320",
    "subj": "Register the reminders gaps: one bug and five v1.1 rows"
@@ -3447,12 +3551,12 @@
    "h": "4095d73",
    "subj": "Register and brief the three the reminders series left open"
   },
-  "RV.81": {
+  "RV.82": {
    "date": "2026-09-06 09:33",
    "h": "4095d73",
    "subj": "Register and brief the three the reminders series left open"
   },
-  "RV.82": {
+  "RV.81": {
    "date": "2026-09-06 09:33",
    "h": "4095d73",
    "subj": "Register and brief the three the reminders series left open"
@@ -3502,6 +3606,16 @@
    "h": "cce57a7",
    "subj": "Mark RV.86 verified, register RV.91 and RV.92"
   },
+  "RV.96": {
+   "date": "2026-09-06 19:08",
+   "h": "75d02c9",
+   "subj": "Register RV.93-RV.96 from the full My Fuel Manager export"
+  },
+  "RV.93": {
+   "date": "2026-09-06 19:08",
+   "h": "75d02c9",
+   "subj": "Register RV.93-RV.96 from the full My Fuel Manager export"
+  },
   "RV.95": {
    "date": "2026-09-06 19:08",
    "h": "75d02c9",
@@ -3512,27 +3626,17 @@
    "h": "75d02c9",
    "subj": "Register RV.93-RV.96 from the full My Fuel Manager export"
   },
-  "RV.93": {
-   "date": "2026-09-06 19:08",
-   "h": "75d02c9",
-   "subj": "Register RV.93-RV.96 from the full My Fuel Manager export"
-  },
-  "RV.96": {
-   "date": "2026-09-06 19:08",
-   "h": "75d02c9",
-   "subj": "Register RV.93-RV.96 from the full My Fuel Manager export"
-  },
   "RV.97": {
    "date": "2026-09-06 23:09",
    "h": "459a29a",
    "subj": "Register RV.97: sync push dies at its own 30s timeout after an import"
   },
-  "RV.98": {
+  "RV.99": {
    "date": "2026-09-06 23:20",
    "h": "49638d5",
    "subj": "Register RV.98 and RV.99: a deleted car goes nowhere, and its confirmation"
   },
-  "RV.99": {
+  "RV.98": {
    "date": "2026-09-06 23:20",
    "h": "49638d5",
    "subj": "Register RV.98 and RV.99: a deleted car goes nowhere, and its confirmation"
@@ -3572,6 +3676,11 @@
    "h": "6a1b319",
    "subj": "Register RV.106: an unconverted month reports \"0 EUR\", a spend the user never had"
   },
+  "RV.110": {
+   "date": "2026-09-07 08:40",
+   "h": "ff290d2",
+   "subj": "Review the UI and backend test reports: register RV.107-RV.110, remove three tests"
+  },
   "RV.107": {
    "date": "2026-09-07 08:40",
    "h": "ff290d2",
@@ -3583,11 +3692,6 @@
    "subj": "Review the UI and backend test reports: register RV.107-RV.110, remove three tests"
   },
   "RV.109": {
-   "date": "2026-09-07 08:40",
-   "h": "ff290d2",
-   "subj": "Review the UI and backend test reports: register RV.107-RV.110, remove three tests"
-  },
-  "RV.110": {
    "date": "2026-09-07 08:40",
    "h": "ff290d2",
    "subj": "Review the UI and backend test reports: register RV.107-RV.110, remove three tests"
@@ -3642,12 +3746,12 @@
    "h": "8d257f5",
    "subj": "Register RV.118-RV.120 [v1.1] from the Drivvo report screens"
   },
-  "RV.121": {
+  "RV.123": {
    "date": "2026-09-07 13:22",
    "h": "4b4767a",
    "subj": "Register RV.121-RV.123; record what we will not tell a driver"
   },
-  "RV.123": {
+  "RV.121": {
    "date": "2026-09-07 13:22",
    "h": "4b4767a",
    "subj": "Register RV.121-RV.123; record what we will not tell a driver"
@@ -3667,17 +3771,7 @@
    "h": "24b5197",
    "subj": "Corpus registries follow the new pair, and the defect it found gets a row"
   },
-  "RV.126": {
-   "date": "2026-09-07 22:16",
-   "h": "af417b3",
-   "subj": "Five rows from the dead-code assessment, each verified before filing"
-  },
-  "RV.127": {
-   "date": "2026-09-07 22:16",
-   "h": "af417b3",
-   "subj": "Five rows from the dead-code assessment, each verified before filing"
-  },
-  "RV.128": {
+  "RV.129": {
    "date": "2026-09-07 22:16",
    "h": "af417b3",
    "subj": "Five rows from the dead-code assessment, each verified before filing"
@@ -3687,7 +3781,17 @@
    "h": "af417b3",
    "subj": "Five rows from the dead-code assessment, each verified before filing"
   },
-  "RV.129": {
+  "RV.128": {
+   "date": "2026-09-07 22:16",
+   "h": "af417b3",
+   "subj": "Five rows from the dead-code assessment, each verified before filing"
+  },
+  "RV.126": {
+   "date": "2026-09-07 22:16",
+   "h": "af417b3",
+   "subj": "Five rows from the dead-code assessment, each verified before filing"
+  },
+  "RV.127": {
    "date": "2026-09-07 22:16",
    "h": "af417b3",
    "subj": "Five rows from the dead-code assessment, each verified before filing"
@@ -3712,12 +3816,12 @@
    "h": "9458ad6",
    "subj": "RV.126: the odometer conflict names the car's own unit"
   },
-  "RV.136": {
+  "RV.135": {
    "date": "2026-09-08 10:37",
    "h": "66cf627",
    "subj": "RV.135, RV.136: EUR history cannot be fetched; the vehicle push loop is back"
   },
-  "RV.135": {
+  "RV.136": {
    "date": "2026-09-08 10:37",
    "h": "66cf627",
    "subj": "RV.135, RV.136: EUR history cannot be fetched; the vehicle push loop is back"
@@ -3757,7 +3861,7 @@
    "h": "0c8e895",
    "subj": "RV.140: a home-currency change re-homes the pending entries, and the Log shows what it knows"
   },
-  "RV.147": {
+  "RV.145": {
    "date": "2026-09-08 22:42",
    "h": "56df054",
    "subj": "TASKS: RV.144-RV.147 from the owner's TestFlight session"
@@ -3767,7 +3871,7 @@
    "h": "56df054",
    "subj": "TASKS: RV.144-RV.147 from the owner's TestFlight session"
   },
-  "RV.145": {
+  "RV.147": {
    "date": "2026-09-08 22:42",
    "h": "56df054",
    "subj": "TASKS: RV.144-RV.147 from the owner's TestFlight session"
@@ -3807,12 +3911,12 @@
    "h": "d089e1c",
    "subj": "corpus: re-measure every gate after the 2026-09-09 fixtures, and file RV.153"
   },
-  "RV.154": {
+  "RV.155": {
    "date": "2026-09-09 11:06",
    "h": "68de211",
    "subj": "TASKS: file RV.154 and RV.155 from the 2026-09-09 production logs"
   },
-  "RV.155": {
+  "RV.154": {
    "date": "2026-09-09 11:06",
    "h": "68de211",
    "subj": "TASKS: file RV.154 and RV.155 from the 2026-09-09 production logs"
@@ -3847,7 +3951,7 @@
    "h": "c6ab656",
    "subj": "TASKS: file RV.161 [v1.1] - extract the station from a scanned receipt"
   },
-  "RV.163": {
+  "RV.165": {
    "date": "2026-09-09 20:03",
    "h": "c435a80",
    "subj": "docs: DEFECT-PATTERNS part 2 - product reachability, and file RV.162-165"
@@ -3857,12 +3961,12 @@
    "h": "c435a80",
    "subj": "docs: DEFECT-PATTERNS part 2 - product reachability, and file RV.162-165"
   },
-  "RV.165": {
+  "RV.164": {
    "date": "2026-09-09 20:03",
    "h": "c435a80",
    "subj": "docs: DEFECT-PATTERNS part 2 - product reachability, and file RV.162-165"
   },
-  "RV.164": {
+  "RV.163": {
    "date": "2026-09-09 20:03",
    "h": "c435a80",
    "subj": "docs: DEFECT-PATTERNS part 2 - product reachability, and file RV.162-165"
@@ -3872,20 +3976,15 @@
    "h": "8ec6bc0",
    "subj": "TASKS: RV.166-168 from the external review of our own practice"
   },
-  "RV.168": {
-   "date": "2026-09-09 20:54",
-   "h": "8ec6bc0",
-   "subj": "TASKS: RV.166-168 from the external review of our own practice"
-  },
   "RV.167": {
    "date": "2026-09-09 20:54",
    "h": "8ec6bc0",
    "subj": "TASKS: RV.166-168 from the external review of our own practice"
   },
-  "RV.171": {
-   "date": "2026-09-09 22:16",
-   "h": "1ec2b1d",
-   "subj": "TASKS+QUEUE: tick RV.167, file the four rows its report produced"
+  "RV.168": {
+   "date": "2026-09-09 20:54",
+   "h": "8ec6bc0",
+   "subj": "TASKS: RV.166-168 from the external review of our own practice"
   },
   "RV.170": {
    "date": "2026-09-09 22:16",
@@ -3893,6 +3992,11 @@
    "subj": "TASKS+QUEUE: tick RV.167, file the four rows its report produced"
   },
   "RV.169": {
+   "date": "2026-09-09 22:16",
+   "h": "1ec2b1d",
+   "subj": "TASKS+QUEUE: tick RV.167, file the four rows its report produced"
+  },
+  "RV.171": {
    "date": "2026-09-09 22:16",
    "h": "1ec2b1d",
    "subj": "TASKS+QUEUE: tick RV.167, file the four rows its report produced"
@@ -3922,22 +4026,22 @@
    "h": "c933a3b",
    "subj": "PJ.55: the station ranking's first rung can finally fire"
   },
-  "RV.177": {
-   "date": "2026-09-10 05:33",
-   "h": "a411ad7",
-   "subj": "RV.152: changing a car's home currency asks what to do with the log"
-  },
   "RV.178": {
    "date": "2026-09-10 05:33",
    "h": "a411ad7",
    "subj": "RV.152: changing a car's home currency asks what to do with the log"
   },
-  "RV.180": {
+  "RV.177": {
+   "date": "2026-09-10 05:33",
+   "h": "a411ad7",
+   "subj": "RV.152: changing a car's home currency asks what to do with the log"
+  },
+  "RV.179": {
    "date": "2026-09-10 09:38",
    "h": "17f6294",
    "subj": "RV.161: a scanned receipt keeps the station it names - unmeasured, and saying so"
   },
-  "RV.179": {
+  "RV.180": {
    "date": "2026-09-10 09:38",
    "h": "17f6294",
    "subj": "RV.161: a scanned receipt keeps the station it names - unmeasured, and saying so"
@@ -3952,12 +4056,12 @@
    "h": "11c9deb",
    "subj": "TASKS: file RV.182 - the catalogue row promises a tank volume the edit screen drops"
   },
-  "RV.183": {
+  "RV.184": {
    "date": "2026-09-10 10:15",
    "h": "e4c852e",
    "subj": "TASKS: file RV.183 and RV.184 from the attachment viewer screenshot"
   },
-  "RV.184": {
+  "RV.183": {
    "date": "2026-09-10 10:15",
    "h": "e4c852e",
    "subj": "TASKS: file RV.183 and RV.184 from the attachment viewer screenshot"
@@ -3967,12 +4071,12 @@
    "h": "e2d20cc",
    "subj": "TASKS: file RV.185 - an imported car ignores the declared currency and cannot be named"
   },
-  "RV.188": {
+  "RV.186": {
    "date": "2026-09-10 11:14",
    "h": "2c48358",
    "subj": "TASKS: file RV.186, RV.187, RV.188 from the excluded-entries and conflict screenshots"
   },
-  "RV.186": {
+  "RV.188": {
    "date": "2026-09-10 11:14",
    "h": "2c48358",
    "subj": "TASKS: file RV.186, RV.187, RV.188 from the excluded-entries and conflict screenshots"
@@ -3987,17 +4091,17 @@
    "h": "8dd6155",
    "subj": "TASKS: file RV.189 - imported entries carry a stationId whose row is never written"
   },
-  "RV.190": {
-   "date": "2026-09-10 16:24",
-   "h": "c911bcb",
-   "subj": "RV.186 + RV.188: a service may share its fill-up's odometer, and the conflict panel names the pair"
-  },
   "RV.192": {
    "date": "2026-09-10 16:24",
    "h": "c911bcb",
    "subj": "RV.186 + RV.188: a service may share its fill-up's odometer, and the conflict panel names the pair"
   },
   "RV.191": {
+   "date": "2026-09-10 16:24",
+   "h": "c911bcb",
+   "subj": "RV.186 + RV.188: a service may share its fill-up's odometer, and the conflict panel names the pair"
+  },
+  "RV.190": {
    "date": "2026-09-10 16:24",
    "h": "c911bcb",
    "subj": "RV.186 + RV.188: a service may share its fill-up's odometer, and the conflict panel names the pair"
@@ -4037,12 +4141,12 @@
    "h": "fd57e7b",
    "subj": "PJ.23: a service's line items are editable - title, category and cost"
   },
-  "RV.200": {
+  "RV.201": {
    "date": "2026-09-11 00:05",
    "h": "d088809",
    "subj": "TASKS: two rows from the product owner's capture questions"
   },
-  "RV.201": {
+  "RV.200": {
    "date": "2026-09-11 00:05",
    "h": "d088809",
    "subj": "TASKS: two rows from the product owner's capture questions"
@@ -4062,12 +4166,12 @@
    "h": "877c166",
    "subj": "RV.202: a service or expense can be given a receipt, not only shown one"
   },
-  "RV.205": {
+  "RV.206": {
    "date": "2026-09-11 02:05",
    "h": "68324e5",
    "subj": "RV.200: an Expense scan reads the kind, not only the money"
   },
-  "RV.206": {
+  "RV.205": {
    "date": "2026-09-11 02:05",
    "h": "68324e5",
    "subj": "RV.200: an Expense scan reads the kind, not only the money"
@@ -4112,7 +4216,7 @@
    "h": "c3aa29d",
    "subj": "RV.206: a scan that read the category and the amount can be saved"
   },
-  "RV.216": {
+  "RV.217": {
    "date": "2026-09-11 15:22",
    "h": "f3e6adc",
    "subj": "RV.201: one inbox merge over entry kind, not a second inbox"
@@ -4122,27 +4226,17 @@
    "h": "f3e6adc",
    "subj": "RV.201: one inbox merge over entry kind, not a second inbox"
   },
-  "RV.217": {
+  "RV.216": {
    "date": "2026-09-11 15:22",
    "h": "f3e6adc",
    "subj": "RV.201: one inbox merge over entry kind, not a second inbox"
   },
-  "RV.219": {
+  "RV.220": {
    "date": "2026-09-11 15:57",
    "h": "5db396b",
    "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
   },
-  "RV.224": {
-   "date": "2026-09-11 15:57",
-   "h": "5db396b",
-   "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
-  },
-  "RV.218": {
-   "date": "2026-09-11 15:57",
-   "h": "5db396b",
-   "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
-  },
-  "RV.225": {
+  "RV.222": {
    "date": "2026-09-11 15:57",
    "h": "5db396b",
    "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
@@ -4152,7 +4246,7 @@
    "h": "5db396b",
    "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
   },
-  "RV.220": {
+  "RV.218": {
    "date": "2026-09-11 15:57",
    "h": "5db396b",
    "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
@@ -4162,7 +4256,17 @@
    "h": "5db396b",
    "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
   },
-  "RV.222": {
+  "RV.225": {
+   "date": "2026-09-11 15:57",
+   "h": "5db396b",
+   "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
+  },
+  "RV.219": {
+   "date": "2026-09-11 15:57",
+   "h": "5db396b",
+   "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
+  },
+  "RV.224": {
    "date": "2026-09-11 15:57",
    "h": "5db396b",
    "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
@@ -4197,12 +4301,12 @@
    "h": "894e4e6",
    "subj": "F9a walked: NOT IMPLEMENTED on RV.230 and one promised affordance nobody built"
   },
-  "RV.233": {
+  "RV.232": {
    "date": "2026-09-11 19:02",
    "h": "18902ae",
    "subj": "F1 walked: NOT IMPLEMENTED - the Aftermath was never built, and a ticked row was cited as closing it"
   },
-  "RV.232": {
+  "RV.233": {
    "date": "2026-09-11 19:02",
    "h": "18902ae",
    "subj": "F1 walked: NOT IMPLEMENTED - the Aftermath was never built, and a ticked row was cited as closing it"
@@ -4232,12 +4336,12 @@
    "h": "7212ebc",
    "subj": "J6 walked: a deferred story with three unowned promises, now filed as v1.x"
   },
-  "RV.239": {
+  "RV.240": {
    "date": "2026-09-11 20:44",
    "h": "d56f293",
    "subj": "RV.174: the baseline gate is one script, and it compiles the app"
   },
-  "RV.240": {
+  "RV.239": {
    "date": "2026-09-11 20:44",
    "h": "d56f293",
    "subj": "RV.174: the baseline gate is one script, and it compiles the app"
@@ -4272,12 +4376,12 @@
    "h": "0c815ef",
    "subj": "RV.244: the invoice date reaches the late service recognition, as a date"
   },
-  "RV.248": {
+  "RV.247": {
    "date": "2026-09-12 03:29",
    "h": "04b7c06",
    "subj": "J7c walked: NOT IMPLEMENTED on a wrong-car write and an unread dismissal reason"
   },
-  "RV.247": {
+  "RV.248": {
    "date": "2026-09-12 03:29",
    "h": "04b7c06",
    "subj": "J7c walked: NOT IMPLEMENTED on a wrong-car write and an unread dismissal reason"
@@ -4287,12 +4391,12 @@
    "h": "88bb4e2",
    "subj": "RV.155: the pull cursor is durable on every advance, not at the end of a cycle"
   },
-  "RV.250": {
+  "RV.251": {
    "date": "2026-09-12 04:16",
    "h": "a499106",
    "subj": "RV.247: a reminder completed from the all-cars list writes to the reminder's car"
   },
-  "RV.251": {
+  "RV.250": {
    "date": "2026-09-12 04:16",
    "h": "a499106",
    "subj": "RV.247: a reminder completed from the all-cars list writes to the reminder's car"
@@ -4337,12 +4441,12 @@
    "h": "1b9925f",
    "subj": "F7 reviewed: NOT implemented - RV.259 filed (the wrong-provider question loops when both providers are empty)"
   },
-  "RV.261": {
+  "RV.260": {
    "date": "2026-09-12 09:31",
    "h": "52e3bab",
    "subj": "RV.260 [!] and RV.261 filed from the J11 walk: the restore-from-backup door does not exist; the odometer-source clause is v2"
   },
-  "RV.260": {
+  "RV.261": {
    "date": "2026-09-12 09:31",
    "h": "52e3bab",
    "subj": "RV.260 [!] and RV.261 filed from the J11 walk: the restore-from-backup door does not exist; the odometer-source clause is v2"
@@ -4362,12 +4466,12 @@
    "h": "7912e19",
    "subj": "RV.229: the import review names a consumption outlier as one, with its own next step"
   },
-  "RV.265": {
+  "RV.266": {
    "date": "2026-09-12 17:40",
    "h": "89ee6d3",
    "subj": "F2 re-walked: implemented (REVIEW-SCENARIO-F2-2026-09-12); RV.265 and RV.266 [v1.0.x] filed"
   },
-  "RV.266": {
+  "RV.265": {
    "date": "2026-09-12 17:40",
    "h": "89ee6d3",
    "subj": "F2 re-walked: implemented (REVIEW-SCENARIO-F2-2026-09-12); RV.265 and RV.266 [v1.0.x] filed"
@@ -4386,10 +4490,35 @@
    "date": "2026-09-12 19:52",
    "h": "db3d69a",
    "subj": "RV.264 + RV.265: the flag surfaces say the right thing"
+  },
+  "RV.270": {
+   "date": "2026-09-12 21:39",
+   "h": "c9d8128",
+   "subj": "TASKS: the open LPG-from-boilerplate row is RV.270 - it had been filed under RV.243, an id a shipped row already carried"
+  },
+  "RV.271": {
+   "date": "2026-09-13 02:34",
+   "h": "b7ee93a",
+   "subj": "TASKS: RV.234 ticked (a906dc35), RV.271 filed; QUEUE: RV.248 dispatched"
+  },
+  "RV.273": {
+   "date": "2026-09-13 04:09",
+   "h": "206a729",
+   "subj": "RV.272 [!] and RV.273 filed from RV.271's gate: a scanned receipt's litres saved as gallons on an imperial car; J3's status line cleared"
+  },
+  "RV.272": {
+   "date": "2026-09-13 04:09",
+   "h": "206a729",
+   "subj": "RV.272 [!] and RV.273 filed from RV.271's gate: a scanned receipt's litres saved as gallons on an imperial car; J3's status line cleared"
+  },
+  "RV.274": {
+   "date": "2026-09-13 05:12",
+   "h": "f2d343b",
+   "subj": "RV.274 filed and briefed: two per-litre prices under a per-gallon label (the price counterpart of RV.272/RV.273)"
   }
  },
  "death": {
-  "RV.3": {
+  "RV.2": {
    "date": "2026-09-03 00:18",
    "h": "abd4243",
    "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker",
@@ -4401,7 +4530,7 @@
    "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker",
    "how": "ticked"
   },
-  "RV.2": {
+  "RV.3": {
    "date": "2026-09-03 00:18",
    "h": "abd4243",
    "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker",
@@ -4449,13 +4578,13 @@
    "subj": "RV.9 attachment viewer; log text format; 15 corpus fixtures",
    "how": "ticked"
   },
-  "RV.15": {
+  "RV.11": {
    "date": "2026-09-03 11:40",
    "h": "96d5b28",
    "subj": "RV.11 the chooser anchors to its button; RV.15 the CIS feed had never parsed",
    "how": "ticked"
   },
-  "RV.11": {
+  "RV.15": {
    "date": "2026-09-03 11:40",
    "h": "96d5b28",
    "subj": "RV.11 the chooser anchors to its button; RV.15 the CIS feed had never parsed",
@@ -4557,13 +4686,13 @@
    "subj": "Mark RV.18 and RV.29 verified",
    "how": "ticked"
   },
-  "RV.24": {
+  "RV.31": {
    "date": "2026-09-03 20:02",
    "h": "df067d0",
    "subj": "Mark RV.24 and RV.31 verified",
    "how": "ticked"
   },
-  "RV.31": {
+  "RV.24": {
    "date": "2026-09-03 20:02",
    "h": "df067d0",
    "subj": "Mark RV.24 and RV.31 verified",
@@ -4587,13 +4716,13 @@
    "subj": "Mark RV.33 and RV.34 verified",
    "how": "ticked"
   },
-  "RV.22": {
+  "RV.26": {
    "date": "2026-09-03 22:29",
    "h": "3e8b18c",
    "subj": "Mark RV.22 and RV.26 verified; register RV.43 (date-sensitive Trends test)",
    "how": "ticked"
   },
-  "RV.26": {
+  "RV.22": {
    "date": "2026-09-03 22:29",
    "h": "3e8b18c",
    "subj": "Mark RV.22 and RV.26 verified; register RV.43 (date-sensitive Trends test)",
@@ -4629,13 +4758,13 @@
    "subj": "Mark RV.39, RV.40 and RV.41 verified",
    "how": "ticked"
   },
-  "RV.41": {
+  "RV.39": {
    "date": "2026-09-04 09:13",
    "h": "00ea585",
    "subj": "Mark RV.39, RV.40 and RV.41 verified",
    "how": "ticked"
   },
-  "RV.39": {
+  "RV.41": {
    "date": "2026-09-04 09:13",
    "h": "00ea585",
    "subj": "Mark RV.39, RV.40 and RV.41 verified",
@@ -4683,13 +4812,13 @@
    "subj": "RV.51 decided: accept the inbox as primary, do not raise the budget",
    "how": "ticked"
   },
-  "RV.55": {
+  "RV.52": {
    "date": "2026-09-04 17:31",
    "h": "33674d0",
    "subj": "RV.52 verified; lint gate stops walking into other sessions' worktrees",
    "how": "ticked"
   },
-  "RV.52": {
+  "RV.55": {
    "date": "2026-09-04 17:31",
    "h": "33674d0",
    "subj": "RV.52 verified; lint gate stops walking into other sessions' worktrees",
@@ -5037,13 +5166,13 @@
    "subj": "RV.111: \"Check for rates\" asks for the dates that are actually pending",
    "how": "ticked"
   },
-  "RV.127": {
+  "RV.113": {
    "date": "2026-09-07 22:57",
    "h": "a59efc4",
    "subj": "RV.127: the feedback outbox is actually flushed",
    "how": "ticked"
   },
-  "RV.113": {
+  "RV.127": {
    "date": "2026-09-07 22:57",
    "h": "a59efc4",
    "subj": "RV.127: the feedback outbox is actually flushed",
@@ -5265,22 +5394,16 @@
    "subj": "RV.161: a scanned receipt keeps the station it names - unmeasured, and saying so",
    "how": "ticked"
   },
-  "RV.177": {
-   "date": "2026-09-10 10:29",
-   "h": "e4766fb",
-   "subj": "RV.177 + RV.178: the currency question is a sheet with a real hierarchy",
-   "how": "ticked"
-  },
   "RV.178": {
    "date": "2026-09-10 10:29",
    "h": "e4766fb",
    "subj": "RV.177 + RV.178: the currency question is a sheet with a real hierarchy",
    "how": "ticked"
   },
-  "RV.185": {
-   "date": "2026-09-10 13:53",
-   "h": "9588b20",
-   "subj": "RV.185 + RV.187: an imported car keeps its currency and gets a name; every entry says what it is",
+  "RV.177": {
+   "date": "2026-09-10 10:29",
+   "h": "e4766fb",
+   "subj": "RV.177 + RV.178: the currency question is a sheet with a real hierarchy",
    "how": "ticked"
   },
   "RV.187": {
@@ -5289,7 +5412,13 @@
    "subj": "RV.185 + RV.187: an imported car keeps its currency and gets a name; every entry says what it is",
    "how": "ticked"
   },
-  "RV.190": {
+  "RV.185": {
+   "date": "2026-09-10 13:53",
+   "h": "9588b20",
+   "subj": "RV.185 + RV.187: an imported car keeps its currency and gets a name; every entry says what it is",
+   "how": "ticked"
+  },
+  "RV.186": {
    "date": "2026-09-10 16:24",
    "h": "c911bcb",
    "subj": "RV.186 + RV.188: a service may share its fill-up's odometer, and the conflict panel names the pair",
@@ -5301,19 +5430,19 @@
    "subj": "RV.186 + RV.188: a service may share its fill-up's odometer, and the conflict panel names the pair",
    "how": "ticked"
   },
-  "RV.186": {
+  "RV.190": {
    "date": "2026-09-10 16:24",
    "h": "c911bcb",
    "subj": "RV.186 + RV.188: a service may share its fill-up's odometer, and the conflict panel names the pair",
    "how": "ticked"
   },
-  "RV.183": {
+  "RV.184": {
    "date": "2026-09-10 17:24",
    "h": "e3fe547",
    "subj": "RV.183 + RV.184: the receipt viewer says when it was captured, and which station it read",
    "how": "ticked"
   },
-  "RV.184": {
+  "RV.183": {
    "date": "2026-09-10 17:24",
    "h": "e3fe547",
    "subj": "RV.183 + RV.184: the receipt viewer says when it was captured, and which station it read",
@@ -5325,13 +5454,13 @@
    "subj": "RV.176 + PR.28: a screenshot nobody can reproduce now fails CI",
    "how": "ticked"
   },
-  "RV.193": {
+  "RV.195": {
    "date": "2026-09-10 17:54",
    "h": "24f4acc",
    "subj": "RV.195 + RV.193: an expense can be given its category, and the strip says when the photo was taken",
    "how": "ticked"
   },
-  "RV.195": {
+  "RV.193": {
    "date": "2026-09-10 17:54",
    "h": "24f4acc",
    "subj": "RV.195 + RV.193: an expense can be given its category, and the strip says when the photo was taken",
@@ -5343,13 +5472,13 @@
    "subj": "agents: brief RV.165; close RV.172 as a decision; file RV.196",
    "how": "ticked"
   },
-  "RV.110": {
+  "RV.165": {
    "date": "2026-09-10 19:00",
    "h": "0a64816",
    "subj": "RV.165: four journeys from a cold launch, and the first run found a product defect",
    "how": "ticked"
   },
-  "RV.165": {
+  "RV.110": {
    "date": "2026-09-10 19:00",
    "h": "0a64816",
    "subj": "RV.165: four journeys from a cold launch, and the first run found a product defect",
@@ -5439,13 +5568,13 @@
    "subj": "RV.219: the QR date lands, through the one path",
    "how": "ticked"
   },
-  "RV.223": {
+  "RV.222": {
    "date": "2026-09-11 17:11",
    "h": "bb7887a",
    "subj": "RV.222 + RV.223: the capture cover's two recovery paths, and the comments made true",
    "how": "ticked"
   },
-  "RV.222": {
+  "RV.223": {
    "date": "2026-09-11 17:11",
    "h": "bb7887a",
    "subj": "RV.222 + RV.223: the capture cover's two recovery paths, and the comments made true",
@@ -5475,13 +5604,13 @@
    "subj": "RV.218: the consumption outlier check on save that F2 promised, as a flag and never a gate",
    "how": "ticked"
   },
-  "RV.211": {
+  "RV.164": {
    "date": "2026-09-11 18:52",
    "h": "9cac6db",
    "subj": "RV.164 + RV.211: two error-surface decisions, written down and bound",
    "how": "ticked"
   },
-  "RV.164": {
+  "RV.211": {
    "date": "2026-09-11 18:52",
    "h": "9cac6db",
    "subj": "RV.164 + RV.211: two error-surface decisions, written down and bound",
@@ -5529,13 +5658,13 @@
    "subj": "RV.208: no sweep - a dangling id is not distinguishable from one not pulled yet",
    "how": "ticked"
   },
-  "RV.216": {
+  "RV.217": {
    "date": "2026-09-11 22:06",
    "h": "c824041",
    "subj": "RV.216 + RV.217: the Inbox card counts from one, and its RU labels stop hyphenating",
    "how": "ticked"
   },
-  "RV.217": {
+  "RV.216": {
    "date": "2026-09-11 22:06",
    "h": "c824041",
    "subj": "RV.216 + RV.217: the Inbox card counts from one, and its RU labels stop hyphenating",
@@ -5565,13 +5694,13 @@
    "subj": "RV.212 + RV.213 + RV.224: the service create door catches up with the edit door",
    "how": "ticked"
   },
-  "RV.224": {
+  "RV.212": {
    "date": "2026-09-12 01:02",
    "h": "403306d",
    "subj": "RV.212 + RV.213 + RV.224: the service create door catches up with the edit door",
    "how": "ticked"
   },
-  "RV.212": {
+  "RV.224": {
    "date": "2026-09-12 01:02",
    "h": "403306d",
    "subj": "RV.212 + RV.213 + RV.224: the service create door catches up with the edit door",
@@ -5709,13 +5838,13 @@
    "subj": "RV.263: a currency the import file declares is a correctable default",
    "how": "ticked"
   },
-  "RV.235": {
+  "RV.227": {
    "date": "2026-09-12 16:56",
    "h": "87c7346",
    "subj": "RV.227 + RV.235: nothing the user needs rests under a pinned bar",
    "how": "ticked"
   },
-  "RV.227": {
+  "RV.235": {
    "date": "2026-09-12 16:56",
    "h": "87c7346",
    "subj": "RV.227 + RV.235: nothing the user needs rests under a pinned bar",
@@ -5773,6 +5902,66 @@
    "date": "2026-09-12 20:45",
    "h": "3086508",
    "subj": "RV.269: the review intro counts the rows that are actually ready",
+   "how": "ticked"
+  },
+  "RV.246": {
+   "date": "2026-09-12 21:13",
+   "h": "38e0303",
+   "subj": "RV.246: a late expense read carries the receipt's date",
+   "how": "ticked"
+  },
+  "RV.268": {
+   "date": "2026-09-12 22:39",
+   "h": "c1676fd",
+   "subj": "RV.240 + RV.268: the anomaly card dismisses in one tap; the reminder it creates is due next year",
+   "how": "ticked"
+  },
+  "RV.240": {
+   "date": "2026-09-12 22:39",
+   "h": "c1676fd",
+   "subj": "RV.240 + RV.268: the anomaly card dismisses in one tap; the reminder it creates is due next year",
+   "how": "ticked"
+  },
+  "RV.270": {
+   "date": "2026-09-12 23:03",
+   "h": "701c0a2",
+   "subj": "RV.270: a fuel kind is never read from till boilerplate",
+   "how": "ticked"
+  },
+  "RV.234": {
+   "date": "2026-09-13 02:34",
+   "h": "b7ee93a",
+   "subj": "TASKS: RV.234 ticked (a906dc35), RV.271 filed; QUEUE: RV.248 dispatched",
+   "how": "ticked"
+  },
+  "RV.248": {
+   "date": "2026-09-13 03:21",
+   "h": "6aad8b1",
+   "subj": "RV.248: reminders keep their history - done and dismissed rows, with their reasons, in a History section",
+   "how": "ticked"
+  },
+  "RV.271": {
+   "date": "2026-09-13 04:12",
+   "h": "c0fbef6",
+   "subj": "RV.271: the pace limit and the inbox volume values speak the car's units",
+   "how": "ticked"
+  },
+  "RV.273": {
+   "date": "2026-09-13 05:49",
+   "h": "156cf56",
+   "subj": "RV.272 + RV.273: a scanned receipt's litres cross into the car's unit at one boundary; every stored volume renders converted",
+   "how": "ticked"
+  },
+  "RV.272": {
+   "date": "2026-09-13 05:49",
+   "h": "156cf56",
+   "subj": "RV.272 + RV.273: a scanned receipt's litres cross into the car's unit at one boundary; every stored volume renders converted",
+   "how": "ticked"
+  },
+  "RV.274": {
+   "date": "2026-09-13 06:14",
+   "h": "d0a452e",
+   "subj": "RV.274: every stored per-litre price renders in the car's unit",
    "how": "ticked"
   }
  }
