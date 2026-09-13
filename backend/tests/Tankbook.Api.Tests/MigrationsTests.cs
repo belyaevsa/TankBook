@@ -65,7 +65,12 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         await SchemaMigrator.ApplyPendingAsync(db);
 
         var applied = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
-        Assert.Equal(20, applied.Single());   // 021 added the ledger write queue
+        // One row per embedded .up.sql, never a literal: a literal count is the
+        // assertion every new migration breaks (022 did, on CI, with Docker down
+        // on the machine that verified it).
+        var upMigrations = typeof(SchemaMigrator).Assembly.GetManifestResourceNames()
+            .Count(name => name.EndsWith(".up.sql", StringComparison.Ordinal));
+        Assert.Equal(upMigrations, applied.Single());
 
         var tables = await GetPublicTablesAsync(db);
         var expected = ExpectedTables.Append("schema_migrations").OrderBy(t => t, StringComparer.Ordinal).ToArray();
