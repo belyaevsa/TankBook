@@ -268,7 +268,7 @@ captures" metric assumed QR was a capture path; it is not.)
 **Success metric:** % of EV owners logging ≥4 sessions/month; the comparison screen's weekly views.
 
 ### J7 · Service visit
-*(Status cleared 2026-09-13: `PJ.29a` - the invoice scan reaches the cloud gateway; the story changed, re-walk due.)*
+**Status: implemented 2026-09-13** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J7-2026-09-13)
 **Trigger:** leaving the workshop with a multi-page invoice, or DIY oil change in the garage.
 
 **The manual door (RV.61, hard rule 15):** typing is a peer path, never a camera fallback. The same form is reached with no camera from Home's header - "Type it" → its menu → "Service" opens the empty `ServiceEntryView` (odometer pre-filled from the last known value, editable). A capture is a head start, never a gate.
@@ -623,7 +623,7 @@ deleted.
 **Metric:** offline captures complete at the same rate as online ones (instrumented locally, reported in aggregate).
 
 ### F4 · Cloud LLM fallback unavailable (offline, backend down, or quota spent)
-*(Status cleared 2026-09-13: `PJ.29` and `PJ.29a` - the expense and invoice scans reach the gateway; the story changed, re-walk due.)*
+**Status: implemented 2026-09-13** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F4-2026-09-13)
 **Trigger:** hard image (crumpled receipt, odd charging-app screenshot) where on-device gave low confidence and the user's Pro fallback can't be reached.
 
 - The app **never waits on the gateway to show the card**: on-device results (however partial) render immediately; the fallback was always an *enhancement* pass.
