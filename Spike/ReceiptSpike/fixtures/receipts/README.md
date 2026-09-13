@@ -945,9 +945,10 @@ Cyrillic-labelled-display asymmetry the 2026-09-11 batch recorded.
 The footnote `Kütuse liitrihind kviitungil sisaldab allahindlust` states that the printed per-litre
 price already includes the discount, so `64.04 x 2.024 = 129.62` closes exactly and the `-0,96`
 line is informational - the `receipt-038`/`055` shape, where subtracting the discount again would
-double-count it. The parser resolves **litres, total and currency**, but commits
-**`unitPrice = 0.96`** - the `EXTRA SOODUS` amount, not the `2,024` the receipt prints and its
-paired pump displays. That is a confident-wrong unit price (hard rule 13), not the honest
-abstention the other discount receipts return, and it is recorded here rather than tuned away.
-`fuelKind` abstains: `D B0 miles` is the loyalty product string that has never normalised to
-diesel (`receipt-001`/`042`/`045`/`046`/`059`/`064`).
+double-count it. **`RV.282` fixes the unit price.** The bare `EUR/L` label's pump form used to take
+the `EXTRA SOODUS -0,96 EUR` subtraction line below it (and `NumberScanner.value` drops the sign),
+so the parser committed **`unitPrice = 0.96`**. The pump form now skips a subtraction line, and when
+no label names a price the parser derives the unit price only from a printed value the arithmetic
+confirms (`total / liters`), so `receipt-066` commits the printed `2,024` - a value the document
+states, not a computation. `fuelKind` still abstains: `D B0 miles` is the loyalty product string
+that has never normalised to diesel (`receipt-001`/`042`/`045`/`046`/`059`/`064`).

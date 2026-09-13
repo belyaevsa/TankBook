@@ -140,15 +140,24 @@ The 2026-09-13b set is four Circle K Estonia Dresser Wayne displays (`pump-097`.
 same `SUMMA`/`LIITRIT`/`HIND-1L` face, the grade never named) and the paper half of `pump-100`,
 `receipt-066` (Circle K Jarvevana, pump 4, `D B0 miles 64,04L 129,62`, 13/09/2026 15:32).
 
-**Receipts 260/305 -> 263/310.** `receipt-066` resolves litres, total and currency; it misses
-`fuelKind` (`D B0 miles`, the loyalty product string that has never normalised to diesel) and
-`unitPrice`. The unit-price miss is **not** an abstention: the parser commits **`unitPrice = 0.96`**,
-which is the `EXTRA SOODUS -0,96 EUR` discount line, not the `2,024` the receipt prints and its
-paired pump displays. The footnote `Kütuse liitrihind kviitungil sisaldab allahindlust` says the
-printed per-litre price already includes the discount, so `64.04 x 2.024 = 129.62` closes exactly
-and the `-0,96` is informational. A confident-wrong unit price is hard rule 13's exact concern, and
-the ratchet scores it as a plain miss - the same asymmetry `RV.270` fixed for `fuelKind`. Recorded,
-not tuned.
+**Receipts 260/305 -> 263/310, then 265/310 (`RV.282`).** `receipt-066` resolves litres, total and
+currency; it misses `fuelKind` (`D B0 miles`, the loyalty product string that has never normalised
+to diesel). Its unit price was a **confident-wrong commit**: the bare `EUR/L` label's pump form took
+the `EXTRA SOODUS -0,96 EUR` subtraction line below it, and `NumberScanner.value` drops the sign by
+design, so the parser committed `unitPrice = 0.96` where the paper prints `2,024`. The footnote
+`Kütuse liitrihind kviitungil sisaldab allahindlust` says the printed per-litre price already
+includes the discount, so `64.04 x 2.024 = 129.62` closes exactly and the `-0,96` is informational.
+A confident-wrong unit price is hard rule 13's exact concern, the same asymmetry `RV.270` fixed for
+`fuelKind`.
+
+**Fixed by `RV.282`.** The pump form now skips a subtraction line, and when no label names a price
+the parser derives the unit price only from a printed value the arithmetic confirms
+(`total / liters`), so `receipt-066` commits the printed `2,024`. The same derive resolves
+`receipt-062`'s printed `Цена за ед. 71.30`. `receipt-010`, whose ground truth deliberately leaves
+the unit price blank (the fill has two per-litre prices), now derives `48.54`; its expected cell is
+blank, so no hit moves and the ratchet cannot see it. What the score alone still cannot see is the
+asymmetry itself: a confident-wrong price and an abstention both count as one miss, which is why
+the unit-price guard is a code path, not a number in this table.
 
 **Pump 53/267 -> 53/279.** The four displays assert twelve numeric cells and the parser commits
 nothing on any of them, so committed stays 56 and committed-correct stays 53: coverage

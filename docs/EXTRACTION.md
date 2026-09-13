@@ -407,6 +407,40 @@ receipt's fuel amount still comes from the fuel line (hard rule 4). Measured: re
 **223/265 -> 225/265** (two wrong totals became two correct hits; total-field misses 3 -> 1, the
 remaining miss being receipt-056's deliberately-nil zero).
 
+### 5d. A discount line is never the unit price (RV.282, 2026-09-13)
+
+The same asymmetry `RV.270` fixed for `fuelKind` reappeared for money. On `receipt-066` (Circle K
+Järvevana) Vision splits the fuel block into one-token lines, and the bare `EUR/L` label's pump form
+took the **nearest value line below** it - the `EXTRA SOODUS -0,96 EUR` discount - because
+`NumberScanner.value` drops the sign by design (the discount-magnitude path wants `-0,96` as
+`0.96`). The true `2,024` sits **above** the label, which the pump form excludes by construction.
+The parser committed `unitPrice = 0.96`, a confident-wrong value (hard rule 13), and the ratchet
+scored it as a plain miss - it cannot tell a wrong commit from an abstention.
+
+Three changes, in order:
+
+1. **The pump form skips a subtraction line.** `NumberScanner.isSubtractionLine` is now the one
+   shared predicate, consulted by the total finder (which already had it) and by the unit-price
+   pump form. The sign check lives outside `value(in:)` on purpose: that function drops the sign
+   because the discount-magnitude path wants the magnitude.
+2. **Derive only a printed price the arithmetic confirms.** When no label named a price but litres
+   and total both resolved, the parser matches `total / liters` against a printed value line within
+   the cross-check tolerance. The document said the number, so it is the document's price, never a
+   bare quotient (a wrong value is worse than a nil). `receipt-066` is caught here: with the
+   discount skipped the label yields nil, and `2,024` is the one printed value that equals
+   `129.62 / 64.04`. The same step resolves `receipt-062`'s printed `Цена за ед. 71.30`, and derives
+   `48.54` on `receipt-010`, whose ground truth deliberately leaves the unit price blank.
+3. **A price that is a printed discount's magnitude is dropped.** Belt and braces: a resolved price
+   that contradicts `litres x total` by more than tolerance AND equals a discount line's magnitude
+   is the discount, not the price. This is the money sibling of the RV.270 fuel-kind guard; it did
+   not fire on `receipt-066`, because step 1 had already made the price nil and step 2 supplied the
+   printed one.
+
+**Which step caught `receipt-066`: step 2.** The discount skip (step 1) is what lets the derive run
+at all - without it the label returns `0.96` and the derive is skipped - but the committed value is
+step 2's printed `2,024`. The named mutation is exactly that: remove the skip and the L1 goes red
+with `0.96`.
+
 ### 6. Hand off
 
 `ExtractionMeta` plus per-field confidence, into the Confirm screen as **already-editable

@@ -69,22 +69,6 @@ extension FuelExtractor {
 
     // MARK: - The total finder's helpers
 
-    /// A value line that begins with `-` is a subtraction line (a VAT amount or
-    /// a discount), never a total candidate. `NumberScanner.value` silently
-    /// drops the sign - that is what the discount magnitude path wants - so the
-    /// guard lives here in the total finder, not in the scanner: receipt-018
-    /// prints `ИТОГ` beside `-3555.89` (its `СУММА НДС` amount, one row lower)
-    /// while the real total `=19719.00` sits above the label.
-    func isSubtractionLine(_ text: String) -> Bool {
-        var trimmed = text.trimmingCharacters(in: .whitespaces)
-        // Strip the same value-lead symbols `NumberScanner.value` strips, so a
-        // `= -0.80`-shaped line is recognised regardless of the prefix.
-        for token in ["=", "≡", "#", "_", "₽", "฿", "₴", "€", "$"] {
-            trimmed = trimmed.replacingOccurrences(of: token, with: "")
-        }
-        return trimmed.trimmingCharacters(in: .whitespaces).hasPrefix("-")
-    }
-
     /// The discounted total: when the labelled total minus a printed discount
     /// equals another label-paired candidate, the charged figure is the
     /// discounted one. A discount is the list price minus the charged price, so
@@ -100,6 +84,24 @@ extension FuelExtractor {
         return nil
     }
 
+    /// Whether a resolved unit price is really a printed discount: the price
+    /// contradicts the product by more than the cross-check tolerance AND its
+    /// magnitude equals a discount line the document prints. The money sibling
+    /// of RV.270's fuel-kind guard - a confident-wrong price (hard rule 13) the
+    /// arithmetic cannot reject on its own, because the discount is a real
+    /// printed figure. A price that reconciles is never touched.
+    func isDiscountMagnitudePrice(_ price: Decimal, liters: Double, total: Decimal,
+                                  in lines: [OCRLine]) -> Bool {
+        guard let volume = ConfirmFormat.decimal(fromExtraction: liters, fractionDigits: 2),
+              volume > 0 else { return false }
+        let tolerance = ConfirmConfidenceGate.crossCheckTolerance(amount: total)
+        guard abs(volume * price - total) > tolerance else { return false }
+        let magnitude = abs(NSDecimalNumber(decimal: price).doubleValue)
+        return ExtractionCrossCheck.discountLines(in: lines).contains {
+            abs(NSDecimalNumber(decimal: $0).doubleValue - magnitude) <= 0.005
+        }
+    }
+
     /// The modal value across the receipt's value lines - the redundancy the
     /// net-versus-gross fix leans on. Only a single, strictly-dominant value
     /// printed at least twice is returned; a tie or an all-unique document
@@ -108,7 +110,7 @@ extension FuelExtractor {
         var counts: [Double: Int] = [:]
         for line in ReceiptNoiseFilter.candidateLines(lines) {
             guard NumberScanner.isValueLine(line.text),
-                  !isSubtractionLine(line.text),
+                  !NumberScanner.isSubtractionLine(line.text),
                   let value = NumberScanner.value(in: line.text) else { continue }
             counts[value, default: 0] += 1
         }
@@ -124,7 +126,7 @@ extension FuelExtractor {
         var count = 0
         for line in ReceiptNoiseFilter.candidateLines(lines) {
             guard NumberScanner.isValueLine(line.text),
-                  !isSubtractionLine(line.text),
+                  !NumberScanner.isSubtractionLine(line.text),
                   let other = NumberScanner.value(in: line.text) else { continue }
             if abs(other - value) < 0.005 { count += 1 }
         }
@@ -211,7 +213,7 @@ extension FuelExtractor {
             guard line.boundingBox.midX > pair.boundingBox.midX,
                   abs(line.midY - pair.midY) < 0.012,
                   NumberScanner.isValueLine(line.text),
-                  !isSubtractionLine(line.text),
+                  !NumberScanner.isSubtractionLine(line.text),
                   !NumberScanner.isNegativeAmount(line.text),
                   let value = NumberScanner.value(in: line.text),
                   value > 0 else { continue }
@@ -241,7 +243,7 @@ extension FuelExtractor {
         for line in ReceiptNoiseFilter.candidateLines(lines) {
             if line.text == fuelText { continue }
             guard NumberScanner.isValueLine(line.text),
-                  !isSubtractionLine(line.text),
+                  !NumberScanner.isSubtractionLine(line.text),
                   !NumberScanner.isNegativeAmount(line.text),
                   let candidate = NumberScanner.value(in: line.text) else { continue }
             if abs(candidate - value) <= max(0.02, value * 0.005) { return true }
@@ -260,9 +262,9 @@ extension FuelExtractor {
                   NumberScanner.isValueLine(line.text),
                   // Two sessions found this bug independently on the same day.
                   // `isSubtractionLine` also strips currency symbols, so it is
-                  // the wider test; `isNegativeAmount` is the shared home. Both
+                  // the wider test; `isNegativeAmount` is the narrower one. Both
                   // run, because each has tests pinning it.
-                  !isSubtractionLine(line.text),
+                  !NumberScanner.isSubtractionLine(line.text),
                   !NumberScanner.isNegativeAmount(line.text),
                   let value = NumberScanner.value(in: line.text) else { continue }
             let distance = abs(line.midY - label.midY)
@@ -281,7 +283,7 @@ extension FuelExtractor {
         // read it, and the expense corpus's hand-authored fixtures print this
         // shape. Checked last so a fuel receipt's separate value line (the shape
         // the geometry and adjacency paths above already resolve) keeps winning.
-        if !isSubtractionLine(label.text), !NumberScanner.isNegativeAmount(label.text),
+        if !NumberScanner.isSubtractionLine(label.text), !NumberScanner.isNegativeAmount(label.text),
            let value = NumberScanner.value(in: label.text) {
             return value
         }
@@ -291,7 +293,7 @@ extension FuelExtractor {
     func adjacentValue(_ line: OCRLine) -> Double? {
         // Both predicates, for the reason given at the other call site.
         guard NumberScanner.isValueLine(line.text),
-              !isSubtractionLine(line.text),
+              !NumberScanner.isSubtractionLine(line.text),
               !NumberScanner.isNegativeAmount(line.text) else { return nil }
         return NumberScanner.value(in: line.text)
     }

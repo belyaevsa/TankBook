@@ -65,6 +65,21 @@ enum NumberScanner {
         return line[start...].hasPrefix("-")
     }
 
+    /// True when a value line is a subtraction (a discount, a VAT credit,
+    /// change), never a total or a unit price. Wider than `isNegativeAmount`
+    /// because it strips the currency symbols too, so `-0,96 EUR` and `= -0.80`
+    /// both read as subtractions. The sign check lives here rather than inside
+    /// `value(in:)` on purpose: that function drops the sign (the
+    /// discount-magnitude path wants `-0,96` as `0.96`), so a caller that must
+    /// not accept a subtraction asks this predicate first.
+    static func isSubtractionLine(_ line: String) -> Bool {
+        var trimmed = line.trimmingCharacters(in: .whitespaces)
+        for token in ["=", "≡", "#", "_", "₽", "฿", "₴", "€", "$"] {
+            trimmed = trimmed.replacingOccurrences(of: token, with: "")
+        }
+        return trimmed.trimmingCharacters(in: .whitespaces).hasPrefix("-")
+    }
+
     /// True when the line is a bare value: an optional `=`/currency prefix then
     /// one number, with at most a stray letter of OCR noise. Sentences like
     /// "В ТОМ ЧИСЛЕ ВАША СКИДКА = 0.83" are excluded.

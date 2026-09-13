@@ -26,18 +26,64 @@ extension FuelExtractor {
             return valueRight(ofLabelAt: index, in: lines)
         }
         // The pump form: the value sits directly below its "/L" label, in the
-        // same column - never above it, where the row's sum lives.
+        // same column - never above it, where the row's sum lives. A
+        // subtraction line below the label is a discount or a VAT amount, never
+        // the price (receipt-066 prints `EXTRA SOODUS` / `-0,96 EUR` below the
+        // bare `EUR/L`, while the true `2,024` sits above it).
         var best: (distance: CGFloat, value: Double)?
         for (otherIndex, other) in lines.enumerated() where otherIndex != index {
             let distance = label.midY - other.midY
             guard distance > 0, distance < 0.02,
                   NumberScanner.isValueLine(other.text),
+                  !NumberScanner.isSubtractionLine(other.text),
                   let value = NumberScanner.value(in: other.text) else { continue }
             if best == nil || distance < best!.distance {
                 best = (distance, value)
             }
         }
         return best?.value
+    }
+
+    /// The receipt's unit price after the RV.282 discount guards. When the
+    /// label ladder named no price but litres and total resolved, a printed
+    /// value the arithmetic confirms supplies it. A resolved price that
+    /// contradicts the product and equals a printed discount's magnitude is
+    /// the discount, not the price, and is dropped. Nil when neither applies.
+    func reconciledUnitPrice(_ labelPrice: Double?, liters: Double?, total: Decimal?,
+                             in lines: [OCRLine]) -> Double? {
+        var price = labelPrice
+        if price == nil, let liters, let total {
+            price = derivedUnitPrice(total: total, liters: liters, in: lines)
+        }
+        if let price, let liters, let total,
+           isDiscountMagnitudePrice(Decimal(price), liters: liters, total: total, in: lines) {
+            return nil
+        }
+        return price
+    }
+
+    /// The unit price the document itself prints, when no label named one but
+    /// the arithmetic confirms a printed value: `total / liters` matched
+    /// against a printed value line within the cross-check tolerance. The
+    /// document said it and the arithmetic confirms it, so it is the document's
+    /// own price - never a bare quotient (hard rule 13; docs/EXTRACTION.md ->
+    /// "a wrong value is worse than a nil"). Nil when no printed value equals
+    /// the quotient.
+    func derivedUnitPrice(total: Decimal, liters: Double, in lines: [OCRLine]) -> Double? {
+        guard let volume = ConfirmFormat.decimal(fromExtraction: liters, fractionDigits: 2),
+              volume > 0 else { return nil }
+        let quotient = total / volume
+        let quotientDouble = NSDecimalNumber(decimal: quotient).doubleValue
+        let tolerance = NSDecimalNumber(
+            decimal: ConfirmConfidenceGate.crossCheckTolerance(amount: quotient)).doubleValue
+        for line in lines {
+            guard NumberScanner.isValueLine(line.text),
+                  !NumberScanner.isSubtractionLine(line.text),
+                  !NumberScanner.isNegativeAmount(line.text),
+                  let value = NumberScanner.value(in: line.text), value > 0 else { continue }
+            if abs(value - quotientDouble) <= tolerance { return value }
+        }
+        return nil
     }
 
     /// A value line to the RIGHT of a label on (approximately) its baseline.

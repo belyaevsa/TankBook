@@ -67,12 +67,14 @@ public struct FuelExtractor: Sendable {
                 candidates, currency: result.currency, fuelKind: result.fuelKind, date: parsedDate
             )
             result.liters = volumePrice.liters
-            // Money is born Decimal here (P2.2b), never Decimal(Double).
-            result.unitPrice = volumePrice.price.flatMap {
+            result.total = resolveTotal(lines, liters: result.liters, unitPrice: volumePrice.price)
+            // Money is born Decimal here (P2.2b); RV.282 guards pick the price.
+            result.unitPrice = reconciledUnitPrice(
+                volumePrice.price, liters: result.liters, total: result.total, in: lines
+            ).flatMap {
                 ConfirmFormat.decimal(fromExtraction: $0,
                                       fractionDigits: ConfirmFormat.fractionDigits(for: .unitPrice))
             }
-            result.total = resolveTotal(lines, liters: result.liters, unitPrice: volumePrice.price)
         }
 
         // A printed ZERO is "the price is not on this receipt", never "the fuel
