@@ -390,14 +390,17 @@ value, and the Log row is named from it when the title is empty (RV.187), so a s
 kind and the total is a complete entry. A title stays available and is still a peer way to name
 the row - it is simply never demanded (hard rule 15).
 
-**A late shop-receipt reading reaches the inbox (RV.201, 2026-09-11; RV.246, 2026-09-12).** When an
-expense recognition finishes after the expense is saved, the inbox offers what the recognition
-produces – the **amount**, the **category** and the receipt's printed **date** – as per-field ticks
-against what the user saved, "leave it as it is" the default (hard rule 13). The date is the same
-parse the form's pre-fill reads (`ExpensePrefill.date`), so the form and the inbox can never
-disagree about what the receipt said. A differing amount, category or date is offered, never
-applied on its own; the same merge function serves the service and fill-up kinds, so the three
-cannot drift. **The producing side is deferrable (RV.215, 2026-09-11):** an Expense-mode scan runs
+**A late shop-receipt reading reaches the inbox (RV.201, 2026-09-11; RV.246, 2026-09-12; RV.280,
+2026-09-13).** When an expense recognition finishes after the expense is saved, the inbox offers
+what the recognition produces – the **amount**, its **currency**, the **category** and the
+receipt's printed **date** – as per-field ticks against what the user saved, "leave it as it is"
+the default (hard rule 13). The currency is the same parse the form's pre-fill reads
+(`ExpensePrefill.currency`), so a foreign figure is offered with its own symbol and never as home
+money (hard rule 3). The date is likewise the same parse the form's pre-fill reads
+(`ExpensePrefill.date`), so the form and the inbox can never disagree about what the receipt said.
+A differing amount, currency, category or date is offered, never applied on its own; the same
+merge function serves the service and fill-up kinds, so the three cannot drift. **The producing
+side is deferrable (RV.215, 2026-09-11):** an Expense-mode scan runs
 its read in the background, so the form opens before the recognition lands - a read that finishes
 before the save fills the open form, and one that finishes after it reaches this inbox through the
 one policy. **The photograph is persisted at save whether or not the read has finished (RV.243,

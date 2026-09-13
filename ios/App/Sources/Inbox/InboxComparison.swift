@@ -178,12 +178,12 @@ enum InboxValueFormat {
                 $0.value.formatted(.dateTime.month(.abbreviated).day().year())
             } ?? blank
         case .total:
-            // The recognition carries no currency of its own; RV.200 only offers
-            // an amount when it is the car's home currency, so the entry's
-            // symbol is the figure's own (hard rule 3).
             return recognition.total.map {
-                money($0.value, fractionDigits: 2, symbol: receiptSymbol(entry: entry, read: nil))
+                money($0.value, fractionDigits: 2,
+                      symbol: receiptSymbol(entry: entry, read: recognition.currency?.value))
             } ?? blank
+        case .currency:
+            return recognition.currency.map { $0.value.rawValue } ?? blank
         case .category:
             return recognition.category.map { L10n.expenseCategoryLabel($0.value) } ?? blank
         default:

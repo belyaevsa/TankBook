@@ -2395,6 +2395,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.280-inbox-expense-currency": {
+      "commit": "9ceb3966",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.280-inbox-expense-currency-ru": {
+      "commit": "9ceb3966",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.29-home-vitals": {
       "commit": "1cfd0d3",
       "device": "iPhone 17",

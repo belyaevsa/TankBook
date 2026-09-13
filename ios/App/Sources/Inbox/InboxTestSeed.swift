@@ -29,6 +29,9 @@ import TankbookCore
 /// - `-seedInboxExpense` (RV.215): a saved expense plus a late expense
 ///   recognition that differs on amount, category and date - the shape that
 ///   proves the ask reaches an expense, and the pose the expense screenshots use.
+/// - `-seedInboxExpenseCurrency` (RV.280): the same expense with a FOREIGN late
+///   read (PLN against the car's EUR) - the shape that proves the currency is
+///   offered and the receipt's figure renders under its own symbol.
 enum InboxTestSeed {
     @MainActor
     static func seedIfRequested() {
@@ -50,6 +53,9 @@ enum InboxTestSeed {
         }
         if arguments.contains("-seedInboxExpense") {
             seedExpenseItem()
+        }
+        if arguments.contains("-seedInboxExpenseCurrency") {
+            seedExpenseItem(recognitionCurrency: .pln)
         }
     }
 
@@ -327,12 +333,14 @@ enum InboxTestSeed {
     // MARK: - RV.215 the expense offer (a differing amount, category and date)
 
     /// A saved expense plus a late expense recognition that DIFFERS on amount,
-    /// category and date. The card must offer `inboxTick_total`,
-    /// `inboxTick_category` and `inboxTick_date` and the user must be able to
-    /// decline it. This is the seed the expense EN/RU screenshots use; the L4
-    /// test drives the REAL deferred producer instead.
+    /// category and date (and, when `recognitionCurrency` is given, on currency
+    /// too - RV.280). The card must offer `inboxTick_total`,
+    /// `inboxTick_category` and `inboxTick_date` (plus `inboxTick_currency` for
+    /// the foreign pose) and the user must be able to decline it. This is the
+    /// seed the expense EN/RU screenshots use; the L4 test drives the REAL
+    /// deferred producer instead.
     @MainActor
-    private static func seedExpenseItem() {
+    private static func seedExpenseItem(recognitionCurrency: CurrencyCode? = nil) {
         let arguments = ProcessInfo.processInfo.arguments
         if arguments.contains("-homeResetDatabase") {
             AppStore.resetForTestsOncePerLaunch()
@@ -362,6 +370,7 @@ enum InboxTestSeed {
 
         let recognition = InboxRecognition.expense(ExpenseRecognition(
             total: .init(value: Decimal(string: "20.00")!, confidence: 0.9),
+            currency: recognitionCurrency.map { .init(value: $0, confidence: 0.9) },
             category: .init(value: .parking, confidence: 0.8),
             date: .init(value: now.addingTimeInterval(-7 * 86_400), confidence: 0.9)))
         let item = GatewayInboxItem(id: UUID.v7(), entryId: entryID,

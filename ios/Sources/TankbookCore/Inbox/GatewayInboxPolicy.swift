@@ -259,16 +259,18 @@ public enum GatewayInboxPolicy {
         return out
     }
 
-    /// Expense: the amount, the category it was read as (RV.200's field set) and
-    /// the receipt's printed date. `Expense.category` is non-optional, so a
-    /// differing category is always a replacement, never a fill; `Expense.date`
-    /// is non-optional too, so a differing date is offered the same way.
+    /// Expense: the amount, its currency (RV.280), the category it was read as
+    /// (RV.200's field set) and the receipt's printed date. `Expense.category`
+    /// is non-optional, so a differing category is always a replacement, never
+    /// a fill; `Expense.date` is non-optional too, so a differing date is
+    /// offered the same way. The money pair's two halves are compared and
+    /// offered independently, exactly as the fuel and service branches do.
     private static func expenseOffers(_ recognition: ExpenseRecognition, _ entry: Expense) -> [FieldOffer] {
         var out: [FieldOffer] = []
         if let offer = dateOffer(current: entry.date, read: recognition.date?.value) { out.append(offer) }
-        if let money = entry.money,
-           let offer = offer(.total, current: money.amount, read: recognition.total?.value) {
-            out.append(offer)
+        if let money = entry.money {
+            if let offer = offer(.total, current: money.amount, read: recognition.total?.value) { out.append(offer) }
+            if let offer = offer(.currency, current: money.currency, read: recognition.currency?.value) { out.append(offer) }
         }
         if let offer = offer(.category, current: entry.category, read: recognition.category?.value) {
             out.append(offer)
@@ -365,7 +367,10 @@ public enum GatewayInboxPolicy {
         return result
     }
 
-    /// The expense merge: the amount, the category and the receipt's date.
+    /// The expense merge: the amount, its currency, the category and the
+    /// receipt's date. Taking `.currency` after `.total` mirrors the service
+    /// branch, so a foreign pair lands in the read's currency with its snapshot
+    /// cleared for re-conversion (hard rule 3).
     private static func mergedExpense(_ entry: Expense,
                                       _ recognition: ExpenseRecognition,
                                       taking fields: Set<FieldRef>) -> Expense {
@@ -378,6 +383,10 @@ public enum GatewayInboxPolicy {
         }
         if fields.contains(.total), let total = recognition.total?.value, let money = result.money {
             result.money = money.replacingAmount(total)
+            changed = true
+        }
+        if fields.contains(.currency), let currency = recognition.currency?.value, let money = result.money {
+            result.money = money.replacingCurrency(currency)
             changed = true
         }
         if fields.contains(.category), let category = recognition.category?.value {

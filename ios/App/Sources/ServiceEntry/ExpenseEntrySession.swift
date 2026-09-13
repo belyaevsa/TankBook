@@ -44,6 +44,7 @@ extension ExpenseScanOutcome {
         let prefill = ExpensePrefillBuilder.prefill(from: extraction)
         return ExpenseRecognition(
             total: extraction.total.map { GatewayFieldValue(value: $0, confidence: 0.9) },
+            currency: extraction.currency.map { GatewayFieldValue(value: $0, confidence: 0.9) },
             category: preset.map { GatewayFieldValue(value: $0, confidence: 0.8) },
             date: prefill.date.map { GatewayFieldValue(value: $0, confidence: 0.9) })
     }

@@ -9,7 +9,7 @@ in `HANDOVER.md` and the agent-routing memory.*
 records its own model. This is the ground truth behind the flash-vs-pro evaluation, and it is here so
 a row's outcome can always be read against the worker that produced it.
 
-**Totals: 24 pro, 20 flash** across the 44 build dispatches of 2026-09-03/05; **every build dispatch since 2026-09-10 ran on flash** (the 2026-09-12 block below: 34 dispatches, 58 rows, pro used only for the read-only scenario and journeys walks - 14 of them that day, not in this ledger; the 2026-09-13 block: 9 dispatches, 10 rows, every walk run by the orchestrator). Read it with the selection bias in mind -
+**Totals: 24 pro, 20 flash** across the 44 build dispatches of 2026-09-03/05; **every build dispatch since 2026-09-10 ran on flash** (the 2026-09-12 block below: 34 dispatches, 58 rows, pro used only for the read-only scenario and journeys walks - 14 of them that day, not in this ledger; the 2026-09-13 block: 10 dispatches, 11 rows, every walk run by the orchestrator). Read it with the selection bias in mind -
 pro was chosen for tasks *believed* harder, so a raw success comparison carries no information; what
 the evaluation compared was failure KINDS and above-brief judgement. `flash*` marks the dispatch that
 died instantly with `database is locked` and never reached the model (re-dispatched on flash).
@@ -113,6 +113,7 @@ died instantly with `database is locked` and never reached the model (re-dispatc
 | `RV.278` | **flash** | 2026-09-13 | 359 KB |
 | `RV.276` | **flash** | 2026-09-13 | 615 KB |
 | `RV.279` | **flash** | 2026-09-13 | 494 KB |
+| `RV.280` | **flash** | 2026-09-13 | 190 KB |
 
 ## What the four grouped dispatches of 2026-09-10 cost to verify
 

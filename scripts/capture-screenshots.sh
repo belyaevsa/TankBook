@@ -1127,6 +1127,13 @@ capture RV.215-inbox-expense-ru ru -seedSettingsSignedIn -seedInboxExpense -inbo
 capture RV.246-inbox-expense-date    en -seedSettingsSignedIn -seedInboxExpense -inboxReset -presentScreen inbox
 capture RV.246-inbox-expense-date-ru ru -seedSettingsSignedIn -seedInboxExpense -inboxReset -presentScreen inbox
 
+# RV.280: the same expense offer now carries the receipt's CURRENCY, so a
+# foreign figure renders under its own symbol and never as home money. The seed
+# is the saved EUR expense with a PLN late read. RU is where "Валюта" and the
+# symbol pair are the overflow check.
+capture RV.280-inbox-expense-currency    en -seedSettingsSignedIn -seedInboxExpenseCurrency -inboxReset -presentScreen inbox
+capture RV.280-inbox-expense-currency-ru ru -seedSettingsSignedIn -seedInboxExpenseCurrency -inboxReset -presentScreen inbox
+
 # RV.48: the attachment viewer's recognised page showing the parse's ASSIGNED
 # fields (total/litres/price/fuel/currency) as the headline, the raw OCR lines
 # demoted behind a disclosure. `-openAttachmentViewerRecognised` opens the pager

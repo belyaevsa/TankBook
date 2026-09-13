@@ -74,8 +74,15 @@ public struct ServiceRecognition: Sendable, Equatable, Codable {
 }
 
 /// A shop receipt read on the device. Per RV.200 the recognition produces the
-/// amount and the category it was read as; RV.201 offered exactly those two -
-/// a shop receipt has no vendor the schema records and no fuel fields at all.
+/// amount, the currency the amount was read in and the category it was read as;
+/// RV.201 offered the first and the last - a shop receipt has no vendor the
+/// schema records and no fuel fields at all.
+///
+/// `currency` is the money pair's other half (hard rule 3): a foreign total is
+/// never offered as if it were home money. It rides the same parse as
+/// `ExpensePrefill.currency`, so the form's pre-fill and the late read cannot
+/// disagree. `nil` means the read said nothing about the currency - the entry's
+/// own currency stands - never "home".
 ///
 /// `date` is the receipt's printed date, the parsed `Date` the pre-fill already
 /// resolves (`ExpensePrefill.date`), so a late read can offer a differing date
@@ -83,13 +90,16 @@ public struct ServiceRecognition: Sendable, Equatable, Codable {
 /// It is optional: an unread date is absent, never guessed (hard rule 13).
 public struct ExpenseRecognition: Sendable, Equatable, Codable {
     public var total: GatewayFieldValue<Decimal>?
+    public var currency: GatewayFieldValue<CurrencyCode>?
     public var category: GatewayFieldValue<ExpenseCategory>?
     public var date: GatewayFieldValue<Date>?
 
     public init(total: GatewayFieldValue<Decimal>? = nil,
+                currency: GatewayFieldValue<CurrencyCode>? = nil,
                 category: GatewayFieldValue<ExpenseCategory>? = nil,
                 date: GatewayFieldValue<Date>? = nil) {
         self.total = total
+        self.currency = currency
         self.category = category
         self.date = date
     }
