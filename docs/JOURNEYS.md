@@ -353,7 +353,7 @@ costs the user the pages the shutter already captured (hard rule 8).
 **Success metric:** ≥50% of service records carry an attachment; reminder acceptance rate ≥60%.
 
 ### J7b · Parts, tires, consumables
-*(Status cleared 2026-09-13: `RV.279` shipped; re-walked the same day (`REVIEW-SCENARIO-J7b-2026-09-13`) - NOT IMPLEMENTED on one promise: the late shop-receipt reading drops the receipt's currency, `RV.280`. Re-walk after it ships.)*
+**Status: implemented 2026-09-13** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J7b-2026-09-13b)
 **Trigger:** a filter ordered online, brake pads bought on sale, a winter tire set – purchased *now*, installed *later* (or never; the car is sold with the shelf).
 
 | Stage | Doing | Notes |
