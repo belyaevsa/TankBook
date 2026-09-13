@@ -204,6 +204,7 @@ a save that changes nothing writes nothing ([RV.136]'s guard, `docs/SCHEMA.md` �
 **Success metric:** pump-photo share of all captures (target ≥15% – proves the niche is real); extraction accuracy ≥95% on the confirm screen.
 
 ### J3b · Type it (the peer path, every locale)
+**Status: implemented 2026-09-13** (reviewed by the orchestrator, REVIEW-SCENARIO-J3b-2026-09-13)
 
 **Trigger:** the user would rather type than aim a camera - or the camera cannot deliver: a
 faded thermal receipt, a dark forecourt, gloves on, a pump display that lost its decimal
