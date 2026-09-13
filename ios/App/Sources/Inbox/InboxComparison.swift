@@ -62,7 +62,12 @@ enum InboxValueFormat {
             return volume(fillUp.volumeL, unit: volumeUnit)
         case .unitPrice:
             guard case .fillUp(let fillUp) = entry else { return blank }
-            return fillUp.unitPrice.map { money($0, fractionDigits: 3, symbol: symbol(for: entry)) } ?? blank
+            // The stored price is per litre; the row's label is the car's own
+            // unit, so the figure converts here and nowhere else.
+            return fillUp.unitPrice.map {
+                money(ManualFillUpMath.displayUnitPrice(fromPerLitre: $0, unit: volumeUnit),
+                      fractionDigits: 3, symbol: symbol(for: entry))
+            } ?? blank
         case .total:
             return entry.money.map { money($0.amount, fractionDigits: 2, symbol: symbol(for: entry)) } ?? blank
         case .currency:
@@ -116,8 +121,12 @@ enum InboxValueFormat {
             // printed in gallons) it reproduces the receipt's own number.
             return extraction.volume.map { volume($0.value, unit: volumeUnit) } ?? blank
         case .unitPrice:
+            // The extraction normalizes the reading to a per-litre price; the
+            // row renders the car's own unit (RV.234), so it converts (RV.274).
             return extraction.unitPrice.map {
-                money($0.value, fractionDigits: 3, symbol: receiptSymbol(entry: entry, read: extraction.currency?.value))
+                money(ManualFillUpMath.displayUnitPrice(fromPerLitre: $0.value, unit: volumeUnit),
+                      fractionDigits: 3,
+                      symbol: receiptSymbol(entry: entry, read: extraction.currency?.value))
             } ?? blank
         case .total:
             return extraction.total.map {

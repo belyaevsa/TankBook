@@ -32,10 +32,13 @@ enum HomeFormat {
         "\(unitPriceValue(amount, volumeUnit: volumeUnit))\u{00A0}\(symbol)"
     }
 
-    /// The bare figure for a `StatTile` that renders its own unit.
+    /// The bare figure for a `StatTile` that renders its own unit. The
+    /// litre-to-display factor is `ManualFillUpMath.displayUnitPrice` - the one
+    /// per-litre price converter - never a second copy (RV.274).
     static func unitPriceValue(_ amount: Decimal, volumeUnit: VolumeUnit) -> String {
-        ManualFillUpFormat.decimal(amount * Decimal(ManualFillUpMath.litresPerUnit(volumeUnit)),
-                                   fractionDigits: 3)
+        ManualFillUpFormat.decimal(
+            ManualFillUpMath.displayUnitPrice(fromPerLitre: amount, unit: volumeUnit),
+            fractionDigits: 3)
     }
 
     /// "71.02 €" - a recent-entry amount (2 fraction digits).

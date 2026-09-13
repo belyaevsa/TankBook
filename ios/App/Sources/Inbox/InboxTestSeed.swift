@@ -15,6 +15,11 @@ import TankbookCore
 ///   ONE blank field (unit price), everything else agreeing. That is the
 ///   "interesting case" the comparison card must render, and the shape that
 ///   lets the L4 suite assert exactly two ticks and the per-field merge.
+/// - `-seedInboxComparisonPriced` (RV.274): the comparison shape with the saved
+///   entry ALSO carrying a price that differs from the receipt's, so BOTH price
+///   columns render - the shape that proves the per-litre price converts in the
+///   user column and the receipt column alike. `-seedInboxMiles` makes it
+///   imperial.
 /// - `-seedInboxNothingToChange` (RV.45 honesty rule 2): an item whose reading
 ///   AGREES with the saved entry - the no-op card must say so and offer no
 ///   update action.
@@ -33,6 +38,9 @@ enum InboxTestSeed {
         }
         if arguments.contains("-seedInboxComparison") {
             seedComparisonItem()
+        }
+        if arguments.contains("-seedInboxComparisonPriced") {
+            seedPricedComparisonItem()
         }
         if arguments.contains("-seedInboxNothingToChange") {
             seedNothingToChangeItem()
@@ -149,6 +157,57 @@ enum InboxTestSeed {
         let extraction = GatewayExtraction(
             total: .init(value: Decimal(string: "100.00")!, confidence: 0.92),
             volume: .init(value: 30.00, confidence: 0.90),
+            unitPrice: .init(value: Decimal(string: "1.800")!, confidence: 0.88),
+            fuelKind: .init(value: .petrol95, confidence: 0.70),
+            currency: .init(value: .eur, confidence: 0.60),
+            pipeline: "seed")
+        let item = GatewayInboxItem(id: UUID.v7(), entryId: entryID,
+                                    createdAt: now, extraction: extraction)
+        if let data = try? JSONEncoder().encode([item]) {
+            UserDefaults.standard.set(data, forKey: AppInbox.storageKey)
+        }
+    }
+
+    // MARK: - RV.274 the priced comparison (both price columns render)
+
+    /// The comparison shape with the saved entry ALSO carrying a price, so both
+    /// the user's and the receipt's price columns render. The saved 1.500 €/L
+    /// differs from the receipt's 1.800 €/L, so the price is offered and both
+    /// per-litre figures cross the same display-unit boundary.
+    @MainActor
+    private static func seedPricedComparisonItem() {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-homeResetDatabase") {
+            AppStore.resetForTestsOncePerLaunch()
+        }
+        guard let repository = try? AppStore.repository() else { return }
+        guard (try? repository.liveVehicles())?.isEmpty != false else { return }
+
+        let now = Date()
+        let vehicle = Vehicle(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            name: "Test Volvo", make: "Volvo", model: "V60", year: 2015,
+            plate: nil, powertrain: .ice, fuelKinds: [.petrol95],
+            tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
+            units: Self.unitsFromArguments(),
+            photo: nil, archived: false, paceLimitKmPerDay: 1500,
+            initialOdometer: 119_486)
+        try? repository.upsertVehicle(vehicle)
+
+        let entryID = UUID.v7()
+        let fill = FillUp(
+            id: entryID, createdAt: now, updatedAt: now, deletedAt: nil,
+            vehicleId: vehicle.id, date: now, odometer: 120_000,
+            money: Money(amount: Decimal(string: "100.00")!, currency: .eur, homeCurrency: .eur),
+            note: nil, attachments: [], provenance: .manual, conflict: .none,
+            purchaseGroupId: nil, volumeL: 40.00, unitPrice: Decimal(string: "1.500")!,
+            fuelKind: .petrol95, fuelGrade: nil, isFull: true, tankLevelAfterPct: 100,
+            stationId: nil, crossCheck: .notApplicable, extraction: nil)
+        try? repository.upsertFillUp(fill)
+
+        let extraction = GatewayExtraction(
+            total: .init(value: Decimal(string: "100.00")!, confidence: 0.92),
+            volume: .init(value: 40.00, confidence: 0.90),
             unitPrice: .init(value: Decimal(string: "1.800")!, confidence: 0.88),
             fuelKind: .init(value: .petrol95, confidence: 0.70),
             currency: .init(value: .eur, confidence: 0.60),

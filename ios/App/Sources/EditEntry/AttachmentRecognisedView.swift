@@ -27,7 +27,7 @@ struct AttachmentRecognisedView: View {
     let ocrText: String?
     let createdAt: Date
     /// The owning car's volume unit, so the volume and price labels name the
-    /// unit the receipt was read in (RV.234). Defaults to litres where no car
+    /// unit the receipt was read in. Defaults to litres where no car
     /// is in hand.
     var volumeUnit: VolumeUnit = .l
 
@@ -217,14 +217,21 @@ enum AttachmentValueFormat {
         guard let value else { return .plain("") }
         switch value {
         case .money(let amount):
-            let figure = ManualFillUpFormat.decimal(amount, fractionDigits: ref == .unitPrice ? 3 : 2)
+            // A stored unit price is per litre by contract (docs/SCHEMA.md ->
+            // GatewayExtraction.unitPrice) while the label is the car's own
+            // volume unit, so it converts here and nowhere else. A total is an
+            // absolute amount and does not convert.
+            let display = ref == .unitPrice
+                ? ManualFillUpMath.displayUnitPrice(fromPerLitre: amount, unit: volumeUnit)
+                : amount
+            let figure = ManualFillUpFormat.decimal(display, fractionDigits: ref == .unitPrice ? 3 : 2)
             let symbol = currency.map { AddVehicleSupport.moneySymbol(for: $0) } ?? ""
             return .numeric(figure: figure, unit: symbol.isEmpty ? nil : symbol)
         case .number(let number):
             switch ref {
             case .volume:
                 // The parse normalizes every reading to litres and carries no
-                // read-unit, while the label is the car's own unit (RV.234), so
+                // read-unit, while the label is the car's own unit, so
                 // the stored litres convert here (RV.273).
                 return .numeric(
                     figure: ManualFillUpFormat.decimal(

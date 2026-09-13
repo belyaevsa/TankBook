@@ -184,6 +184,33 @@ final class InboxUITests: XCTestCase {
                        "the stored litre figure must not be shown on a gallons car")
         XCTAssertFalse(app.staticTexts["30.00 L"].exists,
                        "the receipt's litre figure must not be shown on a gallons car")
+        // RV.274: the receipt's per-litre price converts under the "Price/gal"
+        // label too. The blank user column stays blank (the seed leaves it so).
+        XCTAssertTrue(app.staticTexts["6.814\u{00A0}€"].exists,
+                      "the receipt's 1.800 €/L must read 6.814 per US gallon")
+        XCTAssertFalse(app.staticTexts["1.800\u{00A0}€"].exists,
+                       "the stored per-litre price must not be shown on a gallons car")
+    }
+
+    /// RV.274: a priced comparison on a gallons car - BOTH price columns
+    /// convert. The saved 1.500 €/L reads 5.678 per US gallon and the receipt's
+    /// 1.800 €/L reads 6.814; neither per-litre figure appears.
+    func testImperialPricedComparisonReadsPerGallonInBothPriceColumns() {
+        let app = launch(["-seedInboxComparisonPriced", "-seedInboxMiles"])
+        app.buttons["inboxBellButton"].tap()
+
+        XCTAssertTrue(app.buttons["inboxTick_unitPrice"].waitForExistence(timeout: 5),
+                      "the differing price must be tickable")
+        XCTAssertTrue(app.staticTexts["Price/gal"].exists,
+                      "the row label must name the car's unit")
+        XCTAssertTrue(app.staticTexts["5.678\u{00A0}€"].exists,
+                      "the saved 1.500 €/L must read per US gallon")
+        XCTAssertTrue(app.staticTexts["6.814\u{00A0}€"].exists,
+                      "the receipt's 1.800 €/L must read per US gallon")
+        XCTAssertFalse(app.staticTexts["1.500\u{00A0}€"].exists,
+                       "the saved per-litre price must not be shown on a gallons car")
+        XCTAssertFalse(app.staticTexts["1.800\u{00A0}€"].exists,
+                       "the receipt's per-litre price must not be shown on a gallons car")
     }
 
     // MARK: - Ticking only the blank fills it and leaves the differing field alone
