@@ -31,7 +31,7 @@ final class ExpenseCaptureUITests: XCTestCase {
             .path
     }
 
-    private func captureExpense(_ seeds: String...) -> XCUIApplication {
+    private func captureExpense(_ seeds: String..., russian: Bool = false) -> XCUIApplication {
         XCTAssertTrue(FileManager.default.fileExists(atPath: fixture),
                       "the corpus fixture is missing: \(fixture)")
         let app = XCUIApplication()
@@ -43,6 +43,7 @@ final class ExpenseCaptureUITests: XCTestCase {
         app.launchArguments = ["-homeResetDatabase", "-seedHomeEmptyVehicle",
                                "-presentScreen", "capture", "-cameraStatus", "authorized",
                                "-captureMode", "expense", "-captureFixtureImage", fixture]
+            + (russian ? ["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU"] : [])
             + seeds
         app.launch()
         XCTAssertTrue(app.buttons["captureCloseButton"].waitForExistence(timeout: 10),
@@ -122,20 +123,85 @@ final class ExpenseCaptureUITests: XCTestCase {
                        "an empty extraction is not an error - no alert may appear")
     }
 
-    /// The honesty gate behind the carried currency: the expense form is
-    /// home-currency only, so a total the recognition priced in another
-    /// currency must not be offered as if it were home money. The field stays
-    /// blank for the user to type - a scan never mints a wrong-currency fact.
-    func testForeignTotalIsNotOfferedAsHomeCurrency() {
+    /// RV.279: the form carries a currency chip row, so a foreign total is
+    /// offered WITH its currency rather than withheld as home money. The RV.200
+    /// boundary (a foreign total was never offered because the form could not
+    /// express one) relaxes: the amount pre-fills and the PLN chip is selected.
+    func testForeignTotalIsOfferedWithItsCurrency() {
         let app = captureExpense("-seedExpenseScanForeign")
         shootAndUse(app)
 
         let amount = app.textFields["expenseEntryAmountField"]
         XCTAssertTrue(amount.waitForExistence(timeout: 15))
-        XCTAssertTrue(isFieldBlank(app, "expenseEntryAmountField"),
-                      "a 289.50 PLN total must not pre-fill a home-EUR amount field")
+        XCTAssertEqual(fieldValue(app, "expenseEntryAmountField"), "289.50",
+                       "a 289.50 PLN total is offered WITH its currency now")
+        let pln = app.buttons["manualFillUpCurrency_PLN"]
+        XCTAssertTrue(pln.waitForExistence(timeout: 5),
+                      "the PLN chip must be present on the expense form")
+        XCTAssertTrue(pln.isSelected,
+                      "the scan's PLN currency must be the selected chip, not home EUR")
         XCTAssertFalse(app.alerts.firstMatch.exists,
-                       "a currency the form cannot express is not an error")
+                       "a foreign currency the form can now express is not an error")
+    }
+
+    /// RV.279: the expense capture form carries Edit entry's own odometer and
+    /// currency rows - the same components, not copies - so the two doors to one
+    /// entry are the same screen. The identifiers are Edit entry's.
+    func testTheExpenseFormCarriesEditEntrysOdometerAndCurrencyRows() {
+        let app = captureExpense("-seedExpenseScan")
+        shootAndUse(app)
+
+        XCTAssertTrue(app.textFields["expenseEntryAmountField"].waitForExistence(timeout: 15),
+                      "an Expense-mode scan must land on the expense entry form")
+        XCTAssertTrue(app.textFields["editEntryOdometerField"].exists,
+                      "the odometer row must be present with Edit entry's identifier")
+        XCTAssertTrue(app.buttons["manualFillUpCurrency_EUR"].exists,
+                      "the currency chip row must be present with Edit entry's identifiers")
+    }
+
+    /// RV.279, RU: the odometer and currency rows are present in the longer
+    /// language too - the same identifiers, since the chip labels are currency
+    /// codes and the row identifiers do not translate.
+    func testTheExpenseFormCarriesEditEntrysOdometerAndCurrencyRowsInRussian() {
+        let app = captureExpense("-seedExpenseScan", russian: true)
+        shootAndUse(app)
+
+        XCTAssertTrue(app.textFields["expenseEntryAmountField"].waitForExistence(timeout: 15),
+                      "an Expense-mode scan must land on the expense entry form")
+        XCTAssertTrue(app.textFields["editEntryOdometerField"].exists,
+                      "the odometer row must be present in RU too")
+        XCTAssertTrue(app.buttons["manualFillUpCurrency_EUR"].exists,
+                      "the currency chip row must be present in RU too")
+    }
+
+    /// RV.279: picking a foreign currency and saving stores it on the entry. The
+    /// saved expense is reopened from the Log and its Edit entry shows the PLN
+    /// pick, proving the pair's currency is what the user chose - not the car's
+    /// home currency (the named mutation).
+    func testPickingAForeignCurrencyAndSavingStoresItOnTheEntry() {
+        let app = captureExpense("-seedExpenseScan")
+        shootAndUse(app)
+
+        let pln = app.buttons["manualFillUpCurrency_PLN"]
+        XCTAssertTrue(pln.waitForExistence(timeout: 15),
+                      "the currency chip row must offer PLN")
+        pln.tap()
+        XCTAssertTrue(pln.isSelected, "the tap must select PLN")
+
+        let save = app.buttons["expenseEntrySaveButton"]
+        XCTAssertTrue(save.isEnabled, "a scanned amount is saveable")
+        save.tap()
+
+        let row = app.buttons["logEntryButton"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 15),
+                      "the saved expense must appear in the log")
+        row.tap()
+
+        let reopened = app.buttons["manualFillUpCurrency_PLN"]
+        XCTAssertTrue(reopened.waitForExistence(timeout: 15),
+                      "the reopened entry must offer the saved currency")
+        XCTAssertTrue(reopened.isSelected,
+                      "the saved pair's currency must be the PLN the user picked")
     }
 
     /// RV.200: an Expense-mode scan reads the KIND of expense and offers it as

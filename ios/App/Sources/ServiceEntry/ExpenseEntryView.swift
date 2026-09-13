@@ -1,59 +1,6 @@
 import SwiftUI
 import TankbookCore
 
-// MARK: - Expense category cases
-
-extension ExpenseCategory {
-    /// The categories the Expense entry offers in the chooser, in a stable
-    /// order. `.parts` is an ordinary category here - buying a part is just an
-    /// expense, never a separate flow (docs/JOURNEYS.md J7b).
-    static let entryCases: [ExpenseCategory] = [
-        .insurance, .tax, .parking, .toll, .fine, .accessory, .parts, .other("")
-    ]
-}
-
-// MARK: - Form state
-
-/// Everything the Expense entry collects, plus the derived save gate. The typed
-/// amount is the user's own digits, parsed to an exact `Decimal` on save (never
-/// `Double`, docs/SCHEMA.md -> Money).
-struct ExpenseEntryFormState: Equatable {
-    var category: ExpenseCategory = .accessory
-    var title = ""
-    var amount = ""
-    var date = Date()
-
-    // Snapshots for the discard guard (SCREENMAP rule 1): the form is dirty only
-    // for real edits, not the category pre-selection or the date default.
-    var initialCategory: ExpenseCategory = .accessory
-    var initialTitle = ""
-    var initialAmount = ""
-    var initialDate = Date()
-
-    var amountDecimal: Decimal? {
-        let trimmed = amount.trimmingCharacters(in: .whitespaces)
-        return trimmed.isEmpty ? nil : Decimal(string: trimmed)
-    }
-
-    var hasTitle: Bool {
-        !title.trimmingCharacters(in: .whitespaces).isEmpty
-    }
-
-    /// Save gate: a non-blank amount. The category always has a value, and the
-    /// Log row names the expense from it when the title is empty (RV.187), so a
-    /// title is never required to save. Even the bare `.other("")` renders the
-    /// localized "Other" - a real category label the user can edit afterwards
-    /// (RV.195), never an unnamed row.
-    var canSave: Bool { amountDecimal != nil }
-
-    func hasEdits() -> Bool {
-        if category != initialCategory { return true }
-        if title != initialTitle || amount != initialAmount { return true }
-        if !Calendar.current.isDate(date, inSameDayAs: initialDate) { return true }
-        return false
-    }
-}
-
 // MARK: - Expense entry sheet
 
 /// The Expense entry (P3.2): category, title, money and date - reachable as a
@@ -76,7 +23,14 @@ struct ExpenseEntryView: View {
     @Environment(ReminderOfferSession.self) private var offerSession
 
     @State private var form = ExpenseEntryFormState()
+    /// RV.279: the shared odometer card's focus, so its format-on-blur works on
+    /// the capture door exactly as it does on Edit entry.
+    @FocusState private var focus: EditEntryNonFillFocus?
     @State private var vehicle: Vehicle?
+    /// RV.279: the car's live entries, so the currency offer's history tier
+    /// reflects what this car has actually paid in (docs/SCHEMA.md -> Currency
+    /// offer). Loaded once with the vehicle.
+    @State private var existingEntries: [any Entry] = []
     @State private var showDatePicker = false
     @State private var didLoad = false
     /// RV.267: set the moment a save lands, so the one dismissal path can tell
@@ -107,6 +61,7 @@ struct ExpenseEntryView: View {
                     titleCard
                     amountCard
                     ManualFillUpDateRow(date: $form.date, showDatePicker: $showDatePicker)
+                    odometerCard
                 }
             }
             .padding(.horizontal, Theme.Spacing.screenMargin)
@@ -152,6 +107,8 @@ struct ExpenseEntryView: View {
             form.initialCategory = form.category
             form.initialTitle = form.title
             form.initialAmount = form.amount
+            form.initialCurrency = form.currency
+            form.initialOdometer = form.odometer
             form.initialDate = form.date
         }
     }
@@ -201,27 +158,6 @@ struct ExpenseEntryView: View {
         .formCard()
     }
 
-    private var amountCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            SectionEyebrow("Amount")
-            HStack(alignment: .firstTextBaseline, spacing: 5) {
-                TextField("0.00", text: $form.amount)
-                    .keyboardType(.decimalPad)
-                    .font(.custom(AppFonts.dinAlternateBold, size: 24))
-                    .foregroundStyle(Theme.Palette.ink)
-                    .accessibilityIdentifier("expenseEntryAmountField")
-                    .numericInput($form.amount, kind: .decimal)
-                Text(AddVehicleSupport.moneySymbol(for: vehicle?.homeCurrency ?? .eur))
-                    .font(.caption)
-                    .foregroundStyle(Theme.Palette.inkSoft)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Theme.Spacing.cardPadding)
-        .padding(.vertical, 12)
-        .formCard()
-    }
-
     // MARK: - Save
 
     private var saveEnabled: Bool {
@@ -239,8 +175,8 @@ struct ExpenseEntryView: View {
                               now: Date = Date()) -> Expense {
         Expense(
             id: id, createdAt: now, updatedAt: now, deletedAt: nil,
-            vehicleId: vehicle.id, date: form.date, odometer: nil,
-            money: Money(amount: amount, currency: vehicle.homeCurrency,
+            vehicleId: vehicle.id, date: form.date, odometer: form.odometerValue,
+            money: Money(amount: amount, currency: form.currency,
                          homeCurrency: vehicle.homeCurrency),
             note: nil, attachments: attachments, provenance: provenance,
             conflict: .none, purchaseGroupId: nil, category: form.category,
@@ -351,25 +287,11 @@ struct ExpenseEntryView: View {
                                                       selected: selected)
     }
 
-    /// RV.62: the scan's pre-fill becomes default input, field by field. A nil
-    /// value stays blank and focusable - never `0` and never an error (hard
-    /// rules 13, 7). The total is offered only when the receipt's own currency
-    /// is not in conflict with the home-currency form: the expense form has no
-    /// foreign-currency affordance, so a total priced in another currency must
-    /// not be offered as if it were home money - the field stays blank for the
-    /// user to type. A nil currency is treated as "no evidence to the
-    /// contrary", exactly as the fill-up form treats an unresolved currency.
+    /// RV.62/RV.279: the scan's pre-fill becomes default input, field by field.
+    /// The form's own `apply` owns the rule so the L1 test drives the exact
+    /// conversion the load does.
     private func apply(_ prefill: ExpensePrefill) {
-        if let total = prefill.total {
-            let currencyFitsForm = prefill.currency == nil
-                || prefill.currency == vehicle?.homeCurrency
-            if currencyFitsForm {
-                form.amount = ConfirmFormat.string(decimal: total, fractionDigits: 2)
-            }
-        }
-        if let date = prefill.date {
-            form.date = date
-        }
+        form.apply(prefill)
     }
 
     private func load() async {
@@ -387,6 +309,10 @@ struct ExpenseEntryView: View {
                 completion: completionSession.pending,
                 selected: carSelection.selectedVehicle(vehicles)) else { return }
             self.vehicle = vehicle
+            // The car's own currency is the default (hard rule 13); the chip
+            // row lets the user change it, and a foreign scan pre-fills its own.
+            form.currency = vehicle.homeCurrency
+            existingEntries = (try? repository.liveEntries(forVehicle: vehicle.id)) ?? []
             // The category pre-selection is a default input the user edits
             // (hard rule 13), never a lock. Two writers share it: the mode row
             // ("Parts" -> .parts) and, since RV.200, an Expense-mode scan's own
@@ -437,6 +363,8 @@ struct ExpenseEntryView: View {
             form.initialCategory = form.category
             form.initialTitle = form.title
             form.initialAmount = form.amount
+            form.initialCurrency = form.currency
+            form.initialOdometer = form.odometer
             form.initialDate = form.date
         } catch {
             AppLog.error(operation: "expenseEntry.load", category: .ui, error: error)
@@ -456,5 +384,74 @@ struct ExpenseEntryView: View {
         .padding(14)
         .formCard()
         .accessibilityIdentifier("expenseEntryNoVehicleHint")
+    }
+}
+
+// MARK: - Amount + currency card (RV.279)
+
+extension ExpenseEntryView {
+    /// The distance unit the odometer card reads, defaulting to km until the car
+    /// loads (the same default the rest of the app uses).
+    private var distanceUnit: DistanceUnit { vehicle?.units.distance ?? .km }
+
+    /// The car's complete, ordered currency offer (docs/SCHEMA.md -> Currency
+    /// offer): home first, then the currencies this car's entries have used,
+    /// then the device region's. Pure local derivation - no network (hard
+    /// rule 1).
+    private var currencyOffer: [CurrencyCode] {
+        guard let vehicle else { return [.eur] }
+        return CurrencyOfferBuilder.offer(
+            homeCurrency: vehicle.homeCurrency,
+            history: CurrencyHistory.recentCurrencies(in: existingEntries),
+            region: Locale.current.region?.identifier)
+    }
+
+    /// The odometer card, the SAME component Edit entry renders, in the same
+    /// position (after the date). Typed or blank - a blank stays nil, never the
+    /// "last known" as a fact (hard rule 13).
+    private var odometerCard: some View {
+        EntryOdometerCard(
+            odometer: $form.odometer,
+            focus: $focus,
+            target: EditEntryNonFillFocus.odometer,
+            distanceUnit: distanceUnit,
+            rowIdentifier: "editEntryOdometerRow",
+            fieldIdentifier: "editEntryOdometerField")
+    }
+
+    /// The Amount row and the currency chip row, mirroring Edit entry's money
+    /// card: the amount states its own currency's symbol, and the chips let the
+    /// user pick what the amount is in. A foreign pick saves the pair with the
+    /// shared conversion - never silently as home money (hard rule 3).
+    private var amountCard: some View {
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 6) {
+                SectionEyebrow("Amount")
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    TextField("0.00", text: $form.amount)
+                        .keyboardType(.decimalPad)
+                        .font(.custom(AppFonts.dinAlternateBold, size: 24))
+                        .foregroundStyle(Theme.Palette.ink)
+                        .accessibilityIdentifier("expenseEntryAmountField")
+                        .numericInput($form.amount, kind: .decimal)
+                    Text(AddVehicleSupport.moneySymbol(for: form.currency))
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Theme.Spacing.cardPadding)
+            .padding(.vertical, 12)
+            CardDivider()
+            VStack(alignment: .leading, spacing: 6) {
+                SectionEyebrow("Currency")
+                CurrencyChipRow(currency: $form.currency, offer: currencyOffer,
+                                lowConfidence: false)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Theme.Spacing.cardPadding)
+            .padding(.vertical, 6)
+        }
+        .formCard()
     }
 }

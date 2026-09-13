@@ -23,11 +23,12 @@ import Foundation
 public struct ExpensePrefill: Sendable, Equatable {
     /// The receipt's own total, exact `Decimal` (money, `docs/SCHEMA.md`).
     public var total: Decimal?
-    /// The receipt's currency, when the marker lookup resolved one. The app
-    /// uses it as the honesty gate for `total` - see ExpenseEntryView - because
-    /// the expense form has no foreign-currency affordance: a total priced in
-    /// a currency the form cannot express must not be offered as if it were the
-    /// vehicle's home currency.
+    /// The receipt's currency, when the marker lookup resolved one. The expense
+    /// form carries a currency chip row, so this rides WITH `total`: a foreign
+    /// total is pre-filled in its own currency, the chip row lets the user
+    /// change it, and the save snapshots the pair at the entry's own date
+    /// (RV.279). Nil means the scan read no currency - the form keeps the car's
+    /// home currency as its default.
     public var currency: CurrencyCode?
     /// The receipt's printed date, parsed to a `Date`. `nil` means no date was
     /// read - the form keeps its own default, never a wrong fact.

@@ -192,6 +192,71 @@ final class ServiceEntryUITests: XCTestCase {
         XCTAssertTrue(app.buttons["conflictBadgeButton"].firstMatch.waitForExistence(timeout: 5),
                       "the saved service carries its amber conflict badge - the save stamped it")
     }
+
+    // MARK: - RV.279 currency on the service capture form
+
+    /// RV.279: the service capture form carries the car's currency chip row -
+    /// the same component Edit entry's money card renders - so a service bought
+    /// abroad can be entered as what it is.
+    func testTheServiceFormOffersTheCurrencyChipRow() {
+        let app = launch()
+        XCTAssertTrue(app.textFields["serviceEntryVendorField"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["manualFillUpCurrency_EUR"].exists,
+                      "the service capture form must offer the car's currency chips (RV.279)")
+    }
+
+    /// RV.279, RU: the currency row is present in the longer language too, where
+    /// the "Currency" eyebrow expands.
+    func testTheServiceFormOffersTheCurrencyChipRowInRussian() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedVehicleForUITests",
+                               "-presentScreen", "serviceEntry",
+                               "-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU"]
+        app.launch()
+        XCTAssertTrue(app.textFields["serviceEntryVendorField"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["manualFillUpCurrency_EUR"].exists,
+                      "the RU service capture form must offer the car's currency chips")
+    }
+
+    /// RV.279: picking a foreign currency and saving stores it on the service.
+    /// The saved record is reopened from the Log and its Edit entry shows the
+    /// PLN pick - the named mutation (save home regardless of the chip) fails
+    /// here.
+    func testPickingAForeignCurrencyAndSavingStoresItOnTheService() {
+        let app = launch()
+        let add = app.buttons["serviceEntryAddItemButton"]
+        XCTAssertTrue(add.waitForExistence(timeout: 10))
+        add.tap()
+        let title = app.textFields["serviceEntryItemTitle"].firstMatch
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        title.tap()
+        title.typeText("Oil service")
+        let cost = app.textFields["serviceEntryItemCost"].firstMatch
+        XCTAssertTrue(cost.exists)
+        cost.tap()
+        cost.typeText("89.00")
+
+        let pln = app.buttons["manualFillUpCurrency_PLN"]
+        XCTAssertTrue(pln.waitForExistence(timeout: 5),
+                      "the currency chip row must offer PLN")
+        pln.tap()
+        XCTAssertTrue(pln.isSelected, "the tap must select PLN")
+
+        let save = app.buttons["serviceEntrySaveButton"]
+        XCTAssertTrue(save.isEnabled, "a titled item is saveable")
+        save.tap()
+
+        let row = app.buttons["logEntryButton"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 15),
+                      "the saved service must appear in the Log")
+        row.tap()
+
+        let reopened = app.buttons["manualFillUpCurrency_PLN"]
+        XCTAssertTrue(reopened.waitForExistence(timeout: 15),
+                      "the reopened service must offer the saved currency")
+        XCTAssertTrue(reopened.isSelected,
+                      "the saved service's currency must be the PLN the user picked")
+    }
 }
 
 // MARK: - P1.13b the F9a quote names the grouped neighbour

@@ -19,6 +19,7 @@ enum ExpenseEntryTestSeed {
             return
         }
         guard arguments.contains("-seedExpenseEntryPrefill")
+            || arguments.contains("-seedExpenseEntryForeignPrefill")
             || arguments.contains("-seedExpenseScan")
             || arguments.contains("-seedExpenseScanEmpty") else { return }
         guard let repository = try? AppStore.repository() else { return }
@@ -48,6 +49,14 @@ enum ExpenseEntryPrefillSeed {
     ///   receipt resolved total 12.40 EUR and date 09.08.2026, category and
     ///   title left to the user (a scan never guesses a category).
     static func from(arguments: [String]) -> ExpensePrefill? {
+        if arguments.contains("-seedExpenseEntryForeignPrefill") {
+            // RV.279: the foreign-total state the relaxed RV.200 boundary now
+            // offers - a 289.50 PLN shop receipt, amount and currency together.
+            return ExpensePrefill(
+                total: Decimal(string: "289.50"),
+                currency: .pln,
+                date: ConfirmDate.parse("17.08.2026"))
+        }
         guard arguments.contains("-seedExpenseEntryPrefill") else { return nil }
         return ExpensePrefill(
             total: Decimal(string: "12.40"),
@@ -64,9 +73,9 @@ enum ExpenseEntryPrefillSeed {
 /// - `-seedExpenseScan` - the resolved state (total 71.02 EUR, 17.08.2026),
 ///   deliberately ALSO carrying liters / unitPrice / fuelKind, so the L4 test
 ///   proves the fuel fields never reach the expense form.
-/// - `-seedExpenseScanForeign` - a total priced in a currency the home-only
-///   expense form cannot express (289.50 PLN, home EUR): the amount must NOT
-///   be offered as if it were EUR.
+/// - `-seedExpenseScanForeign` - a total priced in another currency (289.50
+///   PLN, home EUR): RV.279 offers it WITH its currency, so the amount
+///   pre-fills and the PLN chip is selected.
 /// - `-seedExpenseScanEmpty` - an all-nil extraction: the expense form opens
 ///   empty with no error (hard rule 7).
 /// - `-seedExpenseScanParking` - a parking ticket's OCR lines (RV.200), so the

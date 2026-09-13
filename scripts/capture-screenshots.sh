@@ -1444,6 +1444,17 @@ capture RV.62-expense-prefill-ru                         ru -seedExpenseEntryPre
 capture RV.200-expense-category                          en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode expense -captureFixtureImage "${RV5_FIXTURE}" -seedExpenseScanParking -captureAutoUse
 capture RV.200-expense-category-ru                       ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode expense -captureFixtureImage "${RV5_FIXTURE}" -seedExpenseScanParking -captureAutoUse
 
+# RV.279: the Expense and Service capture forms now render the odometer card and
+# the currency chip row Edit entry has, so the two doors to one entry are the
+# same screen. The expense frame is the foreign-prefilled state (a 289.50 PLN
+# shop receipt), which proves the RV.200 boundary relaxed: the total is offered
+# WITH its currency and the PLN chip is selected. The service frame is the
+# typed artboard state with the currency chips under the header total.
+capture RV.279-expense-capture                           en -seedVehicleForUITests -seedExpenseEntryForeignPrefill -presentScreen expenseEntry
+capture RV.279-expense-capture-ru                        ru -seedVehicleForUITests -seedExpenseEntryForeignPrefill -presentScreen expenseEntry
+capture RV.279-service-capture                           en -seedServiceEntry -presentScreen serviceEntry
+capture RV.279-service-capture-ru                        ru -seedServiceEntry -presentScreen serviceEntry
+
 # RV.219: the fiscal QR's timestamp is the authoritative date (docs/SCHEMA.md ->
 # FISCAL QR, docs/JOURNEYS.md J5/F5). receipt-010's QR decodes but OCR reads no
 # printed date, so the Confirm form's date row is the frame that proves the QR

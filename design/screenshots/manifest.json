@@ -2365,6 +2365,26 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.279-expense-capture": {
+      "commit": "ea1a2834",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.279-expense-capture-ru": {
+      "commit": "ea1a2834",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.279-service-capture": {
+      "commit": "ea1a2834",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.279-service-capture-ru": {
+      "commit": "ea1a2834",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.28-fuel-chips": {
       "commit": "0ba7e94",
       "device": "iPhone 17",

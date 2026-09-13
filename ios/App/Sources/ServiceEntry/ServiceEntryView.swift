@@ -87,6 +87,7 @@ struct ServiceEntryView: View {
                             onSelect: { form.tireSetId = $0 })
                     } else {
                         ServiceEntryHeader(vendor: $form.vendor, totalText: totalText)
+                        currencyCard
                     }
                     ServiceEntryDateOdometerCard(
                         form: $form,
@@ -316,6 +317,10 @@ struct ServiceEntryView: View {
                 completion: completionSession.pending,
                 selected: carSelection.selectedVehicle(vehicles)) else { return }
             self.vehicle = vehicle
+            // The car's own currency is the entry's default (hard rule 13: a
+            // default input, never a fact). The chip row lets the user change
+            // it, and the pick is saved with the record and its items.
+            form.currency = vehicle.homeCurrency
             let existingEntries = try repository.liveEntries(forVehicle: vehicle.id)
             self.existingEntries = existingEntries
             let lastKnown = existingEntries.compactMap(\.odometer).max() ?? vehicle.initialOdometer
@@ -366,6 +371,7 @@ struct ServiceEntryView: View {
     private func snapshotBaseline() {
         form.initialVendor = form.vendor
         form.initialItems = form.items
+        form.initialCurrency = form.currency
         form.initialOdometer = form.odometer
         form.initialDate = form.date
         form.initialNote = form.note
@@ -435,7 +441,26 @@ struct ServiceEntryView: View {
         do {
             let repository = try AppStore.repository()
             let draft = form.draft(vehicle: vehicle)
-            var service = draft.build(vehicleId: vehicle.id, homeCurrency: vehicle.homeCurrency)
+            var service = draft.build(vehicleId: vehicle.id,
+                                      homeCurrency: vehicle.homeCurrency,
+                                      currency: form.currency)
+            // The chosen currency is saved as a snapshot at the entry's OWN
+            // date, through the same conversion the fill-up path takes (hard
+            // rule 3): the record and every line item carry the rate for that
+            // date, or stay rate-pending when none is cached - never today's
+            // rate. The record and its items agree (PJ.58).
+            service.money = service.money.map {
+                EntryCurrencyConversion.convertForSave($0, vehicle: vehicle,
+                                                       date: service.date)
+            }
+            service.items = service.items.map { item in
+                var converted = item
+                converted.cost = item.cost.map {
+                    EntryCurrencyConversion.convertForSave($0, vehicle: vehicle,
+                                                           date: service.date)
+                }
+                return converted
+            }
             // PJ.11: F9a is checked on every write, not just capture. A service
             // odometer typo must flag, never silently skew spans and cost/km.
             // The stamp never blocks the save - a flagged record is a warning
@@ -541,6 +566,38 @@ struct ServiceEntryView: View {
 /// Which ServiceEntry field holds focus (drives the cyan underline).
 enum ServiceEntryFocus: Hashable {
     case odometer
+}
+
+// MARK: - Currency card (RV.279)
+
+extension ServiceEntryView {
+    /// The car's complete, ordered currency offer (docs/SCHEMA.md -> Currency
+    /// offer): home first, then the currencies this car's entries have used,
+    /// then the device region's. Pure local derivation - no network (hard
+    /// rule 1). The same offer the Edit-entry money card renders.
+    private var currencyOffer: [CurrencyCode] {
+        guard let vehicle else { return [.eur] }
+        return CurrencyOfferBuilder.offer(
+            homeCurrency: vehicle.homeCurrency,
+            history: CurrencyHistory.recentCurrencies(in: existingEntries),
+            region: Locale.current.region?.identifier)
+    }
+
+    /// The currency chip row, in the same position Edit entry's money card has
+    /// it: right under the money the record states. The pick applies to the
+    /// record and its line items alike and is saved through the shared
+    /// conversion (hard rule 3). Tires mode states no money, so it has none.
+    private var currencyCard: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            SectionEyebrow("Currency")
+            CurrencyChipRow(currency: $form.currency, offer: currencyOffer,
+                            lowConfidence: false)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Theme.Spacing.cardPadding)
+        .padding(.vertical, 12)
+        .formCard()
+    }
 }
 
 // MARK: - No-vehicle hint

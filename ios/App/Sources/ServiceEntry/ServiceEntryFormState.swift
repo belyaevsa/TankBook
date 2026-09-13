@@ -67,14 +67,16 @@ struct ServiceEntryItemDraft: Identifiable, Equatable {
         return Decimal(string: trimmed)
     }
 
-    /// The stored line item this draft represents. `homeCurrency` is used only
-    /// when a new cost is typed; `original` is the item this row loaded from,
-    /// whose `cost` pair is kept byte-identical when the amount is untouched
-    /// (hard rule 3 - a snapshot is immutable). `partNumber` and `lifetime` are
-    /// the draft's own values, not fallbacks: the editors own them, so clearing
-    /// either clears it instead of resurrecting the stored one. A row the user
-    /// added has `original == nil` and builds a fresh item.
-    func serviceItem(homeCurrency: CurrencyCode) -> ServiceItem {
+    /// The stored line item this draft represents. `currency` is used only when
+    /// a new cost is typed - a row the user added is minted in the entry's
+    /// chosen currency, so the record and its items agree (PJ.58). `original` is
+    /// the item this row loaded from, whose `cost` pair is kept byte-identical
+    /// when the amount is untouched (hard rule 3 - a snapshot is immutable).
+    /// `partNumber` and `lifetime` are the draft's own values, not fallbacks:
+    /// the editors own them, so clearing either clears it instead of
+    /// resurrecting the stored one. A row the user added has `original == nil`
+    /// and builds a fresh item.
+    func serviceItem(currency: CurrencyCode, homeCurrency: CurrencyCode) -> ServiceItem {
         let money: Money?
         if let amount = costDecimal {
             if let originalCost = original?.cost, originalCost.amount == amount {
@@ -82,7 +84,7 @@ struct ServiceEntryItemDraft: Identifiable, Equatable {
             } else if let originalCost = original?.cost {
                 money = originalCost.replacingAmount(amount)
             } else {
-                money = Money(amount: amount, currency: homeCurrency, homeCurrency: homeCurrency)
+                money = Money(amount: amount, currency: currency, homeCurrency: homeCurrency)
             }
         } else {
             money = nil
@@ -110,12 +112,13 @@ extension Array where Element == ServiceEntryItemDraft {
     /// THE line sum of an editable service, shared by the create screen's
     /// header and the edit screen's money card so the two doors cannot state
     /// different totals for the same items. The rows are converted through the
-    /// SAME `serviceItem(homeCurrency:)` the save path uses - a new row's cost
-    /// is in the vehicle's home currency, a loaded row keeps its stored cost
-    /// pair - and the sum itself is the core `[ServiceItem].costSum()`, so this
-    /// is a mapping, never a second summation ([RV.169]'s defect).
-    func lineSum(homeCurrency: CurrencyCode) -> ServiceItemSum {
-        map { $0.serviceItem(homeCurrency: homeCurrency) }.costSum()
+    /// SAME `serviceItem(currency:homeCurrency:)` the save path uses - a new
+    /// row's cost is in the entry's chosen currency, a loaded row keeps its
+    /// stored cost pair - and the sum itself is the core
+    /// `[ServiceItem].costSum()`, so this is a mapping, never a second
+    /// summation ([RV.169]'s defect).
+    func lineSum(currency: CurrencyCode, homeCurrency: CurrencyCode) -> ServiceItemSum {
+        map { $0.serviceItem(currency: currency, homeCurrency: homeCurrency) }.costSum()
     }
 }
 
@@ -138,6 +141,10 @@ enum ServiceEntryMode: Equatable {
 struct ServiceEntryFormState: Equatable {
     var vendor = ""
     var items: [ServiceEntryItemDraft] = []
+    /// The currency the user chose for this record and its line items (hard
+    /// rule 3 - money is a pair). Set to the car's home currency at load, then
+    /// the user's pick wins and is saved through the shared conversion.
+    var currency: CurrencyCode = .eur
     var odometer = ""
     var date = Date()
     /// True while the date is still the invoice's own, so the date row can say
@@ -167,6 +174,7 @@ struct ServiceEntryFormState: Equatable {
     // from "last known" is a convenience default, exactly as on ConfirmManual.
     var initialVendor = ""
     var initialItems: [ServiceEntryItemDraft] = []
+    var initialCurrency: CurrencyCode = .eur
     var initialOdometer = ""
     var initialDate = Date()
     var initialNote = ""
@@ -185,7 +193,7 @@ struct ServiceEntryFormState: Equatable {
     /// create path cannot produce a mixed set (every scanned row is new), but
     /// the classification handles one honestly all the same.
     func lineSum(homeCurrency: CurrencyCode) -> ServiceItemSum {
-        items.lineSum(homeCurrency: homeCurrency)
+        items.lineSum(currency: currency, homeCurrency: homeCurrency)
     }
 
     /// Odometer is required when any item sets a km lifetime, or a tire set is
@@ -244,7 +252,8 @@ struct ServiceEntryFormState: Equatable {
     func draft(vehicle: Vehicle) -> ServiceEntryDraft {
         ServiceEntryDraft(
             vendor: vendor,
-            items: items.map { $0.serviceItem(homeCurrency: vehicle.homeCurrency) },
+            items: items.map { $0.serviceItem(currency: currency,
+                                              homeCurrency: vehicle.homeCurrency) },
             date: date,
             odometer: odometerValue,
             note: note,
@@ -288,6 +297,7 @@ struct ServiceEntryFormState: Equatable {
     func hasEdits() -> Bool {
         if vendor != initialVendor { return true }
         if note != initialNote { return true }
+        if currency != initialCurrency { return true }
         if items != initialItems { return true }
         // Linking a part is a real edit (the link is committed on save).
         if !linkedPartIds.isEmpty { return true }

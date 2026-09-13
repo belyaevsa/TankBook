@@ -142,9 +142,14 @@ public struct ServiceEntryDraft: Equatable, Sendable {
     /// Attachments and provenance ride through for the scanned path (P3.1b) and
     /// default to empty/`.manual` for the typed path (P3.1a).
     public func build(vehicleId: UUID, homeCurrency: CurrencyCode,
-                      now: Date = Date()) -> ServiceRecord {
+                      currency: CurrencyCode? = nil, now: Date = Date()) -> ServiceRecord {
+        // The record's money is stated in the entry's chosen currency, which is
+        // also the currency a newly added item is minted in, so the record and
+        // its items agree (PJ.58). Defaults to the car's home currency for the
+        // callers that never offer a pick.
+        let moneyCurrency = currency ?? homeCurrency
         let money = total > Decimal.zero
-            ? Money(amount: total, currency: homeCurrency, homeCurrency: homeCurrency)
+            ? Money(amount: total, currency: moneyCurrency, homeCurrency: homeCurrency)
             : nil
         return ServiceRecord(
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,

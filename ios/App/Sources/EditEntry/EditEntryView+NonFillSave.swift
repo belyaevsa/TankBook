@@ -67,7 +67,9 @@ extension EditEntryView {
             // a row can be deleted, position stops naming the same line, and a
             // positional preserve would hand a surviving row a deleted
             // neighbour's `partNumber`, `lifetime` or rate snapshot.
-            service.items = form.items.map { $0.serviceItem(homeCurrency: vehicle.homeCurrency) }
+            service.items = form.items.map {
+                $0.serviceItem(currency: form.currency, homeCurrency: vehicle.homeCurrency)
+            }
             service.conflict = updated.conflict
             service.flagAcceptance = updated.flagAcceptance
             try repository.upsertServiceRecord(service)

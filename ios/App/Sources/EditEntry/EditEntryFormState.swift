@@ -201,7 +201,7 @@ struct EditEntryNonFillForm: Equatable {
     /// totals for the same items. Meaningful only for a service; the other
     /// kinds carry no items.
     func lineSum(homeCurrency: CurrencyCode) -> ServiceItemSum {
-        items.lineSum(homeCurrency: homeCurrency)
+        items.lineSum(currency: currency, homeCurrency: homeCurrency)
     }
 
     /// True when the Amount and the line sum both state a figure and disagree,

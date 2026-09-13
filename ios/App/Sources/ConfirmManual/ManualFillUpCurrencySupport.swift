@@ -429,6 +429,23 @@ extension ManualFillUpFormState {
     }
 }
 
+/// The one foreign-currency decision for a manually entered amount at the
+/// entry's OWN date, shared by every entry form that offers a currency chip row
+/// (Confirm/Edit fill-up, Expense capture, Service capture). It delegates to
+/// `RateStore.resolve`, the same core the fill-up conversion card uses, so all
+/// doors take the snapshot from the same cache and none converts at today's
+/// rate (hard rule 3): a rate for the entry's date snapshots the pair, a miss
+/// leaves it rate-pending.
+@MainActor
+enum EntryCurrencyConversion {
+    static func convertForSave(_ money: Money, vehicle: Vehicle, date: Date,
+                               store: RateStore = AppRates.store) -> Money {
+        store.resolve(amount: money.amount, currency: money.currency,
+                      homeCurrency: vehicle.homeCurrency, on: date,
+                      lowConfidence: false).money
+    }
+}
+
 extension ManualFillUpView {
     /// The single foreign-currency decision for the current form, shared by the
     /// conversion card and the save path. Detection comes from the extraction's

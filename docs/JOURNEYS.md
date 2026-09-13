@@ -351,7 +351,7 @@ the pages the shutter already captured (hard rule 8).
 **Success metric:** ≥50% of service records carry an attachment; reminder acceptance rate ≥60%.
 
 ### J7b · Parts, tires, consumables
-*(Status cleared 2026-09-13: `RV.279` - the Expense and Service capture forms lack the odometer and currency fields Edit entry has, so the "cannot express a foreign total" sentence below is a defect, not a rule; re-walk after it ships.)*
+*(Status cleared 2026-09-13: `RV.279` - the Expense and Service capture forms now carry the odometer and currency fields Edit entry has, so the "cannot express a foreign total" sentence below was rewritten; awaiting the journeys re-walk.)*
 **Trigger:** a filter ordered online, brake pads bought on sale, a winter tire set – purchased *now*, installed *later* (or never; the car is sold with the shelf).
 
 | Stage | Doing | Notes |
@@ -380,10 +380,12 @@ an insurance invoice – and offers it as the category pre-selection, editable a
 offered and afterwards (hard rule 13). Merchant is not guessed, and an unrecognised kind opens
 the form at its default and says nothing: a suggestion the user can always change, never a fact
 presented as one. A scan that reads nothing opens the EMPTY expense form with no error (hard
-rule 7), the same contract the fill-up path honours. The amount is offered only when the
-receipt's currency is nil or is the car's home currency – the expense form cannot express a
-foreign total, so one is never offered as if it were home money (hard rule 13: a wrong fact is
-worse than none). The form saves on the **amount alone** (RV.206): the category always has a
+rule 7), the same contract the fill-up path honours. The amount is offered **with its currency**
+(RV.279): the expense form carries the same currency chip row and odometer card Edit entry
+renders, so a foreign total pre-fills the amount and its currency together rather than being
+withheld - the chip row's own offer lets the user change the currency, and the save snapshots the
+pair at the entry's own date (hard rule 3: a rate miss stays rate-pending, never today's rate).
+The form saves on the **amount alone** (RV.206): the category always has a
 value, and the Log row is named from it when the title is empty (RV.187), so a scan that read the
 kind and the total is a complete entry. A title stays available and is still a peer way to name
 the row - it is simply never demanded (hard rule 15).

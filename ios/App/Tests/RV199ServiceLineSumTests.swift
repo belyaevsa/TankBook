@@ -147,6 +147,16 @@ final class RV199ServiceLineSumTests: XCTestCase {
         XCTAssertFalse(form.lineSumDiffersFromAmount(homeCurrency: .eur),
                        "matching the sum again must clear the mismatch")
 
+        // A currency difference alone is a disagreement even when the digits
+        // match. The lines are LOADED (their stored EUR pair is kept), while the
+        // Amount's currency is the user's own - a typed row follows the form's
+        // currency (RV.279), so only a loaded row can state a different one.
+        form.items = [
+            ServiceEntryItemDraft(from: ServiceItem(title: "Oil service", category: .oil,
+                                                    cost: eur("89.00"))),
+            ServiceEntryItemDraft(from: ServiceItem(title: "Brake pads", category: .brakes,
+                                                    cost: eur("59.00")))
+        ]
         form.currency = .usd
         XCTAssertTrue(form.lineSumDiffersFromAmount(homeCurrency: .eur),
                       "148.00 USD against 148.00 EUR is still a disagreement")

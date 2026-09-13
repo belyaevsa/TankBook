@@ -19,7 +19,8 @@ extension ExpenseEntryView {
     @MainActor
     static func writeExpense(
         form: ExpenseEntryFormState, vehicle: Vehicle, amount: Decimal,
-        scan: ExpenseScanCapture?, repository: TankbookRepository
+        scan: ExpenseScanCapture?, repository: TankbookRepository,
+        store: RateStore = AppRates.store
     ) throws -> (expense: Expense, photoWriteFailed: Bool) {
         var attachmentIDs: [AttachmentID] = []
         var photoWriteFailed = false
@@ -38,6 +39,14 @@ extension ExpenseEntryView {
             form: form, vehicle: vehicle, amount: amount,
             attachments: attachmentIDs,
             provenance: scan != nil ? .receiptScan : .manual, now: now)
+        // The chosen currency is saved as a snapshot at the entry's OWN date,
+        // through the same conversion the fill-up path takes (hard rule 3): a
+        // rate for that date snapshots the pair, a miss leaves it rate-pending -
+        // never today's rate.
+        expense.money = expense.money.map {
+            EntryCurrencyConversion.convertForSave($0, vehicle: vehicle,
+                                                   date: form.date, store: store)
+        }
         let existing = try repository.liveEntries(forVehicle: vehicle.id)
         let validations = TimelineValidator.validate(entries: existing + [expense],
                                                      vehicle: vehicle)
