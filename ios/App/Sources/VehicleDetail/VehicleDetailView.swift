@@ -521,7 +521,8 @@ struct VehicleDetailView: View {
                 return
             }
             self.vehicle = target
-            form.load(from: target, photoData: try loadPhoto(repository: repository, vehicle: target))
+            form.load(from: target,
+                      photoData: try VehiclePhotoStore.data(for: target, repository: repository))
             // The loaded text is not a query: the suggestion list shows only
             // once the user edits the field away from it (RV.67 gate).
             acceptedModelText = form.makeModel
@@ -556,20 +557,12 @@ struct VehicleDetailView: View {
                 return
             }
             self.vehicle = refreshed
-            form.load(from: refreshed, photoData: try loadPhoto(repository: repository, vehicle: refreshed))
+            form.load(from: refreshed,
+                      photoData: try VehiclePhotoStore.data(for: refreshed, repository: repository))
             acceptedModelText = form.makeModel
         } catch {
             AppLog.error(operation: "vehicleDetail.reload", category: .ui, error: error)
         }
-    }
-
-    private func loadPhoto(repository: TankbookRepository, vehicle: Vehicle) throws -> Data? {
-        guard let photoID = vehicle.photo else { return nil }
-        let attachments = try repository.liveAttachments()
-        guard let attachment = attachments.first(where: { $0.id == photoID }) else { return nil }
-        let url = try VehiclePhotoStore.attachmentsDirectory()
-            .appendingPathComponent(attachment.file.relativePath)
-        return try? Data(contentsOf: url)
     }
 }
 

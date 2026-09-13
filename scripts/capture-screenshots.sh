@@ -1532,6 +1532,14 @@ capture RV86-cars-decided-ru                             ru -presentScreen impor
 alias_shot P4.4-sign-in SH.4-sign-in-google-en
 alias_shot P4.4-sign-in-ru SH.4-sign-in-google-ru
 
+# RV.275: the car's photo in the two lists it was missing from - the Garage grid
+# and the car switcher. One car is photographed and the other is not, so the
+# frame shows the photo tile beside the glyph.
+capture RV.275-garage-photo                               en -seedHomeCarSwitcherPhoto -selectGarageTab
+capture RV.275-garage-photo-ru                            ru -seedHomeCarSwitcherPhoto -selectGarageTab
+capture RV.275-switcher-photo                             en -seedHomeCarSwitcherPhoto -presentScreen carSwitcher
+capture RV.275-switcher-photo-ru                          ru -seedHomeCarSwitcherPhoto -presentScreen carSwitcher
+
 # Merge this run's frames into the manifest. `frames` is the script's record;
 # `legacy` (frames no line can reproduce) is hand-maintained and preserved.
 if [ "${#CAPTURED[@]}" -gt 0 ]; then

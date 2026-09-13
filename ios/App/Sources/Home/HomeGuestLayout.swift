@@ -90,20 +90,10 @@ struct HomeGuestLayout<LogContent: View>: View {
 
     private func garageHeader(vehicle: Vehicle, stats: HomeStats) -> some View {
         HStack(spacing: 12) {
-            Group {
-                if let photoData, let image = UIImage(data: photoData) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    Image(systemName: "camera")
-                        .font(.system(size: 20))
-                        .foregroundStyle(Theme.Palette.inkSoft)
-                }
-            }
-            .frame(width: 60, height: 60)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Theme.Palette.midnight))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            // The same shared tile the lists draw (RV.275), at the guest card's
+            // own size and with its camera glyph.
+            VehicleTile(photoData: photoData, size: 60, cornerRadius: 12,
+                        glyph: "camera", glyphSize: 20)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(vehicle.name)

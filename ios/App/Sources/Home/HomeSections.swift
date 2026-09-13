@@ -121,24 +121,12 @@ struct HomeGarageCard: View {
         .formCard()
     }
 
-    @ViewBuilder
+    /// The car's photo through the one shared tile (RV.275). Home passes its
+    /// own size and the camera glyph so the card keeps the look it had; the
+    /// tile shows the photo the moment the car has one, exactly like the lists.
     private var photo: some View {
-        Group {
-            if let photoData, let image = UIImage(data: photoData) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 10).fill(Theme.Palette.midnight)
-                    Image(systemName: "camera")
-                        .font(.system(size: 16))
-                        .foregroundStyle(Theme.Palette.inkSoft)
-                }
-            }
-        }
-        .frame(width: 56, height: 56)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        VehicleTile(photoData: photoData, size: 56, cornerRadius: 10,
+                    glyph: "camera", glyphSize: 16)
     }
 
     private var dateCaption: String {

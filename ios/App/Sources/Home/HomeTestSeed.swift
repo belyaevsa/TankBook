@@ -61,6 +61,7 @@ enum HomeTestSeed {
             ("-seedHomeDuplicateFields", HomeDuplicateTestSeed.seedFields),
             ("-seedHomeCarSwitcher", CarSwitcherTestSeed.seedGarage),
             ("-seedHomeCarSwitcherLimit", CarSwitcherTestSeed.seedLimit),
+            ("-seedHomeCarSwitcherPhoto", CarSwitcherTestSeed.seedGarageWithPhoto),
             ("-seedHomeAnomaly", AnomalyTestSeed.seed),
             ("-seedHomeReminderDue", seedReminderDue),
             ("-seedHomeRemindersDue", RemindersEntryTestSeed.seedDue),

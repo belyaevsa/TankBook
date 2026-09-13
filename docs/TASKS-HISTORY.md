@@ -108,6 +108,7 @@ died instantly with `database is locked` and never reached the model (re-dispatc
 | `RV.271` | **flash** | 2026-09-13 | 454 KB |
 | `RV.272+RV.273` | **flash** | 2026-09-13 | 595 KB |
 | `RV.274` | **flash** | 2026-09-13 | 273 KB |
+| `RV.275` | **flash** | 2026-09-13 | 375 KB |
 
 ## What the four grouped dispatches of 2026-09-10 cost to verify
 

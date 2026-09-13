@@ -537,18 +537,9 @@ struct HomeView: View {
                                                        repository: repository)
             dueRemindersAcrossCars = ReminderListGroups.attentionCount(mergedRows)
             resolvedDuplicateKeys = (try? repository.resolvedDuplicateKeys()) ?? []
-            photoData = try loadPhoto(repository: repository, vehicle: selected)
+            photoData = try VehiclePhotoStore.data(for: selected, repository: repository)
         } catch {
             AppLog.error(operation: "home.load", category: .ui, error: error)
         }
-    }
-
-    private func loadPhoto(repository: TankbookRepository, vehicle: Vehicle) throws -> Data? {
-        guard let photoID = vehicle.photo else { return nil }
-        let attachments = try repository.liveAttachments()
-        guard let attachment = attachments.first(where: { $0.id == photoID }) else { return nil }
-        let url = try VehiclePhotoStore.attachmentsDirectory()
-            .appendingPathComponent(attachment.file.relativePath)
-        return try? Data(contentsOf: url)
     }
 }

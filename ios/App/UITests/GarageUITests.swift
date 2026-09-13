@@ -82,6 +82,32 @@ final class GarageUITests: XCTestCase {
                       "a fuel car reports its own consumption unit")
     }
 
+    /// RV.275: a car's photo reaches the Garage list, and a car without one
+    /// keeps the car glyph. Scoped to each car's own row, so "a photo tile
+    /// exists somewhere in the grid" cannot pass for "this car shows its photo"
+    /// (the brief's vacuous trap).
+    func testGarageShowsEachCarsPhotoOrGlyph() {
+        let app = launch(["-seedHomeCarSwitcherPhoto"])
+        openGarage(app)
+        waitForLiveRowCount(2, in: app)
+
+        let volvo = liveRows(app)
+            .matching(NSPredicate(format: "label CONTAINS %@", "Volvo V60")).firstMatch
+        XCTAssertTrue(volvo.waitForExistence(timeout: 5))
+        XCTAssertTrue(volvo.images["vehicleTilePhoto"].waitForExistence(timeout: 5),
+                      "the photographed car shows its photo")
+        XCTAssertFalse(volvo.images["vehicleTileGlyph"].exists,
+                       "the photographed car must not fall back to the glyph")
+
+        let id4 = liveRows(app)
+            .matching(NSPredicate(format: "label CONTAINS %@", "ID.4")).firstMatch
+        XCTAssertTrue(id4.waitForExistence(timeout: 5))
+        XCTAssertTrue(id4.images["vehicleTileGlyph"].waitForExistence(timeout: 5),
+                      "a car with no photo shows the glyph")
+        XCTAssertFalse(id4.images["vehicleTilePhoto"].exists,
+                       "a car with no photo must not show a photo tile")
+    }
+
     /// Every car card leads to its detail - the screen that makes per-car
     /// settings editable (hard rule 13). Tapping must land on the detail for
     /// THAT car, not just any screen.

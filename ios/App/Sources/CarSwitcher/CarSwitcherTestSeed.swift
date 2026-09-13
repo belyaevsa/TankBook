@@ -1,5 +1,7 @@
 #if DEBUG
+import CoreGraphics
 import Foundation
+import ImageIO
 import TankbookCore
 
 /// UI-test DB seeding for the Car switcher (the same hook pattern as
@@ -33,6 +35,56 @@ enum CarSwitcherTestSeed {
         seedPetrolCar(repository)
         seedEV(repository)
         seedArchivedCar(repository)
+    }
+
+    /// RV.275: the artboard's garage with a REAL photo on the Volvo, so the
+    /// Garage grid and the car switcher have a photographed car and an
+    /// unphotographed one to tell apart. The photo is written to the attachments
+    /// directory through the same store the app uses, so the shared loader reads
+    /// it back like any other car's.
+    static func seedGarageWithPhoto(_ repository: TankbookRepository) {
+        seedGarage(repository)
+        let id = UUID.v7()
+        guard let volvo = try? repository.liveVehicles().first(where: { $0.name == "Volvo V60" }),
+              let saved = try? VehiclePhotoStore.save(sampleCarPhoto(), id: id) else {
+            return
+        }
+        let now = Date()
+        let attachment = Attachment(
+            id: id, createdAt: now, updatedAt: now, deletedAt: nil, kind: .photo,
+            file: LocalFileRef(sha256: saved.sha256, relativePath: saved.relativePath),
+            extractedTimestamp: nil, ocrText: nil)
+        try? repository.upsertAttachment(attachment)
+        var photographed = volvo
+        photographed.photo = id
+        try? repository.upsertVehicle(photographed)
+    }
+
+    /// A small blue JPEG with a lighter band, so the photographed car's tile is
+    /// unmistakably an image in a screenshot rather than the grey glyph.
+    private static func sampleCarPhoto() -> Data {
+        let size = 240
+        guard let space = CGColorSpace(name: CGColorSpace.sRGB),
+              let blue = CGColor(colorSpace: space, components: [0.10, 0.28, 0.45, 1]),
+              let light = CGColor(colorSpace: space, components: [0.75, 0.82, 0.90, 1]),
+              let context = CGContext(data: nil, width: size, height: size,
+                                      bitsPerComponent: 8, bytesPerRow: 0,
+                                      space: space,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
+            return Data()
+        }
+        context.setFillColor(blue)
+        context.fill(CGRect(x: 0, y: 0, width: size, height: size))
+        context.setFillColor(light)
+        context.fill(CGRect(x: 40, y: 90, width: size - 80, height: 60))
+        guard let image = context.makeImage() else { return Data() }
+        let output = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(output, "public.jpeg" as CFString, 1, nil) else {
+            return Data()
+        }
+        CGImageDestinationAddImage(destination, image, nil)
+        guard CGImageDestinationFinalize(destination) else { return Data() }
+        return output as Data
     }
 
     /// The Volvo V60: the D1 golden series so its odometer lands on the

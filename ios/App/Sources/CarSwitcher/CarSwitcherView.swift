@@ -95,7 +95,7 @@ struct CarSwitcherView: View {
             select(row.vehicle)
         } label: {
             HStack(spacing: 12) {
-                carIcon
+                VehicleTile(photoData: row.photoData)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 7) {
                         Text(row.vehicle.name)
@@ -176,7 +176,7 @@ struct CarSwitcherView: View {
             onNavigate(.vehicleDetail(row.vehicle.id))
         } label: {
             HStack(spacing: 12) {
-                carIcon
+                VehicleTile(photoData: row.photoData)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(row.vehicle.name)
                         .font(.system(size: 15, weight: .bold))
@@ -277,16 +277,6 @@ struct CarSwitcherView: View {
         }
     }
 
-    private var carIcon: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 11).fill(Theme.Palette.midnight)
-            Image(systemName: "car.fill")
-                .font(.system(size: 14))
-                .foregroundStyle(Theme.Palette.inkSoft)
-        }
-        .frame(width: 42, height: 42)
-    }
-
     /// taillight = fuel, headlight = electric (hard rule 5; the accent encodes
     /// the powertrain, exactly as the switcher artboard shows).
     static func accent(_ vehicle: Vehicle) -> Color {
@@ -329,8 +319,13 @@ struct CarSwitcherView: View {
                                                       among: acrossReminders,
                                                       currentOdometer: $0.odometer)
                 } ?? 0
+                // RV.275: the row's own photo, through the one shared loader -
+                // the same tile rendition the Garage grid draws.
+                let photoData = try VehiclePhotoStore.data(for: vehicle,
+                                                           repository: repository,
+                                                           thumbnail: true)
                 return CarSwitcherRow(vehicle: vehicle, vitals: vitals,
-                                      attentionCount: attentionCount)
+                                      attentionCount: attentionCount, photoData: photoData)
             }
         } catch {
             AppLog.error(operation: "carSwitcher.load", category: .ui, error: error)
@@ -350,10 +345,12 @@ struct CarSwitcherView: View {
 /// archived car - the artboard shows no vitals there) and its per-car
 /// attention count (RV.79 - derived at read time from the live reminders,
 /// never stored and never cached on the row; 0 for an archived car, whose
-/// work is history, J13).
+/// work is history, J13). `photoData` is the shared loader's tile rendition
+/// (RV.275) - nil when the car has no photo or its attachment is tombstoned.
 private struct CarSwitcherRow: Identifiable {
     let vehicle: Vehicle
     let vitals: String?
     let attentionCount: Int
+    let photoData: Data?
     var id: UUID { vehicle.id }
 }

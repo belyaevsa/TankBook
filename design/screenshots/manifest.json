@@ -2335,6 +2335,26 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.275-garage-photo": {
+      "commit": "469fbe01",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.275-garage-photo-ru": {
+      "commit": "469fbe01",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.275-switcher-photo": {
+      "commit": "469fbe01",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.275-switcher-photo-ru": {
+      "commit": "469fbe01",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.28-fuel-chips": {
       "commit": "0ba7e94",
       "device": "iPhone 17",

@@ -70,6 +70,30 @@ final class CarSwitcherUITests: XCTestCase {
         XCTAssertTrue(app.buttons["carSwitcherAddCar"].exists)
     }
 
+    /// RV.275: the switcher shows each car's photo, not the same glyph for
+    /// every car. Scoped to each car's own row, so a photo tile anywhere in the
+    /// sheet cannot stand in for the photographed car's (the vacuous trap).
+    func testSwitcherShowsEachCarsPhotoOrGlyph() {
+        let app = launch(args: ["-seedHomeCarSwitcherPhoto"])
+        openSwitcher(app)
+
+        let volvo = app.buttons.matching(identifier: "carSwitcherRow")
+            .matching(NSPredicate(format: "label CONTAINS %@", "Volvo V60")).firstMatch
+        XCTAssertTrue(volvo.waitForExistence(timeout: 5))
+        XCTAssertTrue(volvo.images["vehicleTilePhoto"].waitForExistence(timeout: 5),
+                      "the photographed car shows its photo in the switcher")
+        XCTAssertFalse(volvo.images["vehicleTileGlyph"].exists,
+                       "the photographed car must not fall back to the glyph")
+
+        let id4 = app.buttons.matching(identifier: "carSwitcherRow")
+            .matching(NSPredicate(format: "label CONTAINS %@", "ID.4")).firstMatch
+        XCTAssertTrue(id4.waitForExistence(timeout: 5))
+        XCTAssertTrue(id4.images["vehicleTileGlyph"].waitForExistence(timeout: 5),
+                      "a car with no photo shows the glyph")
+        XCTAssertFalse(id4.images["vehicleTilePhoto"].exists,
+                       "a car with no photo must not show a photo tile")
+    }
+
     /// Selecting a car persists it and switches Home AND the log stream to that
     /// car's data - the capture-logs-to-the-selected-car invariant, end to end.
     func testSwitchingChangesHomeGarageCardAndLogStream() {

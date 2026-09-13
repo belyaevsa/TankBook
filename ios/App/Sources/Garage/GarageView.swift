@@ -141,7 +141,7 @@ struct GarageView: View {
                                    accent: Color) -> some View {
         NavigationLink(value: Route.vehicleDetail(row.vehicle.id)) {
             HStack(spacing: 12) {
-                carIcon
+                VehicleTile(photoData: row.photoData)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 7) {
                         Text(row.vehicle.name)
@@ -215,7 +215,7 @@ struct GarageView: View {
     private func archivedRow(_ row: GarageRow) -> some View {
         NavigationLink(value: Route.vehicleDetail(row.vehicle.id)) {
             HStack(spacing: 12) {
-                carIcon
+                VehicleTile(photoData: row.photoData)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(row.vehicle.name)
                         .font(.system(size: 15, weight: .bold))
@@ -364,16 +364,6 @@ struct GarageView: View {
 
     // MARK: - Behavior
 
-    private var carIcon: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 11).fill(Theme.Palette.midnight)
-            Image(systemName: "car.fill")
-                .font(.system(size: 14))
-                .foregroundStyle(Theme.Palette.inkSoft)
-        }
-        .frame(width: 42, height: 42)
-    }
-
     private var chevron: some View {
         Image(systemName: "chevron.right")
             .font(.caption2.weight(.semibold))
@@ -426,8 +416,14 @@ struct GarageView: View {
                                                       among: acrossReminders,
                                                       currentOdometer: $0.odometer)
                 } ?? 0
+                // RV.275: the row's own photo, through the one shared loader -
+                // a thumbnail, because the grid draws N 42pt tiles and reloads
+                // on every vehicle save.
+                let photoData = try VehiclePhotoStore.data(for: vehicle,
+                                                           repository: repository,
+                                                           thumbnail: true)
                 return GarageRow(vehicle: vehicle, vitals: vitals,
-                                 attentionCount: attentionCount)
+                                 attentionCount: attentionCount, photoData: photoData)
             }
         } catch {
             AppLog.error(operation: "garage.load", category: .ui, error: error)
@@ -439,11 +435,13 @@ struct GarageView: View {
 /// archived car - the artboard shows no vitals there) and its per-car
 /// attention count (RV.79 - derived at read time from the live reminders,
 /// never stored and never cached on the row; 0 for an archived car, whose
-/// work is history, J13).
+/// work is history, J13). `photoData` is the shared loader's tile rendition
+/// (RV.275) - nil when the car has no photo or its attachment is tombstoned.
 private struct GarageRow: Identifiable {
     let vehicle: Vehicle
     let vitals: String?
     let attentionCount: Int
+    let photoData: Data?
     var id: UUID { vehicle.id }
 }
 
