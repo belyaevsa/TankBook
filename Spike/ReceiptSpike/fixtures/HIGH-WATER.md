@@ -134,6 +134,27 @@ coverage 0.212 -> 0.210, precision 0.946. The same `20.00 x 71.30` fill is resol
 and not from the display - the asymmetry the 2026-09-11 batch recorded, now repeated at a third
 RN-Tver station. The mode stays off.
 
+## The Circle K Dresser Wayne set - a receipt that commits the discount as the unit price
+
+The 2026-09-13b set is four Circle K Estonia Dresser Wayne displays (`pump-097`..`100`, all the
+same `SUMMA`/`LIITRIT`/`HIND-1L` face, the grade never named) and the paper half of `pump-100`,
+`receipt-066` (Circle K Jarvevana, pump 4, `D B0 miles 64,04L 129,62`, 13/09/2026 15:32).
+
+**Receipts 260/305 -> 263/310.** `receipt-066` resolves litres, total and currency; it misses
+`fuelKind` (`D B0 miles`, the loyalty product string that has never normalised to diesel) and
+`unitPrice`. The unit-price miss is **not** an abstention: the parser commits **`unitPrice = 0.96`**,
+which is the `EXTRA SOODUS -0,96 EUR` discount line, not the `2,024` the receipt prints and its
+paired pump displays. The footnote `Kütuse liitrihind kviitungil sisaldab allahindlust` says the
+printed per-litre price already includes the discount, so `64.04 x 2.024 = 129.62` closes exactly
+and the `-0,96` is informational. A confident-wrong unit price is hard rule 13's exact concern, and
+the ratchet scores it as a plain miss - the same asymmetry `RV.270` fixed for `fuelKind`. Recorded,
+not tuned.
+
+**Pump 53/267 -> 53/279.** The four displays assert twelve numeric cells and the parser commits
+nothing on any of them, so committed stays 56 and committed-correct stays 53: coverage
+0.210 -> 0.201, precision 0.946. The `D`/`95`/`98+` windows are recognised as text but the
+transaction price is never selected from them. The mode stays off.
+
 ## Known trap
 
 `swift run ReceiptSpike fixtures/receipts` - the CLI a human runs when adding a fixture by

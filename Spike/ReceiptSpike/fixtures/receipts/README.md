@@ -928,3 +928,26 @@ before it reads a marker, so `062` now abstains instead of committing `lpg`. The
 `../pump/pump-096`, carries no fuel kind by rule (a visible grade is what the station sells, never
 what this fill used), and the parser commits nothing on any of its three numeric cells - the same
 Cyrillic-labelled-display asymmetry the 2026-09-11 batch recorded.
+
+## Added 2026-09-13 (the Circle K Dresser Wayne set)
+
+- `receipt-066-circlek-jarvevana-db0-pump4-6404l-pair-ee.jpg` - Circle K Jarvevana
+  teenindusjaam, Järvevana tee 2, Tallinn, Pump 4, 13/09/2026 15:32, terminal T04, arve 0047.
+  `D B0 miles  64,04L  129,62`, `Pump 4 Hind 2,024 EUR/L`, `EXTRA SOODUS -0,96 EUR`,
+  `K O K K U 129,62`, `KÄIBEMAKSUTA 104,53`, `24% KM 25,09`. **The same fill as
+  `../pump/pump-100-dresser-wayne-circlek-jarvevana-pump4-6404l-2024-pair-ee.jpg`**, and the pair
+  is the point: the display's four price windows never name the grade, so the paper's `D B0 miles`
+  line and its `2,024` are what settle the fill. Held in a gloved hand over the pump, the lower
+  third curled and the card slip partly covered; the fuel block is flat and sharp. Converted from
+  HEIC to full-resolution JPEG (3024x4032, orientation baked in), EXIF and ICC stripped. No fiscal
+  QR, so no `.qr.txt`.
+
+The footnote `Kütuse liitrihind kviitungil sisaldab allahindlust` states that the printed per-litre
+price already includes the discount, so `64.04 x 2.024 = 129.62` closes exactly and the `-0,96`
+line is informational - the `receipt-038`/`055` shape, where subtracting the discount again would
+double-count it. The parser resolves **litres, total and currency**, but commits
+**`unitPrice = 0.96`** - the `EXTRA SOODUS` amount, not the `2,024` the receipt prints and its
+paired pump displays. That is a confident-wrong unit price (hard rule 13), not the honest
+abstention the other discount receipts return, and it is recorded here rather than tuned away.
+`fuelKind` abstains: `D B0 miles` is the loyalty product string that has never normalised to
+diesel (`receipt-001`/`042`/`045`/`046`/`059`/`064`).

@@ -118,6 +118,7 @@ died instantly with `database is locked` and never reached the model (re-dispatc
 | `PJ.29a` | **flash** | 2026-09-13 | 476 KB |
 | `RV.281` | **orchestrator** (catalog edit, no dispatch) | 2026-09-13 | - |
 | `CORPUS-2026-09-13` | **flash** | 2026-09-13 | 817 KB |
+| `CORPUS-2026-09-13b` | **flash** | 2026-09-13 | 375 KB |
 
 ## What the four grouped dispatches of 2026-09-10 cost to verify
 

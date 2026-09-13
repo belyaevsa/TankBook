@@ -8,12 +8,12 @@ stays off.
 ```
 fixtures/
   receipts/   receipt photos + expected.csv      -> Vision OCR (L5 accuracy gate)
-              65 files, RU + EE + KZ, 6 years. Live score in high-water.json - see its README
+              66 files, RU + EE + KZ, 6 years. Live score in high-water.json - see its README
               receipt-036 is the first NON-FISCAL terminal slip: no QR, no VAT, no fiscal ids
               receipt-047/048 are matched pairs with pump-065/066 (see high-water.json):
               048 sweeps 5/5, 047 abstains on both operands - they bracket the RUB band
   pump/       pump-display photos + expected.csv -> Vision OCR (L5, >=95% or the mode stays off)
-              96 displays, 6 makes, EE/RU/KZ. Live score in high-water.json.
+              100 displays, 6 makes, EE/RU/KZ. Live score in high-water.json.
               pump-016/017 are idle - negative fixtures
               pump-021/022/023 are sun-glared; their values came from the photographer, not the photo
               pump-002 is the SAME fill as receipt-007: independent ground truth
@@ -140,7 +140,7 @@ hard rule 4 exists for.
 
 - **Breadth is still the limit, not count.** Every accuracy figure below a few
   dozen images per class is anecdote, not measurement. As of 2026-09-13 the
-  corpus holds 65 receipts, 96 pump displays, 8 screenshots, 2 fiscal
+  corpus holds 66 receipts, 100 pump displays, 8 screenshots, 2 fiscal
   documents and 2 non-fuel receipt photographs (two car-park tickets, under
   `expenses/`).
 - `receipt-001.heic` (Circle K, Tallinn, Estonian): the parser reads liters,

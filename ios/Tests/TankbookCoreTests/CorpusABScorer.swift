@@ -395,6 +395,10 @@ enum PostSweepCorpusAdditions {
             // slip from the same till family and legend as 062/063, one RN-Tver
             // station over. Declared, not swept.
             "receipt-065-rn-tver-tc252-95firm-2000l-nonfiscal-terminal-slip-pair-ru.jpeg",
+            // 2026-09-13: the paper half of pump-100 - a Circle K Jarvevana
+            // slip whose printed per-litre price already carries the discount,
+            // so 64.04 x 2.024 = 129.62 closes exactly. Declared, not swept.
+            "receipt-066-circlek-jarvevana-db0-pump4-6404l-pair-ee.jpg",
         ],
         "pump": [
             // 2026-09-09: the owner's own fills, three of them the matched
@@ -534,6 +538,13 @@ enum PostSweepCorpusAdditions {
             // 2026-09-13: the Tokheim display half of receipt-065, at a third
             // RN-Tver station. Declared, not swept.
             "pump-096-tokheim-rn-tver-tc252-2000l-pair-ru.jpeg",
+            // 2026-09-13: four Circle K Estonia Dresser Wayne displays on the
+            // same SUMMA/LIITRIT/HIND-1L face - three from the owner's set and
+            // pump-100, the display half of receipt-066. Declared, not swept.
+            "pump-097-dresser-wayne-circlek-ee-2285l-1899.jpg",
+            "pump-098-dresser-wayne-circlek-ee-969l-2039.jpg",
+            "pump-099-dresser-wayne-circlek-ee-pump1-1064l-1899.jpg",
+            "pump-100-dresser-wayne-circlek-jarvevana-pump4-6404l-2024-pair-ee.jpg",
         ],
     ]
 

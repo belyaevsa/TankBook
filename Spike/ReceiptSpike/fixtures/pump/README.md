@@ -871,3 +871,36 @@ Cyrillic-labelled-display asymmetry the 2026-09-11 batch recorded, repeated at a
 station: the same `20.00 x 71.30` fill is resolved from the paper and not from the pump. Numeric
 total 264 -> 267, committed 56 and committed-correct 53 unchanged, so precision stays 0.946 and
 coverage falls 0.212 -> 0.210; the mode stays off on both.
+
+## Added 2026-09-13 (the Circle K Dresser Wayne set)
+
+Four Estonian displays, all the same **Dresser Wayne Circle K** face: `SUMMA` over `LIITRIT`
+(`Vmin 5 LIITRIT`), a row of four price windows under grade badges, and `HIND/1L`. The face
+**never names the grade dispensed** - the badges are every nozzle's, per the rule above - and the
+transaction's unit price is simply the one price window the `SUMMA / LIITRIT` quotient lands on.
+The photographer is reflected in the LCD glass on every one.
+
+- `pump-097-dresser-wayne-circlek-ee-2285l-1899.jpg` - `SUMMA 43.39` / `LIITRIT 22.85`. The four
+  windows read `D 2.039 · 95+ 1.949 · 98+ 1.959 · 95 1.899`; `43.39 / 22.85 = 1.899`, so the `95`
+  window is the transaction's price. No pump number in frame.
+- `pump-098-dresser-wayne-circlek-ee-969l-2039.jpg` - `SUMMA 19.76` / `LIITRIT 9.69`. The windows
+  read `D+ 2.139 · D 2.039 · 98+ 1.959 · 95 1.899` (the leftmost partly cut at the frame edge);
+  `19.76 / 9.69 = 2.039`, the `D` window. A small top-up, the shape `pump-049` records at 5.81 L.
+- `pump-099-dresser-wayne-circlek-ee-pump1-1064l-1899.jpg` - `SUMMA 20.21` / `LIITRIT 10.64`, the
+  pump number `1` legible on the red tile. The windows read `D 2.039 · 95+ 1.949 · 98+ 1.959 · 95
+  1.899`; `20.21 / 10.64 = 1.899`, the `95` window.
+- `pump-100-dresser-wayne-circlek-jarvevana-pump4-6404l-2024-pair-ee.jpg` - `SUMMA 129.62` /
+  `LIITRIT 64.04`, pump number `4`, at Circle K Jarvevana. The windows read `95 1.884 · 98+ 1.944 ·
+  95+ 1.934 · D 2.024`, and the `D miles` window is the **lit** one; `129.62 / 64.04 = 2.024`
+  agrees. The `SUMMA`/`HIND` labels are cut at the right frame edge, so a label-anchored reader has
+  only the digits. **The same fill as
+  `../receipts/receipt-066-circlek-jarvevana-db0-pump4-6404l-pair-ee.jpg`**, which prints the same
+  `64.04 x 2.024 = 129.62`.
+
+`fuelKind` stays empty on all four, including `pump-100` whose paper half names `D B0 miles` - the
+rule does not bend for a pair. **The parser commits nothing on any of the twelve numeric cells**:
+four more Dresser Wayne `SUMMA`/`LIITRIT` displays whose grade windows it reads as text but never
+selects a transaction price from, so numeric total 267 -> 279, committed 56 and committed-correct
+53 unchanged, precision 0.946 and coverage 0.210 -> 0.201; the mode stays off on both. The four are
+full-resolution JPEGs converted from iPhone HEIC (3024x4032, orientation baked in), EXIF and ICC
+stripped, committed byte-for-byte.
