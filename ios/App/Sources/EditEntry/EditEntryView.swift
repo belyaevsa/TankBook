@@ -642,13 +642,14 @@ extension EditEntryView {
     #if DEBUG
     func seedAttachSuggestionIfRequested() {
         guard ProcessInfo.processInfo.arguments.contains("-seedAttachSuggestion"),
-              let fillUp else { return }
+              let fillUp, let vehicle else { return }
         // Only the unit price, so the merge suggests exactly the blank price
         // field and nothing else - the suggestion stays dimmed (.notApplicable
         // cross-check, no triple to verify).
         let extraction = FuelExtraction(unitPrice: Decimal(string: "1.679")!)
         let suggestions = ReceiptAttachMerge.suggestions(entry: fillUp, extraction: extraction)
-        fillForm.applyAttachedSuggestions(suggestions, extraction: extraction)
+        fillForm.applyAttachedSuggestions(suggestions, extraction: extraction,
+                                          volumeUnit: vehicle.units.volume)
     }
     #endif
 
@@ -679,7 +680,8 @@ extension EditEntryView {
             attachExtraction = extraction
             if let fillUp {
                 let suggestions = ReceiptAttachMerge.suggestions(entry: fillUp, extraction: extraction)
-                fillForm.applyAttachedSuggestions(suggestions, extraction: extraction)
+                fillForm.applyAttachedSuggestions(suggestions, extraction: extraction,
+                                                  volumeUnit: vehicle.units.volume)
             }
             attachProcessing = false
         }

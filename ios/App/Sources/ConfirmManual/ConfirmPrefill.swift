@@ -189,6 +189,17 @@ enum ConfirmPrefillSeed {
                                                              date: "17.08.2026"),
                                   crops: crops(for: [.volume, .unitPrice]))
         }
+        if arguments.contains("-seedConfirmPrefillImperial") {
+            // RV.272: a 40 L receipt scanned on an imperial car. The volume and
+            // price are litres / per-litre by contract, so the form must show
+            // 10.57 gal and 5.678 per gal - never 40.00 under a Gallons label.
+            return ConfirmPrefill(extraction: FuelExtraction(liters: 40.0,
+                                                             unitPrice: Decimal(string: "1.5")!,
+                                                             total: 60.00, currency: .eur,
+                                                             fuelKind: .petrol95,
+                                                             date: "17.08.2026"),
+                                  crops: crops(for: [.volume, .unitPrice]))
+        }
         return nil
     }
 

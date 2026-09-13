@@ -395,8 +395,7 @@ struct ManualFillUpView: View {
             applyTotal(total)
             form.resolvedByExtraction.insert(.total)
         }
-        form.liters = ConfirmFormat.string(fromExtraction: extraction.liters, fractionDigits: 2)
-        form.pricePerL = ConfirmFormat.string(fromExtraction: extraction.unitPrice, fractionDigits: 3)
+        form.applyPrefilledVolumes(liters: extraction.liters, unitPrice: extraction.unitPrice, volumeUnit: volumeUnit)
         form.currency = extraction.currency ?? vehicle.homeCurrency
         if let kind = extraction.fuelKind, vehicle.fuelKinds.contains(kind) {
             form.fuelKind = kind
@@ -496,12 +495,12 @@ struct ManualFillUpView: View {
                 }
             case .volume:
                 if let volume = extraction.volume?.value {
-                    form.liters = ConfirmFormat.string(fromExtraction: volume, fractionDigits: 2)
+                    form.applyPrefilledVolumes(liters: volume, unitPrice: nil, volumeUnit: volumeUnit)
                     form.resolvedByExtraction.insert(.volume)
                 }
             case .unitPrice:
                 if let price = extraction.unitPrice?.value {
-                    form.pricePerL = ConfirmFormat.string(decimal: price, fractionDigits: 3)
+                    form.applyPrefilledVolumes(liters: nil, unitPrice: price, volumeUnit: volumeUnit)
                     form.resolvedByExtraction.insert(.unitPrice)
                 }
             case .currency:

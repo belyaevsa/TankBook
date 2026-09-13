@@ -76,7 +76,8 @@ extension ManualFillUpView {
             guard let extraction = prefill.extraction else { return }
             let entry = form.blankDetectingEntry(vehicle: vehicle)
             let suggestions = ReceiptAttachMerge.suggestions(entry: entry, extraction: extraction)
-            form.applyAttachedSuggestions(suggestions, extraction: extraction)
+            form.applyAttachedSuggestions(suggestions, extraction: extraction,
+                                          volumeUnit: vehicle.units.volume)
             // Attaching a photo is a real change, guarded like a typed edit.
             hasUnsavedChanges = true
         }

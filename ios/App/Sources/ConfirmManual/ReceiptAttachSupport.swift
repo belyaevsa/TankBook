@@ -165,7 +165,8 @@ extension ManualFillUpFormState {
     /// applies directly, as it does on the scan path. A field the merge did NOT
     /// return is a typed value and is never touched.
     mutating func applyAttachedSuggestions(_ suggestions: Set<FieldRef>,
-                                           extraction: FuelExtraction) {
+                                           extraction: FuelExtraction,
+                                           volumeUnit: VolumeUnit) {
         for ref in suggestions {
             switch ref {
             case .total:
@@ -175,7 +176,7 @@ extension ManualFillUpFormState {
                 }
             case .unitPrice:
                 if let price = extraction.unitPrice {
-                    self.pricePerL = ConfirmFormat.string(decimal: price, fractionDigits: 3)
+                    applyPrefilledVolumes(liters: nil, unitPrice: price, volumeUnit: volumeUnit)
                     resolvedByExtraction.insert(.unitPrice)
                 }
             case .currency:

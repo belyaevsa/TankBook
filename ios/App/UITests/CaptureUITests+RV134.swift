@@ -81,4 +81,24 @@ extension CaptureUITests {
         XCTAssertFalse(app.staticTexts["Liters"].exists,
                        "an imperial car must never be shown the litre row label")
     }
+
+    /// RV.272: a scanned receipt on an imperial car pre-fills the car's own
+    /// unit. The extraction is litres by contract, so the 40 L seed must read
+    /// 10.57 under the Gallons label - never 40.00, which would save as ~151 L.
+    func testImperialScannedReceiptVolumeRowReadsTheConvertedFigure() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedVehicleForUITests",
+                               "-seedVehicleMiles", "-seedConfirmPrefillImperial",
+                               "-presentScreen", "capture", "-cameraStatus", "denied"]
+        app.launch()
+        XCTAssertTrue(app.buttons["captureCloseButton"].waitForExistence(timeout: 10),
+                      "the capture cover must be present")
+        let volume = app.textFields["manualFillUpLitersField"]
+        XCTAssertTrue(volume.waitForExistence(timeout: 10),
+                      "the denied camera state must show the manual form")
+        XCTAssertEqual(volume.value as? String, "10.57",
+                       "a scanned 40 L receipt must read 10.57 gal on a gallons car")
+        XCTAssertNotEqual(volume.value as? String, "40.00",
+                          "the stored litres must never be written under the Gallons label")
+    }
 }

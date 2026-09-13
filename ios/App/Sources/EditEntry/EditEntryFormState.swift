@@ -14,7 +14,14 @@ extension ManualFillUpFormState {
                                                            unit: vehicle.units.volume)
         total = fill.money.map { ManualFillUpFormat.decimal($0.amount, fractionDigits: 2) } ?? ""
         liters = ManualFillUpFormat.decimal(displayVolume, fractionDigits: 2)
-        pricePerL = fill.unitPrice.map { ManualFillUpFormat.decimal($0, fractionDigits: 3) } ?? ""
+        // `fill.unitPrice` is per litre; the field is labelled per display unit
+        // (RV.234), so the stored price converts OUT here and back IN at save
+        // (`mathFields`), exactly like the volume (RV.272).
+        pricePerL = fill.unitPrice.map {
+            ManualFillUpFormat.decimal(
+                ManualFillUpMath.displayUnitPrice(fromPerLitre: $0, unit: vehicle.units.volume),
+                fractionDigits: 3)
+        } ?? ""
         currency = fill.money?.currency ?? vehicle.homeCurrency
         manualRate = Self.loadedManualRate(from: fill.money)
         isManualRateEditorOpen = fill.money?.rateSource == .manual

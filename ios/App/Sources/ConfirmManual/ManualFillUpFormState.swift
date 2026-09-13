@@ -118,16 +118,55 @@ struct ManualFillUpFormState: Equatable {
 
     // MARK: The third value derives
 
-    /// The three numbers as the deriver wants them: volume ALWAYS litres,
-    /// money in the entry's original currency.
+    /// The three numbers as the deriver wants them: volume ALWAYS litres, price
+    /// ALWAYS per litre (`FillUp.unitPrice`, docs/SCHEMA.md), money in the
+    /// entry's original currency. The two per-volume fields hold the car's
+    /// DISPLAY unit, so both cross back here - the volume through `volumeL`, the
+    /// price through `unitPricePerLitre` (the inverse factor).
     func mathFields(volumeUnit: VolumeUnit) -> ManualFillUpMath.Fields {
         .init(total: totalDecimal,
               volumeL: litersDisplayDouble.map { ManualFillUpMath.volumeL(from: $0, unit: volumeUnit) },
-              unitPrice: pricePerLDecimal)
+              unitPrice: pricePerLDecimal.map {
+                  ManualFillUpMath.unitPricePerLitre(fromDisplay: $0, unit: volumeUnit)
+              })
     }
 
     private var litersDisplayDouble: Double? {
         Self.decimal(liters).map { NSDecimalNumber(decimal: $0).doubleValue }
+    }
+
+    // MARK: - The extraction pre-fill boundary
+
+    /// The one boundary where an extraction's per-volume figures cross into the
+    /// form. The extraction is litres and price-per-litre by contract
+    /// (docs/SCHEMA.md -> GatewayExtraction.volume, FillUp.unitPrice); the form
+    /// holds the car's DISPLAY unit, so the volume crosses through
+    /// `displayVolume` and the price through its inverse factor. One function
+    /// each, so the scan, the gateway answer and the attach path cannot drift.
+    static func prefillVolumeText(liters: Double, unit: VolumeUnit) -> String {
+        ManualFillUpFormat.decimal(
+            ManualFillUpMath.displayVolume(from: liters, unit: unit), fractionDigits: 2)
+    }
+
+    static func prefillUnitPriceText(perLitre: Decimal, unit: VolumeUnit) -> String {
+        ManualFillUpFormat.decimal(
+            ManualFillUpMath.displayUnitPrice(fromPerLitre: perLitre, unit: unit),
+            fractionDigits: 3)
+    }
+
+    /// Applies an extraction's per-volume figures to the form, converting both
+    /// at the boundary above. The one function the scan pre-fill, the gateway
+    /// answer and the attach path all call, so no door can write the stored
+    /// unit into a display-unit field (hard rule 15: the doors are peers).
+    /// A nil input leaves its field untouched - a blank is an honest absence.
+    mutating func applyPrefilledVolumes(liters: Double?, unitPrice: Decimal?,
+                                        volumeUnit: VolumeUnit) {
+        if let liters {
+            self.liters = Self.prefillVolumeText(liters: liters, unit: volumeUnit)
+        }
+        if let unitPrice {
+            self.pricePerL = Self.prefillUnitPriceText(perLitre: unitPrice, unit: volumeUnit)
+        }
     }
 
     /// The fully-specified triple + cross-check verdict, or `nil` when fewer
@@ -161,7 +200,9 @@ struct ManualFillUpFormState: Equatable {
         case .unitPrice:
             if !pricePerL.isEmpty { return pricePerL }
             guard let derived = derived(volumeUnit: volumeUnit) else { return nil }
-            return ManualFillUpFormat.decimal(derived.unitPrice, fractionDigits: 3)
+            let display = ManualFillUpMath.displayUnitPrice(fromPerLitre: derived.unitPrice,
+                                                            unit: volumeUnit)
+            return ManualFillUpFormat.decimal(display, fractionDigits: 3)
         }
     }
 

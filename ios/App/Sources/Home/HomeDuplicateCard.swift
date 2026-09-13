@@ -159,7 +159,7 @@ struct HomeDuplicateCard: View {
 
     private var countedVolumeText: String {
         guard case .volumeL(let litres) = group.counted.quantity else { return "" }
-        return "\(ManualFillUpFormat.decimal(litres, fractionDigits: 1)) \(L10n.volumeUnit(volumeUnit))"
+        return VolumeDisplay.text(litres, unit: volumeUnit)
     }
 
     private func amountText(_ entry: LogStream.LogEntry) -> String? {

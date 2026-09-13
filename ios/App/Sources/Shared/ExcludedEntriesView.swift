@@ -196,7 +196,7 @@ struct ExcludedEntriesView: View {
             rows = excluded.map { excludedEntry in
                 let entry = entries.first { $0.id == excludedEntry.id }
                 let litresText = (entry as? FillUp).map {
-                    "\(ManualFillUpFormat.decimal($0.volumeL, fractionDigits: 1)) \(L10n.volumeUnit(units.volume))"
+                    VolumeDisplay.text($0.volumeL, unit: units.volume)
                 }
                 let odometerText = entry?.odometer.map {
                     "\(OdometerFormat.grouped($0)) \(L10n.distanceUnit(units.distance))"

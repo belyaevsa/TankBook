@@ -352,7 +352,11 @@ struct ManualFillUpNumbersCard: View {
             ManualFillUpFormat.decimal(ManualFillUpMath.displayVolume(from: volume.volumeL, unit: volumeUnit),
                                        fractionDigits: 2)
         }
-        case .unitPrice: return derived.map { ManualFillUpFormat.decimal($0.unitPrice, fractionDigits: 3) }
+        case .unitPrice: return derived.map {
+            ManualFillUpFormat.decimal(
+                ManualFillUpMath.displayUnitPrice(fromPerLitre: $0.unitPrice, unit: volumeUnit),
+                fractionDigits: 3)
+        }
         }
     }
 

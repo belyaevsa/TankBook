@@ -20,7 +20,8 @@ extension EditEntryView {
         if let extraction, let fillUp, let vehicle {
             let suggestions = ReceiptAttachMerge.suggestions(
                 entry: fillForm.blankDetectingEntry(vehicle: vehicle), extraction: extraction)
-            fillForm.applyAttachedSuggestions(suggestions, extraction: extraction)
+            fillForm.applyAttachedSuggestions(suggestions, extraction: extraction,
+                                              volumeUnit: vehicle.units.volume)
         }
     }
 

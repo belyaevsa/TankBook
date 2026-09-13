@@ -555,7 +555,7 @@ struct HomeRecentEntries: View {
     private func segmentView(_ segment: LogStream.SubtitleSegment) -> some View {
         switch segment {
         case .quantity(.volumeL(let litres)):
-            Text("\(ManualFillUpFormat.decimal(litres, fractionDigits: 1)) \(L10n.volumeUnit(volumeUnit))")
+            Text(VolumeDisplay.text(litres, unit: volumeUnit))
         case .quantity(.energyKWh(let kWh)):
             Text("\(ManualFillUpFormat.decimal(kWh, fractionDigits: 0)) \(L10n.kWh)")
         case .fuelKind(let kind):

@@ -224,6 +224,12 @@ capture RV.271-pace-limit-imperial    en -seedSettingsSignedIn -seedHomeEmptyVeh
 capture RV.271-pace-limit-imperial-ru ru -seedSettingsSignedIn -seedHomeEmptyVehicle -seedHomeMiles -presentScreen vehicleDetail -scrollToPaceLimit
 capture RV.271-inbox-imperial    en -seedSettingsSignedIn -seedInboxComparison -seedInboxMiles -inboxReset -presentScreen inbox
 capture RV.271-inbox-imperial-ru ru -seedSettingsSignedIn -seedInboxComparison -seedInboxMiles -inboxReset -presentScreen inbox
+
+# RV.272: the scan pre-fill on an imperial car. A 40 L receipt must read 10.57
+# under the Gallons label - the data-corrupting frame (litres written as gallons)
+# and the same card RV.234 shot empty. Dark, EN + RU.
+capture RV.272-confirm-imperial-scan    en -seedVehicleForUITests -seedVehicleMiles -presentScreen confirmManual -seedConfirmPrefillImperial
+capture RV.272-confirm-imperial-scan-ru ru -seedVehicleForUITests -seedVehicleMiles -presentScreen confirmManual -seedConfirmPrefillImperial
 # RV.197: the guest Home with one entry - the log stream a no-account user must
 # see after saving. `-clearSessionAtLaunch` makes the launch guest (the Keychain
 # outlives `-homeResetDatabase`); `-seedHomeSingleFill` is the car plus the one

@@ -91,6 +91,20 @@ public enum ManualFillUpMath {
         litres / litresPerUnit(unit)
     }
 
+    /// Converts a stored per-litre price into the vehicle's display unit: the
+    /// inverse of `displayVolume`'s factor, because a per-litre price becomes a
+    /// per-gallon price by multiplying. `FillUp.unitPrice` is per litre
+    /// (docs/SCHEMA.md); a form field labelled "Price / gal" holds the result.
+    public static func displayUnitPrice(fromPerLitre price: Decimal, unit: VolumeUnit) -> Decimal {
+        price * Decimal(litresPerUnit(unit))
+    }
+
+    /// Converts a display-unit price (what the user reads and types) into the
+    /// per-litre price the model stores (`FillUp.unitPrice`, docs/SCHEMA.md).
+    public static func unitPricePerLitre(fromDisplay price: Decimal, unit: VolumeUnit) -> Decimal {
+        price / Decimal(litresPerUnit(unit))
+    }
+
     // MARK: - Private
 
     private static func deriveThird(_ fields: Fields) -> Derived? {

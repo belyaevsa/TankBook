@@ -203,7 +203,8 @@ enum AttachmentValueFormat {
             .sorted { (rank[$0.key] ?? Int.max) < (rank[$1.key] ?? Int.max) }
             .map { ref, extraction in
                 Row(ref: ref, label: label(ref, volumeUnit: volumeUnit),
-                    value: value(ref, extraction.value, currency: currency))
+                    value: value(ref, extraction.value, currency: currency,
+                                 volumeUnit: volumeUnit))
             }
     }
 
@@ -211,7 +212,8 @@ enum AttachmentValueFormat {
         FieldLabel.text(ref, volumeUnit: volumeUnit)
     }
 
-    private static func value(_ ref: FieldRef, _ value: FieldValue?, currency: CurrencyCode?) -> Value {
+    private static func value(_ ref: FieldRef, _ value: FieldValue?, currency: CurrencyCode?,
+                              volumeUnit: VolumeUnit) -> Value {
         guard let value else { return .plain("") }
         switch value {
         case .money(let amount):
@@ -221,8 +223,14 @@ enum AttachmentValueFormat {
         case .number(let number):
             switch ref {
             case .volume:
-                return .numeric(figure: ManualFillUpFormat.decimal(number, fractionDigits: 2),
-                                unit: L10n.volumeUnit(.l))
+                // The parse normalizes every reading to litres and carries no
+                // read-unit, while the label is the car's own unit (RV.234), so
+                // the stored litres convert here (RV.273).
+                return .numeric(
+                    figure: ManualFillUpFormat.decimal(
+                        ManualFillUpMath.displayVolume(from: number, unit: volumeUnit),
+                        fractionDigits: 2),
+                    unit: L10n.volumeUnit(volumeUnit))
             case .energy:
                 return .numeric(figure: ManualFillUpFormat.decimal(number, fractionDigits: 2),
                                 unit: L10n.kWh)

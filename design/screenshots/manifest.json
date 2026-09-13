@@ -1146,12 +1146,12 @@
       "runtime": "iOS.26.5"
     },
     "PJ.48-edit-suggestion": {
-      "commit": "7586202",
+      "commit": "b9868717",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "PJ.48-edit-suggestion-ru": {
-      "commit": "7586202",
+      "commit": "b9868717",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -2136,12 +2136,12 @@
       "runtime": "iOS.26.5"
     },
     "RV.234-home-imperial": {
-      "commit": "99c78541",
+      "commit": "b9868717",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "RV.234-home-imperial-ru": {
-      "commit": "99c78541",
+      "commit": "b9868717",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -2322,6 +2322,16 @@
     },
     "RV.271-pace-limit-imperial-ru": {
       "commit": "206a7295",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.272-confirm-imperial-scan": {
+      "commit": "b9868717",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.272-confirm-imperial-scan-ru": {
+      "commit": "b9868717",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },

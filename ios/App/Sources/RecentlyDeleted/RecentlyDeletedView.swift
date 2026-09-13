@@ -218,7 +218,7 @@ struct RecentlyDeletedView: View {
 
     private func titleLine(_ entry: any Entry) -> String {
         let title = EntryTitle.text(entry, stations: stations)
-        let quantity = quantityText(entry)
+        let quantity = Self.quantityText(entry, vehicles: vehicles)
         let amount = amountText(entry)
         return [title, quantity, amount].compactMap { $0 }.joined(separator: " · ")
     }
@@ -240,11 +240,16 @@ struct RecentlyDeletedView: View {
         return parts.joined(separator: " · ")
     }
 
-    private func quantityText(_ entry: any Entry) -> String? {
+    /// The row's quantity segment. A fill's stored `volumeL` is litres
+    /// (`docs/SCHEMA.md`) while the unit shown is the car's own, so the value
+    /// converts through the one converter (RV.273). Static and internal so the
+    /// conversion is L1-testable without a simulator.
+    static func quantityText(_ entry: any Entry, vehicles: [UUID: Vehicle]) -> String? {
         switch entry {
         case let fill as FillUp:
             let unit = vehicles[fill.vehicleId]?.units.volume ?? .l
-            return "\(ManualFillUpFormat.decimal(fill.volumeL, fractionDigits: 1)) \(L10n.volumeUnit(unit))"
+            let display = ManualFillUpMath.displayVolume(from: fill.volumeL, unit: unit)
+            return "\(ManualFillUpFormat.decimal(display, fractionDigits: 1)) \(L10n.volumeUnit(unit))"
         case let charge as ChargeSession:
             return "\(ManualFillUpFormat.decimal(charge.energyKWh, fractionDigits: 0)) \(L10n.kWh)"
         default:

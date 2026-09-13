@@ -259,6 +259,7 @@ private struct ImportReviewRowView: View {
 
     @ViewBuilder
     private func fieldGrid(_ fill: FillUp) -> some View {
+        let unit = model.volumeUnit(for: row)
         VStack(alignment: .leading, spacing: 8) {
             if let station = row.stationName, !station.isEmpty {
                 ImportStationCell(name: station)
@@ -267,15 +268,19 @@ private struct ImportReviewRowView: View {
                 if let volume = fill.volumeL as Double? {
                     ImportFieldCell(
                         label: LocalizedStringKey(
-                            ManualFillUpUnitCopy.fieldVolumeLabel(for: model.volumeUnit(for: row))),
-                        value: ImportFormatting.decimal(Decimal(volume), fractionDigits: 2),
+                            ManualFillUpUnitCopy.fieldVolumeLabel(for: unit)),
+                        value: ImportFormatting.decimal(
+                            Decimal(ManualFillUpMath.displayVolume(from: volume, unit: unit)),
+                            fractionDigits: 2),
                         marked: volumeMarked)
                 }
                 if let price = fill.unitPrice {
                     ImportFieldCell(
                         label: LocalizedStringKey(
-                            ManualFillUpUnitCopy.fieldPriceLabel(for: model.volumeUnit(for: row))),
-                        value: ImportFormatting.decimal(price, fractionDigits: 3),
+                            ManualFillUpUnitCopy.fieldPriceLabel(for: unit)),
+                        value: ImportFormatting.decimal(
+                            ManualFillUpMath.displayUnitPrice(fromPerLitre: price, unit: unit),
+                            fractionDigits: 3),
                         marked: priceMarked)
                 }
                 if let amount = fill.money?.amount {
@@ -319,9 +324,13 @@ private struct ImportReviewRowView: View {
     private var detailLine: some View {
         let text: String
         if let fill = row.fill, let amount = fill.money?.amount, let price = fill.unitPrice {
-            let computed = Decimal(fill.volumeL) * price
-            text = L10n.crossCheckDetail(volume: ImportFormatting.decimal(Decimal(fill.volumeL), fractionDigits: 2),
-                                         price: ImportFormatting.decimal(price, fractionDigits: 3),
+            let unit = model.volumeUnit(for: row)
+            let displayVolume = Decimal(ManualFillUpMath.displayVolume(from: fill.volumeL,
+                                                                       unit: unit))
+            let displayPrice = ManualFillUpMath.displayUnitPrice(fromPerLitre: price, unit: unit)
+            let computed = displayVolume * displayPrice
+            text = L10n.crossCheckDetail(volume: ImportFormatting.decimal(displayVolume, fractionDigits: 2),
+                                         price: ImportFormatting.decimal(displayPrice, fractionDigits: 3),
                                          computed: ImportFormatting.decimal(computed, fractionDigits: 2),
                                          fileTotal: ImportFormatting.decimal(amount, fractionDigits: 2))
         } else {
