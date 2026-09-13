@@ -1,12 +1,94 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-09 (late). **A twenty-one-row session, and the most useful thing in it is not the
-code.** Measured on the tree as left: **iOS 1814 tests / 210 suites**, **backend 445**, lint 0 from
-the repo **ROOT**, localization 0 (815 keys, 100% RU), Release build 0. **98 open rows, 292 closed.**
-**One agent is running - `RV.166`, pid 94408, monitor `b3xx0c4k2`** - the tree is otherwise clean.
-Read this, then `CLAUDE.md`, then `docs/DEFECT-PATTERNS.md`, then `docs/TASKS.md`'s index.*
+*Updated 2026-09-13 (17:10). **The scenario is the unit of work, and every v1 story but three now carries a reviewed status line.** Measured on the tree as left (`6fa402e4`): **iOS 2099 tests / 258 suites**, app-target bundle **250**, **backend 457**, lint 0 from the repo **ROOT**, localization 0 (897 keys, 100% RU), Release build 0. **101 open rows, 422 closed** (15 ticked rows still sit in `TASKS.md` awaiting the next sweep to `TASKS-DONE.md`). **One agent is running - `RV.279`, pid 45867** (the capture forms get Edit entry's odometer and currency) - the tree is otherwise clean and the briefed queue behind it is empty. Read this, then `CLAUDE.md`, then `docs/DEVELOPMENT-TIMELINE.md`, then `docs/TASKS.md`'s index.*
 
-## Read the two new documents before picking anything up
+## Where the work stands (2026-09-13 evening)
+
+**Shipped since 2026-09-11: 74 rows** in two days, every one verified by the orchestrator's own
+mutation, gate runs and opened screenshots. The RV backlog chart (`design/analysis/rv-backlog.png`,
+`scripts/rv-backlog-chart.py`) reads **278 filed / 245 closed / 33 open**; the 33 are deferred
+past v1 or wait on the product owner's device.
+
+**Scenarios**: 27 of the v1 journeys and failure journeys carry `**Status: implemented <date>**`,
+each earned by a walk that mapped every promise to `file:line` (`diagnostics/REVIEW-SCENARIO-*`).
+Without a line: **J4** (needs the owner's pump-display photographs, `RV.114`/`RV.179`), **J8b and
+J13** (walked implemented, held on `RV.181` - the owner's release build could not share a photo or
+export; one device step unblocks both), **J7b** (cleared today for `RV.279`, in flight), J6 `[v1.x]`,
+J12 `[v2]`.
+
+**The journeys walk** (`REVIEW-JOURNEYS`, all four groups) ran 2026-09-12 (two pro agents) and
+2026-09-13 (the orchestrator, all groups): 0 ticked-but-untrue rows both times; four rows filed
+in total (`PJ.100`, `PJ.101`, `PJ.200`, `PJ.300`). `RV.262` is filed to count rows since the last
+walk automatically - the cadence slipped to 60 rows once, unmeasured.
+
+## The six things this session would tell its successor
+
+1. **Walks are the orchestrator's own work, never a pro dispatch** (product owner, 2026-09-12;
+   `CLAUDE.md`, `DEVELOPMENT-TIMELINE.md`). `REVIEW-SCENARIO.md` and `REVIEW-JOURNEYS.md` stay
+   as the METHOD; you execute them and write the report under the same name. The evidence: 14 pro
+   walks in one day, three launched dead, every verdict re-read against the tree anyway, and two
+   held on owner evidence the agent could not weigh.
+2. **A scenario walk finds what ticked rows cannot.** Today's walks found `RV.255` (the import
+   selects nothing), `RV.259` (the wrong-provider question loops), `RV.260` (the restore-from-backup
+   door did not exist - a reader with no caller), `RV.263` (a declared import currency treated as a
+   fact), `PJ.300`. None was a ticked row gone wrong; each was a promise no row had been filed for.
+3. **Agents' "fails on clean HEAD" reports were unsigned runs.** Three agents in one day reported
+   21 `SettingsUITests` failures; none reproduced. Cause: `CODE_SIGNING_ALLOWED=NO` copied from
+   `gate.sh` onto UI-suite runs strips the Keychain entitlement. `PREAMBLE.md` forbids it now
+   (`RV.257`+`RV.258`, memory `agent-ui-suite-failures-are-unsigned-runs`). **Before re-running a
+   suite an agent says is red, check its log for the flag.**
+4. **Never `git checkout --` a file an agent touched, and never bisect a UI test on one sample.**
+   Both cost an hour today (memories `never-checkout-a-file-an-agent-touched`,
+   `never-bisect-a-ui-test-on-one-sample`). Back up with `cp`; run three per side.
+5. **The unit-in-sentence seam took four rows to close and it was one seam every time**
+   (`RV.134`, `RV.234`, `RV.271`-`RV.274`, `RV.272` data-corrupting). When a fix names "the rest
+   of the seam", make the tree grep the deliverable and file what it finds as one row, not per
+   discovery.
+6. **The owner's own device is still the best defect source.** Six of today's rows came from
+   screenshots and a photograph the owner sent (`RV.275`-`RV.279`, `RV.276` was the strict same-day
+   rule biting two receipts from one stop). A photograph becomes a corpus fixture the same day
+   (`RV.277`/`RV.278`: the expense folder is now a ratcheted gate class that OCRs the photo).
+
+## What to do next
+
+1. **`RV.279` is mid-flight** (pid 45867): Expense and Service capture forms get Edit entry's
+   odometer card and `CurrencyChipRow`; the RV.200 "cannot express a foreign total" boundary
+   relaxes. Verify in your own hands (mutation: save the home currency regardless of the chip),
+   open the four frames, commit by explicit paths, then re-walk **J7b** yourself.
+2. **Everything else open waits on the product owner** - ask, do not guess:
+   `RV.181` device step (one share + Settings → About → diagnostics screenshot; unblocks J8b, J13) ·
+   photographs for `RV.114`, `RV.179`, `RV.205` · `PJ.300` (a service item's home money: fold into
+   the backfill, or drop) · the reminder form's one-year default (`RV.268` widened it to every
+   custom reminder) · `PJ.35`'s marker · `RV.242` (queue or defer) · tire-set creation at the
+   purchase moment (J7b, unfiled).
+3. **Sweep the 15 ticked rows in `TASKS.md` to `TASKS-DONE.md`** the way `f295e6a8` did (a script
+   move by section, regenerate the index, `--check`), and add the day's dispatches to
+   `TASKS-HISTORY.md` (34 on 2026-09-12 are in; 2026-09-13's are through `RV.279`).
+4. **The journeys walk is due after every 10 shipped rows** - `RV.262` will warn once built;
+   until then count by hand from the run history in `REVIEW-JOURNEYS.md`.
+
+## Decisions the product owner made 2026-09-12/13 (do not relitigate)
+
+- `RV.232` deferred to v2 (no cloud-OCR opt-out in v1); `RV.231` keep-as-is = the existing
+  acceptance; `RV.228` (units question) reserved, not v1; `RV.204` degrade everywhere; `PJ.61`
+  option 2; `RV.115` deferred; `PJ.51` option 1; `RV.181` option 1; `RV.148` option 3.
+- `RV.240` (b) - no dismissal reason on the anomaly card; `RV.248` (a) - a reminder history
+  surface; `PJ.60` drop `Expense.recurrence`; J9's act reminder due next year (`RV.268`).
+- `RV.246` - the late expense read carries the receipt date. `RV.277` widened: the expense corpus
+  is a gate class with `recognised.csv`; `RV.278`: the class scores the photograph, not the dump.
+- Walks are the orchestrator's own (above). The layout rule stands: labels on the same line as
+  their values, amber caption below, widen the cell - never stack or hyphenate.
+
+## Process changes recorded this session (all in `docs/DEVELOPMENT-TIMELINE.md`)
+
+The baseline gate tests the app target (`RV.250`); the two-bundle rule; UI suites run signed and a
+host-dependent test skips itself (`RV.257`/`RV.258`); walks are the orchestrator's own; the
+scenario index treats `[v1.0.x]` as deferred (its regex stopped at one dot - F1 and F3 were being
+counted as blocked); `PJ.24`/`PJ.35` markers lead their rows so the index reads them.
+
+---
+
+## (2026-09-09) Read the two new documents before picking anything up
 
 - **`docs/DEFECT-PATTERNS.md`** - the eight code shapes and five product-reachability shapes this
   codebase actually produces, each with the check that catches it. `CLAUDE.md` now lists it as
