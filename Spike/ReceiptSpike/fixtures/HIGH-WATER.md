@@ -119,6 +119,21 @@ same `30.00 x 71.30` fill is resolved from the paper (`receipt-063`) and not fro
 (`pump-086`). Precision moved 0.940 -> 0.946 and coverage 0.216 -> 0.212; the mode stays off on
 both.
 
+## `receipt-065` - the 062/063 question answered, and the pump asymmetry repeats
+
+`receipt-065` (RN-Tver, АЗК Тверь-2 ТС252, 2026-09-13) is the same non-fiscal PetrolPlus till family
+and the same `1 ед.=1 литр для нефтепродуктов/СУГ` legend as `receipt-062`/`063`, one station over.
+It **sweeps 5/5**: Vision reads the product line as `АИ95фирм` cleanly, so the `95` marker survives
+and `fuelKind = petrol95` resolves, and after `RV.270` the legend can no longer set a kind. That is
+the proof `062`'s `МИ95ФИРМ` was an OCR glyph problem and its `lpg` commit a vocabulary problem, not
+ground-truth ambiguity. Receipts **255/300 -> 260/305**.
+
+Its paired `pump-096` (Tokheim LCD, Cyrillic labels) commits nothing on any of its three numeric
+cells, so the pump numeric total grows 264 -> 267 while committed stays 56 and committed-correct 53:
+coverage 0.212 -> 0.210, precision 0.946. The same `20.00 x 71.30` fill is resolved from the paper
+and not from the display - the asymmetry the 2026-09-11 batch recorded, now repeated at a third
+RN-Tver station. The mode stays off.
+
 ## Known trap
 
 `swift run ReceiptSpike fixtures/receipts` - the CLI a human runs when adding a fixture by

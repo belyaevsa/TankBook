@@ -853,3 +853,21 @@ a Latin-script display with `€` / `L` / `€/L` beside its digits is read; a C
 behind glass is not, and the same `30.00 x 71.30` fill is resolved from the paper (`receipt-063`)
 and not from the pump (`pump-086`). Precision 0.940 -> 0.946, coverage 0.216 -> 0.212; the mode
 stays off on both.
+
+## Added 2026-09-13 (owner's own fill)
+
+One display, the pump half of a matched pair with `../receipts/receipt-065`.
+
+- `pump-096-tokheim-rn-tver-tc252-2000l-pair-ru.jpeg` - Tokheim LCD, Cyrillic labels
+  (`Стоимость / Количество / Цена за 1 литр`), at АО "РН-Тверь", АЗК Тверь-2 ТС252. `1426,0 / 20,00
+  / 71,3`. **The same fill as `../receipts/receipt-065-...-pair-ru.jpeg`**, and the paper prints the
+  same `20.00 x 71.30 = 1426.00` - the display only drops the trailing zeros, so the pair agrees
+  exactly, as `pump-085`/`086` did at the neighbouring station. Shot in daylight with a reflection
+  across the glass, slightly from below, which is the ordinary way a driver photographs a pump.
+
+`fuelKind` stays empty, per the rule above - the paper carries `petrol95` and the display never
+states it. **The parser commits nothing on any of the three numeric cells**, which is the
+Cyrillic-labelled-display asymmetry the 2026-09-11 batch recorded, repeated at a third RN-Tver
+station: the same `20.00 x 71.30` fill is resolved from the paper and not from the pump. Numeric
+total 264 -> 267, committed 56 and committed-correct 53 unchanged, so precision stays 0.946 and
+coverage falls 0.212 -> 0.210; the mode stays off on both.

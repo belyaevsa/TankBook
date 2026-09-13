@@ -908,3 +908,23 @@ worse than the abstention 062's OCR deserved, and it is a finding for the fuel-k
 for the ground truth: the slip says АИ95 and the paired pump was dispensing it. `receipt-064` misses
 only fuelKind, exactly as `receipt-001` does - `D BO` and `miles` land on two lines and the diesel
 marker goes unread.
+
+## Added 2026-09-13 (owner's own fills)
+
+- `receipt-065-rn-tver-tc252-95firm-2000l-nonfiscal-terminal-slip-pair-ru.jpeg` - АО "РН-Тверь",
+  АЗК **Тверь-2 ТС252** (a different RN-Tver station from `receipt-044`/`062`/`063`'s Чкаловская
+  TN250), PetrolPlus fuel card, terminal 12:00:33, slip date 12/09/26. `АИ95фирм 20.00 1426.00`,
+  `ИТОГО 1426.00`, `Цена за ед. 71.30`, and the same legend the 062/063 till prints,
+  `1 ед.=1 литр для нефтепродуктов/СУГ`. **Non-fiscal**: `******** Нефискальный отчет ********`,
+  no QR, no VAT, no fiscal ids. **The same fill as
+  `../pump/pump-096-tokheim-rn-tver-tc252-2000l-pair-ru.jpeg`.** Lying on denim, slightly crumpled
+  but sharp. **Routed through Telegram** (1280 px, EXIF already absent), committed byte-for-byte.
+
+**It sweeps 5/5, and that is the answer to the 062/063 question.** One till family, one legend, two
+stations apart: here Vision reads the product line as `АИ95фирм` cleanly, so the `95` marker survives
+and `fuelKind = petrol95` resolves - where `receipt-062`'s `МИ95ФИРМ` lost it. The `/СУГ` in the
+footnote no longer misleads either: after `RV.270` the normalizer rejects the unit-convention legend
+before it reads a marker, so `062` now abstains instead of committing `lpg`. The pair's other half,
+`../pump/pump-096`, carries no fuel kind by rule (a visible grade is what the station sells, never
+what this fill used), and the parser commits nothing on any of its three numeric cells - the same
+Cyrillic-labelled-display asymmetry the 2026-09-11 batch recorded.

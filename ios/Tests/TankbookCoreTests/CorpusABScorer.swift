@@ -391,6 +391,10 @@ enum PostSweepCorpusAdditions {
             "receipt-062-rn-tver-chkalovskaya-95firm-3000l-nonfiscal-terminal-slip-pair-ru.jpeg",
             "receipt-063-rn-tver-chkalovskaya-95firm-1000l-nonfiscal-terminal-slip-pair-ru.jpeg",
             "receipt-064-circlek-peetri-db0-pump5-2307l-pair-ee.jpg",
+            // 2026-09-13: the paper half of pump-096 - a non-fiscal PetrolPlus
+            // slip from the same till family and legend as 062/063, one RN-Tver
+            // station over. Declared, not swept.
+            "receipt-065-rn-tver-tc252-95firm-2000l-nonfiscal-terminal-slip-pair-ru.jpeg",
         ],
         "pump": [
             // 2026-09-09: the owner's own fills, three of them the matched
@@ -527,6 +531,9 @@ enum PostSweepCorpusAdditions {
             "pump-093-scheidt-bachmann-rn-2000l-6385-faded-ru.jpeg",
             "pump-094-gilbarco-circlek-ee-4325l-1944.jpg",
             "pump-095-gilbarco-circlek-peetri-pump5-2307l-pair-ee.jpg",
+            // 2026-09-13: the Tokheim display half of receipt-065, at a third
+            // RN-Tver station. Declared, not swept.
+            "pump-096-tokheim-rn-tver-tc252-2000l-pair-ru.jpeg",
         ],
     ]
 
