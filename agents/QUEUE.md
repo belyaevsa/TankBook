@@ -216,6 +216,7 @@ run history stays honest about what was and was not walked:
 | 2026-09-10 | `REVIEW-JOURNEYS-2026-09-10.md` | **Group C + Group D** - never walked before. C is import/currency/F6/F9, where **six of the owner's ten reported defects live** | `PJ.58`, `PJ.59`; amplified `RV.187` to data loss |
 | 2026-09-12 | `REVIEW-JOURNEYS-2026-09-12-CD.md` | **Group C + Group D**, 60 rows after the last walk | **0 rows, 0 ticked-but-untrue**; J9 questions for the owner |
 | 2026-09-12 | `REVIEW-JOURNEYS-2026-09-12-AB.md` | **Group A + Group B** | `PJ.100`, `PJ.101`, `PJ.200` - one seam (guest-Home parity), folded into `RV.251`'s dispatch; J7d's line cleared |
+| 2026-09-13 | `REVIEW-JOURNEYS-2026-09-13.md` (the orchestrator, all four groups) | 28 rows after the last walks | **0 ticked-but-untrue, 1 row** (`PJ.300`, decide-or-drop) |
 
 **Next run: whatever the C+D walk does not reach**, and a re-walk of A/B once the owner's current
 findings ship.
