@@ -39,6 +39,7 @@ enum ReminderTestSeed {
             || arguments.contains("-seedRemindersAll")
             || arguments.contains("-seedRemindersDeepLink")
             || arguments.contains("-seedRemindersDeepLinkArchived")
+            || arguments.contains("-seedReminderHistory")
             || arguments.contains("-homeResetDatabase") else { return }
 
         if arguments.contains("-homeResetDatabase") {
@@ -53,6 +54,10 @@ enum ReminderTestSeed {
         }
         if arguments.contains("-seedRemindersAll") {
             seedAll(repository)
+            return
+        }
+        if arguments.contains("-seedReminderHistory") {
+            seedHistory(repository)
             return
         }
         if arguments.contains("-seedRemindersDeepLinkArchived") {
@@ -141,6 +146,73 @@ enum ReminderTestSeed {
             dueDate: now.addingTimeInterval(45 * 86_400),
             dueOdometer: nil, recurrence: nil)
         try? repository.upsertReminder(tires)
+    }
+
+    /// The RV.248 History state (docs/JOURNEYS.md J7c -> "Delete"): one live
+    /// row, a title completed TWICE on one car (the honest count line), a
+    /// dismissal with a reason, and a completion that skipped the cost log (no
+    /// entry to name). Volvo is upserted FIRST so it is the default selection.
+    /// Terminal reminders carry distinct `createdAt`/`updatedAt` stamps so the
+    /// most-recent-first order is deterministic for the screenshot.
+    private static func seedHistory(_ repository: TankbookRepository) {
+        let now = Date()
+        let volvo = makeVehicle("Volvo V60", make: "Volvo", at: now, initialOdometer: 118_930)
+        let skoda = makeVehicle("Skoda Octavia", make: "Skoda", at: now, initialOdometer: 82_000)
+        try? repository.upsertVehicle(volvo)
+        try? repository.upsertVehicle(skoda)
+
+        let insurance = ReminderLifecycle.makeReminder(
+            vehicleId: volvo.id, title: "Insurance renewal", category: .insurance,
+            dueDate: now.addingTimeInterval(12 * 86_400), dueOdometer: nil,
+            recurrence: nil)
+        try? repository.upsertReminder(insurance)
+
+        // Two completions of the same title on the Volvo: the "2 times" count.
+        // Each completion logged its own service record, so each History row
+        // names the entry it became (the merged list names the car).
+        let firstEntry = makeHistoryService(vehicleId: volvo.id, vendor: "Bosch Service",
+                                            at: now.addingTimeInterval(-30 * 86_400))
+        let secondEntry = makeHistoryService(vehicleId: volvo.id, vendor: "Shell Service",
+                                             at: now.addingTimeInterval(-10 * 86_400))
+        try? repository.upsertServiceRecord(firstEntry)
+        try? repository.upsertServiceRecord(secondEntry)
+
+        try? repository.upsertReminder(ReminderLifecycle.makeReminder(
+            vehicleId: volvo.id, title: "Oil change", category: .oil,
+            dueDate: now.addingTimeInterval(-30 * 86_400), dueOdometer: nil,
+            recurrence: nil, status: .done(entryId: firstEntry.id),
+            createdAt: now.addingTimeInterval(-30 * 86_400)))
+        try? repository.upsertReminder(ReminderLifecycle.makeReminder(
+            vehicleId: volvo.id, title: "Oil change", category: .oil,
+            dueDate: now.addingTimeInterval(-10 * 86_400), dueOdometer: nil,
+            recurrence: nil, status: .done(entryId: secondEntry.id),
+            createdAt: now.addingTimeInterval(-10 * 86_400)))
+
+        // A dismissal with a reason - the copy's "a reason helps the app
+        // learn", now actually read back.
+        try? repository.upsertReminder(ReminderLifecycle.makeReminder(
+            vehicleId: volvo.id, title: "Winter tires", category: .tires,
+            dueDate: now.addingTimeInterval(45 * 86_400), dueOdometer: nil,
+            recurrence: nil, status: .dismissed(reason: "Sold the tires"),
+            createdAt: now.addingTimeInterval(-40 * 86_400)))
+
+        // A completion that skipped the cost log (`.done(nil)`): history with
+        // no entry to name.
+        try? repository.upsertReminder(ReminderLifecycle.makeReminder(
+            vehicleId: skoda.id, title: "Inspection (TÜV)", category: .inspection,
+            dueDate: now.addingTimeInterval(-20 * 86_400), dueOdometer: nil,
+            recurrence: nil, status: .done(entryId: nil),
+            createdAt: now.addingTimeInterval(-20 * 86_400)))
+    }
+
+    private static func makeHistoryService(vehicleId: UUID, vendor: String,
+                                           at date: Date) -> ServiceRecord {
+        ServiceRecord(
+            id: UUID.v7(), createdAt: date, updatedAt: date, deletedAt: nil,
+            vehicleId: vehicleId, date: date, odometer: nil, money: nil,
+            note: nil, attachments: [], provenance: .manual, conflict: .none,
+            purchaseGroupId: nil, vendor: vendor, items: [], usedParts: [],
+            tireSetId: nil)
     }
 
     /// The RV.75 merged-list state (design/screens/RemindersAll.dc.html): two

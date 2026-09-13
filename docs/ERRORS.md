@@ -399,6 +399,7 @@ evidence this path never gathers is a default the app cannot justify.
 | Notification permission off but reminders exist | One-time card: "Reminders can't notify you – they'll only show here." | Enable (deep link) · fine as is |
 | Overdue reminder | Amber "overdue by 12 days" | Complete · reschedule · delete |
 | Completing with km-recurrence but stale odometer | Hint: "Next cycle counts from 119 486 km – update if you've driven since." | Edit odometer · accept |
+| No reminder history (RV.248) | Nothing: the **History** section at the foot of the list is absent when there are no terminal rows, never an empty "no history" card - and a list with neither live nor terminal rows shows the existing "Nothing to remember yet" empty state, whose action is "New reminder" | - (absence is not an error; the create door is already on the empty state) |
 
 ### Car switcher / Garage
 | Condition | Shows | Next step |

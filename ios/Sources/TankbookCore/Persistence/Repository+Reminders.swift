@@ -48,6 +48,53 @@ extension TankbookRepository {
     }
 }
 
+// MARK: - History (RV.248)
+
+extension TankbookRepository {
+    /// Terminal reminders (`.done` / `.dismissed`) across every ACTIVE vehicle,
+    /// most recently updated first - the History surface's query (RV.248,
+    /// docs/JOURNEYS.md J7c -> "Delete", docs/SCREENMAP.md -> "Reminders across
+    /// cars"). It is deliberately the mirror of `liveRemindersAcrossVehicles`:
+    /// the same active-vehicle and tombstone rules, the opposite status half.
+    /// Archived cars' terminal rows are excluded with their live ones, because
+    /// archive hides a sold car's reminders from every display surface while
+    /// keeping them (hard rule 8, J13); unarchiving returns both halves.
+    ///
+    /// `status` is stored as JSON, so the terminal filter runs over the decoded
+    /// rows (`ReminderLifecycle.isActive`) rather than in SQL - the same
+    /// derivation the rest of the app uses, never a second status parser.
+    public func reminderHistoryAcrossVehicles() throws -> [Reminder] {
+        let all = try database.read { db in
+            try ReminderRow
+                .filter(sql: """
+                    deletedAt IS NULL AND vehicleId IN (
+                        SELECT id FROM \(TankbookSchema.vehicle)
+                        WHERE deletedAt IS NULL AND archived = 0)
+                    """)
+                .order(Column("updatedAt").desc)
+                .fetchAll(db)
+                .map(\.reminder)
+        }
+        return all.filter { !ReminderLifecycle.isActive($0) }
+    }
+
+    /// The selected car's terminal reminders, most recently updated first - the
+    /// per-car History section. Same tombstone and terminal rules as the
+    /// merged query; no archived-car clause is needed because a selected
+    /// vehicle is always active (`VehicleSelection.resolve`).
+    public func reminderHistory(forVehicle vehicleId: UUID) throws -> [Reminder] {
+        let all = try database.read { db in
+            try ReminderRow
+                .filter(Column("vehicleId") == vehicleId.uuidString
+                        && Column("deletedAt") == nil)
+                .order(Column("updatedAt").desc)
+                .fetchAll(db)
+                .map(\.reminder)
+        }
+        return all.filter { !ReminderLifecycle.isActive($0) }
+    }
+}
+
 // MARK: - Resolve by id (RV.74)
 
 extension TankbookRepository {

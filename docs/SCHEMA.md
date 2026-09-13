@@ -306,14 +306,20 @@ Reminder {
 //                current odometer) → status = .done(entryId). Declining is fine: .done(nil) – completion
 //                never forces bookkeeping. If recurrence is set, the NEXT occurrence is created as a NEW
 //                Reminder row, anchored at the COMPLETION date/odometer (not the original due – no drift),
-//                linked via sourceEntryId. Old rows stay as history ("oil changed 3× on time").
+//                linked via sourceEntryId. Old rows stay as history, read back by the History surface
+//                (RV.248: "oil changed 3×" - the recorded-completion count, never a claim about timing).
 //   RESCHEDULE → edits dueDate/dueOdometer in place; a fired .attention resets so it can notify again.
 //   SNOOZE     → (RV.78, the banner's "Push a week") a RESCHEDULE with a defined defer: the due date
 //                moves forward 7 days (ReminderLifecycle.snoozeDays). Only the DATE half is pushed; an
 //                odometer-only reminder has no time dimension, so its threshold is left and the fired
 //                state resets for the odometer rule to re-arm. docs/NOTIFICATIONS.md -> the actions.
 //   DELETE     → tombstone (syncs like everything). Distinct from .dismissed, which keeps the row
-//                with a reason and feeds anomaly/insight logic ("dismissed: sold the tires").
+//                with a reason and feeds the History surface (RV.248: the reason is the row's caption
+//                at the foot of the reminders list). The anomaly/insight half the earlier wording named
+//                is not built; the owner's 2026-09-12 decision kept the copy, and the reason is
+//                displayed now rather than written and ignored. .done rows stay as history too, each
+//                naming the entry its completion logged ("oil changed 3×" is the honest count -
+//                recorded completions, not "on time").
 //   ARCHIVE    → (RV.81, decided 2026-09-06: "archived cars strip the reminders".) NOT a row
 //                transition - the rows are untouched (never tombstoned, never dismissed; hard
 //                rule 8 - archiving is put-away, the "history preserved" promise). What archive

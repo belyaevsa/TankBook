@@ -2205,6 +2205,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.248-reminder-history": {
+      "commit": "35c655c7",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.248-reminder-history-ru": {
+      "commit": "35c655c7",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.251-guest-home-two-cars": {
       "commit": "17b76604",
       "device": "iPhone 17",

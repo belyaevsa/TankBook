@@ -463,6 +463,15 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 | **Complete** | Sheet: "Done! Log the cost?" → one tap opens the service/expense entry pre-filled (category, title, today, current odometer); scan the invoice or type a lump sum. Then: "Next oil change in 15 000 km or Aug 2027" – the next cycle is already scheduled, anchored at *completion* (not the original due date, so schedules never drift) | Declining the cost log is first-class – completion never forces bookkeeping (.done without entry) |
 | **Reschedule** | Push the due date/odometer; a fired notification re-arms | For "next month, honestly" moments – snoozing beats ignoring |
 | **Delete** | Gone (tombstone, 30-day undo like everything) | Distinct from **dismiss-with-reason**, which keeps history and teaches insights ("sold the tires") |
+| **Dismiss** (with an optional reason) | The row leaves the live list and moves to the **History** section at the foot of the reminders list (RV.248): the reason the alert collected is the row's caption ("Sold the tires"), and the completion count of the same title on the same car rides beside it. The alert's promise - *"It stays in your history – a reason helps the app learn"* - is now what the screen shows | A reason-less dismissal still reads as history ("Dismissed"). The reason is retained (synced) and displayed; the "learn" half the copy names is the insight logic, which is not built - the owner's 2026-09-12 decision (a) kept the copy and added the surface. *(RV.248: the history section is on the merged all-cars list and on a car's own list; the merged rows name their car.)* |
+
+**History** (RV.248). The terminal rows the live lists drop are read back at the foot of the
+reminders list: a done row names the entry its completion logged (tappable to that entry) or says
+"Completed" when the cost log was skipped, and carries how many times that title has been completed
+on that car ("2 times"). That count is the honest form of *"oil changed 3x on time"* - the log
+records that a completion happened, never whether it beat the due point, so the app does not claim
+"on time". Nothing in History is deletable; the 30-day undo for a real delete lives in Recently
+deleted.
 
 ⚠ The completion→entry→next-cycle chain is where competitors leak: a reminder marked done with no record and no follow-up is a dead end (Drivvo's pattern). Ours is a loop. *(PJ.4: Reminders has a production entry point – the Home banner derives from real reminders and VehicleDetail carries a reminders row, so this journey is reachable in a Release build.)*
 

@@ -49,6 +49,10 @@ struct RemindersView: View {
     var scope: RemindersScope = .selectedVehicle
 
     @State private var rows: [ReminderListRow] = []
+    /// RV.248: terminal rows (`.done`/`.dismissed`) for the History section at
+    /// the foot of the list - the read side of the dismissal reason and the
+    /// completion's entry.
+    @State private var history: [ReminderHistoryItem] = []
     @State private var vehicles: [Vehicle] = []
     @State private var vehicle: Vehicle?
     @State private var didLoad = false
@@ -77,7 +81,7 @@ struct RemindersView: View {
                 if notificationCoordinator.showsDeniedCard {
                     deniedCard
                 }
-                if rows.isEmpty {
+                if rows.isEmpty && history.isEmpty {
                     emptyState
                 } else {
                     if !groups.attention.isEmpty {
@@ -91,6 +95,10 @@ struct RemindersView: View {
                         ForEach(groups.scheduled, id: \.id) { row in rowView(row, group: .scheduled) }
                     }
                     newReminderCard
+                    if !history.isEmpty {
+                        ReminderHistorySection(items: history,
+                                               vehicleName: historyVehicleName)
+                    }
                 }
                 footer
             }
@@ -185,6 +193,12 @@ struct RemindersView: View {
 
     private func vehicleName(for vehicleId: UUID) -> String? {
         vehicles.first { $0.id == vehicleId }?.name
+    }
+
+    /// The History section names each row's car only on the merged list, the
+    /// same rule the live rows follow (`rowView`).
+    private func historyVehicleName(for vehicleId: UUID) -> String? {
+        scope == .allCars ? vehicleName(for: vehicleId) : nil
     }
 
     private func presentDismiss(_ reminder: Reminder) {
@@ -376,6 +390,7 @@ struct RemindersView: View {
             case .selectedVehicle:
                 guard let selected = carSelection.selectedVehicle(live) else {
                     rows = []
+                    history = []
                     vehicle = nil
                     return
                 }
@@ -385,6 +400,9 @@ struct RemindersView: View {
                 rows = reconciled
                     .filter { ReminderLifecycle.isActive($0) }
                     .map { ReminderListRow(reminder: $0, currentOdometer: odometer) }
+                history = ReminderHistoryItem.items(
+                    try repository.reminderHistory(forVehicle: selected.id),
+                    repository: repository)
             case .allCars:
                 // The displayed rows come from the cross-vehicle query - the
                 // one query that cannot silently fall back to one car - via the
@@ -396,6 +414,9 @@ struct RemindersView: View {
                 rows = try RemindersAllRows.rows(vehicles: live,
                                                  acrossReminders: across,
                                                  repository: repository)
+                history = ReminderHistoryItem.items(
+                    try repository.reminderHistoryAcrossVehicles(),
+                    repository: repository)
                 for car in live where !car.archived {
                     await notificationCoordinator.reconcile(vehicleId: car.id)
                 }

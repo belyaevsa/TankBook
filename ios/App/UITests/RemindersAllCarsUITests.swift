@@ -69,10 +69,14 @@ final class RemindersAllCarsUITests: XCTestCase {
         XCTAssertTrue(skip.waitForExistence(timeout: 5))
         skip.tap()
 
-        // The completed (non-recurring) Skoda attention row is gone...
+        // The completed (non-recurring) Skoda attention row leaves the live
+        // group and is read back by the History section (RV.248); it is
+        // history now, not deleted...
         XCTAssertTrue(app.staticTexts["remindersAttentionHeader"].waitForExistence(timeout: 10))
-        XCTAssertFalse(app.staticTexts["Oil change"].waitForExistence(timeout: 3),
-                       "the completed attention row must leave the group")
+        XCTAssertTrue(app.staticTexts["remindersHistoryHeader"].exists,
+                      "the completed row must move to History")
+        XCTAssertTrue(app.staticTexts["Oil change"].exists,
+                      "a completed reminder is history now, not deleted")
 
         // ... and the Volvo row is untouched, still naming its car.
         XCTAssertTrue(app.staticTexts["Insurance renewal"].exists)

@@ -1473,6 +1473,11 @@ alias_shot P3.4-reminders RV.76-reminders-entry
 alias_shot P3.4-reminders-ru RV.76-reminders-entry-ru
 capture RV.77-service-reminder-offer                     en -seedServiceReminderOffer -presentScreen serviceEntry -presentServiceReminderOffer
 capture RV.77-service-reminder-offer-ru                  ru -seedServiceReminderOffer -presentScreen serviceEntry -presentServiceReminderOffer
+# RV.248: the History section at the foot of the merged reminders list - a title
+# completed twice (the honest count), a dismissal with its reason, a completion
+# that skipped the cost log, and one live row above.
+capture RV.248-reminder-history                           en -seedReminderHistory -presentScreen remindersAll
+capture RV.248-reminder-history-ru                        ru -seedReminderHistory -presentScreen remindersAll
 capture RV.79-car-switcher-counts                        en -seedHomeGarageCounts -presentScreen carSwitcher
 capture RV.79-car-switcher-counts-ru                     ru -seedHomeGarageCounts -presentScreen carSwitcher
 capture RV.79-garage-counts                              en -seedHomeGarageCounts -selectGarageTab

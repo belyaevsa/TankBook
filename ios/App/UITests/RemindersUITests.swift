@@ -123,10 +123,16 @@ final class RemindersUITests: XCTestCase {
         XCTAssertTrue(skip.waitForExistence(timeout: 5))
         skip.tap()
 
-        // A non-recurring reminder has no next occurrence: the row is gone,
-        // now history ("oil changed 3× on time" - docs/SCHEMA.md).
-        XCTAssertFalse(app.staticTexts["Winter tires"].waitForExistence(timeout: 3),
-                       "a non-recurring reminder leaves the list when completed")
+        // A non-recurring reminder has no next occurrence: it leaves the live
+        // list and is read back by the History section (RV.248 - "oil changed
+        // 3x", docs/SCHEMA.md). The other scheduled rows stay; "Winter tires"
+        // is now under the History header, not gone.
+        XCTAssertTrue(app.staticTexts["remindersScheduledHeader"].waitForExistence(timeout: 10),
+                      "the other scheduled rows stay in the live list")
+        XCTAssertTrue(app.staticTexts["remindersHistoryHeader"].waitForExistence(timeout: 5),
+                      "the completed row must move to History")
+        XCTAssertTrue(app.staticTexts["Winter tires"].exists,
+                      "a completed non-recurring reminder is history, not deleted")
     }
 
     // MARK: - PJ.4 the Vehicle detail door (SCREENMAP.md: Reminders is reached

@@ -262,8 +262,8 @@ Beneath the three doors sits a fourth affordance that is **not** a peer door but
 | **Parts shelf** **[v1.x]** (P3.2 screen; PJ.25 gave it its second door) | Vehicle detail's "Parts shelf" row (**pushed**, PJ.25) · a service entry's "View shelf" button (**nested sheet**, P3.2 - unchanged) · `-presentScreen partsShelf` (nested-sheet pose) / `-presentScreen partsShelfPushed` (the pushed door's pose) | none - a read-only list (`.parts` expenses not yet installed in any service; derived, never stored) | **pushed**: back chevron + edge-swipe → the Vehicle detail that pushed it. **nested sheet**: swipe-down / close → the service entry. The shelf has no typed input, so neither door ever asks before leaving - nothing to lose (hard rule 8). The `SheetRoute.partsShelf` `.discardSilently` classification governs the SHEET presentation only; the pushed door is a stack pop, never a discard |
 
 | Car switcher (sheet) | Home car card/chip | pick → Home · Add car · archived → VehicleDetail | swipe-down → Home |
-| Reminders | Home banner, VehicleDetail | complete → ReminderComplete · New reminder → form | back → opener |
-| **Reminders, all cars** **[v1.1]** (RV.75, `design/screens/RemindersAll.dc.html`) | the Home "Reminders" row and a Garage car's attention count (RV.76/RV.79), and every reminder notification (RV.74 - the deep link lands HERE, so it cannot land on the wrong car, and the reminder's own car is selected first, never an archived one) | a row → ReminderComplete · the car chip narrows to one car's Reminders · New reminder → form, **which asks which car** - defaulting silently to the selected one is the quiet guess hard rule 13 forbids | back → opener |
+| Reminders | Home banner, VehicleDetail | complete → ReminderComplete · New reminder → form · **the foot of the list carries the History section** (RV.248: terminal `.done`/`.dismissed` rows, each with its dismissal reason or the entry its completion logged, tappable to that entry) | back → opener |
+| **Reminders, all cars** **[v1.1]** (RV.75, `design/screens/RemindersAll.dc.html`) | the Home "Reminders" row and a Garage car's attention count (RV.76/RV.79), and every reminder notification (RV.74 - the deep link lands HERE, so it cannot land on the wrong car, and the reminder's own car is selected first, never an archived one) | a row → ReminderComplete · the car chip narrows to one car's Reminders · New reminder → form, **which asks which car** - defaulting silently to the selected one is the quiet guess hard rule 13 forbids · **the foot of the list carries the History section** (RV.248: terminal rows, each naming its car the way live rows do, with the dismissal reason or the entry a completion logged, tappable to that entry) | back → opener |
 | **Service reminder offer** **[v1.1]** (RV.77, sheet, `design/screens/ServiceReminderOffer.dc.html`) | saving a ServiceRecord or Expense whose category has a curated interval, and no live reminder of that category exists on that car - the offer sheet is hosted by the tab root that presented the entry sheet, promoted in that sheet's `onDismiss` (never mid-save) | **Create the reminder** (anchored at the record's own date and odometer, never at today, `sourceEntryId` set, recurrence carried) · **Not this time** - a peer button, not a dismissal X | either exit returns to the opener; the record is already saved, so nothing here can lose it. *(Built - RV.77. The interval fields are editable in the same breath; the curated defaults live in `ReminderOffer` in core.)* |
 | Reminder form (P3.4, artboard `design/screens/ReminderForm.dc.html` from **[v1.1]**) | Reminders and **Reminders, all cars** (New reminder / row edit, incl. reschedule) · ReminderComplete's "Reschedule instead" · **[v2]** the Ask tab's `draftReminder`, pre-filled | Save → the list it came from | back → opener |
 | Reminder complete (sheet) | Reminders, push action | Scan invoice / Type → ServiceEntry · Skip | dismiss → Reminders |
@@ -367,6 +367,22 @@ nothing), and the row itself is ALWAYS present, count or no count.
   the count reads as words for VoiceOver - colour is never the only channel. The count strip is
   derived at read time over the same live cross-car rows (hard rule 2), is its OWN tap target that
   navigates here, and never creates (the row's job is picking a car).
+
+**The History section reads back what the copy promises** (RV.248). The list's foot carries a
+**History** section - on the merged list and on a car's own list, using the live rows' own card
+vocabulary and, on the merged list, naming each row's car exactly as live rows do. It lists the
+TERMINAL rows the live queries drop by construction: a dismissed row shows the reason the dismiss
+alert collected (`ReminderLifecycle.dismiss`), and a done row names the entry its completion logged
+(`.done(entryId)`, tappable to that entry) or says "Completed" when the cost log was skipped
+(`.done(nil)`). A done row also carries the count of recorded completions of the same title on the
+same car ("2 times") - the honest version of J7c's *"oil changed 3x on time"*: the log records that
+a completion happened, never whether it landed before the due point, so "on time" is not a claim
+the data can support. The section is absent when there is no history, and it offers no delete
+affordance: a terminal row is history (hard rule 8), and the 30-day undo for anything the user
+actually deleted lives in Recently deleted. The query is the exact mirror of
+`liveRemindersAcrossVehicles` (`reminderHistoryAcrossVehicles` / `reminderHistory(forVehicle:)`) -
+same active-car and tombstone rules, the opposite status half - so archived cars' terminal rows are
+hidden with their live ones and return on unarchive.
 
 **Where a reminder is born: the form, with the car as its first field.** There is one creation
 screen and it is reached from three places - the merged list, a car's own Reminders list, and (in
