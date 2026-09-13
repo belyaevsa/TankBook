@@ -351,12 +351,12 @@ the pages the shutter already captured (hard rule 8).
 **Success metric:** ≥50% of service records carry an attachment; reminder acceptance rate ≥60%.
 
 ### J7b · Parts, tires, consumables
-*(Status cleared 2026-09-13: `RV.279` - the Expense and Service capture forms now carry the odometer and currency fields Edit entry has, so the "cannot express a foreign total" sentence below was rewritten; awaiting the journeys re-walk.)*
+*(Status cleared 2026-09-13: `RV.279` shipped; re-walked the same day (`REVIEW-SCENARIO-J7b-2026-09-13`) - NOT IMPLEMENTED on one promise: the late shop-receipt reading drops the receipt's currency, `RV.280`. Re-walk after it ships.)*
 **Trigger:** a filter ordered online, brake pads bought on sale, a winter tire set – purchased *now*, installed *later* (or never; the car is sold with the shelf).
 
 | Stage | Doing | Notes |
 |---|---|---|
-| Purchase | Scans the order confirmation / shop receipt → Expense `.parts` ("MANN W 712/75 · 12.40 €") | Odometer not asked – the car isn't even present. Cost counts in totals from day one |
+| Purchase | Scans the order confirmation / shop receipt → Expense `.parts` ("MANN W 712/75 · 12.40 €") | Odometer offered, never required – the car isn't even present, so a blank stays blank (RV.279: the same odometer card Edit entry renders; hard rule 13, never the last known as a fact). Cost counts in totals from day one |
 | Shelf | The part sits visible under Garage → "Parts shelf" with an "on shelf" state | ⚠ Silent shelf = forgotten parts → the next matching service suggests them |
 | Install | Creating a service record, app offers shelf parts: "Install oil filter from Mar 3?" → link, don't re-price | Cost counted once (at purchase); the service shows the part via link. No double counting in cost/km – the F-series equivalent sin here is a part priced twice |
 | Tires | A tire purchase becomes a TireSet; each seasonal swap (a small ServiceRecord) marks which set went on | Set mileage derives from odometer spans between swaps – "Winter Nokian: 18 400 km" answers the real question (are these tires done?) plus the swap reminder each season |
