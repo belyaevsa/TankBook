@@ -116,6 +116,7 @@ died instantly with `database is locked` and never reached the model (re-dispatc
 | `RV.280` | **flash** | 2026-09-13 | 190 KB |
 | `PJ.29` | **flash** | 2026-09-13 | 623 KB |
 | `PJ.29a` | **flash** | 2026-09-13 | 476 KB |
+| `RV.281` | **orchestrator** (catalog edit, no dispatch) | 2026-09-13 | - |
 
 ## What the four grouped dispatches of 2026-09-10 cost to verify
 

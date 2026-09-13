@@ -315,7 +315,7 @@ struct LocalizationGateTests {
         // on P1.4 shipped word-order bugs exactly here ("%@ spend" became
         // "АВГУСТ РАСХОДЫ"), so assert the %@ is present, not just non-empty.
         let composedRU = catalogue.value(for: "%@ spend", language: "ru")
-        #expect(composedRU == "Расходы за %@")
+        #expect(composedRU == "Затраты за %@")
         #expect(composedRU?.contains("%@") == true)
 
         // Plural key: Russian has three forms plus a generic `other`; assert
