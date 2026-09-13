@@ -222,3 +222,7 @@ catch a truncated Russian label, and nothing except a person looking at the fram
 ## Snapshot 2026-09-13 06:14 (the briefed queue is empty)
 
 `design/analysis/rv-backlog.png` recomputed from 393 commits: **274 filed, 241 closed, 33 open** (the 2026-09-12 snapshot read 269 / 231 / 38). Every open v1 row now waits on the owner's own device or photographs (`RV.114`, `RV.179`, `RV.205`, `RV.181`) or is deferred past v1; the rest of the 33 are `[v1.0.x]` / `[v1.1]` / `[v2]`. Every v1 scenario carries a status line except J8b and J13, held on `RV.181`'s device step.
+
+## Snapshot 2026-09-13 12:05
+
+`design/analysis/rv-backlog.png` recomputed from 399 commits: **278 filed, 245 closed, 33 open**. The four rows filed today from the owner's own device (`RV.275` the garage photo, `RV.276` the same-stop pair, `RV.277` the parking ticket, `RV.278` the corpus scores the photograph) were all closed the same day; the 33 open are deferred past v1 or wait on the owner. The briefed queue is empty.

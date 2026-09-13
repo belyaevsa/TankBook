@@ -738,7 +738,7 @@ is a review list that failed to explain itself.
 **Metric:** permission-denied users still logging entries at D7 (they're future converts, not losses).
 
 ### F9a · Odometer contradicts the timeline
-**Status: unreviewed** (reopened 2026-09-13: `RV.276` refined the same-day rule the 2026-09-11 review was written against)
+**Status: implemented 2026-09-13** (reviewed by the orchestrator, REVIEW-SCENARIO-F9a-2026-09-13)
 **Trigger:** a new or edited entry breaks the invariant – sorted by date, the reading never falls and strictly increases between the kinds that MEASURE travel (FillUp, ChargeSession), while a ServiceRecord or Expense may share a reading with the fill it annotates, and **two travel entries at one reading are one stop when their dates fall on the same calendar day** (a split payment, two products at one till) and conflict only when the dates differ – a typo (119 486 → 11 948), an out-of-order backfill, or two drivers logging the same car.
 
 - Checks on every write (not just capture): order against date-neighbors, and implied pace (default flag above ~1 500 km/day, per-vehicle tunable).
