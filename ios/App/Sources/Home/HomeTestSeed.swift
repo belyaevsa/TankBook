@@ -48,6 +48,7 @@ enum HomeTestSeed {
             ("-seedHomeFullHistory", seedFullHistory),
             ("-seedHomeSingleFuelLog", seedSingleFuelLog),
             ("-seedHomeConflict", { TimelineNeighbourhoodTestSeed.seedOrderConflict($0) }),
+            ("-seedHomeSameStopPair", { TimelineNeighbourhoodTestSeed.seedSameStopPair($0) }),
             ("-seedHomeRV66TwoCar", RV66TwoCarTestSeed.seed),
             ("-seedHomeExcludedMix", ExcludedEntriesTestSeed.seed),
             ("-seedHomeEditHistory", seedEditHistory),

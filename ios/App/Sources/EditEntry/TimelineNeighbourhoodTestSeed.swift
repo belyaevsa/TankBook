@@ -80,5 +80,38 @@ enum TimelineNeighbourhoodTestSeed {
                                   HomeTestSeed.FillSpec(daysAgo: 19, odometer: 101_500, litres: 40.0,
                                                         amount: "67.00", price: "1.675", stationID: nil)))
     }
+
+    /// RV.276: a same-stop pair - two fills at 401 544 km on one day, two
+    /// minutes apart - plus a genuinely falling later entry. The pair must NOT
+    /// be flagged (it is one stop, not travel that did not happen); the falling
+    /// entry is, and its neighbourhood charts the pair as two coincident points,
+    /// so the stacked-label fix is visible. The times are pinned to midday so
+    /// the pair always lands on one calendar day whatever the run time.
+    static func seedSameStopPair(_ repository: TankbookRepository) {
+        let vehicle = HomeTestSeed.makeVehicle()
+        try? repository.upsertVehicle(vehicle)
+
+        let calendar = Calendar.current
+        let twelveDaysAgo = calendar.date(byAdding: .day, value: -12, to: Date()) ?? Date()
+        let firstStop = calendar.date(bySettingHour: 12, minute: 0, second: 0,
+                                      of: twelveDaysAgo) ?? twelveDaysAgo
+        try? repository.upsertFillUp(HomeTestSeed.makeFill(
+            vehicleID: vehicle.id,
+            HomeTestSeed.FillSpec(daysAgo: 12, odometer: 401_544, litres: 20,
+                                  amount: "32.00", price: "1.600", stationID: nil),
+            date: firstStop))
+        try? repository.upsertFillUp(HomeTestSeed.makeFill(
+            vehicleID: vehicle.id,
+            HomeTestSeed.FillSpec(daysAgo: 12, odometer: 401_544, litres: 30,
+                                  amount: "48.00", price: "1.600", stationID: nil),
+            date: firstStop.addingTimeInterval(120)))
+
+        let flagged = HomeTestSeed.makeFill(
+            vehicleID: vehicle.id,
+            HomeTestSeed.FillSpec(daysAgo: 1, odometer: 401_000, litres: 45,
+                                  amount: "72.00", price: "1.600", stationID: nil),
+            conflict: .flagged(kind: .order, detectedAt: Date()))
+        try? repository.upsertFillUp(flagged)
+    }
 }
 #endif

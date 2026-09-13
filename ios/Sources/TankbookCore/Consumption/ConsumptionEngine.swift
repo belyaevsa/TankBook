@@ -121,7 +121,10 @@ public enum ConsumptionEngine {
     /// `km` = odo(close) - odo(open); `litres` = sum of every fill AFTER the
     /// opening full fill, up to and INCLUDING the closing one; `per100` =
     /// litres / km x 100. A segment touching an unresolved `ConflictState`
-    /// (opening, closing, or any fill in between) is excluded.
+    /// (opening, closing, or any fill in between) is excluded. Consecutive
+    /// boundary fills at the SAME reading are one stop, merged into one logical
+    /// fill, so the pair closes no zero-km segment and drops no volume
+    /// (docs/SCHEMA.md, Derived: consumption).
     ///
     /// TANK-LEVEL (v1.x refinement, gated on `tankCapacityL` being set): when a
     /// non-full fill carries `tankLevelAfterPct` it may close a segment using
@@ -293,7 +296,7 @@ public enum ConsumptionEngine {
         var pendingLitres = 0.0
         var touchedConflict = false
 
-        for fill in familyFills {
+        for fill in coalescedBoundaries(familyFills, tankLevelEnabled: tankLevelEnabled) {
             // A boundary closes a segment: a full fill always, plus any fill with
             // a known tank level when capacity is set (TANK-LEVEL refinement).
             let isBoundary = fill.isFull || (tankLevelEnabled && fill.tankLevelAfterPct != nil)
@@ -309,25 +312,68 @@ public enum ConsumptionEngine {
             pendingLitres += fill.volumeL
             touchedConflict = touchedConflict || fill.conflict != .none
             guard isBoundary else { continue }
-            defer {
-                open = fill
-                openLevelPct = fill.tankLevelAfterPct
-                pendingLitres = 0
-                touchedConflict = false
-            }
-            guard opening.conflict == .none, !touchedConflict,
-                  let openOdo = opening.odometer, let closeOdo = fill.odometer,
-                  closeOdo > openOdo else { continue }
 
-            let km = Double(closeOdo - openOdo)
-            var litres = pendingLitres
-            if tankLevelEnabled, let capacity = tankCapacityL,
-               let levelOpen = openLevelPct, let levelClose = fill.tankLevelAfterPct {
-                litres = pendingLitres + (levelOpen - levelClose) / 100 * capacity
+            // Safety net for a same-reading boundary that `coalescedBoundaries`
+            // could not merge (a non-boundary fill sits between the pair): keep
+            // the litres and the opening so the next real segment carries them,
+            // never a zero-km segment or a dropped volume.
+            if let openOdo = opening.odometer, let closeOdo = fill.odometer, closeOdo == openOdo {
+                continue
             }
-            guard litres >= 0 else { continue }
-            result.append(Segment(closes: fill.date, km: km, litres: litres,
-                                  openingFillID: opening.id, closingFillID: fill.id))
+
+            if opening.conflict == .none, !touchedConflict,
+               let openOdo = opening.odometer, let closeOdo = fill.odometer, closeOdo > openOdo {
+                let km = Double(closeOdo - openOdo)
+                var litres = pendingLitres
+                if tankLevelEnabled, let capacity = tankCapacityL,
+                   let levelOpen = openLevelPct, let levelClose = fill.tankLevelAfterPct {
+                    litres = pendingLitres + (levelOpen - levelClose) / 100 * capacity
+                }
+                if litres >= 0 {
+                    result.append(Segment(closes: fill.date, km: km, litres: litres,
+                                          openingFillID: opening.id, closingFillID: fill.id))
+                }
+            }
+
+            open = fill
+            openLevelPct = fill.tankLevelAfterPct
+            pendingLitres = 0
+            touchedConflict = false
+        }
+        return result
+    }
+
+    /// Merges consecutive boundary fills at one reading into one logical fill:
+    /// a zero-distance pair is one stop (a split payment, two products at one
+    /// till), so its volumes add and the later fill's date/id represent it. The
+    /// logical fill is an opening for the next segment and a closing for the
+    /// previous one exactly as a single fill would be - so the pair's litres
+    /// land in the segment they belong to instead of a zero-km segment (a
+    /// divide by zero) or a dropped volume (docs/SCHEMA.md, Derived:
+    /// consumption).
+    private static func coalescedBoundaries(_ fills: [FillUp],
+                                            tankLevelEnabled: Bool) -> [FillUp] {
+        func isBoundary(_ fill: FillUp) -> Bool {
+            fill.isFull || (tankLevelEnabled && fill.tankLevelAfterPct != nil)
+        }
+        var result: [FillUp] = []
+        for fill in fills {
+            guard isBoundary(fill) else {
+                result.append(fill)
+                continue
+            }
+            guard var previous = result.last, isBoundary(previous),
+                  let previousOdo = previous.odometer, previousOdo == fill.odometer else {
+                result.append(fill)
+                continue
+            }
+            previous.volumeL += fill.volumeL
+            previous.date = fill.date
+            previous.id = fill.id
+            previous.tankLevelAfterPct = fill.tankLevelAfterPct
+            if fill.conflict != .none { previous.conflict = fill.conflict }
+            if fill.flagAcceptance != nil { previous.flagAcceptance = fill.flagAcceptance }
+            result[result.count - 1] = previous
         }
         return result
     }

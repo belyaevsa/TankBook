@@ -280,6 +280,12 @@ capture P1.6-edit-entry-ru         ru -seedEditEntry -presentScreen editEntry
 # `-presentScreen editEntry` always opens the newest).
 capture RV.188-neighbourhood       en -seedEditEntryConflictMiddle -editEntryFlagged -presentScreen editEntry -scrollToNeighbourhood
 capture RV.188-neighbourhood-ru    ru -seedEditEntryConflictMiddle -editEntryFlagged -presentScreen editEntry -scrollToNeighbourhood
+# RV.276: a same-stop pair (two fills at one reading on one day) is one stop -
+# no amber - and its two coincident chart points get one stacked label block
+# instead of printing over each other. The card opens on the genuinely falling
+# entry, so the pair render as its two coincident neighbours.
+capture RV.276-same-stop-pair      en -seedEditEntrySameStopPair -editEntryFlagged -presentScreen editEntry -scrollToNeighbourhood
+capture RV.276-same-stop-pair-ru   ru -seedEditEntrySameStopPair -editEntryFlagged -presentScreen editEntry -scrollToNeighbourhood
 # PJ.2's subject - the receipt card a scanned save now persists - sits at the
 # top of this very frame, so PJ.2's record is this picture under its own name.
 alias_shot P1.6-edit-entry    PJ.2-edit-entry-receipt

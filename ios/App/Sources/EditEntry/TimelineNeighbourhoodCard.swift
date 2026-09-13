@@ -261,19 +261,23 @@ struct TimelineNeighbourhoodChart: View {
     private func pointLabels(_ layout: TimelineNeighbourhoodChartLayout,
                              size: CGSize) -> some View {
         let frames = layout.labelFrames(in: size)
-        return ForEach(layout.allPoints) { mark in
+        return ForEach(layout.labelGroups()) { group in
             VStack(spacing: 0) {
-                Text("\(OdometerFormat.grouped(mark.odometer)) \(L10n.distanceUnit(distanceUnit))")
-                    .font(.custom(AppFonts.dinAlternateBold, size: 10))
-                    .monospacedDigit()
-                    .accessibilityIdentifier("neighbourhoodChartOdometerLabel")
-                Text(EntryDateText.dayMonth(mark.date))
-                    .font(.system(size: 9))
-                    .accessibilityIdentifier("neighbourhoodChartDateLabel")
+                ForEach(group.labels) { mark in
+                    VStack(spacing: 0) {
+                        Text("\(OdometerFormat.grouped(mark.odometer)) \(L10n.distanceUnit(distanceUnit))")
+                            .font(.custom(AppFonts.dinAlternateBold, size: 10))
+                            .monospacedDigit()
+                            .accessibilityIdentifier("neighbourhoodChartOdometerLabel")
+                        Text(EntryDateText.dayMonth(mark.date))
+                            .font(.system(size: 9))
+                            .accessibilityIdentifier("neighbourhoodChartDateLabel")
+                    }
+                    .foregroundStyle(mark.isOffending ? Theme.Palette.warn : Theme.Palette.inkSoft)
+                }
             }
-            .foregroundStyle(mark.isOffending ? Theme.Palette.warn : Theme.Palette.inkSoft)
             .fixedSize()
-            .position(frames[mark.id]?.center ?? mark.position)
+            .position(frames[group.id]?.center ?? group.position)
         }
     }
 
@@ -312,6 +316,24 @@ struct TimelineNeighbourhoodChartLayout {
         let isOffending: Bool
     }
 
+    /// One or more plotted points that share an x - the same calendar day.
+    /// Their labels are one stacked block; a label per point printed them over
+    /// each other when they landed near the same edge, which is what RV.276
+    /// reported. Two points at one stop (same reading, same day) collapse to
+    /// one line rather than repeating the number.
+    struct LabelGroup: Identifiable {
+        let id: UUID
+        let position: CGPoint
+        let marks: [Mark]
+
+        /// One mark per DISTINCT reading, so a stop written twice does not
+        /// repeat the same number in its block.
+        var labels: [Mark] {
+            var seen = Set<Int>()
+            return marks.filter { seen.insert($0.odometer).inserted }
+        }
+    }
+
     let allPoints: [Mark]
     let validPoints: [Mark]
 
@@ -324,9 +346,40 @@ struct TimelineNeighbourhoodChartLayout {
     /// locale, so the width is set from it.
     static let labelSize = CGSize(width: 84, height: 26)
 
-    /// Where each point's label sits, keyed by the point's id.
+    /// The points grouped by calendar day. A group is labelled once, so points
+    /// that share an x get one stacked block instead of two labels printed over
+    /// each other at the same edge (RV.276). The group's position is the mean of
+    /// its points, so the block sits among them.
+    func labelGroups() -> [LabelGroup] {
+        var order: [TimeInterval] = []
+        var byDay: [TimeInterval: [Mark]] = [:]
+        for mark in allPoints {
+            let day = Calendar.current.startOfDay(for: mark.date).timeIntervalSince1970
+            if byDay[day] == nil { order.append(day) }
+            byDay[day, default: []].append(mark)
+        }
+        return order.compactMap { day in
+            guard let marks = byDay[day], let first = marks.first else { return nil }
+            let sum = marks.reduce(CGPoint.zero) {
+                CGPoint(x: $0.x + $1.position.x, y: $0.y + $1.position.y)
+            }
+            let position = CGPoint(x: sum.x / CGFloat(marks.count),
+                                   y: sum.y / CGFloat(marks.count))
+            return LabelGroup(id: first.id, position: position, marks: marks)
+        }
+    }
+
+    /// The box a group needs: the base two-line box times the number of
+    /// DISTINCT readings it stacks.
+    static func groupBox(for group: LabelGroup) -> CGSize {
+        CGSize(width: labelSize.width,
+               height: labelSize.height * CGFloat(max(group.labels.count, 1)))
+    }
+
+    /// Where each point's label sits, keyed by the point's id. Points in one
+    /// group share the group's frame.
     ///
-    /// **The side is chosen by the point's own height, never by its index.** The
+    /// **The side is chosen by the group's own height, never by its index.** The
     /// series rises left to right, so the free space is BELOW a point in the
     /// lower half of the plot and ABOVE one in the upper half - the line itself
     /// occupies the other side. Alternating by index instead put the offending
@@ -339,23 +392,23 @@ struct TimelineNeighbourhoodChartLayout {
     /// plot, so two points close in x (a day apart on a three-week span) still
     /// read as two labels. Everything stays inside `size`.
     func labelFrames(in size: CGSize) -> [UUID: CGRect] {
-        let box = Self.labelSize
         let midY = size.height / 2
         var placed: [CGRect] = []
         var frames: [UUID: CGRect] = [:]
 
-        // Nearest the plot's vertical centre first: the points with the least
+        // Nearest the plot's vertical centre first: the groups with the least
         // room get the side they need before the outer ones claim it.
-        for mark in allPoints.sorted(by: { abs($0.position.y - midY) < abs($1.position.y - midY) }) {
-            let goesUp = mark.position.y < midY
-            var frame = Self.frame(for: mark.position, box: box, goesUp: goesUp, step: 0, in: size)
+        for group in labelGroups().sorted(by: { abs($0.position.y - midY) < abs($1.position.y - midY) }) {
+            let box = Self.groupBox(for: group)
+            let goesUp = group.position.y < midY
+            var frame = Self.frame(for: group.position, box: box, goesUp: goesUp, step: 0, in: size)
             var step = 1
             while placed.contains(where: { $0.intersects(frame) }), step <= 3 {
-                frame = Self.frame(for: mark.position, box: box, goesUp: goesUp, step: step, in: size)
+                frame = Self.frame(for: group.position, box: box, goesUp: goesUp, step: step, in: size)
                 step += 1
             }
             placed.append(frame)
-            frames[mark.id] = frame
+            for mark in group.marks { frames[mark.id] = frame }
         }
         return frames
     }

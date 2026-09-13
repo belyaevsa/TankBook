@@ -572,10 +572,13 @@ INVARIANT  For a vehicle's entries with odometer set, sorted by date (same-day t
            between the kinds that MEASURE travel. A FillUp or a ChargeSession is a point on the
            journey; a ServiceRecord or an Expense is an ANNOTATION at a point - work done at the
            pump without moving - and may equal a neighbour's reading. Two travel entries at one
-           reading claim travel that did not happen and conflict.
+           reading are ONE STOP when their dates fall on the SAME CALENDAR DAY (a split payment,
+           two products at one till - receipt-062/063) and conflict only when the dates differ,
+           because then they claim travel that did not happen (RV.276). "Same day" is the
+           injected `Calendar` CHECK 2 uses, so the invariant and the pace rule agree.
 CHECK 1    Order: odometer fits between date-neighbors. A falling reading conflicts for every
-           kind; an equal reading conflicts ONLY between two travel-measuring entries. Violation →
-           discrepancy UI.
+           kind; an equal reading conflicts ONLY between two travel-measuring entries on
+           DIFFERENT calendar days. Violation → discrepancy UI.
 CHECK 2    Pace: implied km/day against neighbors ≤ vehicle.paceLimitKmPerDay. A neighbour on the
            same CALENDAR DAY contributes no pace bound (RV.192): "same day" is decided by an
            injected `Calendar` defaulting to `.current` - the device's zone - because `Vehicle`
@@ -640,26 +643,27 @@ A flagged entry quotes one neighbour; the RV.117 range says **which field is wro
 
 ```
 ODOMETER RANGE   The readings valid for the entry's date (integers, inclusive):
-                 lower = max(previous + (travel ? 1 : 0),     // CHECK 1, order: exclusive only
-                             next − limit × days(entry → next))   //   between two travel entries,
-                 upper = min(next − (travel ? 1 : 0),         //   inclusive for an annotation
-                             previous + limit × days(previous → entry)) // CHECK 2, pace, only on a
-                                                                        // different calendar day
-                 `travel` means BOTH this entry and that neighbour measure travel
-                 (FillUp/ChargeSession); a ServiceRecord or Expense neighbour shares
-                 the reading, so the order bound is inclusive on that side.
+                 lower = max(previous + (strict ? 1 : 0),     // CHECK 1, order: exclusive only
+                             next − limit × days(entry → next))   //   between two travel entries on
+                 upper = min(next − (strict ? 1 : 0),         //   DIFFERENT days; inclusive for
+                             previous + limit × days(previous → entry)) // an annotation OR a same-day
+                                                                        // neighbour (RV.276)
+                 `strict` means BOTH this entry and that neighbour measure travel
+                 (FillUp/ChargeSession) AND their dates fall on different calendar
+                 days; otherwise the neighbour shares the reading, so the order bound
+                 is inclusive on that side.
                  The upper end is therefore NOT next − 1 when the pace toward the
                  previous is the tighter bound (Drivvo: "on 13/07 the odometer must be
                  between 490 500 and 490 983" – 490 983 = 490 500 + limit × days, not
                  "below 491 206", docs/COMPETITORS.md).
 DATE RANGE       The dates on which the entry's odometer x is consistent while it keeps
-                 the same two date-neighbours (inclusive instants, strictly between the
-                 neighbours' dates):
+                 the same two date-neighbours (inclusive instants, on a neighbour's date
+                 or between them - a same-day equal reading is one stop, RV.276):
                  lower = previous.date + (x − previous.odometer) / limit × 86400   (previous side)
                  upper = next.date − (next.odometer − x) / limit × 86400           (next side)
 ```
 
-**Open ends are first-class**: an absent bound is `nil` (open), never a large sentinel number. An entry with no `next` has no upper date bound, one with no `previous` no lower date bound; a same-day neighbour contributes **no pace bound** (the calendar-day guard, RV.192), so on that side the odometer range is bounded by order alone. **The empty case is representable**: when the two constraints cross - the neighbourhood itself is inconsistent, which a multi-year import can produce - the range is `.none`, never an inverted "between 490 983 and 490 500". An odometer that falls below its previous reading (or rises above its next) has no valid date between those neighbours either; an equal reading has none only between two travel-measuring entries: `.none` on the date side is the signal that the odometer is the field to fix. The range claims dates strictly between the neighbours; the exact neighbour instants are outside its domain because there a same-day tie reorders the timeline or the same-day rule drops a pace bound. When a pace bound falls on the neighbour's own calendar day, the date range widens to that neighbour's instant; a pace bound on a later day is kept exactly, so the range never claims a date the validator would flag. The range never auto-corrects or reorders `suggestions` (hard rule 13; PRIORITY above is unchanged).
+**Open ends are first-class**: an absent bound is `nil` (open), never a large sentinel number. An entry with no `next` has no upper date bound, one with no `previous` no lower date bound; a same-day neighbour contributes **no pace bound** (the calendar-day guard, RV.192), so on that side the odometer range is bounded by order alone. **The empty case is representable**: when the two constraints cross - the neighbourhood itself is inconsistent, which a multi-year import can produce - the range is `.none`, never an inverted "between 490 983 and 490 500". An odometer that falls below its previous reading (or rises above its next) has no valid date between those neighbours either; an equal reading has none only between two travel-measuring entries on DIFFERENT days, while on one day the neighbour's own instant is a valid date (one stop, RV.276). `.none` on the date side is the signal that the odometer is the field to fix. The range claims dates on the neighbours' instants or between them; an instant on the SAME day as a neighbour is in the domain (the same-day rule drops that pace bound), which is how an equal same-day reading stays inside its range. When a pace bound falls on the neighbour's own calendar day, the date range widens to that neighbour's instant; a pace bound on a later day is kept exactly, so the range never claims a date the validator would flag. The range never auto-corrects or reorders `suggestions` (hard rule 13; PRIORITY above is unchanged).
 
 ### S2 duplicates (derived, with one persisted fact)
 
@@ -693,6 +697,10 @@ SEGMENT    Between consecutive isFull fill-ups (conflict-free, same fuelKind fam
              km     = odo(close) − odo(open)
              liters = Σ volume of every fill after open, up to and including close
              per100 = liters / km × 100
+           ONE STOP (RV.276): consecutive boundary fills at the SAME reading are one
+           logical fill - their volumes add and the later fill represents it - so a
+           same-stop pair closes no zero-km segment (never a divide by zero) and
+           never drops a volume.
 TANK-LEVEL (v1.x refinement) tankLevelAfterPct + tankCapacityL lets a segment close on a
            non-full fill: liters_adjusted = Σ volume + (levelOpen − levelClose)/100 × capacity.
            Gated on tankCapacityL being set; falls back to full-to-full otherwise.

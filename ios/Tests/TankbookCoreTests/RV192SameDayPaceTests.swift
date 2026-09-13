@@ -150,17 +150,19 @@ struct RV192SameDayPaceTests {
         }
 
         let range = validation(entriesWith(100_300), entryID, limit: limit)?.validRange
-        // previous same-day -> order lower only (100 001); next is far enough
-        // that its pace floor does not bind; upper is the next order bound.
-        #expect(range?.odometer == .bounded(lower: 100_001, upper: 100_799))
+        // previous same-day -> the order bound is INCLUSIVE (RV.276: a same-day
+        // equal reading is one stop); next is far enough that its pace floor
+        // does not bind; upper is the next order bound.
+        #expect(range?.odometer == .bounded(lower: 100_000, upper: 100_799))
         // The entry's own value is inside the suggested range and clean.
         #expect(flags(entries: entriesWith(100_300), id: entryID, odometer: 100_300,
                       date: entryDate, limit: limit).isEmpty)
 
-        // Odometer endpoints: clean at the bounds, flagged one step outside.
-        #expect(flags(entries: entriesWith(100_001), id: entryID, odometer: 100_001,
-                      date: entryDate, limit: limit).isEmpty)
+        // Odometer endpoints: clean at the bounds (including the same-day equal
+        // reading), flagged one step below the lower bound.
         #expect(flags(entries: entriesWith(100_000), id: entryID, odometer: 100_000,
+                      date: entryDate, limit: limit).isEmpty)
+        #expect(flags(entries: entriesWith(99_999), id: entryID, odometer: 99_999,
                       date: entryDate, limit: limit).isEmpty == false)
         #expect(flags(entries: entriesWith(100_799), id: entryID, odometer: 100_799,
                       date: entryDate, limit: limit).isEmpty)

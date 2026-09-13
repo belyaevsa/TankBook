@@ -65,6 +65,9 @@ enum EditEntryTestSeed {
             seedMiddleConflict()
             return true
         }
+        if EditEntrySameStopSeed.seedIfRequested(arguments: arguments) {
+            return true
+        }
         if arguments.contains("-seedEditEntryTyped") || arguments.contains("-seedEditEntryTypedAttached") {
             seedTyped(attachReceipt: arguments.contains("-seedEditEntryTypedAttached"))
             return true

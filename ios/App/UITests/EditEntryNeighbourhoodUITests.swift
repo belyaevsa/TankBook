@@ -119,4 +119,52 @@ final class EditEntryNeighbourhoodUITests: XCTestCase {
             .matching(identifier: "neighbourhoodOffendingPoint").firstMatch.exists,
             "the panel still renders")
     }
+
+    // MARK: - RV.276 the same-stop pair
+
+    /// RV.276: two fill-ups at one reading on one day are one stop, so the
+    /// seeded pair carries NO amber. The card opens on a genuinely falling
+    /// entry, whose neighbourhood plots the pair as two coincident neighbours -
+    /// their labels must be legible, not printed over each other.
+    func testSameStopPairIsNotFlaggedAndItsCoincidentLabelsAreLegible() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedEditEntrySameStopPair",
+                               "-editEntryFlagged", "-presentScreen", "editEntry"]
+        app.launch()
+        revealCard(app)
+
+        let labels = app.staticTexts.matching(identifier: "neighbourhoodChartOdometerLabel")
+        XCTAssertTrue(labels.firstMatch.waitForExistence(timeout: 10),
+                      "the chart must label its points")
+        XCTAssertTrue(labels.containing(
+            NSPredicate(format: "label CONTAINS %@", grouped(401_544))).firstMatch.exists,
+            "the same-stop pair's shared reading must be labelled")
+
+        // Only the genuinely falling entry is offending (amber); the pair are
+        // neighbours (ink) - two of them, plotted at the same reading.
+        let offending = app.descendants(matching: .any)
+            .matching(identifier: "neighbourhoodOffendingPoint")
+        XCTAssertEqual(offending.count, 1,
+                       "only the falling entry is the offending point")
+        let neighbours = app.descendants(matching: .any)
+            .matching(identifier: "neighbourhoodNeighbourPoint")
+        XCTAssertEqual(neighbours.count, 2,
+                       "the same-stop pair must be plotted as two neighbours")
+    }
+
+    /// RV.276 on Home: the same-stop pair carries no conflict badge - only the
+    /// genuinely falling entry does.
+    func testSameStopPairHasNoConflictBadgeOnHome() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedHomeSameStopPair"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 10),
+                      "Home must load")
+
+        let badges = app.buttons.matching(identifier: "conflictBadgeButton")
+        XCTAssertTrue(badges.firstMatch.waitForExistence(timeout: 10),
+                      "the falling entry must carry the amber conflict badge")
+        XCTAssertEqual(badges.count, 1,
+                       "only the falling entry flags; the same-stop pair does not")
+    }
 }

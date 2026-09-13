@@ -2355,6 +2355,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.276-same-stop-pair": {
+      "commit": "04bcfc61",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.276-same-stop-pair-ru": {
+      "commit": "04bcfc61",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.28-fuel-chips": {
       "commit": "0ba7e94",
       "device": "iPhone 17",

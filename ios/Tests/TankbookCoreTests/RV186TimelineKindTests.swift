@@ -112,20 +112,22 @@ struct RV186TimelineKindTests {
         #expect(kindFlags([fill, expense], expense.id).isEmpty)
     }
 
-    /// Two fill-ups at one reading still conflict: they claim travel that did
-    /// not happen. The relaxation must not swallow this.
-    @Test func twoFillUpsAtOneReadingAreStillFlagged() {
+    /// Two fill-ups at one reading on DIFFERENT days still conflict: they claim
+    /// travel that did not happen. The relaxation must not swallow this (RV.276
+    /// lets only a same-day pair share a reading).
+    @Test func twoFillUpsAtOneReadingOnDifferentDaysAreStillFlagged() {
         let first = kindFill(date: kindEpoch, odometer: 100_000)
-        let second = kindFill(date: kindEpoch + 3600, odometer: 100_000)
+        let second = kindFill(date: kindEpoch + kindDay, odometer: 100_000)
 
         #expect(kindFlags([first, second], first.id).contains { $0.kind == .order })
         #expect(kindFlags([first, second], second.id).contains { $0.kind == .order })
     }
 
-    /// Two charge sessions at one reading are travel entries too.
-    @Test func twoChargeSessionsAtOneReadingAreStillFlagged() {
+    /// Two charge sessions at one reading on different days are travel entries
+    /// too.
+    @Test func twoChargeSessionsAtOneReadingOnDifferentDaysAreStillFlagged() {
         let first = kindCharge(date: kindEpoch, odometer: 50_000)
-        let second = kindCharge(date: kindEpoch + 3600, odometer: 50_000)
+        let second = kindCharge(date: kindEpoch + kindDay, odometer: 50_000)
 
         #expect(kindFlags([first, second], first.id).contains { $0.kind == .order })
         #expect(kindFlags([first, second], second.id).contains { $0.kind == .order })
@@ -150,20 +152,27 @@ struct RV186TimelineKindTests {
     }
 
     /// The invariant agrees with the per-entry check: a shared annotation
-    /// reading holds, two travel entries at one reading do not.
+    /// reading holds, a same-day pair of fills is one stop and holds too, and
+    /// the same reading on different days breaks it (RV.276).
     @Test func invariantHoldsForAnnotationsAndBreaksForTwoFills() {
         #expect(TimelineValidator.invariantHolds(entries: [
             kindFill(date: kindEpoch, odometer: 100_000),
             kindService(date: kindEpoch + 3600, odometer: 100_000),
         ]))
-        #expect(!TimelineValidator.invariantHolds(entries: [
+        #expect(TimelineValidator.invariantHolds(entries: [
             kindFill(date: kindEpoch, odometer: 100_000),
             kindFill(date: kindEpoch + 3600, odometer: 100_000),
+        ]))
+        #expect(!TimelineValidator.invariantHolds(entries: [
+            kindFill(date: kindEpoch, odometer: 100_000),
+            kindFill(date: kindEpoch + kindDay, odometer: 100_000),
         ]))
     }
 
     /// The valid range mirrors the relaxed order bound: an annotation sharing a
-    /// fill's reading has an inclusive lower end, a fill below a fill does not.
+    /// fill's reading has an inclusive lower end, and so does a fill on the
+    /// SAME DAY (RV.276); only a travel entry on a different day stays
+    /// exclusive.
     @Test func validRangeIsInclusiveForAnAnnotationNeighbour() {
         func lowerBound(_ range: ValidRange<Int>?) -> Int? {
             if case .bounded(let lower, _) = range { return lower }
@@ -176,10 +185,15 @@ struct RV186TimelineKindTests {
             .first { $0.entryID == service.id }?.validRange
         #expect(lowerBound(serviceRange?.odometer) == 100_000)
 
-        let secondFill = kindFill(date: kindEpoch + 3600, odometer: 100_000)
-        let fillRange = TimelineValidator.validate(entries: [fill, secondFill], vehicle: kindVehicle())
-            .first { $0.entryID == secondFill.id }?.validRange
-        #expect(lowerBound(fillRange?.odometer) == 100_001)
+        let sameDayFill = kindFill(date: kindEpoch + 3600, odometer: 100_000)
+        let sameDayRange = TimelineValidator.validate(entries: [fill, sameDayFill], vehicle: kindVehicle())
+            .first { $0.entryID == sameDayFill.id }?.validRange
+        #expect(lowerBound(sameDayRange?.odometer) == 100_000)
+
+        let nextDayFill = kindFill(date: kindEpoch + kindDay, odometer: 100_000)
+        let nextDayRange = TimelineValidator.validate(entries: [fill, nextDayFill], vehicle: kindVehicle())
+            .first { $0.entryID == nextDayFill.id }?.validRange
+        #expect(lowerBound(nextDayRange?.odometer) == 100_001)
     }
 }
 
