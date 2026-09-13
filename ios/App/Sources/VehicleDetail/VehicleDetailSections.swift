@@ -107,6 +107,9 @@ struct VehiclePaceLimitRow: View {
 
     @Binding var paceLimit: String
     @FocusState.Binding var focus: AddVehicleFocus?
+    /// The car's distance unit, so a miles car reads and edits mi/day while the
+    /// stored `paceLimitKmPerDay` stays kilometres (RV.271).
+    let distanceUnit: DistanceUnit
     var idPrefix: String = "vehicleDetail"
 
     var body: some View {
@@ -115,14 +118,14 @@ struct VehiclePaceLimitRow: View {
                               rowIdentifier: "\(idPrefix)PaceLimitRow") {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     TextField("", text: $paceLimit)
-                        .keyboardType(.numberPad)
+                        .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Theme.Palette.ink)
                         .focused($focus, equals: .paceLimit)
                         .accessibilityIdentifier("\(idPrefix)PaceLimitField")
-                        .numericInput($paceLimit, kind: .integer)
-                    Text("km/day")
+                        .numericInput($paceLimit, kind: .decimal)
+                    Text(ManualFillUpUnitCopy.paceLimitUnit(for: distanceUnit))
                         .font(.caption)
                         .foregroundStyle(Theme.Palette.inkSoft)
                 }
@@ -135,6 +138,52 @@ struct VehiclePaceLimitRow: View {
                 .padding(.bottom, 12)
         }
         .accessibilityIdentifier("\(idPrefix)PaceLimitCard")
+        .id(Self.scrollTarget)
+    }
+}
+
+// MARK: - Accuracy card (capacity + units)
+
+/// The "Improves accuracy · optional" card on the detail screen: the
+/// tank/battery capacity row (shared with Add car) and the units editor - the
+/// per-car settings DESIGN.md says live here, not in Settings.
+struct VehicleDetailAccuracyCard: View {
+    @Binding var form: VehicleDetailFormState
+    @FocusState.Binding var focus: AddVehicleFocus?
+
+    /// The ScrollViewReader id the card carries, so the `-scrollToAccuracy`
+    /// screenshot pose can bring the capacity field into view (RV.182).
+    static let scrollTarget = "vehicleDetailAccuracyScrollTarget"
+
+    var body: some View {
+        VStack(spacing: 0) {
+            VehicleCapacityField(capacity: $form.capacity,
+                                 isElectric: form.isElectric,
+                                 volumeUnit: form.units.volume,
+                                 focus: $focus, idPrefix: "vehicleDetail")
+            CardDivider()
+            VehicleUnitsEditor(units: $form.units)
+                .onChange(of: form.units.volume) { oldUnit, newUnit in
+                    // The capacity field is labelled in the units the vehicle is
+                    // about to switch away from; re-express the same physical
+                    // volume in the new unit so a unit change never mangles the
+                    // tank (RV.69). kWh is skipped inside the form state.
+                    form.reconvertCapacityVolume(from: oldUnit, to: newUnit)
+                }
+                .onChange(of: form.units.distance) { oldUnit, newUnit in
+                    // The pace-limit field is labelled in the units the vehicle
+                    // is about to switch away from; re-express the same physical
+                    // pace in the new unit (RV.271).
+                    form.reconvertPaceLimitDistance(from: oldUnit, to: newUnit)
+                }
+            CardDivider()
+            // PJ.45: the pace limit is the threshold timeline validation
+            // compares an implied daily pace against; it sits with the other
+            // values that tune the car's derived figures.
+            VehiclePaceLimitRow(paceLimit: $form.paceLimit, focus: $focus,
+                                distanceUnit: form.units.distance)
+        }
+        .formCard()
         .id(Self.scrollTarget)
     }
 }

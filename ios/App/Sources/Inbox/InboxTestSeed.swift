@@ -45,6 +45,18 @@ enum InboxTestSeed {
         }
     }
 
+    /// The seeded car's units. Metric by default; `-seedInboxMiles` makes it an
+    /// imperial car (miles, US gallons, MPG) so the comparison's volume values
+    /// can be exercised in gallons (RV.271) - the same modifier shape
+    /// `ManualFillUpTestSeed` and `HomeTestSeed` use.
+    private static func unitsFromArguments() -> Vehicle.Units {
+        ProcessInfo.processInfo.arguments.contains("-seedInboxMiles")
+            ? Vehicle.Units(distance: .mi, volume: .galUS,
+                            consumption: .mpgUS, energy: .miPerKWh)
+            : Vehicle.Units(distance: .km, volume: .l,
+                            consumption: .lPer100, energy: .kWhPer100)
+    }
+
     // MARK: - RV.38 the rich item (blank price + five differing fields)
 
     @MainActor
@@ -63,8 +75,7 @@ enum InboxTestSeed {
             name: "Test Volvo", make: "Volvo", model: "V60", year: 2015,
             plate: nil, powertrain: .ice, fuelKinds: [.petrol95],
             tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
-            units: Vehicle.Units(distance: .km, volume: .l,
-                                 consumption: .lPer100, energy: .kWhPer100),
+            units: Self.unitsFromArguments(),
             photo: nil, archived: false, paceLimitKmPerDay: 1500,
             initialOdometer: 119_486)
         try? repository.upsertVehicle(vehicle)
@@ -112,8 +123,7 @@ enum InboxTestSeed {
             name: "Test Volvo", make: "Volvo", model: "V60", year: 2015,
             plate: nil, powertrain: .ice, fuelKinds: [.petrol95],
             tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
-            units: Vehicle.Units(distance: .km, volume: .l,
-                                 consumption: .lPer100, energy: .kWhPer100),
+            units: Self.unitsFromArguments(),
             photo: nil, archived: false, paceLimitKmPerDay: 1500,
             initialOdometer: 119_486)
         try? repository.upsertVehicle(vehicle)
@@ -167,8 +177,7 @@ enum InboxTestSeed {
             name: "Test Volvo", make: "Volvo", model: "V60", year: 2015,
             plate: nil, powertrain: .ice, fuelKinds: [.petrol95],
             tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
-            units: Vehicle.Units(distance: .km, volume: .l,
-                                 consumption: .lPer100, energy: .kWhPer100),
+            units: Self.unitsFromArguments(),
             photo: nil, archived: false, paceLimitKmPerDay: 1500,
             initialOdometer: 119_486)
         try? repository.upsertVehicle(vehicle)
@@ -224,8 +233,7 @@ enum InboxTestSeed {
             name: "Test Volvo", make: "Volvo", model: "V60", year: 2015,
             plate: nil, powertrain: .ice, fuelKinds: [.petrol95],
             tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
-            units: Vehicle.Units(distance: .km, volume: .l,
-                                 consumption: .lPer100, energy: .kWhPer100),
+            units: Self.unitsFromArguments(),
             photo: nil, archived: false, paceLimitKmPerDay: 1500,
             initialOdometer: 119_486)
         try? repository.upsertVehicle(vehicle)
@@ -279,8 +287,7 @@ enum InboxTestSeed {
             name: "Test Volvo", make: "Volvo", model: "V60", year: 2015,
             plate: nil, powertrain: .ice, fuelKinds: [.petrol95],
             tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
-            units: Vehicle.Units(distance: .km, volume: .l,
-                                 consumption: .lPer100, energy: .kWhPer100),
+            units: Self.unitsFromArguments(),
             photo: nil, archived: false, paceLimitKmPerDay: 1500,
             initialOdometer: 119_486)
         try? repository.upsertVehicle(vehicle)

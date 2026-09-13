@@ -210,6 +210,28 @@ final class VehicleDetailUITests: XCTestCase {
         XCTAssertEqual(reopened.value as? String, "2200")
     }
 
+    /// RV.271: the pace-limit row names and holds the car's own distance unit.
+    /// On a miles car the label reads mi/day and the stored 1500 km/day reads
+    /// 932.1 - a km/day label over a converted number would be the residue.
+    func testPaceLimitRowNamesMilesOnAMilesCar() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedSettingsSignedIn",
+                               "-seedHomeEmptyVehicle", "-seedHomeMiles",
+                               "-presentScreen", "vehicleDetail", "-scrollToPaceLimit",
+                               "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+
+        let field = app.textFields["vehicleDetailPaceLimitField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 10),
+                      "the miles car's pace-limit field must present")
+        XCTAssertTrue(app.staticTexts["mi/day"].waitForExistence(timeout: 5),
+                      "the row must name the car's distance unit")
+        XCTAssertFalse(app.staticTexts["km/day"].exists,
+                       "a miles car must never be told kilometres")
+        XCTAssertEqual(field.value as? String, "932.1",
+                       "the stored 1500 km/day must read as miles per day")
+    }
+
     // MARK: - The per-car export's share sheet carries the CSV (PJ.38)
 
     /// Tapping the per-car export row builds the archive AND the four CSV files,

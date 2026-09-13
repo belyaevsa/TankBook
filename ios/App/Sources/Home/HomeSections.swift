@@ -51,10 +51,13 @@ enum HomeFormat {
         "\(costPerDistanceValue(value, distanceUnit: distanceUnit))\u{00A0}\(symbol)"
     }
 
-    /// The bare figure for a `StatTile` that renders its own currency unit.
+    /// The bare figure for a `StatTile` that renders its own currency unit. The
+    /// kilometre-to-display-unit factor is `DistanceMath` - the codebase's one
+    /// distance converter - never a second copy.
     static func costPerDistanceValue(_ value: Double, distanceUnit: DistanceUnit) -> String {
-        let factor = distanceUnit == .mi ? 1.609344 : 1.0
-        return ManualFillUpFormat.decimal(value * factor, fractionDigits: 2)
+        ManualFillUpFormat.decimal(
+            DistanceMath.perDisplayUnit(fromPerKilometre: value, unit: distanceUnit),
+            fractionDigits: 2)
     }
 
     /// "Aug 17" in the current year, "Aug 17, 15" otherwise - the one

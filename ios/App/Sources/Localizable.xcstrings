@@ -15006,6 +15006,23 @@
         }
       }
     },
+    "mi/day": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mi/day"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "миль/день"
+          }
+        }
+      }
+    },
     "mi/kWh": {
       "extractionState": "manual",
       "localizations": {

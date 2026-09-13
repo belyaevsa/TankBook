@@ -47,8 +47,10 @@ enum InboxValueFormat {
         }
     }
 
-    /// The user's saved value for a field, or the blank marker.
-    static func yours(_ field: FieldRef, entry: InboxEntry) -> String {
+    /// The user's saved value for a field, or the blank marker. The volume
+    /// value renders in the owning car's unit, not the stored litre figure
+    /// (RV.271).
+    static func yours(_ field: FieldRef, entry: InboxEntry, volumeUnit: VolumeUnit) -> String {
         switch field {
         case .date:
             return entry.date.formatted(.dateTime.month(.abbreviated).day().year())
@@ -57,7 +59,7 @@ enum InboxValueFormat {
             return fillUp.fuelKind.inboxLabel
         case .volume:
             guard case .fillUp(let fillUp) = entry else { return blank }
-            return "\(ManualFillUpFormat.decimal(fillUp.volumeL, fractionDigits: 2)) \(L10n.volumeUnit(.l))"
+            return volume(fillUp.volumeL, unit: volumeUnit)
         case .unitPrice:
             guard case .fillUp(let fillUp) = entry else { return blank }
             return fillUp.unitPrice.map { money($0, fractionDigits: 3, symbol: symbol(for: entry)) } ?? blank
@@ -80,10 +82,11 @@ enum InboxValueFormat {
 
     /// The recognition's reading for a field, or the blank marker (a field the
     /// recognition did not read is not offered, so this should not be reached).
-    static func receipt(_ field: FieldRef, entry: InboxEntry, recognition: InboxRecognition) -> String {
+    static func receipt(_ field: FieldRef, entry: InboxEntry, recognition: InboxRecognition,
+                        volumeUnit: VolumeUnit) -> String {
         switch recognition {
         case .fuel(let extraction):
-            return fuelReceipt(field, entry: entry, extraction: extraction)
+            return fuelReceipt(field, entry: entry, extraction: extraction, volumeUnit: volumeUnit)
         case .service(let service):
             return serviceReceipt(field, entry: entry, recognition: service)
         case .expense(let expense):
@@ -95,7 +98,8 @@ enum InboxValueFormat {
 
     private static func fuelReceipt(_ field: FieldRef,
                                     entry: InboxEntry,
-                                    extraction: GatewayExtraction) -> String {
+                                    extraction: GatewayExtraction,
+                                    volumeUnit: VolumeUnit) -> String {
         switch field {
         case .date:
             if let raw = extraction.date?.value, let parsed = ConfirmDate.parse(raw) {
@@ -105,9 +109,12 @@ enum InboxValueFormat {
         case .fuelKind:
             return extraction.fuelKind.map { $0.value.inboxLabel } ?? blank
         case .volume:
-            return extraction.volume.map {
-                "\(ManualFillUpFormat.decimal($0.value, fractionDigits: 2)) \(L10n.volumeUnit(.l))"
-            } ?? blank
+            // The extraction normalizes every reading to litres and carries no
+            // read-unit (FuelExtraction.liters, GatewayWire), so the receipt
+            // column renders the car's unit too: that is what keeps the two
+            // columns comparable, and on the common imperial case (a US pump
+            // printed in gallons) it reproduces the receipt's own number.
+            return extraction.volume.map { volume($0.value, unit: volumeUnit) } ?? blank
         case .unitPrice:
             return extraction.unitPrice.map {
                 money($0.value, fractionDigits: 3, symbol: receiptSymbol(entry: entry, read: extraction.currency?.value))
@@ -183,6 +190,14 @@ enum InboxValueFormat {
         let item = service.items[index]
         guard let cost = item.cost else { return item.title }
         return "\(item.title) · \(money(cost.amount, fractionDigits: 2, symbol: AddVehicleSupport.moneySymbol(for: cost.currency)))"
+    }
+
+    /// A stored litre figure in the car's display unit. The one litre<->display
+    /// converter (`ManualFillUpMath`) - the same one the fill forms use - never
+    /// a second factor (RV.271).
+    private static func volume(_ litres: Double, unit: VolumeUnit) -> String {
+        let display = ManualFillUpMath.displayVolume(from: litres, unit: unit)
+        return "\(ManualFillUpFormat.decimal(display, fractionDigits: 2)) \(L10n.volumeUnit(unit))"
     }
 
     /// "68.46 €" - amount then a no-break-space then symbol, never symbol-first

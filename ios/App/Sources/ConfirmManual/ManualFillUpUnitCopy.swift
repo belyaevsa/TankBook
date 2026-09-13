@@ -68,6 +68,15 @@ enum ManualFillUpUnitCopy {
         }
     }
 
+    /// The pace-limit field's unit, per distance unit. `paceLimitKmPerDay` is
+    /// kilometres; a miles car edits and reads miles per day (RV.271).
+    static func paceLimitUnit(for unit: DistanceUnit) -> String {
+        switch unit {
+        case .km: L10n.localize("km/day")
+        case .mi: L10n.localize("mi/day")
+        }
+    }
+
     /// The all-in cost label, per distance unit.
     static func costPerDistanceLabel(for unit: DistanceUnit) -> String {
         switch unit {

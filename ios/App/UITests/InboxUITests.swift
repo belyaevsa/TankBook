@@ -162,6 +162,30 @@ final class InboxUITests: XCTestCase {
                        "an agreeing currency is not a decision - no tick")
     }
 
+    // MARK: - RV.271 the volume values read in the car's own unit
+
+    /// RV.234 made the comparison's LABEL per-unit; RV.271 converts the two
+    /// VALUE columns too. On a gallons car the saved 40.00 L reads 10.57 gal and
+    /// the receipt's 30.00 L reading reads 7.93 gal - the stored litre figures
+    /// must not appear.
+    func testImperialComparisonReadsGallonsInBothColumns() {
+        let app = launch(["-seedInboxComparison", "-seedInboxMiles"])
+        app.buttons["inboxBellButton"].tap()
+
+        XCTAssertTrue(app.buttons["inboxTick_volume"].waitForExistence(timeout: 5),
+                      "the volume row must render")
+        XCTAssertTrue(app.staticTexts["Gallons"].exists,
+                      "the row label must name the car's unit")
+        XCTAssertTrue(app.staticTexts["10.57 gal"].exists,
+                      "the user's saved 40.00 L must read gallons")
+        XCTAssertTrue(app.staticTexts["7.93 gal"].exists,
+                      "the receipt's 30.00 L reading must read gallons")
+        XCTAssertFalse(app.staticTexts["40.00 L"].exists,
+                       "the stored litre figure must not be shown on a gallons car")
+        XCTAssertFalse(app.staticTexts["30.00 L"].exists,
+                       "the receipt's litre figure must not be shown on a gallons car")
+    }
+
     // MARK: - Ticking only the blank fills it and leaves the differing field alone
 
     func testTickingOnlyTheBlankLeavesTheDifferingFieldByteIdentical() {

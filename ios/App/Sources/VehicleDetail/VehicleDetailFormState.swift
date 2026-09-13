@@ -22,10 +22,12 @@ struct VehicleDetailFormState {
     var odometer = ""
     var homeCurrency: CurrencyCode = LocaleCurrency.defaultCurrency(for: .current)
     var capacity = ""
-    /// PJ.45: the pace limit as text, in km/day (the unit `paceLimitKmPerDay`
-    /// stores). A suggestion the user owns (hard rule 13): it is pre-filled
-    /// from the car, editable here, and an edit is never overwritten by a
-    /// catalog or locale default - `applying(to:)` writes the car's own value.
+    /// PJ.45/RV.271: the pace limit as text, in the car's own distance unit.
+    /// `paceLimitKmPerDay` stores kilometres, so the field crosses into the
+    /// display unit at load and back at save (`DistanceMath`) - a miles car
+    /// reads and edits mi/day. A suggestion the user owns (hard rule 13): it is
+    /// pre-filled from the car, editable here, and an edit is never overwritten
+    /// by a catalog or locale default - `applying(to:)` writes the car's value.
     var paceLimit = ""
     var units = Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100, energy: .kWhPer100)
     var photo: Data?
@@ -58,7 +60,11 @@ struct VehicleDetailFormState {
         } else {
             capacity = ""
         }
-        paceLimit = Self.paceLimitText(vehicle.paceLimitKmPerDay)
+        // The field reads in the car's distance unit; `paceLimitKmPerDay` is
+        // kilometres, so the stored figure converts OUT at load (RV.271).
+        paceLimit = Self.paceLimitText(
+            DistanceMath.display(fromKilometres: vehicle.paceLimitKmPerDay,
+                                 unit: vehicle.units.distance))
         units = vehicle.units
         photo = photoData
         originalPhotoID = vehicle.photo
@@ -111,20 +117,25 @@ struct VehicleDetailFormState {
 
     var isElectric: Bool { powertrain == .ev }
 
-    /// The edited pace limit, or nil when the field is empty, unparseable or
-    /// non-positive. A non-positive limit would flag every entry, so `applying`
-    /// keeps the car's stored value rather than writing one (hard rule 13: a
-    /// blank field is not a decision to remove the bound).
-    var paceLimitValue: Double? {
+    /// The edited pace limit in the car's display unit, or nil when the field
+    /// is empty, unparseable or non-positive. A non-positive limit would flag
+    /// every entry, so `applying` keeps the car's stored value rather than
+    /// writing one (hard rule 13: a blank field is not a decision to remove the
+    /// bound).
+    var paceLimitDisplayValue: Double? {
         let trimmed = paceLimit.trimmingCharacters(in: .whitespaces)
         guard let value = Double(trimmed), value > 0 else { return nil }
         return value
     }
 
-    /// Whole numbers print without a trailing `.0`; a fractional limit the user
-    /// typed is preserved.
+    /// Whole numbers print without a trailing `.0`; a converted miles figure
+    /// (1500 km/day -> 932.1) is shown to one decimal so the field stays
+    /// readable and parses back through `Double(...)`. The separator is pinned
+    /// (en_US_POSIX) so the text parses under every locale.
     static func paceLimitText(_ value: Double) -> String {
-        value.rounded() == value ? String(Int(value)) : String(value)
+        let rounded = (value * 10).rounded() / 10
+        if rounded == rounded.rounded() { return String(Int(rounded)) }
+        return String(format: "%.1f", locale: Locale(identifier: "en_US_POSIX"), rounded)
     }
 
     /// The Add-car empty-name warn, adapted: saving an edited car with no name
@@ -174,8 +185,12 @@ struct VehicleDetailFormState {
         vehicle.homeCurrency = homeCurrency
         vehicle.units = units
         vehicle.initialOdometer = odometerValue
-        if let paceLimitValue {
-            vehicle.paceLimitKmPerDay = paceLimitValue
+        // The field held the car's distance unit; storage is kilometres, so the
+        // typed figure converts IN here (RV.271). `units.distance` (the form's
+        // unit - the one the field was shown in) is the source of truth.
+        if let paceLimitDisplayValue {
+            vehicle.paceLimitKmPerDay = DistanceMath.kilometres(
+                fromDisplay: paceLimitDisplayValue, unit: units.distance)
         }
         return vehicle
     }
@@ -192,6 +207,18 @@ struct VehicleDetailFormState {
         guard let value = Double(capacity) else { return }
         let litres = AddVehicleSupport.tankCapacityLitres(display: value, unit: oldUnit)
         capacity = AddVehicleSupport.tankCapacityText(litres: litres, unit: newUnit)
+    }
+
+    /// The pace-limit field holds the car's distance unit (RV.271); when the
+    /// units editor changes that axis, re-express the SAME physical pace in the
+    /// new unit ("1000" mi/day -> "1609.3" km/day) so a unit switch never turns
+    /// a miles limit into a kilometres one. Storage is kilometres, so the value
+    /// crosses display -> km -> display; a blank or unparseable field is left
+    /// alone.
+    mutating func reconvertPaceLimitDistance(from oldUnit: DistanceUnit, to newUnit: DistanceUnit) {
+        guard oldUnit != newUnit, let value = paceLimitDisplayValue else { return }
+        let km = DistanceMath.kilometres(fromDisplay: value, unit: oldUnit)
+        paceLimit = Self.paceLimitText(DistanceMath.display(fromKilometres: km, unit: newUnit))
     }
 
     private func trimmedOrNil(_ string: String) -> String? {

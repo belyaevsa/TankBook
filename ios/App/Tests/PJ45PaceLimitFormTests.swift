@@ -44,6 +44,6 @@ final class PJ45PaceLimitFormTests: XCTestCase {
         var form = VehicleDetailFormState()
         form.load(from: vehicle(paceLimit: 900), photoData: nil)
         XCTAssertEqual(form.paceLimit, "900")
-        XCTAssertEqual(form.paceLimitValue, 900)
+        XCTAssertEqual(form.paceLimitDisplayValue, 900)
     }
 }

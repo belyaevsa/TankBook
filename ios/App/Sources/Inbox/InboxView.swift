@@ -155,10 +155,12 @@ private struct InboxItemCard: View {
                 // take what remains and wrap by word.
                 GridRow {
                     fieldCell(offer, volumeUnit: volumeUnit)
-                    Text(InboxValueFormat.yours(offer.field, entry: entry))
+                    Text(InboxValueFormat.yours(offer.field, entry: entry, volumeUnit: volumeUnit))
                         .valueStyle(emphasis: .muted)
                         .gridColumnAlignment(.trailing)
-                    Text(InboxValueFormat.receipt(offer.field, entry: entry, recognition: item.recognition))
+                    Text(InboxValueFormat.receipt(offer.field, entry: entry,
+                                                  recognition: item.recognition,
+                                                  volumeUnit: volumeUnit))
                         .valueStyle(emphasis: offer.disposition == .differs ? .attention : .normal)
                         .gridColumnAlignment(.trailing)
                     tickButton(offer)

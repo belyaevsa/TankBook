@@ -2305,6 +2305,26 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.271-inbox-imperial": {
+      "commit": "fa285ad3",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.271-inbox-imperial-ru": {
+      "commit": "fa285ad3",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.271-pace-limit-imperial": {
+      "commit": "206a7295",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.271-pace-limit-imperial-ru": {
+      "commit": "206a7295",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.28-fuel-chips": {
       "commit": "0ba7e94",
       "device": "iPhone 17",

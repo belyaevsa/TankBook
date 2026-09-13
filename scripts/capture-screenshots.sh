@@ -215,6 +215,15 @@ capture RV.234-confirm-imperial    en -seedVehicleForUITests -seedVehicleMiles -
 capture RV.234-confirm-imperial-ru ru -seedVehicleForUITests -seedVehicleMiles -presentScreen confirmManual
 capture RV.234-home-imperial       en -seedHomeFullHistory -seedHomeMiles
 capture RV.234-home-imperial-ru    ru -seedHomeFullHistory -seedHomeMiles
+
+# RV.271: the two residues RV.234's audit found beyond its list - the pace-limit
+# row on a miles car (mi/day over the converted figure) and the inbox's volume
+# values converted to the car's own unit in both columns (the label was already
+# per-unit). Dark, EN + RU.
+capture RV.271-pace-limit-imperial    en -seedSettingsSignedIn -seedHomeEmptyVehicle -seedHomeMiles -presentScreen vehicleDetail -scrollToPaceLimit
+capture RV.271-pace-limit-imperial-ru ru -seedSettingsSignedIn -seedHomeEmptyVehicle -seedHomeMiles -presentScreen vehicleDetail -scrollToPaceLimit
+capture RV.271-inbox-imperial    en -seedSettingsSignedIn -seedInboxComparison -seedInboxMiles -inboxReset -presentScreen inbox
+capture RV.271-inbox-imperial-ru ru -seedSettingsSignedIn -seedInboxComparison -seedInboxMiles -inboxReset -presentScreen inbox
 # RV.197: the guest Home with one entry - the log stream a no-account user must
 # see after saving. `-clearSessionAtLaunch` makes the launch guest (the Keychain
 # outlives `-homeResetDatabase`); `-seedHomeSingleFill` is the car plus the one

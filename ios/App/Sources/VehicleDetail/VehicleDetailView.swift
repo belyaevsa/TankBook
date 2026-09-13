@@ -616,45 +616,6 @@ extension VehicleDetailView {
     }
 }
 
-// MARK: - Accuracy card (capacity + units)
-
-/// The "Improves accuracy · optional" card on the detail screen: the
-/// tank/battery capacity row (shared with Add car) and the units editor - the
-/// per-car settings DESIGN.md says live here, not in Settings.
-struct VehicleDetailAccuracyCard: View {
-    @Binding var form: VehicleDetailFormState
-    @FocusState.Binding var focus: AddVehicleFocus?
-
-    /// The ScrollViewReader id the card carries, so the `-scrollToAccuracy`
-    /// screenshot pose can bring the capacity field into view (RV.182).
-    static let scrollTarget = "vehicleDetailAccuracyScrollTarget"
-
-    var body: some View {
-        VStack(spacing: 0) {
-            VehicleCapacityField(capacity: $form.capacity,
-                                 isElectric: form.isElectric,
-                                 volumeUnit: form.units.volume,
-                                 focus: $focus, idPrefix: "vehicleDetail")
-            CardDivider()
-            VehicleUnitsEditor(units: $form.units)
-                .onChange(of: form.units.volume) { oldUnit, newUnit in
-                    // The capacity field is labelled in the units the vehicle is
-                    // about to switch away from; re-express the same physical
-                    // volume in the new unit so a unit change never mangles the
-                    // tank (RV.69). kWh is skipped inside the form state.
-                    form.reconvertCapacityVolume(from: oldUnit, to: newUnit)
-                }
-            CardDivider()
-            // PJ.45: the pace limit is the threshold timeline validation
-            // compares an implied daily pace against; it sits with the other
-            // values that tune the car's derived figures.
-            VehiclePaceLimitRow(paceLimit: $form.paceLimit, focus: $focus)
-        }
-        .formCard()
-        .id(Self.scrollTarget)
-    }
-}
-
 // MARK: - RV.152 screenshot hook
 
 #if DEBUG
