@@ -500,3 +500,30 @@ struct ServiceEntryNoteRow: View {
             .accessibilityIdentifier("serviceEntryNoteField")
     }
 }
+
+// MARK: - No-vehicle hint
+
+// Split out of `ServiceEntryView.swift`, which sits near the linter's file-length
+// ceiling. The card reads no screen state beyond the theme.
+extension ServiceEntryView {
+    var noVehicleCard: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "car")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+            Text("No car yet – add one from Garage to start logging services.")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(Theme.Palette.dash)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.card)
+                .stroke(Theme.Palette.hairline, lineWidth: 1)
+        )
+        .accessibilityIdentifier("serviceEntryNoVehicleHint")
+    }
+}
+

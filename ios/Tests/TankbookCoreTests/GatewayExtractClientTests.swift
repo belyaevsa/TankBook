@@ -60,7 +60,6 @@ struct GatewayExtractClientTests {
           "fields": {
             "station":  { "value": "Circle K",      "confidence": 0.9 },
             "energy":   { "value": 12.5,            "confidence": 0.8 },
-            "vendor":   { "value": "Orlen",         "confidence": 0.7 },
             "fuelKind": { "value": "not-a-kind",    "confidence": 0.5 },
             "total":    { "value": 71.02,           "confidence": 0.9 }
           },

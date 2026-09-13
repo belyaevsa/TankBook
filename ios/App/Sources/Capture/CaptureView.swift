@@ -22,7 +22,9 @@ import UIKit
 struct CaptureView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(AppCarSelection.self) private var carSelection
-    @Environment(ServiceInvoiceSession.self) private var invoiceSession
+    /// Internal, not private: the service scan path lives in
+    /// `CaptureServiceScan.swift` (this file is at its length limit).
+    @Environment(ServiceInvoiceSession.self) var invoiceSession
     // Internal, not private: the expense scan path lives in
     // `CaptureExpenseScan.swift` (this file is at its length limit).
     @Environment(ExpenseEntrySession.self) var expenseSession
@@ -69,8 +71,10 @@ struct CaptureView: View {
     private let injectedPowertrain: Powertrain?
     /// The Capture -> ServiceEntry exit (SCREENMAP.md): called once the Service
     /// invoice has been scanned and processed, so the presenting tab can close
-    /// this cover and open the ServiceEntry sheet.
-    private let onServiceEntry: () -> Void
+    /// this cover and open the ServiceEntry sheet. Internal, not private: the
+    /// service scan path lives in `CaptureServiceScan.swift` (this file is at
+    /// its length limit).
+    let onServiceEntry: () -> Void
     /// RV.12: called once an entry started here has been written. The capture
     /// screen is a MODAL over the tab the user was on, not a tab root, so the
     /// Confirm sheet's own `dismiss()` only uncovers the camera again - a
@@ -102,6 +106,7 @@ struct CaptureView: View {
         .onAppear {
             loadPowertrain(); loadAlphaNotice()
             presentTypeItIfRequested(); presentReviewIfRequested(); presentFaultIfRequested()
+            presentServiceScanIfRequested()
         }
         .onChange(of: scenePhase) { _, phase in
             #if DEBUG
@@ -420,8 +425,9 @@ struct CaptureView: View {
     /// The `-captureFixtureImage <path>` test double: when set, both the shutter
     /// (no camera on the simulator) and the Photos pick (out of process, not
     /// automatable) resolve to this image, so the capture pipeline is reachable
-    /// from a UI test. Production never passes the argument.
-    private func fixtureImage() -> UIImage? {
+    /// from a UI test. Production never passes the argument. Internal, not
+    /// private: the service scan path lives in `CaptureServiceScan.swift`.
+    func fixtureImage() -> UIImage? {
         guard let path = ProcessInfo.processInfo.arguments.captureFixtureImagePath else { return nil }
         return UIImage(contentsOfFile: path)
     }
@@ -628,40 +634,9 @@ struct CaptureView: View {
     }
 }
 
-// MARK: - Service invoice capture (P3.1b)
+// MARK: - The shutter
 
 private extension CaptureView {
-    /// The document camera returned pages: OCR them, split deterministically,
-    /// persist the pages, hand the pre-fill to ServiceEntry and leave Capture.
-    /// The pre-fill is default input the user edits (hard rule 13) - a failed
-    /// split is the lump sum, never an error.
-    ///
-    /// RV.215: the read is deferred. The form opens now (after the cover beat);
-    /// a read that finishes first fills it, and one that finishes after the
-    /// entry is saved becomes an inbox item through the ONE policy
-    /// (`AppInbox.recordLateGatewayAnswer`), never a second producer.
-    func scanServiceInvoice(_ images: [UIImage]) {
-        let homeCurrency = (try? currentVehicle())?.homeCurrency ?? .eur
-        let session = invoiceSession
-        let inbox = self.inbox
-        // RV.243: persist the pages NOW, before the read. A save that beats the
-        // read must still keep the invoice (hard rule 8); the read enriches
-        // these same pages and only offers its values.
-        let staged = ServiceInvoiceScanner.stagePages(images: images)
-        session.start(
-            stagedPages: staged,
-            work: { await ServiceInvoiceScanner.process(images: images, stagedPages: staged,
-                                                        homeCurrency: homeCurrency) },
-            onAnswer: { outcome in session.pendingPrefill = outcome.prefill },
-            onSavedAnswer: { outcome, entryID in
-                inbox.recordLateGatewayAnswer(.service(outcome.recognition), entryID: entryID)
-            })
-        Task {
-            try? await Task.sleep(for: Self.coverDismissBeat)
-            onServiceEntry()
-        }
-    }
-
     /// The shutter circle: in Service mode the document camera (J7); in the
     /// other modes a real frame capture into the PJ.1 pipeline.
     var shutterButton: some View {

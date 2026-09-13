@@ -12,8 +12,9 @@ import Foundation
 // The expense kind now reaches the cloud gateway too (PJ.29): a cloud expense
 // answer is mapped to this same recognition and routed through
 // `GatewayInboxPolicy.item(recognition:entry:)` below, the ONE entry point the
-// in-process and outbox paths already share. The service invoice's cloud half is
-// filed separately (PJ.29a); until it lands, a service reading is device-local.
+// in-process and outbox paths already share. The service invoice's cloud half
+// ships too (PJ.29a): a cloud invoice answer becomes `.service(ServiceRecognition)`
+// through `ServiceRecognitionBuilder`, so all three entry kinds can arrive late.
 
 /// A late reading, tagged by the kind of entry it is about. The three cases are
 /// deliberately not interchangeable: a fuel extraction on a service entry is a
@@ -27,10 +28,13 @@ public enum InboxRecognition: Sendable, Equatable, Codable {
     case expense(ExpenseRecognition)
 }
 
-/// A service invoice read on the device. The fields are the ones the entry
-/// carries: `vendor`, the invoice's line items, `money` (total + currency) and
-/// `date`. Every value is optional - the parser is a suggestion engine and an
-/// unread field is absent, never guessed (hard rule 13).
+/// A service invoice read on the device, or its cloud header (PJ.29a). The
+/// fields are the ones the entry carries: `vendor`, the invoice's line items,
+/// `money` (total + currency) and `date`. Every value is optional - the parser
+/// is a suggestion engine and an unread field is absent, never guessed (hard
+/// rule 13). A cloud answer carries the header only (`lineItems` empty): the
+/// line items are the local deterministic split's and a model never replaces
+/// them (docs/JOURNEYS.md J7).
 ///
 /// `date` is the parsed `Date` the splitter already produced, unlike the fuel
 /// recognition's raw `String` (`InvoiceSplitter` parses it once; re-encoding it

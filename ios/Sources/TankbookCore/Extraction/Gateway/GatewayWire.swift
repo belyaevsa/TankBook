@@ -8,8 +8,8 @@ import Foundation
 // engine, so a field it could not read is absent, never guessed (hard rule 13).
 //
 // FieldRef uses the existing `FieldRef` enum (total, volume, unitPrice, date,
-// fuelKind, currency) so the gateway and the on-device pipeline speak one
-// vocabulary of fields.
+// fuelKind, currency, vendor, category) so the gateway and the on-device
+// pipeline speak one vocabulary of fields.
 
 /// One field value from the gateway plus its confidence. The confidence is
 /// carried and shown, never used to decide - the corpus proved a wrong digit at
@@ -42,6 +42,11 @@ public struct GatewayExtraction: Sendable, Equatable, Codable {
     public var date: GatewayFieldValue<String>?
     public var fuelKind: GatewayFieldValue<FuelKind>?
     public var currency: GatewayFieldValue<CurrencyCode>?
+    /// The VENDOR an `invoice` answer read (PJ.29a): a service invoice's header
+    /// names the workshop, and `ServiceRecognition` offers it to the form and
+    /// the inbox. The `invoice` and `expense` prompts allow it; a fuel answer
+    /// that carries one has no home here and it is simply not offered.
+    public var vendor: GatewayFieldValue<String>?
     /// The expense CATEGORY an `expense`-kind answer read (PJ.29): a shop or
     /// parking receipt has no fuel fields, so the field the form needs is the
     /// kind of expense it is. Absent on every fuel answer and on an answer whose
@@ -60,6 +65,7 @@ public struct GatewayExtraction: Sendable, Equatable, Codable {
         date: GatewayFieldValue<String>? = nil,
         fuelKind: GatewayFieldValue<FuelKind>? = nil,
         currency: GatewayFieldValue<CurrencyCode>? = nil,
+        vendor: GatewayFieldValue<String>? = nil,
         category: GatewayFieldValue<ExpenseCategory>? = nil,
         pipeline: String = ""
     ) {
@@ -69,6 +75,7 @@ public struct GatewayExtraction: Sendable, Equatable, Codable {
         self.date = date
         self.fuelKind = fuelKind
         self.currency = currency
+        self.vendor = vendor
         self.category = category
         self.pipeline = pipeline
     }
@@ -83,6 +90,7 @@ public struct GatewayExtraction: Sendable, Equatable, Codable {
         if date != nil { out.insert(.date) }
         if fuelKind != nil { out.insert(.fuelKind) }
         if currency != nil { out.insert(.currency) }
+        if vendor != nil { out.insert(.vendor) }
         if category != nil { out.insert(.category) }
         return out
     }
@@ -183,7 +191,7 @@ extension GatewayExtraction {
         case .volume:
             guard let token = numericToken(node), let value = Double(token) else { return nil }
             return value
-        case .date:
+        case .date, .vendor:
             return node.stringValue
         default:
             return parsedEnumValue(ref: ref, node: node)
@@ -226,6 +234,7 @@ extension GatewayExtraction {
         case .date: date = (value as? String).map { .init(value: $0, confidence: confidence) }
         case .fuelKind: fuelKind = (value as? FuelKind).map { .init(value: $0, confidence: confidence) }
         case .currency: currency = (value as? CurrencyCode).map { .init(value: $0, confidence: confidence) }
+        case .vendor: vendor = (value as? String).map { .init(value: $0, confidence: confidence) }
         case .category: category = (value as? ExpenseCategory).map { .init(value: $0, confidence: confidence) }
         default: break
         }

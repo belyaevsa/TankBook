@@ -23,13 +23,20 @@ struct ServiceEntryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppToastCenter.self) private var toastCenter
     @Environment(AppCarSelection.self) private var carSelection
-    @Environment(ServiceInvoiceSession.self) private var invoiceSession
+    /// Internal, not private: the cloud gateway half lives in
+    /// `ServiceEntryGateway.swift` (this file is at its length limit).
+    @Environment(ServiceInvoiceSession.self) var invoiceSession
     @Environment(ExpenseEntrySession.self) private var expenseSession
     @Environment(ReminderCompletionSession.self) private var completionSession
     @Environment(ReminderNotificationCoordinator.self) private var notificationCoordinator
     @Environment(ReminderOfferSession.self) private var offerSession
+    /// PJ.29a: the cloud-extract surface. `allowsServerBacked` withholds the
+    /// `/extract` request under `.required` (docs/CONFIG.md), exactly as the
+    /// fill-up Confirm sheet and the expense form do - the local split still
+    /// stands.
+    @Environment(AppConfigService.self) private var config
 
-    @State private var form = ServiceEntryFormState()
+    @State var form = ServiceEntryFormState()
     @FocusState private var focus: ServiceEntryFocus?
     @State private var vehicle: Vehicle?
     @State private var showDatePicker = false
@@ -59,6 +66,28 @@ struct ServiceEntryView: View {
     /// odometer card. Loaded once, refreshed at save (the timeline may have
     /// moved since the sheet opened).
     @State private var existingEntries: [any Entry] = []
+    /// PJ.29a: the cloud reading of a scanned invoice (docs/API.md -> "The
+    /// device's side of /extract"). Started by the capture path
+    /// (`CaptureView.startServiceGatewayIfAvailable`) as soon as the local split
+    /// lands, and owned by `ServiceInvoiceSession` so it survives the gap before
+    /// this sheet exists. The sheet renders its phase and applies its answer;
+    /// the fill-up Confirm sheet's exact shape.
+    ///
+    /// The header fields the ON-DEVICE split resolved (the pre-fill already on
+    /// screen). The local split has first claim (F4); a cloud answer never
+    /// refills one of these.
+    @State var gatewayOnDeviceResolved: Set<FieldRef> = []
+    /// Arming guard for the vendor/date/currency touch hooks: the load-time
+    /// pre-fill must not count as a user touch.
+    @State private var gatewayTouchTrackingArmed = false
+    /// RV.57: the proceed note was dismissed (the ×). Per-sheet, never
+    /// persisted - a new capture is a new sheet and a new note.
+    @State private var proceedNoteDismissed = false
+    /// RV.65: the "sign in to use cloud reading" notice was dismissed (the ×).
+    /// Per-sheet, never persisted; the session stays dead until the user signs
+    /// in, and a dead session on the NEXT capture surfaces the notice again
+    /// (hard rule 7).
+    @State private var authExpiredNoticeDismissed = false
 
     private var distanceUnit: DistanceUnit { vehicle?.units.distance ?? .km }
 
@@ -68,6 +97,22 @@ struct ServiceEntryView: View {
                 if vehicle == nil {
                     noVehicleCard
                 } else {
+                    // PJ.29a: the cloud reading's surfaces, in the same order and
+                    // with the same copy as the fill-up Confirm sheet - the
+                    // update notice when the server no longer supports this
+                    // build, then the in-flight proceed note, then the dead
+                    // session's next step. All are non-blocking; the local split
+                    // already stands (hard rules 1, 7, 15).
+                    if !pages.isEmpty, !config.allowsServerBacked {
+                        UpdateRequiredNotice()
+                    }
+                    if GatewayProceedNote.shouldShow(phase: invoiceSession.gateway.phase),
+                       !proceedNoteDismissed {
+                        GatewayProceedNoteView(dismiss: { proceedNoteDismissed = true })
+                    }
+                    if invoiceSession.gateway.phase == .authExpired, !authExpiredNoticeDismissed {
+                        GatewayAuthExpiredNoticeView(dismiss: { authExpiredNoticeDismissed = true })
+                    }
                     if !pages.isEmpty {
                         ServiceEntryPageStrip(pages: pages,
                                               selectedIndex: $selectedPageIndex,
@@ -161,11 +206,35 @@ struct ServiceEntryView: View {
         // 13); a read that finishes after the save routes to the inbox instead
         // (`markSaved`), never here.
         .onChange(of: invoiceSession.prefillRevision) { _, _ in
-            guard let prefill = invoiceSession.pendingPrefill,
-                  !form.hasEdits() else { return }
-            apply(prefill)
-            invoiceSession.pendingPrefill = nil
-            snapshotBaseline()
+            let prefill = invoiceSession.pendingPrefill
+            gatewayOnDeviceResolved = Self.onDeviceResolvedFields(prefill: prefill)
+            if let prefill, !form.hasEdits() {
+                apply(prefill)
+                invoiceSession.pendingPrefill = nil
+                snapshotBaseline()
+            }
+            // PJ.29a: the local split is on screen (F4). Touch tracking is armed
+            // now, after the pre-fill, so it never counts as a user touch; the
+            // cloud reading itself was started by the capture path.
+            gatewayTouchTrackingArmed = true
+        }
+        // PJ.29a: user engagement with a header field is permanent (hard rule
+        // 13), so a cloud answer that lands later never overwrites it. Armed
+        // only after the load-time pre-fill, exactly as the expense form does.
+        .onChange(of: form.vendor) { _, _ in
+            if gatewayTouchTrackingArmed { invoiceSession.gateway.markTouched(.vendor) }
+        }
+        .onChange(of: form.date) { _, _ in
+            if gatewayTouchTrackingArmed { invoiceSession.gateway.markTouched(.date) }
+        }
+        .onChange(of: form.currency) { _, _ in
+            if gatewayTouchTrackingArmed { invoiceSession.gateway.markTouched(.currency) }
+        }
+        // PJ.29a: a cloud answer that landed within the budget. It fills blank
+        // AND untouched header fields only, and never arrives after the save
+        // (that route is the inbox's, via the session's `markSaved`).
+        .onChange(of: invoiceSession.gatewayRevision) { _, _ in
+            applyPendingGatewayAnswer()
         }
     }
 
@@ -328,6 +397,11 @@ struct ServiceEntryView: View {
             form.odometer = lastKnown.map(OdometerFormat.grouped) ?? ""
             shelfParts = try repository.partsOnShelf(forVehicle: vehicle.id)
             tireSets = try repository.liveTireSets(forVehicle: vehicle.id)
+            // PJ.29a: the local split may already have landed before the sheet's
+            // `.task` runs. Capture what it resolved BEFORE consuming it, so the
+            // cloud reading knows which header fields the local split owns (F4)
+            // and never fights it.
+            gatewayOnDeviceResolved = Self.onDeviceResolvedFields(prefill: invoiceSession.pendingPrefill)
             if let pending = completionSession.pending,
                case .service(let category) = ReminderCompletion.entryKind(for: pending.reminder.category) {
                 // The ReminderComplete sheet's "Type amount" hand-off (P3.5):
@@ -360,6 +434,11 @@ struct ServiceEntryView: View {
             // Snapshots are taken AFTER the convenience pre-fills (odometer,
             // date, seed) - none of them count as an edit.
             snapshotBaseline()
+            // PJ.29a: touch tracking is armed only here, after every load-time
+            // pre-fill has been written, so none of them counts as a user touch.
+            // An answer that arrived before this sheet existed is applied now.
+            gatewayTouchTrackingArmed = true
+            applyPendingGatewayAnswer()
             scheduleAutoAddPageIfRequested()
         } catch {
             AppLog.error(operation: "serviceEntry.load", category: .ui, error: error)
@@ -434,8 +513,13 @@ struct ServiceEntryView: View {
         }
     }
 
-    // MARK: - Save
+}
 
+// MARK: - Save
+
+// In a same-file extension so the struct body stays under the linter's ceiling;
+// `private` is file-scoped, so the members above are still reachable.
+extension ServiceEntryView {
     private func save() {
         guard let vehicle, saveEnabled else { return }
         do {
@@ -597,29 +681,5 @@ extension ServiceEntryView {
         .padding(.horizontal, Theme.Spacing.cardPadding)
         .padding(.vertical, 12)
         .formCard()
-    }
-}
-
-// MARK: - No-vehicle hint
-
-extension ServiceEntryView {
-    private var noVehicleCard: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "car")
-                .font(.caption)
-                .foregroundStyle(Theme.Palette.inkSoft)
-            Text("No car yet – add one from Garage to start logging services.")
-                .font(.caption)
-                .foregroundStyle(Theme.Palette.inkSoft)
-            Spacer(minLength: 0)
-        }
-        .padding(14)
-        .background(Theme.Palette.dash)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.Radius.card)
-                .stroke(Theme.Palette.hairline, lineWidth: 1)
-        )
-        .accessibilityIdentifier("serviceEntryNoVehicleHint")
     }
 }

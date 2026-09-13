@@ -225,4 +225,37 @@ enum ServiceEntryTestSeed {
         try? repository.upsertVehicle(vehicle)
     }
 }
+
+/// The canned local split for the service capture path (PJ.29a). The real path
+/// runs `ServiceInvoiceScanner` (Vision OCR + `InvoiceSplitter`); this
+/// substitutes a fixed `ServiceScanOutcome` so a UI test can assert what the
+/// user SEES without depending on OCR over a corpus image - the same seam
+/// `ExpenseScanTestSeed` gives the expense capture. Only the local read is
+/// canned: the gateway start and the session hand-off are the shipped ones, so
+/// the test still proves the request is built and the answer is routed.
+enum ServiceScanTestSeed {
+    static func outcome(from arguments: [String], pages: [InvoicePage],
+                        homeCurrency: CurrencyCode) -> ServiceScanOutcome? {
+        guard arguments.contains("-seedServiceScan") else { return nil }
+        let date = ConfirmDate.parse("09.08.2026") ?? Date()
+        let prefill = ServiceEntryPrefill(
+            vendor: "Local Garage",
+            items: [
+                ServiceEntryItemDraft(title: "Brake pads front",
+                                      category: .brakes, cost: "89.00", scanned: true)
+            ],
+            odometer: OdometerFormat.grouped(118_930),
+            date: date,
+            dateFromInvoice: true,
+            pages: pages,
+            provenance: .receiptScan)
+        let recognition = ServiceRecognition(
+            vendor: GatewayFieldValue(value: "Local Garage", confidence: 0.9),
+            total: GatewayFieldValue(value: Decimal(string: "89.00")!, confidence: 0.9),
+            currency: GatewayFieldValue(value: homeCurrency, confidence: 0.9),
+            date: GatewayFieldValue(value: date, confidence: 0.9),
+            lineItems: [])
+        return ServiceScanOutcome(prefill: prefill, recognition: recognition)
+    }
+}
 #endif

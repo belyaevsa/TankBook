@@ -526,8 +526,21 @@ an inbox item through `GatewayInboxPolicy.item(recognition:entry:)`, the one pol
 `ExpensePrefillBuilder.reading(fromGateway:)`, so the on-time and late routes cannot disagree about
 what the receipt said. The category string is decoded against the device's own codes
 (`parking, toll, wash, insurance, tax, fine, accessory, parts, other`) and an unknown string is
-dropped, never guessed (hard rule 13). The service invoice's cloud half is filed as `PJ.29a`: the
-line items stay the local deterministic split's, and only the header fields would cross.
+dropped, never guessed (hard rule 13).
+
+**The invoice kind reaches the same gateway (PJ.29a, 2026-09-13).** A service scan asks `/extract`
+with `kind: "invoice"` once the local split has produced its outcome - the form is already open on it
+(F4). Only the **first captured page** is sent: an invoice may have several pages, and the header is
+on the first. The provider is asked for the header only (`vendor, total, date, currency`) because the
+line items are the device's deterministic split (`InvoiceSplitter`, docs/JOURNEYS.md J7); a cloud
+answer never carries line items, and `ServiceRecognitionBuilder.reading(fromGateway:)` (core)
+produces a header pre-fill with an empty `lineItems` from one decode. The answer is bound by the
+fill-up path's own rules: a within-budget answer fills only the service form's **blank AND untouched**
+vendor, date and currency through `GatewaySuggestionPolicy` (the total has no standalone field on the
+form - the header total is derived from the line items - so it is offered only through the inbox),
+and a late answer becomes an inbox item through `GatewayInboxPolicy.item(recognition:entry:)`, the
+one policy. The same guards apply: `config.allowsServerBacked` withholds the call under `.required`,
+a guest gets no transport, and a non-JPEG rendition gets no call.
 
 ## Cross-multiplication as digit repair
 

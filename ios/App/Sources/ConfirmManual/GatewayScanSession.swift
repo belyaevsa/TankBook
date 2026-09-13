@@ -250,6 +250,7 @@ struct GatewaySeedTransport: GatewayExtractTransport {
                 date: .init(value: "17.08.2026", confidence: 0.80),
                 fuelKind: .init(value: .petrol95, confidence: 0.70),
                 currency: .init(value: .eur, confidence: 0.60),
+                vendor: .init(value: "Cloud Vendor", confidence: 0.80),
                 pipeline: "seed"
             )
         }
@@ -260,6 +261,7 @@ struct GatewaySeedTransport: GatewayExtractTransport {
             date: .init(value: "01.01.2020", confidence: 0.80),
             fuelKind: .init(value: .diesel, confidence: 0.70),
             currency: .init(value: .rub, confidence: 0.60),
+            vendor: .init(value: "Cloud Vendor", confidence: 0.80),
             pipeline: "seed"
         )
     }

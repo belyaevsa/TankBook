@@ -446,4 +446,114 @@ final class GatewayCaptureUITests: XCTestCase {
         XCTAssertTrue(app.buttons["expenseEntrySaveButton"].isEnabled,
                       "the notice blocks nothing - the local read still saves")
     }
+
+    // MARK: - PJ.29a the invoice kind reaches the same gateway
+
+    /// A service capture. `-captureAutoServiceScan` runs the real
+    /// `scanServiceInvoice` a beat after the capture surface appears - the
+    /// system document camera cannot be driven from XCUITest - and
+    /// `-seedServiceScan` substitutes the local split so the form opens
+    /// deterministically. The gateway start and the session hand-off are the
+    /// shipped ones.
+    private func launchServiceCapture(_ seeds: [String], russian: Bool = false) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-homeResetDatabase", "-seedHomeEmptyVehicle",
+            "-presentScreen", "capture", "-cameraStatus", "authorized",
+            "-captureMode", "service", "-captureFixtureImage", expenseFixture,
+            "-captureAutoServiceScan", "-seedServiceScan"
+        ] + (russian ? ["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU"] : []) + seeds
+        app.launch()
+        // The capture cover is transient here: `-captureAutoServiceScan` closes
+        // it a beat after the scan and opens the service sheet, so the caller
+        // waits for the form rather than the cover.
+        return app
+    }
+
+    private func openServiceForm(_ app: XCUIApplication) {
+        XCTAssertTrue(app.textFields["serviceEntryVendorField"].waitForExistence(timeout: 20),
+                      "a service scan must land on the service entry form")
+    }
+
+    /// The row's L4 proof: a service scan reaches the SAME gateway the fill-up
+    /// and expense paths use. The form opens on the local split (F4), the
+    /// proceed note shows while the request is in flight, and a late cloud
+    /// answer - arriving after the save - lands in the inbox. A guest gets no
+    /// transport, so no note (the local split still stands).
+    private func serviceGatewayNoteAndLateInbox(language: String) {
+        let app = launchServiceCapture(
+            ["-seedGateway", "-seedGatewayDelay", "8"],
+            russian: language == "ru")
+        openServiceForm(app)
+
+        XCTAssertEqual(fieldValue(app, "serviceEntryVendorField"), "Local Garage",
+                       "the local split must open the form immediately (F4)")
+        XCTAssertTrue(note(app).waitForExistence(timeout: 10),
+                      "the service form must show the same proceed note the Confirm sheet does")
+
+        // Save before the cloud answer arrives (delay 8 s, budget 3 s).
+        let save = app.buttons["serviceEntrySaveButton"]
+        XCTAssertTrue(save.isEnabled, "the local split must leave the service saveable")
+        save.tap()
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5),
+                      "saving must leave the service sheet")
+
+        let bell = app.buttons["inboxBellButton"]
+        XCTAssertTrue(bell.waitForExistence(timeout: 10), "the bell must be on the header")
+        bell.tap()
+        XCTAssertTrue(app.buttons["inboxLeaveButton"].waitForExistence(timeout: 40),
+                      "the late cloud invoice answer must reach the inbox")
+        app.buttons["inboxLeaveButton"].tap()
+    }
+
+    func testAServiceScanReachesTheGatewayAndALateAnswerLandsInTheInbox() {
+        serviceGatewayNoteAndLateInbox(language: "en")
+    }
+
+    func testAServiceScanReachesTheGatewayAndALateAnswerLandsInTheInboxInRussian() {
+        serviceGatewayNoteAndLateInbox(language: "ru")
+    }
+
+    /// The product-owner ruling (RV.57): a late answer is NEVER applied to the
+    /// open editor - the local vendor stands, and the answer is held for the
+    /// inbox. Asserting "the note exists" would pass while the value moved.
+    func testALateServiceAnswerDoesNotChangeTheOpenEditor() {
+        let app = launchServiceCapture(["-seedGateway", "-seedGatewayDelay", "8"])
+        openServiceForm(app)
+
+        XCTAssertEqual(fieldValue(app, "serviceEntryVendorField"), "Local Garage",
+                       "the local vendor is on screen before the answer arrives")
+        Thread.sleep(forTimeInterval: 9)
+        XCTAssertEqual(fieldValue(app, "serviceEntryVendorField"), "Local Garage",
+                       "a late answer must NOT move the vendor under the user's cursor")
+    }
+
+    /// A signed-out user has no gateway transport, so no request is sent and no
+    /// note appears; the local split still opens the form (hard rules 1 and 15).
+    func testASignedOutServiceScanShowsNoNote() {
+        let app = launchServiceCapture([])
+        openServiceForm(app)
+
+        XCTAssertEqual(fieldValue(app, "serviceEntryVendorField"), "Local Garage",
+                       "the local split still fills the form for a guest")
+        XCTAssertFalse(note(app).exists,
+                       "a guest has no transport, so no in-flight note may appear")
+    }
+
+    /// The RV.65 card renders on the service form too: a `/extract` whose refresh
+    /// the server rejected names "sign in again" there, and the local split's
+    /// save is never blocked (hard rules 1, 7, 15).
+    func testADeadSessionShowsTheSignInNextStepOnTheServiceForm() {
+        let app = launchServiceCapture(["-seedGateway", "-seedGatewayAuthExpired"])
+        openServiceForm(app)
+
+        let notice = app.descendants(matching: .any)["gatewayAuthExpiredNotice"]
+        XCTAssertTrue(notice.waitForExistence(timeout: 10),
+                      "a dead session must surface its next step on the service form")
+        let copy = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@",
+                                                        "sign in again to use cloud reading")).firstMatch
+        XCTAssertTrue(copy.exists, "the notice must name sign-in as the next step (hard rule 7)")
+        XCTAssertTrue(app.buttons["serviceEntrySaveButton"].isEnabled,
+                      "the notice blocks nothing - the local split still saves")
+    }
 }

@@ -1045,6 +1045,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "PJ.29a-service-gateway-note": {
+      "commit": "a58f4a2b",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.29a-service-gateway-note-ru": {
+      "commit": "a58f4a2b",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "PJ.33-import-guide": {
       "commit": "e8cf18f1",
       "device": "iPhone 17",

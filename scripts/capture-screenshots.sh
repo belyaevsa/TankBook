@@ -1459,6 +1459,15 @@ capture RV.200-expense-category-ru                       ru -seedVehicleForUITes
 capture PJ.29-expense-gateway-note                       en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode expense -captureFixtureImage "${RV5_FIXTURE}" -seedExpenseScan -seedGateway -seedGatewayDelay 30 -captureAutoUse
 capture PJ.29-expense-gateway-note-ru                    ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode expense -captureFixtureImage "${RV5_FIXTURE}" -seedExpenseScan -seedGateway -seedGatewayDelay 30 -captureAutoUse
 
+# PJ.29a: the Service invoice capture now reaches the same gateway, so the service
+# form carries the same RV.57 proceed note while `/extract` is in flight. The
+# frame is the real capture path (`-captureAutoServiceScan` runs the scan the
+# document camera cannot be driven to make) with the seeded gateway delayed past
+# the 3 s budget, so the note stays on screen and the local split's vendor is
+# already filled (F4: the app never waits on the gateway).
+capture PJ.29a-service-gateway-note                      en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode service -captureFixtureImage "${RV5_FIXTURE}" -seedServiceScan -captureAutoServiceScan -seedGateway -seedGatewayDelay 30
+capture PJ.29a-service-gateway-note-ru                   ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode service -captureFixtureImage "${RV5_FIXTURE}" -seedServiceScan -captureAutoServiceScan -seedGateway -seedGatewayDelay 30
+
 # RV.279: the Expense and Service capture forms now render the odometer card and
 # the currency chip row Edit entry has, so the two doors to one entry are the
 # same screen. The expense frame is the foreign-prefilled state (a 289.50 PLN
