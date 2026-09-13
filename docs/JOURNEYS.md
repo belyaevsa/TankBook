@@ -438,6 +438,7 @@ loop, not the screen, is the engine; offer acceptance ≥60% (J7's existing bar)
 with a live car hold at least one active reminder within 30 days of first launch.
 
 ### J7c · Reminder lifecycle
+**Status: implemented 2026-09-13** (reviewed by the orchestrator, REVIEW-SCENARIO-J7c-2026-09-13)
 **Trigger:** the "Oil change" reminder fires – or the user just did the thing early.
 
 *(RV.74: a fired reminder's TAP lands on the merged all-cars list - every active car in one
