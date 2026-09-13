@@ -18,9 +18,12 @@ fixtures/
               pump-021/022/023 are sun-glared; their values came from the photographer, not the photo
               pump-002 is the SAME fill as receipt-007: independent ground truth
   fiscal/     OFD documents + expected.csv       -> text layer where there is one, OCR where there is not (P2.6)
-  expenses/   expense fixtures + expected.csv -> scored from the .txt input (L5, ratcheted)
+  expenses/   expense fixtures + expected.csv -> the photograph is OCR'd at test
+              time where a .jpg exists, else the .txt is the input (L5, ratcheted)
               10 hand-authored OCR dumps + 2 photographs with their Vision dumps.
               Four cells per row: category, total, currency, date. See its README.
+              A .jpg's .txt dump is compared with a fresh OCR for DRIFT, never
+              scored (RV.278).
               `swift run ReceiptSpike fixtures/expenses` also writes a committed
               recognised.csv (what the extractor produced - a review artefact,
               never the oracle). The fuel folders have no such file: their

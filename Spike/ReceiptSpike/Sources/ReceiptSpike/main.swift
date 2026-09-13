@@ -12,12 +12,17 @@ import Foundation
 // and the tool reports field-level accuracy.
 //
 // An EXPENSE folder (`fixtures/expenses`) is recognised by its expected.csv
-// header carrying `category`. There the fixtures are `.txt` OCR dumps, not
-// photographs: the harness scores each `.txt` directly (total, currency, date,
-// kind), writes `recognised.csv` beside `expected.csv` with what it produced,
-// and with `--dump-text` turns a newly dropped photograph into the `.txt` its
-// expected.csv row names. `recognised.csv` is a review artefact, NEVER an
-// oracle: ground truth stays in `expected.csv`, written by hand.
+// header carrying `category`. There a fixture with a `.jpg` beside it is OCR'd
+// through Vision on every run - the photograph is the INPUT - and the extractor
+// scores its output against `expected.csv` (total, currency, date, kind). The
+// committed `.txt` beside the photo is compared with that fresh OCR and a
+// difference is printed as **drift**, never scored. A hand-authored fixture
+// with no photograph reads its `.txt` directly - there the `.txt` IS the input.
+// `--dump-text` regenerates each photograph's `.txt` dump and prints its raw
+// OCR, reporting a dump that changed as drift before it is rewritten. The
+// harness writes `recognised.csv` beside `expected.csv` with what it produced.
+// `recognised.csv` is a review artefact, NEVER an oracle: ground truth stays in
+// `expected.csv`, written by hand.
 
 let arguments = CommandLine.arguments.dropFirst()
 let dumpText = arguments.contains("--dump-text")
@@ -85,20 +90,24 @@ struct ExpenseRowScore {
     let total: Int
 }
 
-/// Turns a newly dropped photograph into the `.txt` its expected.csv row names,
-/// once. An existing `.txt` - a committed Vision dump or a hand-authored
-/// fixture - is never overwritten.
-func dumpNewPhotographs() {
+/// Regenerates the `.txt` dump beside every photograph and prints its raw OCR.
+/// A dump that no longer matches a fresh OCR is reported as **drift** before it
+/// is rewritten - the photograph is the input, the dump only describes it. A
+/// hand-authored `.txt` fixture has no photograph and is never touched.
+func dumpPhotographText() {
     for image in files {
         let base = image.deletingPathExtension().lastPathComponent
         let txtURL = folderURL.appendingPathComponent("\(base).txt")
-        guard !FileManager.default.fileExists(atPath: txtURL.path) else { continue }
         do {
             let lines = try recognizeText(in: image, languages: languages)
             print("\n═══ \(image.lastPathComponent) – raw OCR ═══")
             for line in lines { print(String(format: "  [%.2f] %@", line.confidence, line.text)) }
-            try lines.map(\.text).joined(separator: "\n")
-                .appending("\n").write(to: txtURL, atomically: true, encoding: .utf8)
+            let regenerated = lines.map(\.text).joined(separator: "\n") + "\n"
+            if let committed = try? String(contentsOf: txtURL, encoding: .utf8),
+               committed != regenerated {
+                print("⚠︎ drift: \(txtURL.lastPathComponent) no longer matches a fresh OCR; regenerating it")
+            }
+            try regenerated.write(to: txtURL, atomically: true, encoding: .utf8)
             print("wrote \(txtURL.lastPathComponent) (\(lines.count) lines)")
         } catch {
             print("✗ \(image.lastPathComponent): \(error)")
@@ -106,17 +115,50 @@ func dumpNewPhotographs() {
     }
 }
 
+/// The photograph an `expected.csv` row names, by matching the row's `.txt`
+/// base name against the folder's image extensions. Nil for a hand-authored
+/// text fixture, which has no photograph.
+func photographURL(for rowFilename: String) -> URL? {
+    let base = (rowFilename as NSString).deletingPathExtension
+    return imageExtensions.sorted().lazy
+        .map { folderURL.appendingPathComponent("\(base).\($0)") }
+        .first { FileManager.default.fileExists(atPath: $0.path) }
+}
+
+/// The INPUT lines for one `expected.csv` row: a fresh OCR of the photograph
+/// where one exists, else the hand-authored `.txt`. A photograph's committed
+/// `.txt` dump is compared with the fresh OCR and a difference is printed as
+/// drift, never scored. Returns nil when neither can be read.
+func expenseInputLines(for row: ExpenseExpectedRow) -> [String]? {
+    let txtURL = folderURL.appendingPathComponent(row.filename)
+    guard let photoURL = photographURL(for: row.filename) else {
+        guard let text = try? String(contentsOf: txtURL, encoding: .utf8) else {
+            print("✗ \(row.filename): no .txt fixture (drop the photo and run with --dump-text)")
+            return nil
+        }
+        return text.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
+    }
+    do {
+        let fresh = try recognizeText(in: photoURL, languages: languages).map(\.text)
+        if let committed = try? String(contentsOf: txtURL, encoding: .utf8),
+           committed != fresh.joined(separator: "\n") + "\n" {
+            print("⚠︎ drift: \(row.filename) no longer matches a fresh OCR of "
+                + "\(photoURL.lastPathComponent); review and regenerate the dump")
+        }
+        return fresh
+    } catch {
+        print("✗ \(row.filename): OCR failed on \(photoURL.lastPathComponent): \(error)")
+        return nil
+    }
+}
+
 /// One fixture's produced values (the `recognised.csv` row) plus the cells it
-/// scored. The `.txt` is the extractor's INPUT, so it is scored without a
-/// second Vision pass; the photograph is only where the `.txt` came from.
+/// scored, over the lines `expenseInputLines` resolves.
 func scoreExpenseRow(_ row: ExpenseExpectedRow,
                      parser: FuelReceiptParser) -> ExpenseRowScore {
-    let txtURL = folderURL.appendingPathComponent(row.filename)
-    guard let text = try? String(contentsOf: txtURL, encoding: .utf8) else {
-        print("✗ \(row.filename): no .txt fixture (drop the photo and run with --dump-text)")
+    guard let lines = expenseInputLines(for: row) else {
         return ExpenseRowScore(line: "\(row.filename),,,,", hits: 0, total: 0)
     }
-    let lines = text.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
     let extraction = parser.parse(lines: lines)
     let kind = FuelReceiptParser.expenseKind(lines: lines)
     let line = "\(row.filename),\(fmtExpense(extraction.total)),\(extraction.currency ?? ""),"
@@ -176,7 +218,7 @@ func runExpenseFolder(_ csv: String) {
         print("No expected.csv rows in \(folderURL.path).")
         return
     }
-    if dumpText { dumpNewPhotographs() }
+    if dumpText { dumpPhotographText() }
 
     var hits = 0
     var total = 0

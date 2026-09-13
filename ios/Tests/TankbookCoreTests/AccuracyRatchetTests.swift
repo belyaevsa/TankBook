@@ -138,7 +138,8 @@ struct CorpusAccuracyGateTests {
             // The pump class is scored under the re-scoped B1 metric (numeric
             // only, precision + coverage); the ratchet still guards its recall
             // (hits may not fall, total may not shrink). The expense class is
-            // scored from its `.txt` fixtures, not from Vision.
+            // scored from its photographs where it has one, else from the
+            // hand-authored `.txt` (RV.278).
             let scored: ScoredClass
             switch name {
             case "pump": scored = try scorePump().scoredClass
@@ -179,6 +180,18 @@ struct CorpusAccuracyGateTests {
         let scored = try scoreExpenses()
         #expect(scored.total >= 12, "the expense class must assert at least one cell per fixture")
         #expect(scored.hits > 0, "the expense class resolved nothing")
+    }
+
+    /// RV.278: a photograph's committed `.txt` is a debugging dump, not the
+    /// input, so a fresh OCR that no longer matches it is reported as **drift**
+    /// and never scored. The score is the photograph's; this test only says the
+    /// dump beside it still describes what Vision now reads. A non-empty list
+    /// fails the suite, and the fix is to review the new OCR, regenerate the
+    /// `.txt` with `--dump-text`, and re-check `expected.csv` against the paper.
+    @Test func expensePhotoDumpsHaveNotDrifted() throws {
+        let fixtures = try Self.expenseFixtureSet.get().fixtures
+        let drifts = CorpusScorer.expenseDrifts(in: fixtures)
+        #expect(drifts.isEmpty, Comment(stringLiteral: drifts.joined(separator: "\n")))
     }
 
     /// RV.270: the whole-class guard the boilerplate failure needs. A wrong
@@ -272,23 +285,61 @@ struct CorpusAccuracyGateTests {
         )
     }
 
-    /// The expense class scored from its `.txt` fixtures directly. The
-    /// hand-authored fixtures have no photograph, and the two Tallinn tickets'
-    /// `.txt` IS the Vision dump the app reads, so scoring the `.txt` measures
-    /// the app's pipeline without a second OCR pass - and without a runtime the
-    /// CI machine may not have. The extractor is the shipped `FuelExtractor`.
-    private func scoreExpenses() throws -> ExpenseScore {
-        let folder = Self.fixturesRoot.appendingPathComponent("expenses")
-        let expected = try CorpusScorer.loadExpenseExpected(folder.appendingPathComponent("expected.csv"))
-        var fixtures: [(filename: String, lines: [OCRLine])] = []
+    /// The expense fixtures, loaded once per test process. A fixture with a
+    /// photograph is OCR'd through the SAME `VisionTextRecognizer` the fuel
+    /// classes use, and its fresh text is compared with the committed `.txt`
+    /// dump to report drift. A hand-authored fixture with no photograph reads
+    /// the `.txt` directly - there the `.txt` IS the input by construction. The
+    /// cache keeps the four tests that score the class from paying the two
+    /// photographs' OCR four times.
+    private static let expenseFixtureSet: Result<
+        (fixtures: [ExpenseFixture], expected: [ExpenseExpectedRow]), Error
+    > = Result {
+        try loadExpenseFixtures()
+    }
+
+    private static func loadExpenseFixtures() throws
+        -> (fixtures: [ExpenseFixture], expected: [ExpenseExpectedRow]) {
+        let folder = fixturesRoot.appendingPathComponent("expenses")
+        let expected = try CorpusScorer.loadExpenseExpected(
+            folder.appendingPathComponent("expected.csv"))
+        var fixtures: [ExpenseFixture] = []
         for row in expected {
-            let url = folder.appendingPathComponent(row.filename)
-            guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
-            let lines = text.split(separator: "\n", omittingEmptySubsequences: true)
-                .map { OCRLine(text: String($0)) }
-            fixtures.append((row.filename, lines))
+            if let photo = photograph(for: row.filename, in: folder) {
+                let ocr = try VisionTextRecognizer.recognizeText(in: photo, languages: languages)
+                let regenerated = ocr.map(\.text).joined(separator: "\n") + "\n"
+                let dumpURL = folder.appendingPathComponent(row.filename)
+                let committed = try? String(contentsOf: dumpURL, encoding: .utf8)
+                let drift = committed.flatMap { $0 == regenerated ? nil
+                    : "\(row.filename): the committed Vision dump differs from a fresh OCR of "
+                        + "\(photo.lastPathComponent); review the new text and regenerate the dump"
+                }
+                fixtures.append(ExpenseFixture(filename: row.filename, lines: ocr, drift: drift))
+            } else {
+                let url = folder.appendingPathComponent(row.filename)
+                guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
+                let lines = text.split(separator: "\n", omittingEmptySubsequences: true)
+                    .map { OCRLine(text: String($0)) }
+                fixtures.append(ExpenseFixture(filename: row.filename, lines: lines, drift: nil))
+            }
         }
-        return CorpusScorer.scoreExpenses(name: "expenses", fixtures: fixtures, expected: expected)
+        return (fixtures, expected)
+    }
+
+    /// The photograph a `expected.csv` row names, by matching the `.txt` base
+    /// name against the class's image extensions. Nil for a hand-authored text
+    /// fixture, which has no photograph.
+    private static func photograph(for filename: String, in folder: URL) -> URL? {
+        let base = (filename as NSString).deletingPathExtension
+        return CorpusScorer.imageExtensions.sorted().lazy
+            .map { folder.appendingPathComponent("\(base).\($0)") }
+            .first { FileManager.default.fileExists(atPath: $0.path) }
+    }
+
+    private func scoreExpenses() throws -> ExpenseScore {
+        let loaded = try Self.expenseFixtureSet.get()
+        return CorpusScorer.scoreExpenses(
+            name: "expenses", fixtures: loaded.fixtures, expected: loaded.expected)
     }
 
     private func extractRecords(folder: URL, images: [URL], expected: [String: ExpectedRow],

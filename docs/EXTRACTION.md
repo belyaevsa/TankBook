@@ -453,8 +453,9 @@ suggestion helps at all.
 Every receipt photograph and pump display was fuel (or mixed fuel plus one non-fuel line), so the
 vocabulary's ground truth lives in hand-authored OCR-text fixtures under
 `Spike/ReceiptSpike/fixtures/expenses/` rather than in a photograph's filename. The **first non-fuel
-photograph** landed there on 2026-09-11 - a Tallinn Airport car-park ticket whose Vision dump is the
-`.txt` the sweep reads - and it named its kind only in Estonian (`PARKIMISTEENUS`, `parkla`), which
+photograph** landed there on 2026-09-11 - a Tallinn Airport car-park ticket whose `.jpg` the sweep
+OCRs, with its Vision dump kept as the `.txt` beside it - and it named its kind only in Estonian
+(`PARKIMISTEENUS`, `parkla`), which
 the RU/EN vocabulary abstained on until the Estonian parking stems were added. That is the shape
 every next photograph should take: the `.jpg` beside its OCR dump, the category from the file name. Merchant remains **not** resolved: guessing it from a shop receipt is a
 separate problem with its own corpus and was not assumed into this change.
@@ -475,14 +476,19 @@ explicit-marker tier and resolved to EUR, so the pre-fill's currency was EUR and
 home-currency boundary let it through - the amount was blank because the total was nil, and the
 expense form has no currency field of its own to show.
 
-**The expense folder is a scored corpus class now (RV.277).** `expenses/expected.csv` gained
-`total,currency,date` beside `category`, and the folder is ratcheted as its own class in
-`high-water.json` (kind + total + currency + date cells; 29/29 at introduction) by the same
-`AccuracyRatchet` and `AccuracyRatchetTests` the fuel classes use. The scorer reads the `.txt`
-fixtures directly - the hand-authored ones have no photograph, and the two Tallinn tickets'
-`.txt` IS the Vision dump the app reads - and `swift run ReceiptSpike fixtures/expenses` writes
-`recognised.csv` (what the extractor produced) beside `expected.csv` for review. `recognised.csv`
-is never the oracle: `expected.csv` stays hand-written from the paper.
+**The expense folder is a scored corpus class now (RV.277), and it scores the photograph
+(RV.278).** `expenses/expected.csv` gained `total,currency,date` beside `category`, and the
+folder is ratcheted as its own class in `high-water.json` (kind + total + currency + date
+cells; 29/29 at introduction) by the same `AccuracyRatchet` and `AccuracyRatchetTests` the fuel
+classes use. A fixture with a `.jpg` is OCR'd at test time through the same
+`VisionTextRecognizer` the fuel classes use, and the extractor's output is scored against
+`expected.csv`; the `.txt` beside the photo is a debugging dump, compared with the fresh OCR
+and reported as **drift** when it differs, never scored. A hand-authored fixture with no
+photograph reads its `.txt` directly - there the `.txt` IS the input by construction. The
+spike mirrors the rule: `swift run ReceiptSpike fixtures/expenses` OCRs the photographs,
+prints a drift warning and writes `recognised.csv` (what the extractor produced) beside
+`expected.csv` for review; `--dump-text` regenerates a photograph's dump. `recognised.csv` is
+never the oracle: `expected.csv` stays hand-written from the paper.
 
 The contract that bounds the expense hand-off is the fill-up path's own:
 - An extraction that resolves nothing becomes an all-nil `ExpensePrefill` - the expense form

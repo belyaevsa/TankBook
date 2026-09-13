@@ -3,10 +3,12 @@ import Foundation
 
 // RV.277 - the expense class's scorer, in the same shape as the fuel classes.
 // The expense folder is a MIXED corpus: ten hand-authored OCR-text fixtures
-// (`*.txt`, no photograph) and, since RV.200/RV.277, two photographs whose
-// Vision dump is the `.txt` beside them. Both kinds are scored from the `.txt`
-// input directly, never from a re-run of Vision: the `.txt` is the fixture, and
-// the photograph is only where it came from.
+// (`*.txt`, no photograph) and, since RV.200/RV.277, two photographs. RV.278
+// makes the photograph the INPUT where one exists: the caller runs Vision on it
+// (the same `VisionTextRecognizer` the fuel classes use) and hands the lines
+// here, exactly as it hands the `.txt` lines of a fixture that has no
+// photograph. The `.txt` beside a photo is a debugging dump, compared for
+// drift, never the input.
 //
 // Four asserted cells, all optional in `expected.csv`: the KIND (`category`,
 // the one cell the folder scored before RV.277), the `total`, the `currency`
@@ -37,6 +39,18 @@ struct ExpenseScore: Equatable, Sendable {
     let total: Int
 
     var scoredClass: ScoredClass { ScoredClass(name: name, hits: hits, total: total) }
+}
+
+/// One expense fixture's INPUT lines, plus the drift of the `.txt` dump beside
+/// it. `filename` is the `expected.csv` name (the `.txt` for a text fixture; the
+/// `.txt` whose base names the photograph for a photo fixture).
+struct ExpenseFixture: Equatable, Sendable {
+    let filename: String
+    let lines: [OCRLine]
+    /// Non-nil only for a photograph whose fresh Vision OCR no longer matches
+    /// the committed `.txt` dump: the OCR changed under the fixture. A drift is
+    /// reported, never scored - the photograph is the input, the dump is not.
+    let drift: String?
 }
 
 extension CorpusScorer {
@@ -82,13 +96,15 @@ extension CorpusScorer {
         }
     }
 
-    /// Scores the expense class from its `.txt` fixtures. The extractor is the
+    /// Scores the expense class from its loaded fixtures. The extractor is the
     /// same `FuelExtractor` the fill-up path runs (RV.277: one finder, per-kind
     /// vocabulary) and the kind is the same `ExpenseCategoryInference` the form
-    /// consumes, so the scored pipeline is the app's, not a test-only one.
+    /// consumes, so the scored pipeline is the app's, not a test-only one. The
+    /// caller supplies the lines: Vision output for a photograph, the committed
+    /// `.txt` for a hand-authored fixture.
     static func scoreExpenses(
         name: String,
-        fixtures: [(filename: String, lines: [OCRLine])],
+        fixtures: [ExpenseFixture],
         expected: [ExpenseExpectedRow]
     ) -> ExpenseScore {
         var hits = 0
@@ -114,5 +130,12 @@ extension CorpusScorer {
             }
         }
         return ExpenseScore(name: name, hits: hits, total: total)
+    }
+
+    /// The drift of every photo fixture whose committed `.txt` no longer matches
+    /// a fresh OCR. Empty is the clean state; a non-empty list is a reported
+    /// drift, never a score.
+    static func expenseDrifts(in fixtures: [ExpenseFixture]) -> [String] {
+        fixtures.compactMap(\.drift)
     }
 }
