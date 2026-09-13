@@ -542,7 +542,16 @@ reasoning as the currency chip on Confirm.
 ## LLM gateway (Pro)
 
 ### `POST /extract` – bearer
-`{ kind: "receipt" | "pump" | "chargeScreenshot" | "invoice", image: <base64 ≤ 4 MB>, hints: { currency?, locale?, vehicleFuelKinds? } }` → `{ fields: { <FieldRef>: { value, confidence } }, pipeline }` per SCHEMA.md `ExtractionMeta`. `402` when the tier lacks quota, `429` per-period quota spent (client falls back to on-device result – JOURNEYS F4; **never an upsell mid-capture**).
+`{ kind: "receipt" | "pump" | "chargeScreenshot" | "invoice" | "expense", image: <base64 ≤ 4 MB>, hints: { currency?, locale?, vehicleFuelKinds? } }` → `{ fields: { <FieldRef>: { value, confidence } }, pipeline }` per SCHEMA.md `ExtractionMeta`. `402` when the tier lacks quota, `429` per-period quota spent (client falls back to on-device result – JOURNEYS F4; **never an upsell mid-capture**).
+
+**Breaking-change review (PJ.29, 2026-09-13): additive.** `expense` joins the accepted kinds – a shop,
+parking or toll receipt (JOURNEYS J7b). The change is additive: an older client never sends it, the
+request shape is unchanged, and an unknown kind is still a `400`, so no existing caller breaks. The
+kind also picks the prompt's field vocabulary (`LlmPrompts`): `receipt`/`pump`/`chargeScreenshot`
+keep the pump-card fields, `invoice` keeps its header (`vendor, total, date, currency`) because the
+line items are the device's deterministic split (JOURNEYS J7), and `expense` asks for
+`total, date, currency, vendor, category` and never a fuel field. The server still reads no meaning –
+it forwards a field NAME list (hard rule 9).
 
 **The model is data, not compiled config (amended 2026-09-03, RV.34).** Which model serves which
 kind, and what that model costs, live in two tables written by direct DB write (no admin

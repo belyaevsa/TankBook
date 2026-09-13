@@ -53,4 +53,70 @@ public enum ExpensePrefillBuilder {
             currency: extraction.currency,
             date: extraction.date.flatMap { ConfirmDate.parse($0) })
     }
+
+    /// The ONE seam where a cloud `GatewayExtraction` becomes the expense form's
+    /// pre-fill AND the inbox's recognition (PJ.29). Both are built here, from
+    /// one decode, so the on-time route (fill the open form) and the late route
+    /// (offer the saved entry) cannot drift: the amount, currency, date and
+    /// category the form would take are exactly the ones the inbox offers.
+    ///
+    /// The field set is the expense kind's own - total, currency, date,
+    /// category - and never the fuel fields a `receipt` answer might also carry.
+    /// A nil field is absent, never guessed (hard rule 13); an unknown category
+    /// string was already dropped by the wire decode.
+    public static func reading(fromGateway extraction: GatewayExtraction) -> ExpenseGatewayReading {
+        let prefill = ExpensePrefill(
+            total: extraction.total?.value,
+            currency: extraction.currency?.value,
+            date: extraction.date.flatMap { ConfirmDate.parse($0.value) })
+        let recognition = ExpenseRecognition(
+            total: extraction.total,
+            currency: extraction.currency,
+            category: extraction.category,
+            date: prefill.date.map { GatewayFieldValue(value: $0, confidence: 0.9) })
+        return ExpenseGatewayReading(prefill: prefill, recognition: recognition)
+    }
+
+    /// The pre-fill half alone. A caller with no use for the recognition (the
+    /// screenshot/test path) takes this; the form takes `reading(fromGateway:)`
+    /// so both halves stay one decode.
+    public static func prefill(fromGateway extraction: GatewayExtraction) -> ExpensePrefill {
+        reading(fromGateway: extraction).prefill
+    }
+}
+
+/// What one cloud `expense` reading offers, on time and late: the pre-fill the
+/// open form takes and the recognition the inbox compares against a saved
+/// entry. Produced together so the two routes cannot disagree about what the
+/// receipt said.
+public struct ExpenseGatewayReading: Sendable, Equatable {
+    public var prefill: ExpensePrefill
+    public var recognition: ExpenseRecognition
+
+    public init(prefill: ExpensePrefill, recognition: ExpenseRecognition) {
+        self.prefill = prefill
+        self.recognition = recognition
+    }
+}
+
+extension ExpenseCategory {
+    /// The category a gateway `expense` answer's `category` string names, or nil
+    /// for a string the device does not know - the value is dropped, never
+    /// guessed (hard rule 13). `wash` is the `.other` escape hatch the shipped
+    /// vocabulary uses (docs/EXTRACTION.md, RV.200), and `other` is the bare
+    /// `.other("")`.
+    public init?(gatewayValue: String) {
+        switch gatewayValue {
+        case "insurance": self = .insurance
+        case "tax": self = .tax
+        case "parking": self = .parking
+        case "toll": self = .toll
+        case "fine": self = .fine
+        case "accessory": self = .accessory
+        case "parts": self = .parts
+        case "wash": self = .other("wash")
+        case "other": self = .other("")
+        default: return nil
+        }
+    }
 }

@@ -319,4 +319,131 @@ final class GatewayCaptureUITests: XCTestCase {
         XCTAssertFalse(label.localizedCaseInsensitiveContains("upgrade"), "the note must not upsell")
         assertNoPaywall(app, context: "proceed note")
     }
+
+    // MARK: - PJ.29 the expense kind reaches the same gateway
+
+    /// A corpus receipt: the review step must show SOME photo before "Use this"
+    /// (the canned recognition replaces OCR, never the review).
+    private var expenseFixture: String {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()  // GatewayCaptureUITests.swift
+            .deletingLastPathComponent()  // UITests
+            .deletingLastPathComponent()  // App
+            .deletingLastPathComponent()  // ios
+            .appendingPathComponent("Spike/ReceiptSpike/fixtures/receipts")
+            .appendingPathComponent("receipt-011-samara-diesel-ru.png")
+            .path
+    }
+
+    private func launchExpenseCapture(_ seeds: [String], russian: Bool = false) -> XCUIApplication {
+        XCTAssertTrue(FileManager.default.fileExists(atPath: expenseFixture),
+                      "the corpus fixture is missing: \(expenseFixture)")
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-homeResetDatabase", "-seedHomeEmptyVehicle",
+            "-presentScreen", "capture", "-cameraStatus", "authorized",
+            "-captureMode", "expense", "-captureFixtureImage", expenseFixture
+        ] + (russian ? ["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU"] : []) + seeds
+        app.launch()
+        XCTAssertTrue(app.buttons["captureCloseButton"].waitForExistence(timeout: 10),
+                      "the capture cover must be present")
+        return app
+    }
+
+    private func shootAndUseExpense(_ app: XCUIApplication) {
+        let shutter = app.buttons["captureShutterButton"]
+        XCTAssertTrue(shutter.waitForExistence(timeout: 10), "captureShutterButton never appeared")
+        shutter.tap()
+        let useThis = app.buttons["captureReviewUseButton"]
+        XCTAssertTrue(useThis.waitForExistence(timeout: 15),
+                      "the RV.5 review must appear after the shutter")
+        useThis.tap()
+    }
+
+    /// The row's L4 proof: an Expense-mode scan reaches the SAME gateway the
+    /// fill-up Confirm sheet uses. The form opens on the local read (F4), the
+    /// proceed note shows while the request is in flight, and a late cloud
+    /// answer - arriving after the save - lands in the inbox. A guest gets no
+    /// transport, so no note (the local read still stands).
+    private func expenseGatewayNoteAndLateInbox(language: String) {
+        let app = launchExpenseCapture(
+            ["-seedExpenseScan", "-seedGateway", "-seedGatewayDelay", "8"],
+            russian: language == "ru")
+        shootAndUseExpense(app)
+
+        let amount = app.textFields["expenseEntryAmountField"]
+        XCTAssertTrue(amount.waitForExistence(timeout: 15),
+                      "an Expense-mode scan must land on the expense entry form")
+        XCTAssertEqual(fieldValue(app, "expenseEntryAmountField"), "71.02",
+                       "the local read must open the form immediately (F4)")
+        XCTAssertTrue(note(app).waitForExistence(timeout: 10),
+                      "the expense form must show the same proceed note the Confirm sheet does")
+
+        // Save before the cloud answer arrives (delay 8 s, budget 3 s).
+        let save = app.buttons["expenseEntrySaveButton"]
+        XCTAssertTrue(save.isEnabled, "the local read must leave the expense saveable")
+        save.tap()
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5),
+                      "saving must leave the expense sheet")
+
+        let bell = app.buttons["inboxBellButton"]
+        XCTAssertTrue(bell.waitForExistence(timeout: 10), "the bell must be on the header")
+        bell.tap()
+        XCTAssertTrue(app.buttons["inboxLeaveButton"].waitForExistence(timeout: 40),
+                      "the late cloud expense answer must reach the inbox")
+        app.buttons["inboxLeaveButton"].tap()
+    }
+
+    func testAnExpenseScanReachesTheGatewayAndALateAnswerLandsInTheInbox() {
+        expenseGatewayNoteAndLateInbox(language: "en")
+    }
+
+    func testAnExpenseScanReachesTheGatewayAndALateAnswerLandsInTheInboxInRussian() {
+        expenseGatewayNoteAndLateInbox(language: "ru")
+    }
+
+    /// The product-owner ruling (RV.57): a late answer is NEVER applied to the
+    /// open editor - the on-device amount stands, and the answer is held for the
+    /// inbox. Asserting "the note exists" would pass while the value moved.
+    func testALateExpenseAnswerDoesNotChangeTheOpenEditor() {
+        let app = launchExpenseCapture(["-seedExpenseScan", "-seedGateway", "-seedGatewayDelay", "8"])
+        shootAndUseExpense(app)
+
+        XCTAssertEqual(fieldValue(app, "expenseEntryAmountField"), "71.02",
+                       "the on-device amount is on screen before the answer arrives")
+        Thread.sleep(forTimeInterval: 9)
+        XCTAssertEqual(fieldValue(app, "expenseEntryAmountField"), "71.02",
+                       "a late answer must NOT move the amount under the user's cursor")
+    }
+
+    /// A signed-out user has no gateway transport, so no request is sent and no
+    /// note appears; the local read still opens the form (hard rules 1 and 15).
+    func testASignedOutExpenseScanShowsNoNote() {
+        let app = launchExpenseCapture(["-seedExpenseScan"])
+        shootAndUseExpense(app)
+
+        XCTAssertTrue(app.textFields["expenseEntryAmountField"].waitForExistence(timeout: 15))
+        XCTAssertEqual(fieldValue(app, "expenseEntryAmountField"), "71.02",
+                       "the on-device read still fills the form for a guest")
+        XCTAssertFalse(note(app).exists,
+                       "a guest has no transport, so no in-flight note may appear")
+    }
+
+    /// The RV.65 card renders on the expense form too: a `/extract` whose refresh
+    /// the server rejected names "sign in again" there, and the local read's save
+    /// is never blocked (hard rules 1, 7, 15).
+    func testADeadSessionShowsTheSignInNextStepOnTheExpenseForm() {
+        let app = launchExpenseCapture(["-seedExpenseScan", "-seedGateway",
+                                        "-seedGatewayAuthExpired"])
+        shootAndUseExpense(app)
+
+        let notice = app.descendants(matching: .any)["gatewayAuthExpiredNotice"]
+        XCTAssertTrue(notice.waitForExistence(timeout: 10),
+                      "a dead session must surface its next step on the expense form")
+        let copy = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@",
+                                                        "sign in again to use cloud reading")).firstMatch
+        XCTAssertTrue(copy.exists, "the notice must name sign-in as the next step (hard rule 7)")
+        XCTAssertTrue(app.buttons["expenseEntrySaveButton"].isEnabled,
+                      "the notice blocks nothing - the local read still saves")
+    }
 }

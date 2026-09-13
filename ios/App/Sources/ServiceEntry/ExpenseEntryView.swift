@@ -17,20 +17,28 @@ struct ExpenseEntryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppToastCenter.self) private var toastCenter
     @Environment(AppCarSelection.self) private var carSelection
-    @Environment(ExpenseEntrySession.self) private var expenseSession
+    @Environment(ExpenseEntrySession.self) var expenseSession
     @Environment(ReminderCompletionSession.self) private var completionSession
     @Environment(ReminderNotificationCoordinator.self) private var notificationCoordinator
     @Environment(ReminderOfferSession.self) private var offerSession
+    /// PJ.29: the cloud-extract surface. `allowsServerBacked` withholds the
+    /// `/extract` request under `.required` (docs/CONFIG.md), exactly as the
+    /// fill-up Confirm sheet does - the on-device result still stands.
+    @Environment(AppConfigService.self) private var config
 
-    @State private var form = ExpenseEntryFormState()
+    @State var form = ExpenseEntryFormState()
     /// RV.279: the shared odometer card's focus, so its format-on-blur works on
     /// the capture door exactly as it does on Edit entry.
-    @FocusState private var focus: EditEntryNonFillFocus?
-    @State private var vehicle: Vehicle?
+    @FocusState var focus: EditEntryNonFillFocus?
+    @State var vehicle: Vehicle?
+    /// PJ.29: the entry id, generated once for this sheet and reused as the
+    /// gateway's `captureId`. The same id the save writes, so a late answer and
+    /// the entry it is about share one value.
+    @State private var entryId = UUID.v7()
     /// RV.279: the car's live entries, so the currency offer's history tier
     /// reflects what this car has actually paid in (docs/SCHEMA.md -> Currency
     /// offer). Loaded once with the vehicle.
-    @State private var existingEntries: [any Entry] = []
+    @State var existingEntries: [any Entry] = []
     @State private var showDatePicker = false
     @State private var didLoad = false
     /// RV.267: set the moment a save lands, so the one dismissal path can tell
@@ -51,12 +59,51 @@ struct ExpenseEntryView: View {
     /// alike - so "no suggestion" is distinguishable from "suggestion kept".
     @State private var suggestedCategory: ExpenseCategory?
 
+    /// PJ.29: the cloud reading of a scanned expense (docs/API.md -> "The
+    /// device's side of /extract"). Started by the capture path
+    /// (`CaptureExpenseScan.startExpenseGatewayIfAvailable`) as soon as the local
+    /// result lands, and owned by `ExpenseEntrySession` so it survives the gap
+    /// before this sheet exists. The sheet renders its phase and applies its
+    /// answer; the fill-up Confirm sheet's exact shape.
+    ///
+    /// The fields the ON-DEVICE read resolved (the pre-fill already on screen).
+    /// The on-device result has first claim (F4); a cloud answer never refills
+    /// one of these.
+    @State var gatewayOnDeviceResolved: Set<FieldRef> = []
+    /// Arming guard for the amount/currency/date/category touch hooks: the
+    /// load-time pre-fill must not count as a user touch.
+    @State private var gatewayTouchTrackingArmed = false
+    /// RV.57: the proceed note was dismissed (the ×). Per-sheet, never
+    /// persisted - a new capture is a new sheet and a new note.
+    @State private var proceedNoteDismissed = false
+    /// RV.65: the "sign in to use cloud reading" notice was dismissed (the ×).
+    /// Per-sheet, never persisted; the session stays dead until the user signs
+    /// in, and a dead session on the NEXT capture surfaces the notice again
+    /// (hard rule 7).
+    @State private var authExpiredNoticeDismissed = false
+
     var body: some View {
         ScrollView {
             VStack(spacing: 9) {
                 if vehicle == nil {
                     noVehicleCard
                 } else {
+                    // PJ.29: the cloud reading's surfaces, in the same order and
+                    // with the same copy as the fill-up Confirm sheet - the
+                    // update notice when the server no longer supports this
+                    // build, then the in-flight proceed note, then the dead
+                    // session's next step. All are non-blocking; the on-device
+                    // result already stands (hard rules 1, 7, 15).
+                    if scan != nil, !config.allowsServerBacked {
+                        UpdateRequiredNotice()
+                    }
+                    if GatewayProceedNote.shouldShow(phase: expenseSession.gateway.phase),
+                       !proceedNoteDismissed {
+                        GatewayProceedNoteView(dismiss: { proceedNoteDismissed = true })
+                    }
+                    if expenseSession.gateway.phase == .authExpired, !authExpiredNoticeDismissed {
+                        GatewayAuthExpiredNoticeView(dismiss: { authExpiredNoticeDismissed = true })
+                    }
                     categoryCard
                     titleCard
                     amountCard
@@ -83,6 +130,21 @@ struct ExpenseEntryView: View {
         .onChange(of: form, initial: true) { _, _ in
             hasUnsavedChanges = form.hasEdits()
         }
+        // PJ.29: user engagement with a field is permanent (hard rule 13), so a
+        // cloud answer that lands later never overwrites it. Armed only after
+        // the load-time pre-fill, exactly as `ManualFillUpView` does.
+        .onChange(of: form.amount) { _, _ in
+            if gatewayTouchTrackingArmed { expenseSession.gateway.markTouched(.total) }
+        }
+        .onChange(of: form.currency) { _, _ in
+            if gatewayTouchTrackingArmed { expenseSession.gateway.markTouched(.currency) }
+        }
+        .onChange(of: form.date) { _, _ in
+            if gatewayTouchTrackingArmed { expenseSession.gateway.markTouched(.date) }
+        }
+        .onChange(of: form.category) { _, _ in
+            if gatewayTouchTrackingArmed { expenseSession.gateway.markTouched(.category) }
+        }
         // RV.215: a deferred read that finishes before the save fills the open
         // form. It never overwrites a value the user already changed (hard rule
         // 13); a read that finishes after the save routes to the inbox instead
@@ -94,22 +156,36 @@ struct ExpenseEntryView: View {
             if let capture = expenseSession.consumePendingCapture() {
                 scan = capture
             }
-            guard !form.hasEdits() else { return }
-            if let prefill = expenseSession.pendingPrefill {
-                apply(prefill)
-                expenseSession.pendingPrefill = nil
+            let prefill = expenseSession.pendingPrefill
+            let preset = expenseSession.pendingPreset
+            gatewayOnDeviceResolved = Self.onDeviceResolvedFields(prefill: prefill, preset: preset)
+            if !form.hasEdits() {
+                if let prefill {
+                    apply(prefill)
+                    expenseSession.pendingPrefill = nil
+                }
+                if let preset {
+                    form.category = preset
+                    suggestedCategory = preset
+                    expenseSession.pendingPreset = nil
+                }
+                form.initialCategory = form.category
+                form.initialTitle = form.title
+                form.initialAmount = form.amount
+                form.initialCurrency = form.currency
+                form.initialOdometer = form.odometer
+                form.initialDate = form.date
             }
-            if let preset = expenseSession.pendingPreset {
-                form.category = preset
-                suggestedCategory = preset
-                expenseSession.pendingPreset = nil
-            }
-            form.initialCategory = form.category
-            form.initialTitle = form.title
-            form.initialAmount = form.amount
-            form.initialCurrency = form.currency
-            form.initialOdometer = form.odometer
-            form.initialDate = form.date
+            // PJ.29: the on-device result is on screen (F4). Touch tracking is
+            // armed now, after the pre-fill, so it never counts as a user touch;
+            // the cloud reading itself was started by the capture path.
+            gatewayTouchTrackingArmed = true
+        }
+        // PJ.29: a cloud answer that landed within the budget. It fills blank AND
+        // untouched fields only, and never arrives after the save (that route is
+        // the inbox's, via the session's `markSaved`).
+        .onChange(of: expenseSession.gatewayRevision) { _, _ in
+            applyPendingGatewayAnswer()
         }
     }
 
@@ -183,91 +259,6 @@ struct ExpenseEntryView: View {
             title: form.title, installedInServiceId: nil)
     }
 
-    private func save() {
-        guard let vehicle, saveEnabled, let amount = form.amountDecimal else { return }
-        do {
-            let repository = try AppStore.repository()
-            // RV.243: the receipt half is the shared save seam
-            // (`writeExpense`), which writes the photo from the capture staged
-            // at scan start regardless of whether the read has finished. The
-            // write is attempted first and its failure degrades to no photo -
-            // the expense below still saves, and the user is told
-            // (docs/ERRORS.md -> Service & expenses) - never a silent drop
-            // (hard rule 8) and never a blocked save (hard rule 15: the photo
-            // is a head start, never a requirement).
-            let (expense, photoWriteFailed) = try Self.writeExpense(
-                form: form, vehicle: vehicle, amount: amount, scan: scan,
-                repository: repository)
-            // RV.200: only a scanned expense has a suggestion to report - the
-            // typed path proposed no category and emits nothing. Shape only:
-            // the category code and whether the user kept it (hard rule 12).
-            if scan != nil {
-                AppLog.shared.emit(ExpenseCategorySuggestion(suggested: suggestedCategory,
-                                                             saved: form.category))
-            }
-            // The other half of the P3.5 chain: a reminder completion handed
-            // off by the ReminderComplete sheet completes with THIS entry's id.
-            if let pending = pendingCompletion {
-                ReminderCompletionSession.persistCompletion(
-                    reminder: pending.reminder, entryId: expense.id,
-                    completionDate: pending.completionDate,
-                    completionOdometer: pending.completionOdometer,
-                    coordinator: notificationCoordinator)
-                pendingCompletion = nil
-            } else {
-                // RV.77: a plain expense save proposes the next reminder only
-                // after the record is on disk - an offer, never an auto-create.
-                offerSession.stage(afterExpense: expense, repository: repository)
-            }
-            hasUnsavedChanges = false
-            // RV.267: the capture this save consumed now belongs to the record,
-            // so the dismissal that follows must not discard it - nor cancel a
-            // read still bound for the inbox.
-            didSave = true
-            // Tell Home to reload (a `.sheet` never re-triggers the presenter's
-            // `.task` on iOS 26) - the new expense must render, not wait for a
-            // manual refresh (the Manual fill-up / Edit entry convention).
-            toastCenter.noteEntryChanged()
-            if photoWriteFailed {
-                // The receipt could not be kept: the entry saved without it and
-                // the failure names its next step (hard rule 7) - the photo is
-                // gone from this save, but the entry it documented is not.
-                toastCenter.show(L10n.receiptNotSavedMessage)
-            }
-            // RV.215: a saved expense is corrected by its owner alone - a read
-            // still in flight becomes an inbox suggestion keyed to this entry,
-            // never a silent rewrite (hard rule 13).
-            expenseSession.markSaved(entryID: expense.id)
-            dismiss()
-            onSaved()
-        } catch {
-            AppLog.error(operation: "expenseEntry.save", category: .ui, error: error)
-        }
-    }
-
-    private var saveBar: some View {
-        VStack(spacing: 8) {
-            Button(action: save) {
-                Text("Save expense")
-                    .font(.body.weight(.bold))
-                    .foregroundStyle(saveEnabled ? Theme.Palette.midnight : Theme.Palette.inkSoft)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(saveEnabled ? Theme.Palette.taillight : Theme.Palette.dash)
-                    .clipShape(RoundedRectangle(cornerRadius: 15))
-                    .shadow(color: saveEnabled ? Theme.Palette.taillight.opacity(0.3) : .clear,
-                            radius: 18, y: 4)
-            }
-            .buttonStyle(.plain)
-            .disabled(!saveEnabled)
-            .accessibilityIdentifier("expenseEntrySaveButton")
-        }
-        .padding(.horizontal, Theme.Spacing.screenMargin)
-        .padding(.top, 12)
-        .padding(.bottom, 12)
-        .background(Theme.Palette.midnight)
-    }
-
     // MARK: - Loading
 
     /// RV.247: the car this entry writes to. A reminder completion hand-off
@@ -313,6 +304,14 @@ struct ExpenseEntryView: View {
             // row lets the user change it, and a foreign scan pre-fills its own.
             form.currency = vehicle.homeCurrency
             existingEntries = (try? repository.liveEntries(forVehicle: vehicle.id)) ?? []
+            // PJ.29: the local read may already have landed before the sheet's
+            // `.task` runs (the seeded and fast-scan paths). Capture what it
+            // resolved BEFORE consuming it, so the cloud reading knows which
+            // fields the on-device result owns (F4) and never fights it.
+            let localPrefill = expenseSession.pendingPrefill
+            let localPreset = expenseSession.pendingPreset
+            gatewayOnDeviceResolved = Self.onDeviceResolvedFields(prefill: localPrefill,
+                                                                  preset: localPreset)
             // The category pre-selection is a default input the user edits
             // (hard rule 13), never a lock. Two writers share it: the mode row
             // ("Parts" -> .parts) and, since RV.200, an Expense-mode scan's own
@@ -366,9 +365,27 @@ struct ExpenseEntryView: View {
             form.initialCurrency = form.currency
             form.initialOdometer = form.odometer
             form.initialDate = form.date
+            // PJ.29: touch tracking is armed only here, after every load-time
+            // pre-fill has been written, so none of them counts as a user touch.
+            // An answer that arrived before this sheet existed is applied now.
+            gatewayTouchTrackingArmed = true
+            applyPendingGatewayAnswer()
         } catch {
             AppLog.error(operation: "expenseEntry.load", category: .ui, error: error)
         }
+    }
+
+    /// PJ.29: the fields the on-device read resolved - the cloud answer must
+    /// never fight the parser for one of them (F4). The category counts when the
+    /// scan inferred one, the same suggestion that rides `pendingPreset`.
+    static func onDeviceResolvedFields(prefill: ExpensePrefill?,
+                                       preset: ExpenseCategory?) -> Set<FieldRef> {
+        var out = Set<FieldRef>()
+        if prefill?.total != nil { out.insert(.total) }
+        if prefill?.currency != nil { out.insert(.currency) }
+        if prefill?.date != nil { out.insert(.date) }
+        if preset != nil { out.insert(.category) }
+        return out
     }
 
     private var noVehicleCard: some View {
@@ -387,71 +404,94 @@ struct ExpenseEntryView: View {
     }
 }
 
-// MARK: - Amount + currency card (RV.279)
+// MARK: - Save
 
+// In a same-file extension so the struct body stays under the linter's ceiling;
+// `private` is file-scoped, so the members above are still reachable.
 extension ExpenseEntryView {
-    /// The distance unit the odometer card reads, defaulting to km until the car
-    /// loads (the same default the rest of the app uses).
-    private var distanceUnit: DistanceUnit { vehicle?.units.distance ?? .km }
-
-    /// The car's complete, ordered currency offer (docs/SCHEMA.md -> Currency
-    /// offer): home first, then the currencies this car's entries have used,
-    /// then the device region's. Pure local derivation - no network (hard
-    /// rule 1).
-    private var currencyOffer: [CurrencyCode] {
-        guard let vehicle else { return [.eur] }
-        return CurrencyOfferBuilder.offer(
-            homeCurrency: vehicle.homeCurrency,
-            history: CurrencyHistory.recentCurrencies(in: existingEntries),
-            region: Locale.current.region?.identifier)
-    }
-
-    /// The odometer card, the SAME component Edit entry renders, in the same
-    /// position (after the date). Typed or blank - a blank stays nil, never the
-    /// "last known" as a fact (hard rule 13).
-    private var odometerCard: some View {
-        EntryOdometerCard(
-            odometer: $form.odometer,
-            focus: $focus,
-            target: EditEntryNonFillFocus.odometer,
-            distanceUnit: distanceUnit,
-            rowIdentifier: "editEntryOdometerRow",
-            fieldIdentifier: "editEntryOdometerField")
-    }
-
-    /// The Amount row and the currency chip row, mirroring Edit entry's money
-    /// card: the amount states its own currency's symbol, and the chips let the
-    /// user pick what the amount is in. A foreign pick saves the pair with the
-    /// shared conversion - never silently as home money (hard rule 3).
-    private var amountCard: some View {
-        VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 6) {
-                SectionEyebrow("Amount")
-                HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    TextField("0.00", text: $form.amount)
-                        .keyboardType(.decimalPad)
-                        .font(.custom(AppFonts.dinAlternateBold, size: 24))
-                        .foregroundStyle(Theme.Palette.ink)
-                        .accessibilityIdentifier("expenseEntryAmountField")
-                        .numericInput($form.amount, kind: .decimal)
-                    Text(AddVehicleSupport.moneySymbol(for: form.currency))
-                        .font(.caption)
-                        .foregroundStyle(Theme.Palette.inkSoft)
-                }
+    func save() {
+        guard let vehicle, saveEnabled, let amount = form.amountDecimal else { return }
+        do {
+            let repository = try AppStore.repository()
+            // RV.243: the receipt half is the shared save seam
+            // (`writeExpense`), which writes the photo from the capture staged
+            // at scan start regardless of whether the read has finished. The
+            // write is attempted first and its failure degrades to no photo -
+            // the expense below still saves, and the user is told
+            // (docs/ERRORS.md -> Service & expenses) - never a silent drop
+            // (hard rule 8) and never a blocked save (hard rule 15: the photo
+            // is a head start, never a requirement).
+            let (expense, photoWriteFailed) = try Self.writeExpense(
+                form: form, vehicle: vehicle, amount: amount, scan: scan,
+                repository: repository, id: entryId)
+            // RV.200: only a scanned expense has a suggestion to report - the
+            // typed path proposed no category and emits nothing. Shape only:
+            // the category code and whether the user kept it (hard rule 12).
+            if scan != nil {
+                AppLog.shared.emit(ExpenseCategorySuggestion(suggested: suggestedCategory,
+                                                             saved: form.category))
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Theme.Spacing.cardPadding)
-            .padding(.vertical, 12)
-            CardDivider()
-            VStack(alignment: .leading, spacing: 6) {
-                SectionEyebrow("Currency")
-                CurrencyChipRow(currency: $form.currency, offer: currencyOffer,
-                                lowConfidence: false)
+            // The other half of the P3.5 chain: a reminder completion handed
+            // off by the ReminderComplete sheet completes with THIS entry's id.
+            if let pending = pendingCompletion {
+                ReminderCompletionSession.persistCompletion(
+                    reminder: pending.reminder, entryId: expense.id,
+                    completionDate: pending.completionDate,
+                    completionOdometer: pending.completionOdometer,
+                    coordinator: notificationCoordinator)
+                pendingCompletion = nil
+            } else {
+                // RV.77: a plain expense save proposes the next reminder only
+                // after the record is on disk - an offer, never an auto-create.
+                offerSession.stage(afterExpense: expense, repository: repository)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Theme.Spacing.cardPadding)
-            .padding(.vertical, 6)
+            hasUnsavedChanges = false
+            // RV.267: the capture this save consumed now belongs to the record,
+            // so the dismissal that follows must not discard it - nor cancel a
+            // read still bound for the inbox.
+            didSave = true
+            // Tell Home to reload (a `.sheet` never re-triggers the presenter's
+            // `.task` on iOS 26) - the new expense must render, not wait for a
+            // manual refresh (the Manual fill-up / Edit entry convention).
+            toastCenter.noteEntryChanged()
+            if photoWriteFailed {
+                // The receipt could not be kept: the entry saved without it and
+                // the failure names its next step (hard rule 7) - the photo is
+                // gone from this save, but the entry it documented is not.
+                toastCenter.show(L10n.receiptNotSavedMessage)
+            }
+            // RV.215 + PJ.29: a saved expense is corrected by its owner alone - a
+            // read still in flight (local OR cloud) becomes an inbox suggestion
+            // keyed to this entry, never a silent rewrite (hard rule 13).
+            // `markSaved` seals both boundaries; one call, not two.
+            expenseSession.markSaved(entryID: expense.id)
+            dismiss()
+            onSaved()
+        } catch {
+            AppLog.error(operation: "expenseEntry.save", category: .ui, error: error)
         }
-        .formCard()
+    }
+
+    var saveBar: some View {
+        VStack(spacing: 8) {
+            Button(action: save) {
+                Text("Save expense")
+                    .font(.body.weight(.bold))
+                    .foregroundStyle(saveEnabled ? Theme.Palette.midnight : Theme.Palette.inkSoft)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(saveEnabled ? Theme.Palette.taillight : Theme.Palette.dash)
+                    .clipShape(RoundedRectangle(cornerRadius: 15))
+                    .shadow(color: saveEnabled ? Theme.Palette.taillight.opacity(0.3) : .clear,
+                            radius: 18, y: 4)
+            }
+            .buttonStyle(.plain)
+            .disabled(!saveEnabled)
+            .accessibilityIdentifier("expenseEntrySaveButton")
+        }
+        .padding(.horizontal, Theme.Spacing.screenMargin)
+        .padding(.top, 12)
+        .padding(.bottom, 12)
+        .background(Theme.Palette.midnight)
     }
 }

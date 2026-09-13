@@ -9,12 +9,11 @@ import Foundation
 // reading is generalised: a recognition is fuel, service or expense, and the
 // entry it is about is whichever of those three the user saved.
 //
-// The gateway wire still carries only the fuel shape (docs/API.md -> `/extract`);
-// a service or expense reading is device-local until the cloud half (PJ.29)
-// carries it through the delivery outbox. Making the producing side deferrable
-// is the second half of RV.201 and is filed separately - the seam it plugs into
-// is `GatewayInboxPolicy.item(recognition:entry:)` below, the SAME entry point
-// the in-process and outbox paths already share.
+// The expense kind now reaches the cloud gateway too (PJ.29): a cloud expense
+// answer is mapped to this same recognition and routed through
+// `GatewayInboxPolicy.item(recognition:entry:)` below, the ONE entry point the
+// in-process and outbox paths already share. The service invoice's cloud half is
+// filed separately (PJ.29a); until it lands, a service reading is device-local.
 
 /// A late reading, tagged by the kind of entry it is about. The three cases are
 /// deliberately not interchangeable: a fuel extraction on a service entry is a

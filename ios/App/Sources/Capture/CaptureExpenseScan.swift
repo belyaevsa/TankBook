@@ -89,11 +89,40 @@ extension CaptureView {
         capture = await expenseCapture(from: image)
         #endif
         let preset = ExpenseCategoryInference.infer(from: capture.ocrLines)
+        // PJ.29: the local result is ready and the form is about to open on it
+        // (F4). NOW start the cloud reading of the same frame. It never blocks
+        // the open, only ever fills blank AND untouched fields, and a late
+        // answer becomes an inbox item - never a rewrite of the open editor.
+        startExpenseGatewayIfAvailable(image: image)
         return ExpenseScanOutcome(
             prefill: ExpensePrefillBuilder.prefill(from: capture.extraction),
             preset: preset,
             capture: capture,
             recognition: ExpenseScanOutcome.recognition(from: capture.extraction, preset: preset))
+    }
+
+    /// PJ.29: fires `/extract` with `kind: "expense"` for the frame just read,
+    /// under the same guards the fill-up Confirm sheet uses - `allowsServerBacked`
+    /// withholds the call under `.required` (docs/CONFIG.md), a guest has no
+    /// transport, and a non-JPEG rendition gets no call. The answer is delivered
+    /// to the open sheet through the session, or, once the entry is saved, to
+    /// the inbox through the ONE policy.
+    private func startExpenseGatewayIfAvailable(image: UIImage) {
+        guard config.allowsServerBacked else { return }
+        let vehicle = try? currentVehicle()
+        let language = Locale.current.language.languageCode?.identifier ?? "en"
+        let hints = GatewayExtractHints(currency: vehicle?.homeCurrency.rawValue,
+                                        locale: language,
+                                        vehicleFuelKinds: [])
+        let inbox = self.inbox
+        expenseSession.startGateway(
+            image: image,
+            hints: hints,
+            captureId: UUID.v7().uuidString,
+            onSavedAnswer: { extraction, entryID in
+                let reading = ExpensePrefillBuilder.reading(fromGateway: extraction)
+                inbox.recordLateGatewayAnswer(.expense(reading.recognition), entryID: entryID)
+            })
     }
 
     /// Runs the recognition an Expense-mode scan shares with the fill-up path.

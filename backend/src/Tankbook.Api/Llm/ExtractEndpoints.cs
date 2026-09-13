@@ -38,7 +38,7 @@ public static class ExtractEndpoints
                 StatusCodes.Status400BadRequest,
                 TankbookErrorCodes.PayloadInvalid,
                 "Invalid extraction request.",
-                "kind must be one of receipt, pump, chargeScreenshot, invoice.");
+                "kind must be one of receipt, pump, chargeScreenshot, invoice, expense.");
         }
 
         var hints = request.Hints ?? new ExtractHints(null, null, null);

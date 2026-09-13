@@ -67,7 +67,7 @@ public sealed class OpenAiCompatibleLlmProvider : ILlmProvider
             reasoning = model.SupportsThinking ? new { enabled = true } : null,
             messages = new object[]
             {
-                new { role = "system", content = SystemPrompt(kind, hints) },
+                new { role = "system", content = LlmPrompts.SystemPrompt(kind, hints) },
                 new
                 {
                     role = "user",
@@ -76,7 +76,7 @@ public sealed class OpenAiCompatibleLlmProvider : ILlmProvider
                         new
                         {
                             type = "text",
-                            text = "Extract the fuel fields from this image as the JSON object described.",
+                            text = LlmPrompts.UserMessage(kind),
                         },
                         new
                         {
@@ -111,26 +111,6 @@ public sealed class OpenAiCompatibleLlmProvider : ILlmProvider
         var fields = ParseFields(root);
         var thinking = ReadThinking(root);
         return new LlmExtraction(fields, servedModel, promptTokens, completionTokens, responseText, thinking);
-    }
-
-    private static string SystemPrompt(string kind, ExtractHints hints)
-    {
-        var hintsJson = JsonSerializer.Serialize(new
-        {
-            kind,
-            hints = new
-            {
-                currency = hints.Currency,
-                locale = hints.Locale,
-                vehicleFuelKinds = hints.VehicleFuelKinds,
-            },
-        });
-
-        return "You extract fuel-purchase fields from an image. " +
-               "Respond with a single JSON object and nothing else: " +
-               "{ \"fields\": [ { \"name\": string, \"value\": number|string, \"confidence\": 0..1 } ] }. " +
-               "Allowed field names: total, volume, unitPrice, date, station, fuelKind, energy, currency, vendor. " +
-               "A field you cannot read is omitted, never guessed. Request context: " + hintsJson;
     }
 
     private static string DataUrl(byte[] imageBytes)

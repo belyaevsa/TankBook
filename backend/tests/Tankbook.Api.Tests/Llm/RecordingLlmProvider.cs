@@ -27,6 +27,8 @@ public sealed class RecordingLlmProvider : ILlmProvider
 
     public IReadOnlyList<LlmModelChoice> ModelChoices { get; private set; } = [];
 
+    public IReadOnlyList<string> Kinds { get; private set; } = [];
+
     public void SetHandler(Func<string, byte[], ExtractHints, LlmModelChoice, LlmExtraction> handler) => _handler = handler;
 
     public void SetFailure() => _handler = static (_, _, _, _) => throw new InvalidOperationException("provider down");
@@ -41,6 +43,7 @@ public sealed class RecordingLlmProvider : ILlmProvider
         CallCount++;
         Calls = Calls.Append(imageBytes).ToList();
         ModelChoices = ModelChoices.Append(model).ToList();
+        Kinds = Kinds.Append(kind).ToList();
         return Task.FromResult(_handler(kind, imageBytes, hints, model));
     }
 }

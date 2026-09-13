@@ -1451,6 +1451,14 @@ capture RV.62-expense-prefill-ru                         ru -seedExpenseEntryPre
 capture RV.200-expense-category                          en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode expense -captureFixtureImage "${RV5_FIXTURE}" -seedExpenseScanParking -captureAutoUse
 capture RV.200-expense-category-ru                       ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode expense -captureFixtureImage "${RV5_FIXTURE}" -seedExpenseScanParking -captureAutoUse
 
+# PJ.29: the Expense-mode capture now reaches the cloud gateway, so the expense
+# form carries the same RV.57 proceed note the fill-up Confirm sheet does while
+# `/extract` is in flight. The frame is the real capture path with the seeded
+# gateway delayed past the 3 s budget, so the note stays on screen and the local
+# read's amount is already filled (F4: the app never waits on the gateway).
+capture PJ.29-expense-gateway-note                       en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode expense -captureFixtureImage "${RV5_FIXTURE}" -seedExpenseScan -seedGateway -seedGatewayDelay 30 -captureAutoUse
+capture PJ.29-expense-gateway-note-ru                    ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode expense -captureFixtureImage "${RV5_FIXTURE}" -seedExpenseScan -seedGateway -seedGatewayDelay 30 -captureAutoUse
+
 # RV.279: the Expense and Service capture forms now render the odometer card and
 # the currency chip row Edit entry has, so the two doors to one entry are the
 # same screen. The expense frame is the foreign-prefilled state (a 289.50 PLN

@@ -13,7 +13,7 @@ public sealed record ExtractRequest(string? Kind, string? Image, ExtractHints? H
 public static class ExtractKinds
 {
     public static readonly IReadOnlySet<string> Valid =
-        new HashSet<string>(StringComparer.Ordinal) { "receipt", "pump", "chargeScreenshot", "invoice" };
+        new HashSet<string>(StringComparer.Ordinal) { "receipt", "pump", "chargeScreenshot", "invoice", "expense" };
 
     public static bool IsValid(string? kind) => kind is not null && Valid.Contains(kind);
 }

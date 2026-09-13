@@ -42,6 +42,13 @@ public struct GatewayExtraction: Sendable, Equatable, Codable {
     public var date: GatewayFieldValue<String>?
     public var fuelKind: GatewayFieldValue<FuelKind>?
     public var currency: GatewayFieldValue<CurrencyCode>?
+    /// The expense CATEGORY an `expense`-kind answer read (PJ.29): a shop or
+    /// parking receipt has no fuel fields, so the field the form needs is the
+    /// kind of expense it is. Absent on every fuel answer and on an answer whose
+    /// category string the device does not know - the value is decoded against
+    /// the `ExpenseCategory` codes, and an unknown string is dropped, never
+    /// guessed (hard rule 13).
+    public var category: GatewayFieldValue<ExpenseCategory>?
     /// The provider/pipeline id the server reports (docs/SCHEMA.md,
     /// `ExtractionMeta.pipeline`), for regression tracking.
     public var pipeline: String
@@ -53,6 +60,7 @@ public struct GatewayExtraction: Sendable, Equatable, Codable {
         date: GatewayFieldValue<String>? = nil,
         fuelKind: GatewayFieldValue<FuelKind>? = nil,
         currency: GatewayFieldValue<CurrencyCode>? = nil,
+        category: GatewayFieldValue<ExpenseCategory>? = nil,
         pipeline: String = ""
     ) {
         self.total = total
@@ -61,6 +69,7 @@ public struct GatewayExtraction: Sendable, Equatable, Codable {
         self.date = date
         self.fuelKind = fuelKind
         self.currency = currency
+        self.category = category
         self.pipeline = pipeline
     }
 
@@ -74,6 +83,7 @@ public struct GatewayExtraction: Sendable, Equatable, Codable {
         if date != nil { out.insert(.date) }
         if fuelKind != nil { out.insert(.fuelKind) }
         if currency != nil { out.insert(.currency) }
+        if category != nil { out.insert(.category) }
         return out
     }
 }
@@ -175,14 +185,21 @@ extension GatewayExtraction {
             return value
         case .date:
             return node.stringValue
-        case .fuelKind:
-            guard let raw = node.stringValue, let value = FuelKind(rawValue: raw) else { return nil }
-            return value
-        case .currency:
-            guard let raw = node.stringValue, let value = CurrencyCode(rawValue: raw) else { return nil }
-            return value
         default:
-            return nil
+            return parsedEnumValue(ref: ref, node: node)
+        }
+    }
+
+    /// The string-valued fields - the fuel kind, the currency and the expense
+    /// category - decoded from their canonical string. An unknown string is nil
+    /// for that field, dropped rather than guessed (hard rule 13).
+    private static func parsedEnumValue(ref: FieldRef, node: JSONValue) -> (any Sendable & Equatable)? {
+        guard let raw = node.stringValue else { return nil }
+        switch ref {
+        case .fuelKind: return FuelKind(rawValue: raw)
+        case .currency: return CurrencyCode(rawValue: raw)
+        case .category: return ExpenseCategory(gatewayValue: raw)
+        default: return nil
         }
     }
 
@@ -209,6 +226,7 @@ extension GatewayExtraction {
         case .date: date = (value as? String).map { .init(value: $0, confidence: confidence) }
         case .fuelKind: fuelKind = (value as? FuelKind).map { .init(value: $0, confidence: confidence) }
         case .currency: currency = (value as? CurrencyCode).map { .init(value: $0, confidence: confidence) }
+        case .category: category = (value as? ExpenseCategory).map { .init(value: $0, confidence: confidence) }
         default: break
         }
     }

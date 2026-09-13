@@ -509,6 +509,26 @@ recognition. The date is a suggestion the user ticks, never an applied value (ha
 parking ticket dated last week and saved as today can be corrected from the receipt rather than
 staying wrong.
 
+**The expense kind reaches the cloud gateway (PJ.29, 2026-09-13).** A shop or parking receipt is no
+longer read on-device alone. `CaptureExpenseScan.startExpenseGatewayIfAvailable` starts a
+`GatewayScanSession` with `kind: "expense"` as soon as the local outcome lands - the form is already
+open on it (F4) - under the same guards the fill-up Confirm sheet uses: `config.allowsServerBacked`
+withholds the request under `.required`, a guest gets no transport, and a non-JPEG rendition gets no
+call. The provider is asked for the fields that document actually carries
+(`total, date, currency, vendor, category`) and never a fuel field, which is what the `expense` kind
+exists for; the backend seeds it in `llm_settings` (migration 022).
+
+The answer is bound by the fill-up path's own rules. A within-budget answer fills only the expense
+form's **blank AND untouched** amount, currency, date and category, through the same
+`GatewaySuggestionPolicy`; a late answer - the budget expired, or the entry was saved first - becomes
+an inbox item through `GatewayInboxPolicy.item(recognition:entry:)`, the one policy. The mapping from
+`GatewayExtraction` to both the pre-fill and the recognition is a single core function,
+`ExpensePrefillBuilder.reading(fromGateway:)`, so the on-time and late routes cannot disagree about
+what the receipt said. The category string is decoded against the device's own codes
+(`parking, toll, wash, insurance, tax, fine, accessory, parts, other`) and an unknown string is
+dropped, never guessed (hard rule 13). The service invoice's cloud half is filed as `PJ.29a`: the
+line items stay the local deterministic split's, and only the header fields would cross.
+
 ## Cross-multiplication as digit repair
 
 New, 2026-08-26, and specific to seven-segment displays.

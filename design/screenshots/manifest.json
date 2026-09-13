@@ -1035,6 +1035,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "PJ.29-expense-gateway-note": {
+      "commit": "0ccd81fc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.29-expense-gateway-note-ru": {
+      "commit": "0ccd81fc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "PJ.33-import-guide": {
       "commit": "e8cf18f1",
       "device": "iPhone 17",

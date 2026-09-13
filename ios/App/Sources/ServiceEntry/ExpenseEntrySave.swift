@@ -20,6 +20,7 @@ extension ExpenseEntryView {
     static func writeExpense(
         form: ExpenseEntryFormState, vehicle: Vehicle, amount: Decimal,
         scan: ExpenseScanCapture?, repository: TankbookRepository,
+        id: UUID = UUID.v7(),
         store: RateStore = AppRates.store
     ) throws -> (expense: Expense, photoWriteFailed: Bool) {
         var attachmentIDs: [AttachmentID] = []
@@ -38,7 +39,7 @@ extension ExpenseEntryView {
         var expense = storedExpense(
             form: form, vehicle: vehicle, amount: amount,
             attachments: attachmentIDs,
-            provenance: scan != nil ? .receiptScan : .manual, now: now)
+            provenance: scan != nil ? .receiptScan : .manual, id: id, now: now)
         // The chosen currency is saved as a snapshot at the entry's OWN date,
         // through the same conversion the fill-up path takes (hard rule 3): a
         // rate for that date snapshots the pair, a miss leaves it rate-pending -

@@ -29,6 +29,10 @@ struct CaptureView: View {
     /// RV.215: a late service or expense read becomes an inbox item through the
     /// same store the fuel path records into.
     @Environment(AppInbox.self) var inbox
+    /// PJ.29: `allowsServerBacked` withholds the cloud reading under `.required`
+    /// (docs/CONFIG.md), exactly as the fill-up Confirm sheet does. Internal, not
+    /// private: the expense scan path lives in `CaptureExpenseScan.swift`.
+    @Environment(AppConfigService.self) var config
 
     @State private var cameraStatus: CaptureCameraStatus = .notDetermined
     /// RV.223: a real camera that returned no frame (in use, or a hardware

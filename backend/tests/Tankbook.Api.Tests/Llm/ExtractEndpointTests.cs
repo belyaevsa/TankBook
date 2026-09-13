@@ -339,6 +339,30 @@ public class ExtractEndpointTests : IClassFixture<PostgresFixture>
         Assert.Equal(1, await app.ScalarAsync<int>("SELECT requests FROM llm_usage WHERE account_id = @p AND period = @d", new { p = accountB, d = Period }));
     }
 
+    // ---- 9. PJ.29: the expense kind is accepted, an unknown kind is still 400 --
+
+    [SkippableFact]
+    public async Task Extract_ExpenseKindIsAccepted_UnknownKindIsStill400()
+    {
+        var signer = new TestIdTokenSigner();
+        var provider = new RecordingLlmProvider();
+        await using var app = await StartAsync(signer, provider);
+        var (token, account, _) = await CreateSessionAsync(app, signer, "expense-kind", "expense@example.com");
+        await app.SetTierAsync(account, "pro");
+
+        // A shop or parking receipt is now a kind the gateway accepts (PJ.29),
+        // and the kind reaches the provider unchanged - the per-kind prompt and
+        // the model resolution both key off it.
+        var accepted = await ExtractAsync(app.Client, token, "expense", SmallImage(), null);
+        Assert.Equal(HttpStatusCode.OK, accepted.StatusCode);
+        Assert.Equal(new[] { "expense" }, provider.Kinds);
+
+        // An unknown kind is still a 400, and it never reaches the provider.
+        var rejected = await ExtractAsync(app.Client, token, "parkingTicket", SmallImage(), null);
+        Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
+        Assert.Equal(1, provider.CallCount);
+    }
+
     // ---- helpers -------------------------------------------------------------
 
     private static string SmallImage() => Convert.ToBase64String("receipt"u8.ToArray());

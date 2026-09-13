@@ -94,7 +94,26 @@ final class ExpenseEntrySession {
     /// so the outcome itself cannot be an `onChange` trigger).
     private(set) var scanRevision = 0
 
+    /// PJ.29: the cloud reading for the current scan. Owned here, not by the
+    /// sheet, because the CAPTURE starts it the moment the local read lands -
+    /// the sheet may not exist yet. A fresh instance per scan, since
+    /// `GatewayScanSession.start` is one-shot.
+    var gateway = GatewayScanSession()
+    /// The cloud answer that arrived within the budget, waiting for the open
+    /// sheet to apply it. The sheet consumes it and bumps `gatewayRevision`;
+    /// `nil` once applied.
+    var pendingGatewayExtraction: GatewayExtraction?
+    /// Bumped when a cloud answer is ready, so the sheet can apply it (the
+    /// answer is not `Equatable`-triggerable on its own).
+    private(set) var gatewayRevision = 0
+
     @ObservationIgnored private let deferred = DeferredRecognition()
+    /// The entry a cloud read is about, once the user saves. It exists so a
+    /// gateway started AFTER the save (a very slow local read can delay
+    /// `startGateway` past `markSaved`) still knows the entry is already saved
+    /// and routes its late answer to the inbox rather than to a sheet that is
+    /// gone.
+    @ObservationIgnored private var gatewaySavedEntryID: UUID?
 
     /// Starts one deferred read (RV.215). The session decides by the save
     /// boundary whether the outcome fills the open form (`onAnswer`) or becomes
@@ -122,6 +141,7 @@ final class ExpenseEntrySession {
                work: @escaping @MainActor () async -> ExpenseScanOutcome,
                onAnswer: @escaping @MainActor (ExpenseScanOutcome) -> Void,
                onSavedAnswer: @escaping @MainActor (ExpenseScanOutcome, UUID) -> Void) {
+        gatewaySavedEntryID = nil
         stageScan(image)
         start(work: work, onAnswer: onAnswer, onSavedAnswer: onSavedAnswer)
     }
@@ -130,6 +150,50 @@ final class ExpenseEntrySession {
     /// inbox; one that already answered keeps the form it filled.
     func markSaved(entryID: UUID) {
         deferred.markSaved(entryID: entryID)
+        gatewaySavedEntryID = entryID
+        gateway.markSaved(entryID: entryID)
+    }
+
+    /// PJ.29: starts the cloud reading of the same scan, under the same guards
+    /// the fill-up path uses (`allowsServerBacked` is the caller's, a transport
+    /// and a JPEG are checked here). The answer is delivered to the open sheet
+    /// through `pendingGatewayExtraction`/`gatewayRevision`; a late answer is
+    /// routed by `onSavedAnswer`, never applied to the editor (hard rule 13).
+    ///
+    /// A fresh `GatewayScanSession` per scan: `start` is one-shot, so a second
+    /// scan must not inherit the first's started state.
+    func startGateway(image: UIImage,
+                      hints: GatewayExtractHints,
+                      captureId: String,
+                      transport injectedTransport: (any GatewayExtractTransport)? = nil,
+                      onSavedAnswer: @escaping @MainActor (GatewayExtraction, UUID) -> Void) {
+        gateway = GatewayScanSession()
+        guard let cgImage = image.cgImage,
+              let transport = injectedTransport ?? GatewayScanStarter.makeTransport(),
+              let jpeg = GatewayRendition.jpegData(from: cgImage) else { return }
+        let request = GatewayExtractRequest(kind: "expense",
+                                            imageJPEG: jpeg,
+                                            hints: hints,
+                                            captureId: captureId)
+        gateway.start(transport: transport, request: request) { [weak self] extraction in
+            guard let self else { return }
+            self.pendingGatewayExtraction = extraction
+            self.gatewayRevision += 1
+        } onSavedAnswer: { extraction, entryID in
+            onSavedAnswer(extraction, entryID)
+        }
+        // A gateway started after the save (a slow local read delayed this call)
+        // must still treat its answer as late.
+        if let savedEntryID = gatewaySavedEntryID {
+            gateway.markSaved(entryID: savedEntryID)
+        }
+    }
+
+    /// The sheet consumed the pending cloud answer. One-shot, like the local
+    /// pre-fill: a second open must not re-apply a stale reading.
+    func consumePendingGatewayExtraction() -> GatewayExtraction? {
+        defer { pendingGatewayExtraction = nil }
+        return pendingGatewayExtraction
     }
 
     /// RV.267: the sheet closed without a save. The in-flight read is cancelled
@@ -142,6 +206,9 @@ final class ExpenseEntrySession {
         pendingPrefill = nil
         pendingPreset = nil
         pendingCapture = nil
+        pendingGatewayExtraction = nil
+        gatewaySavedEntryID = nil
+        gateway = GatewayScanSession()
     }
 
     /// PJ.28: consumes (clears) the staged capture. `nil` when no scan is open
