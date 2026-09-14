@@ -11,6 +11,14 @@ decisions.
 
 ---
 
+## 2026-09-14 · A second dispatch path: Codex on `gpt-5.6-sol`
+
+| | |
+|---|---|
+| **Commits** | the commit carrying `scripts/dispatch-codex.sh` |
+| **Reason** | Every `opencode run` since 19:10 on 2026-09-14 died at its banner - four dispatches, two probes - and the provider was live. The cause was local: opencode's session database had grown to 22 GB on a disk at 97%, and each new run stalled opening it. The product owner directed the dispatch to Codex on the `gpt-5.6-sol` model, and the database was deleted on the owner's instruction (the transcripts in `/tmp/agentlogs` and the ledger in `TASKS-HISTORY.md` are the record; the database held nothing else). |
+| **What changed** | `scripts/dispatch-codex.sh` mirrors `dispatch.sh`: brief plus preamble on stdin, detached with its own log (`<id>-codex.log`, the final message in `<id>.last.md`), health-checked by log bytes at 60 s, one retry; approvals and sandbox bypassed, the same standing as `opencode run --auto`, because `xcodebuild` writes outside the workspace. The health threshold is 2 000 bytes, not 8 000 - Codex logs less in its first minute. Everything after launch is unchanged: the pid is monitored, the report is not evidence, the orchestrator verifies. The dispatch ledger names the worker as `codex sol`. |
+
 ## 2026-09-12 · Scenario and journey walks are the orchestrator's own work
 
 | | |
