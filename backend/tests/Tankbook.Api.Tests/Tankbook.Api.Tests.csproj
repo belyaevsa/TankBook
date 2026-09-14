@@ -64,5 +64,14 @@
     <None Update="Rates/Fixtures/ecb-eurofxref-hist-2015.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <!-- RV.284: the pre-RV.218 fillUp schema - the deployed registry a database
+         that ran migration 002 before the `consumption` conflict kind was added
+         still holds. The refresh migration test overwrites a live registry row
+         with it, then re-runs the refresh and asserts the row now matches the
+         embedded schema. Copied rather than embedded so a reader can diff it
+         against docs/schemas/v1/fillUp.schema.json directly. -->
+    <None Update="Fixtures/schemas/fillUp.v1.pre-rv218.schema.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

@@ -630,6 +630,15 @@ capture P4.9b-settings-revoked-ru ru -presentScreen settings -seedSettingsRevoke
 capture P4.9b-settings-quota      en -presentScreen settings -seedSettingsQuota
 capture P4.9b-settings-quota-ru   ru -presentScreen settings -seedSettingsQuota
 
+# RV.284: a row the server rejected structurally. The log shot is the entry's
+# "not synced" badge (icloud.slash, distinct from the conflict chevron); the
+# settings shot is the "N entries could not sync" row with its next step. RU is
+# where the composed next step runs longest.
+capture RV.284-log-rejected       en -seedHomeRejected
+capture RV.284-log-rejected-ru    ru -seedHomeRejected
+capture RV.284-settings-rejected  en -presentScreen settings -seedSettingsRejected
+capture RV.284-settings-rejected-ru ru -presentScreen settings -seedSettingsRejected
+
 # PJ.13: the J11a just-signed-in card - "Synced just now · 1 device" and the
 # "Your garage now follows your account" confirmation (docs/JOURNEYS.md J11a ->
 # First push / Confirm). The seed renders the post-first-push state under a

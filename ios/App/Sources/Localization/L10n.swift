@@ -350,6 +350,25 @@ enum L10n {
         String(localized: "\(count) entries need a look")
     }
 
+    /// "N entries could not sync" - the rejected-entries count (RV.284,
+    /// docs/ERRORS.md -> Settings). The server refused these structurally, so
+    /// they stay on this phone until edited or the app updates.
+    static func rejectedEntries(_ count: Int) -> String {
+        String(localized: "\(count) entries could not sync")
+    }
+
+    /// The entry-row badge's next step (RV.284, hard rule 7): the fix is a newer
+    /// app or editing the entry, never the user's data.
+    static var rejectedEntryBadgeLabel: String {
+        localize("Could not sync this entry – update the app or edit it to retry")
+    }
+
+    /// The Settings rejected-count row's caption (RV.284): the same next step as
+    /// the badge, in the plural.
+    static var rejectedEntriesHint: String {
+        localize("Update the app or edit them to retry")
+    }
+
     /// The Sign out confirmation (RV.40, docs/ERRORS.md -> Settings).
     static func signOutConfirmation(dirtyCount: Int) -> String {
         if dirtyCount == 0 {

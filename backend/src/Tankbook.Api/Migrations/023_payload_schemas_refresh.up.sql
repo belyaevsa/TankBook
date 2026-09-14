@@ -1,0 +1,20 @@
+-- Tankbook backend, migration 023 (payload schema registry refresh, RV.284).
+-- docs/SYNC.md "The schema registry lives in the database, not in code".
+--
+-- The registry is seeded ONCE by migration 002 with
+-- INSERT ... ON CONFLICT (entity_type, schema_version) DO NOTHING, so a
+-- database that ran 002 before a later additive change - a new enum value, an
+-- optional field - keeps its OLD row and no later migration touches it. The
+-- embedded schema files every backend build carries then disagree with the
+-- deployed registry, and the server rejects what the app now emits, forever,
+-- with no way for a later additive change to reach the database.
+--
+-- The marker below is replaced by the PayloadSchemaSeeder with
+-- INSERT ... ON CONFLICT (entity_type, schema_version) DO UPDATE SET
+-- json_schema = EXCLUDED.json_schema - one statement per embedded schema - so
+-- every deploy's migration set lands the schemas for the versions it carries.
+-- It is additive-only within a version: a schema that removed a value would
+-- need a NEW schema_version (and an upcaster), because this refresh overwrites
+-- a version in place and a removal would silently invalidate payloads an older
+-- client still emits (docs/SYNC.md -> "Migrating payloads").
+{{PAYLOAD_SCHEMAS_REFRESH}}

@@ -37,6 +37,10 @@ enum SettingsTestSeed {
         case flaggedNeighbourhood
         case revoked
         case quota
+        /// RV.284: one entry the server rejected structurally, so Settings
+        /// renders "N entries could not sync" with the next step. The row is
+        /// read back through `rejectedEntryCount`, never stored.
+        case rejected
         /// RV.253: the real blob-quota path, not the `forcedQuotaPercent`
         /// fixture - a dirty attachment over a seeded transport that answers
         /// `POST /blobs/begin` with the `blob_quota_exceeded` 429 carrying
@@ -97,6 +101,7 @@ enum SettingsTestSeed {
             "-seedSettingsFlaggedNeighbourhood": .flaggedNeighbourhood,
             "-seedSettingsRevoked": .revoked,
             "-seedSettingsQuota": .quota,
+            "-seedSettingsRejected": .rejected,
             "-seedSettingsQuota429": .quota429,
             "-seedSettingsUpgradeRequired": .upgradeRequired,
             "-seedSettingsTierRefused": .tierRefused,
@@ -302,7 +307,7 @@ enum SettingsTestSeed {
         if seedsQueue(state) || state == .flagged || state == .flaggedMultiyear
             || state == .flaggedMany || state == .flaggedConsumption
             || state == .flaggedNeighbourhood
-            || state == .localLog || state == .quota429 {
+            || state == .localLog || state == .quota429 || state == .rejected {
             seed(repository: try? AppStore.repository(), state: state)
         }
         // OB.3: write the persisted sync state THIS seed must show. Runs after
@@ -358,6 +363,16 @@ enum SettingsTestSeed {
         } else if state == .flagged || state == .flaggedMultiyear || state == .flaggedMany
             || state == .flaggedConsumption || state == .flaggedNeighbourhood {
             seedFlagged(repository: repository, vehicle: vehicle, state: state)
+        } else if state == .rejected {
+            // RV.284: one rejected fill on the seeded vehicle - the Settings
+            // "N entries could not sync" count, read back through
+            // `rejectedEntryCount`. The same shape as the Home badge seed.
+            let fill = HomeTestSeed.makeFill(
+                vehicleID: vehicle.id,
+                HomeTestSeed.FillSpec(daysAgo: 1, odometer: 118_500, litres: 42.3,
+                                      amount: "71.02", price: "1.679", stationID: nil))
+            try? repository.upsertFillUp(fill, syncState: .synced(scn: 2))
+            try? repository.markRejected(id: fill.id, entityType: FillUp.entityType)
         }
     }
 

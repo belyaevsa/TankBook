@@ -88,6 +88,40 @@
         }
       }
     },
+    "Could not sync this entry – update the app or edit it to retry": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not sync this entry – update the app or edit it to retry"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось синхронизировать эту запись – обновите приложение или отредактируйте её, чтобы повторить"
+          }
+        }
+      }
+    },
+    "Update the app or edit them to retry": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update the app or edit them to retry"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновите приложение или отредактируйте, чтобы повторить"
+          }
+        }
+      }
+    },
     "Dismissed": {
       "extractionState": "manual",
       "localizations": {
@@ -1535,6 +1569,59 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld записей требуют внимания"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld entries could not sync": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld entry could not sync"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld entries could not sync"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld записи не синхронизированы"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld записей не синхронизированы"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld запись не синхронизирована"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld записей не синхронизированы"
                 }
               }
             }

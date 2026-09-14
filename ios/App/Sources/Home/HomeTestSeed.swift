@@ -79,7 +79,8 @@ enum HomeTestSeed {
             ("-seedHomeRV166PartialGroup", RV166HomeTestSeed.seedPartialGroup),
             ("-seedHomePJ56PendingGroup", PJ56HomeTestSeed.seedPendingGroup),
             ("-seedHomePJ56MixedGroup", PJ56HomeTestSeed.seedMixedGroup),
-            ("-seedHomeRV152", RV152HomeTestSeed.seed)
+            ("-seedHomeRV152", RV152HomeTestSeed.seed),
+            ("-seedHomeRejected", seedRejected)
         ]
         return actions.first { arguments.contains($0.argument) }?.seed
     }
@@ -88,6 +89,21 @@ enum HomeTestSeed {
 
     private static func seedEmptyVehicle(_ repository: TankbookRepository) {
         try? repository.upsertVehicle(makeVehicle())
+    }
+
+    /// RV.284: a synced vehicle and ONE fill the server rejected structurally,
+    /// so Home's entry card carries the "not synced" badge. Shared with
+    /// `SettingsTestSeed` (the `-seedSettingsRejected` state) so the badge and
+    /// the Settings count read the same data.
+    static func seedRejected(_ repository: TankbookRepository) {
+        let vehicle = makeVehicle()
+        try? repository.upsertVehicle(vehicle, syncState: .synced(scn: 1))
+        let fill = makeFill(
+            vehicleID: vehicle.id,
+            FillSpec(daysAgo: 1, odometer: 118_500, litres: 42.3,
+                     amount: "71.02", price: "1.679", stationID: nil))
+        try? repository.upsertFillUp(fill, syncState: .synced(scn: 2))
+        try? repository.markRejected(id: fill.id, entityType: FillUp.entityType)
     }
 
     /// PJ.4: a REAL reminder due inside the attention window (12 days), so the

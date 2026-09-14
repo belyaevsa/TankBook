@@ -173,6 +173,20 @@ extension TankbookRepository {
                            arguments: [id.uuidString])
         }
     }
+
+    /// Marks a row `rejected` - the server refused its payload structurally, so
+    /// it is terminal for this payload until the record is edited again (an
+    /// edit re-dirties it) or a new app build emits a different payload. It
+    /// leaves the dirty queue, so the next cycle's push batch does not contain
+    /// it (docs/SYNC.md S7's 422 sibling, RV.284). The code and pointer are
+    /// transient diagnostics; the persisted column holds only the marker.
+    public func markRejected(id: UUID, entityType: String) throws {
+        try database.write { db in
+            guard let table = table(for: entityType) else { return }
+            try db.execute(sql: "UPDATE \(table) SET syncState = 'rejected' WHERE id = ?",
+                           arguments: [id.uuidString])
+        }
+    }
 }
 
 // MARK: - Apply a record

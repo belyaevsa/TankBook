@@ -23,6 +23,13 @@ deletedAt: Date?    // tombstone; nil = live
 
 Author attribution for shared garages (v2) comes from the sync record's `origin_device`/account, not domain fields.
 
+Every synced row also carries sync bookkeeping (`syncState`/`syncScn`) on top of the envelope,
+documented in `SYNC.md` → "Client state & merge": `dirty | pushing | synced(scn) |
+rejected(code, pointer)`. Only `dirty` rows feed the push queue; a `rejected` row is terminal for
+that payload until edited (an edit re-dirties it) or a new build emits a different payload
+(RV.284). The `rejected` code and pointer are transient diagnostics - the stored column holds the
+bare marker.
+
 ## Entities
 
 ### Vehicle

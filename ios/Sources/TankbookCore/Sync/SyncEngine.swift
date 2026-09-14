@@ -1,69 +1,5 @@
 import Foundation
 
-/// The result of one sync cycle (docs/SYNC.md, S1-S9). Counts and flags only -
-/// no domain values (hard rule 12).
-public struct SyncOutcome: Equatable, Sendable {
-    public var pulled = 0
-    public var pushed = 0
-    public var conflictsResolved = 0
-    public var flaggedEntries = 0
-    public var clampedIds: [UUID] = []
-    public var deviceRevoked = false
-    /// The access token expired and the refresh failed (PR.1): the session is
-    /// gone and the user signs in again. Distinct from `deviceRevoked` (a 410
-    /// from the server) and from `offline`/`serverUnavailable` (an outage the
-    /// app retries itself). Nothing is lost - rows stay dirty (S7).
-    public var authExpired = false
-    public var upgradeRequired = false
-    /// The host could not be reached (no network, DNS failure, connection
-    /// refused): the device is offline. Passive - the honest next step is
-    /// "will sync when you're back online" (docs/ERRORS.md -> Settings), never
-    /// an error. Nothing is lost - rows stay dirty (S7).
-    public var offline = false
-    /// The host answered 5xx: the server is up but failing. Distinct from
-    /// `offline` because the honest next step differs: a 5xx names the service
-    /// being down with "try again", where offline is a passive "back online"
-    /// (docs/ERRORS.md -> Settings). Nothing is lost either way - rows stay
-    /// dirty (S7).
-    public var serverUnavailable = false
-    /// A `402`/unknown-4xx refusal from a server newer than this client, or a
-    /// `429` wait. Distinct from `offline`/`serverUnavailable` because the
-    /// honest next step differs: an outage resolves itself, a refusal needs a
-    /// newer app (P6.11). `retryAfterSeconds` carries the server's own hint
-    /// when it sent one. Nothing is lost either way - the rows stay dirty (S7).
-    public var refusedByServer: SyncServerError?
-    public var retryAfterSeconds: Int?
-    /// RV.253: the blob pipeline's quota state - the percent the server's 429
-    /// carried, or 100 when it carried none (exceeded IS full). Nil when no
-    /// attachment hit the quota this cycle, which is also what clears the
-    /// Settings card on a later successful cycle. Counts only - no domain value
-    /// (hard rule 12).
-    public var quotaUsedPercent: Int?
-    /// P6.8: the cycle was postponed because Low Power Mode is on and this was
-    /// opportunistic work (docs/SYNC.md -> Low Power Mode). Nothing ran, the
-    /// dirty queue is exactly as it was, and the work drains when the mode
-    /// ends - resume, not next launch.
-    public var deferred = false
-
-    public init() {}
-}
-
-extension SyncOutcome {
-    /// Splits the transport failure into the two PR.13 states, made where the
-    /// transport failure is actually known: `offline` is the one case where the
-    /// host never answered; every other error (a 5xx, an undecodable body, a
-    /// pull-side refusal) means the host answered and the service is down, so it
-    /// folds into `serverUnavailable`. Kept on the outcome so `SyncEngine`'s
-    /// catch ladder stays below the cyclomatic-complexity budget.
-    mutating func applyTransportFailure(_ error: any Error) {
-        if case SyncServerError.offline = error {
-            offline = true
-        } else {
-            serverUnavailable = true
-        }
-    }
-}
-
 /// The sync client's one cycle: pull -> merge -> push (docs/SYNC.md, Protocol).
 /// Pure coordination over an injected `SyncTransport` and the repository; every
 /// failure is survivable - a transport outage returns rows to `.dirty`, a `410`
@@ -195,8 +131,16 @@ public struct SyncEngine {
             let summary = try await pushAll(trigger: trigger, tally: tally)
             outcome.pushed = summary.pushed
             outcome.conflictsResolved = summary.conflicts
+            outcome.rejected = summary.rejected
             outcome.clampedIds = summary.clamped
             affected.formUnion(summary.touched)
+            // One aggregate line per cycle when anything was rejected (RV.284):
+            // entity types, codes and JSON pointers are shape (hard rule 12 -
+            // never the payload), and the count is what the Settings surface
+            // reads from the outcome.
+            if summary.rejected > 0 {
+                log?.emit(SyncRejected(count: summary.rejected, items: summary.rejectedItems))
+            }
         } catch SyncServerError.upgradeRequired {
             outcome.upgradeRequired = true
             try? repository.recoverStuckPushes()
@@ -406,40 +350,6 @@ public struct SyncEngine {
 
     // MARK: - Push
 
-    private struct PushSummary {
-        var pushed = 0
-        var conflicts = 0
-        var clamped: [UUID] = []
-        var touched = Set<UUID>()
-    }
-
-    /// One row of the dirty snapshot that survived to push: the wire `change`
-    /// plus the local `record` its accepted outcome must remember for the
-    /// payload memory. Built once per row, then chunked into push batches.
-    private struct PushCandidate {
-        let change: SyncPushChange
-        let record: SyncRecord
-    }
-
-    /// The per-cycle merge tally behind the single `sync.merge` line (OB.2).
-    /// Counts only - never a record list, never a domain value. A reference
-    /// box (not a struct) because it crosses async calls; it is touched only
-    /// from the one synchronize task, so it needs no lock.
-    fileprivate final class SyncCycleTally {
-        var pulled = 0
-        var overwriteConflicts = 0
-        var pushTransportConflicts = 0
-        var clamped = 0
-        /// Records a pull application left queued for push (`.fieldMerge`
-        /// Vehicle, or an RV.35 divergence the `.local` arm re-dirtied) - the
-        /// echo-loop signal on an otherwise idle account.
-        var dirtiedByPull = 0
-        /// RV.253: the blob quota percent an attachment hit this cycle, or nil.
-        /// A later `.committed` upload clears it; the engine copies it onto the
-        /// outcome so the Settings card reads the server's own number.
-        var quotaUsedPercent: Int?
-    }
-
     private func pushAll(trigger: PowerWorkTrigger, tally: SyncCycleTally) async throws -> PushSummary {
         var summary = PushSummary()
 
@@ -573,13 +483,17 @@ public struct SyncEngine {
                     local: localRecords[result.id],
                     current: current,
                     entityType: entityType,
-                    tally: tally
+                    tally: tally,
+                    summary: &summary
                 )
                 summary.conflicts += resolved
                 tally.pushTransportConflicts += resolved
                 summary.touched.formUnion(conflictTouched)
-            case .rejected:
-                try repository.markDirty(id: result.id, entityType: entityType)
+            case .rejected(let code, let pointer):
+                try repository.markRejected(id: result.id, entityType: entityType)
+                summary.rejected += 1
+                summary.rejectedItems.append(SyncRejectedItem(
+                    entityType: entityType, code: code, pointer: pointer))
             }
         }
     }
@@ -587,7 +501,9 @@ public struct SyncEngine {
     /// S6: a stale `baseScn` conflict re-merges against the server's current and
     /// re-pushes, fully automatically, with a bounded number of retries.
     private func resolveConflict(id: UUID, local: SyncRecord?, current: SyncPullRecord,
-                                 entityType: String, tally: SyncCycleTally) async throws -> (resolved: Int, touched: Set<UUID>) {
+                                 entityType: String, tally: SyncCycleTally,
+                                 summary: inout PushSummary) async throws
+        -> (resolved: Int, touched: Set<UUID>) {
         guard var localRecord = local else {
             try repository.markSynced(id: id, entityType: entityType, scn: current.scn)
             payloadMemory.recordSynced(id: id, payload: current.payload)
@@ -648,8 +564,11 @@ public struct SyncEngine {
                 currentRecord = nextCurrent.asRecord()
                 currentScn = nextCurrent.scn
                 localRecord = keep
-            case .rejected:
-                try repository.markDirty(id: id, entityType: entityType)
+            case .rejected(let code, let pointer):
+                try repository.markRejected(id: id, entityType: entityType)
+                summary.rejected += 1
+                summary.rejectedItems.append(SyncRejectedItem(
+                    entityType: entityType, code: code, pointer: pointer))
                 return (0, [])
             }
         }
@@ -658,9 +577,50 @@ public struct SyncEngine {
     private func isLocalEdit(_ state: SyncState) -> Bool {
         switch state {
         case .dirty, .pushing: return true
-        case .synced: return false
+        case .synced, .rejected: return false
         }
     }
+}
+
+// MARK: - The push cycle's private bookkeeping
+
+/// The per-push tally: counts and flags only, no domain values (hard rule 12).
+/// `rejected`/`rejectedItems` carry the rows the server refused structurally,
+/// with code and JSON pointer, for the one aggregate `sync.rejected` line.
+fileprivate struct PushSummary {
+    var pushed = 0
+    var conflicts = 0
+    var clamped: [UUID] = []
+    var touched = Set<UUID>()
+    var rejected = 0
+    var rejectedItems: [SyncRejectedItem] = []
+}
+
+/// One row of the dirty snapshot that survived to push: the wire `change`
+/// plus the local `record` its accepted outcome must remember for the
+/// payload memory. Built once per row, then chunked into push batches.
+fileprivate struct PushCandidate {
+    let change: SyncPushChange
+    let record: SyncRecord
+}
+
+/// The per-cycle merge tally behind the single `sync.merge` line (OB.2).
+/// Counts only - never a record list, never a domain value. A reference
+/// box (not a struct) because it crosses async calls; it is touched only
+/// from the one synchronize task, so it needs no lock.
+fileprivate final class SyncCycleTally {
+    var pulled = 0
+    var overwriteConflicts = 0
+    var pushTransportConflicts = 0
+    var clamped = 0
+    /// Records a pull application left queued for push (`.fieldMerge`
+    /// Vehicle, or an RV.35 divergence the `.local` arm re-dirtied) - the
+    /// echo-loop signal on an otherwise idle account.
+    var dirtiedByPull = 0
+    /// RV.253: the blob quota percent an attachment hit this cycle, or nil.
+    /// A later `.committed` upload clears it; the engine copies it onto the
+    /// outcome so the Settings card reads the server's own number.
+    var quotaUsedPercent: Int?
 }
 
 /// Decodes an `Attachment` entity from a record payload so the blob gate can
@@ -681,7 +641,7 @@ private func decodeAttachment(from record: SyncRecord) throws -> Attachment {
 /// percent, or 100 when it carried none (exceeded IS full). File-scope so the
 /// engine's type body stays inside its lint budget.
 private func applyBlobGate(_ outcome: BlobCommitOutcome,
-                           to tally: SyncEngine.SyncCycleTally) -> Bool {
+                           to tally: SyncCycleTally) -> Bool {
     switch outcome {
     case .committed:
         tally.quotaUsedPercent = nil

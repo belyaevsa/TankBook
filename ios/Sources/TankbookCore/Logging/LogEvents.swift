@@ -383,6 +383,49 @@ public struct SyncQueue: LogEvent {
     }
 }
 
+/// One row the server rejected structurally on push (RV.284): its entity type,
+/// the rejection code and the JSON pointer the server named. Shape only - the
+/// code and the pointer (a field path) are loggable, the payload never is
+/// (hard rule 12).
+public struct SyncRejectedItem: Sendable, Equatable {
+    public let entityType: String
+    public let code: String
+    public let pointer: String?
+
+    public init(entityType: String, code: String, pointer: String?) {
+        self.entityType = entityType
+        self.code = code
+        self.pointer = pointer
+    }
+}
+
+/// One aggregate `sync.rejected` line per non-empty cycle (RV.284): the count of
+/// rows the server rejected structurally, plus the compact per-item shapes
+/// (`entityType:code:pointer`). A 422 rejection is terminal for that payload -
+/// the same bytes are rejected forever - so a non-zero count here is the signal
+/// that a device holds rows it will never push until they are edited or the app
+/// updates (docs/SYNC.md S7's 422 sibling).
+public struct SyncRejected: LogEvent {
+    public let eventName = "sync.rejected"
+    public let category = LogCategory.sync
+    public let level = LogLevel.info
+    public let fields: [LogField]
+
+    public init(count: Int, items: [SyncRejectedItem]) {
+        var fields: [LogField] = [.safe("count", count)]
+        if !items.isEmpty {
+            let tally = items
+                .map { item in
+                    item.pointer.map { "\(item.entityType):\(item.code):\($0)" }
+                        ?? "\(item.entityType):\(item.code)"
+                }
+                .joined(separator: ",")
+            fields.append(.safe("items", tally))
+        }
+        self.fields = fields
+    }
+}
+
 // MARK: - Remote config (docs/LOGGING.md §4, docs/CONFIG.md -> "Logging")
 
 /// A config layer was applied. Config is our data, not the user's, so every

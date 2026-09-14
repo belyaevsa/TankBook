@@ -1,0 +1,6 @@
+-- Tankbook backend, migration 023 rollback: a no-op.
+-- A registry row cannot be un-refreshed to an unknown prior text - the "before"
+-- of a DO UPDATE is whatever an earlier deploy seeded, and it is not recoverable
+-- from this migration's own resources. Rolling back the refresh therefore does
+-- nothing: the refreshed schemas stay, which is the safe direction (a newer,
+-- strictly-additive schema accepts every payload the older one did).

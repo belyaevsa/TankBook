@@ -36,6 +36,10 @@ struct HomeView: View {
     @State private var didSeed = false
     @State private var presentables = HomePresentables.fromLaunchArguments()
     @State private var resolvedDuplicateKeys: Set<DuplicateDetector.PairKey> = []
+    /// RV.284: the entry rows in the `rejected` sync state (the server refused
+    /// them structurally). Loaded with the entries; a member's card carries the
+    /// "not synced" badge.
+    @State private var rejectedEntryIDs: Set<UUID> = []
 
     /// Derived, never stored (hard rule 2): recomputed from the current entries
     /// on every render - the engine's pure function, cheap at Home's history
@@ -310,6 +314,7 @@ struct HomeView: View {
                           pendingRateCount: stats.pendingRateCount,
                           duplicateResolutions: resolvedDuplicateKeys,
                           pendingInboxEntryIDs: inbox.pendingEntryIDs,
+                          rejectedEntryIDs: rejectedEntryIDs,
                           onKeepBoth: { group in resolveDuplicate(group, as: .keepBoth) },
                           onMerge: { group in mergeDuplicate(group) },
                           onCheckRates: {
@@ -522,12 +527,14 @@ struct HomeView: View {
                 dueRemindersAcrossCars = 0
                 photoData = nil
                 resolvedDuplicateKeys = []
+                rejectedEntryIDs = []
                 return
             }
             self.vehicle = selected
             entries = try repository.liveEntries(forVehicle: selected.id)
             stations = try repository.liveStations()
             reminders = try repository.liveReminders(forVehicle: selected.id)
+            rejectedEntryIDs = (try? repository.rejectedEntryIDs()) ?? []
             // RV.76: the cross-car count, derived from the same live rows the
             // merged list groups (`RemindersAllRows` + `attentionCount`) so the
             // Home row and the merged list can never disagree about what is due.

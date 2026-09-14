@@ -76,6 +76,22 @@ payload_schemas (entity_type text, schema_version int, json_schema jsonb,
 
 Schemas are seeded by ordinary SQL migrations. **Adding or evolving an entity is therefore a data change, not a backend deploy** – which is the property the original "opaque payload" decision was really protecting. The canonical schema files live in `docs/schemas/v<N>/<entityType>.schema.json`, are generated from the domain model, and are the single artifact both the iOS client and the C# server validate against.
 
+**The seed is not the only writer (RV.284, 2026-09-14).** Migration 002 seeds the
+registry with `INSERT … ON CONFLICT (entity_type, schema_version) DO NOTHING`, so a database
+that ran 002 before a later additive change – a new enum value (the `consumption` conflict
+kind, RV.218), an optional field – keeps its **old** row, and no later migration touched it:
+the deployed registry then rejected what the app emitted, on every push, forever. An additive
+change inside a version (same `schema_version`, same key) has no data change that carries it
+unless a deploy's migration set refreshes the rows. So every deploy carries a refresh
+migration – 023 is the first, and each later deploy adds its own at the current highest number –
+whose marker `PayloadSchemaSeeder` emits as `INSERT … ON CONFLICT (entity_type, schema_version)
+DO UPDATE SET json_schema = EXCLUDED.json_schema`, landing the embedded schemas for the
+versions that build carries. It is **additive-only within a version**: a schema that removed a
+value must ship a **new `schema_version`** (and an upcaster, see below), never an overwrite –
+an overwritten version would silently invalidate payloads an older client still emits. The
+refresh is idempotent, and its rollback is a no-op (a registry row cannot be un-refreshed to an
+unknown prior text).
+
 ### Migrating payloads (the part a DDL migration does not cover)
 
 Two layers, because neither alone is sufficient:
@@ -181,7 +197,7 @@ row revoked; ordinary sign-out is the milder control that sits between "keep syn
 
 ## Client state & merge
 
-Each local row carries `syncState: synced(scn) | dirty | pushing`, plus the SCHEMA.md envelope (`updatedAt` = `clientUpdatedAt`).
+Each local row carries `syncState: synced(scn) | dirty | pushing | rejected(code, pointer)`, plus the SCHEMA.md envelope (`updatedAt` = `clientUpdatedAt`).
 
 **Merge rule (v1): record-level LWW by `clientUpdatedAt`**, deterministic tiebreak by device id. Rationale: entries are small and edited rarely, almost never concurrently on two devices within seconds; field-level merge is a v2 refinement if real conflicts show up in telemetry counts.
 
@@ -523,6 +539,27 @@ territory, not this row's.
 ### S7 · Server unavailable – during everything above
 The backend is down for a day; both devices keep logging, editing, deleting.
 - **Behavior:** every write lands locally and queues as `dirty`; capture, stats, reminders, export – all unaffected (F3/F4). No banners, no toasts. The only surface is a passive row in Settings/Garage: "Waiting to sync · 5 changes" with a relative timestamp, turning to "Synced just now" on recovery.
+
+### S7's 422 sibling · A payload the server rejected structurally (RV.284)
+
+A 422 per-item `rejected` outcome is **not** unavailability. The server answered, read the
+payload, and refused it because it violates the registered JSON Schema - so the same bytes will be
+rejected again until something changes. Re-pushing them is a loop that never ends (production
+2026-09-14: two `fillUp` records returned `rejected · payload_schema_violation · /conflict/kind` on
+every push, twice a minute, with nothing on the device saying so).
+
+- **Terminal for that payload.** The row is marked `rejected(code, pointer)` and leaves the dirty
+  queue, so it is never re-pushed. Two things put it back on the wire: an **edit** (the write
+  re-dirties it) or a **new app build** (a different payload). The honest next step is therefore
+  *"update the app or edit it to retry"* - the fix is a newer app or a newer server, never the
+  user's data.
+- **Surfaced where the data lives (hard rule 8).** The entry row carries the same attention badge a
+  conflict does (a `icloud.slash`, distinct from the conflict chevron) tapping through to edit, and
+  Settings' sync surface counts it - "N entries could not sync" with the next step. Nothing is modal,
+  nothing is lost silently.
+- **Counted and logged.** The cycle summary carries the `rejected` count; one aggregate
+  `sync.rejected` line per non-empty cycle names the entity types, codes and JSON pointers
+  (shape only - hard rule 12, never the payload).
 
 ### Low Power Mode – background work defers, the user's own taps never do
 

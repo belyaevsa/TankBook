@@ -331,6 +331,9 @@ struct HomeRecentEntries: View {
     /// (docs/SYNC.md S2).
     let duplicateResolutions: Set<DuplicateDetector.PairKey>
     var pendingInboxEntryIDs: Set<UUID> = []
+    /// RV.284: entry rows in the `rejected` sync state (server refused them
+    /// structurally) - the "not synced" badge taps through to edit.
+    var rejectedEntryIDs: Set<UUID> = []
     /// The two ways an unresolved duplicate card can be decided (docs/SYNC.md
     /// S2; docs/ERRORS.md -> Home). The view renders the affordances; the
     /// resolution is a repository write the parent owns.
@@ -488,6 +491,9 @@ struct HomeRecentEntries: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("conflictBadgeButton")
+            }
+            if rejectedEntryIDs.contains(entry.id) {
+                RejectedEntryBadge(entryID: entry.id)
             }
             if pendingInboxEntryIDs.contains(entry.id) {
                 InboxEntryBadge(entryID: entry.id)

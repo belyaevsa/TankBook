@@ -27,6 +27,10 @@ public struct SyncSurfaceState: Equatable, Sendable {
     public var quotaUsedPercent: Int?
     /// Records carrying a `ConflictState` (derived, never stored).
     public var flaggedCount: Int
+    /// Entry rows the server rejected structurally (a 422), derived at read time
+    /// from the sync bookkeeping (RV.284). They will not sync until edited or
+    /// the app updates - the Settings "N entries could not sync" count.
+    public var rejectedCount: Int
     /// A cycle is currently in flight (drives the "Sync now" spinner).
     public var isSyncing: Bool
     /// Low Power Mode is on (docs/SYNC.md -> Low Power Mode), so the background
@@ -46,6 +50,7 @@ public struct SyncSurfaceState: Equatable, Sendable {
         authExpired: Bool = false,
         quotaUsedPercent: Int? = nil,
         flaggedCount: Int = 0,
+        rejectedCount: Int = 0,
         isSyncing: Bool = false,
         lowPowerModeDeferring: Bool = false
     ) {
@@ -58,6 +63,7 @@ public struct SyncSurfaceState: Equatable, Sendable {
         self.authExpired = authExpired
         self.quotaUsedPercent = quotaUsedPercent
         self.flaggedCount = flaggedCount
+        self.rejectedCount = rejectedCount
         self.isSyncing = isSyncing
         self.lowPowerModeDeferring = lowPowerModeDeferring
     }

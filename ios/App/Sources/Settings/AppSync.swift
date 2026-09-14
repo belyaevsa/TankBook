@@ -63,6 +63,10 @@ final class AppSync {
     private(set) var session: AuthSession?
     private(set) var dirtyCount = 0
     private(set) var flaggedCount = 0
+    /// RV.284: the number of entry rows the server rejected structurally, read
+    /// at refresh time from the sync bookkeeping - Settings' "N entries could
+    /// not sync". Derived, never stored (hard rule 2).
+    private(set) var rejectedCount = 0
     private(set) var lastSyncDate: Date?
     private(set) var lastOutcome: SyncOutcome?
     /// OB.3: the last failure, restored from the device store so Settings can
@@ -196,6 +200,7 @@ final class AppSync {
             // RV.253: last cycle's blob-429 percent, or the screenshot fixture.
             quotaUsedPercent: SyncSurface.quotaUsedPercent(forced: forcedQuotaPercent, outcome: lastOutcome),
             flaggedCount: flaggedCount,
+            rejectedCount: rejectedCount,
             isSyncing: isSyncing,
             // P6.8: the reason is on whenever the mode is; the S7 row names it
             // only when a queue is actually waiting (SyncSurface.lowPowerReason).
@@ -378,6 +383,7 @@ final class AppSync {
             let dirty = (try? repository.fetchDirtyRows()) ?? []
             dirtyCount = dirty.count
             flaggedCount = (try? repository.flaggedEntryCount()) ?? 0
+            rejectedCount = (try? repository.rejectedEntryCount()) ?? 0
             // OB.2: the sync.queue line - the number behind Settings' "Waiting
             // to sync" count and how long the oldest has waited. Counts and an
             // age only; never which records (docs/LOGGING.md §4).
@@ -390,6 +396,7 @@ final class AppSync {
         } catch {
             dirtyCount = 0
             flaggedCount = 0
+            rejectedCount = 0
         }
     }
 

@@ -2425,6 +2425,26 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.284-log-rejected": {
+      "commit": "be44dc4c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.284-log-rejected-ru": {
+      "commit": "be44dc4c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.284-settings-rejected": {
+      "commit": "be44dc4c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.284-settings-rejected-ru": {
+      "commit": "be44dc4c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.29-home-vitals": {
       "commit": "1cfd0d3",
       "device": "iPhone 17",

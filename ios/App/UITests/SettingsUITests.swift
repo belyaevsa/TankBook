@@ -159,6 +159,27 @@ final class SettingsUITests: XCTestCase {
                       "the flagged count is derived and the row is a link")
     }
 
+    /// RV.284: a row the server rejected structurally reads "N entries could not
+    /// sync" with its next step (update the app or edit), and is NOT a link -
+    /// the badge lives on the entry row, not behind a Settings destination.
+    func testRejectedShowsCountAndNextStep() {
+        let app = launchSettings(seed: "-seedSettingsRejected")
+        XCTAssertTrue(app.otherElements["settingsRejectedRow"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.staticTexts["settingsRejectedCount"].label,
+                       "1 entry could not sync")
+        XCTAssertEqual(app.staticTexts["settingsRejectedHint"].label,
+                       "Update the app or edit them to retry")
+    }
+
+    func testRejectedRendersRussianCountAndNextStep() {
+        let app = launchSettingsRU(seed: "-seedSettingsRejected")
+        XCTAssertTrue(app.otherElements["settingsRejectedRow"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.staticTexts["settingsRejectedCount"].label,
+                       "1 запись не синхронизирована")
+        XCTAssertEqual(app.staticTexts["settingsRejectedHint"].label,
+                       "Обновите приложение или отредактируйте их, чтобы повторить")
+    }
+
     func testRevokedShowsSignInCard() {
         let app = launchSettings(seed: "-seedSettingsRevoked")
         XCTAssertTrue(app.otherElements["settingsRevokedCard"].waitForExistence(timeout: 10))

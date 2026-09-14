@@ -209,6 +209,12 @@ car (hard rule 12). A proposal that silently fails to schedule is thus countable
 
 `sync.merge` also carries **`dirtiedByPull`** (RV.136) – the count of records a pull application LEFT queued for push: a `.fieldMerge` `Vehicle`, or an RV.35 divergence the record-level `.local` arm re-dirtied. On an **idle single-device account it must be zero**, so a session of idle cycles each logging `dirtiedByPull≥1` is the echo-loop signature (the vehicle push loop of 2026-09-03/2026-09-08 was exactly that shape and took three builds to diagnose from `sync.push` alone). Shape only – an entity count, never which record and never a field value (hard rule 12).
 
+`sync.rejected` (RV.284) – one aggregate line per non-empty cycle when the server rejected rows
+structurally: the count, plus a compact per-item `items` list of `entityType:code:pointer`. Shape
+only – a code and a JSON pointer (a field path) are loggable, the payload never is (hard rule 12).
+A non-zero count is the signal that a device holds rows it will never push until edited or the app
+updates, which is a defect, not a transient failure.
+
 ### Reference data refreshes (RV.139)
 `rates.refresh` – `outcome` (`attempted` / `joined` / `deferred` / `noFetcher`), `trigger`
 (`background` / `userInitiated`). One line per `RateStore.refresh` decision,

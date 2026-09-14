@@ -11,6 +11,15 @@ decisions.
 
 ---
 
+## 2026-09-14 · An additive schema change ships a registry refresh migration
+
+| | |
+|---|---|
+| **Commits** | `RV.284` (this entry's commit) |
+| **Reason** | `payload_schemas` is seeded once, by migration 002, with `ON CONFLICT DO NOTHING`. `RV.218` added the `consumption` conflict kind and regenerated `fillUp.schema.json` **same version 1**, so every backend built since embedded the new enum but a database that ran 002 before it kept the old row and no migration touched it: the deployed registry rejected what the app emitted, on every push, forever, with nothing on the device saying so. |
+| **Evidence** | Production log 2026-09-14: two `fillUp` records created 2026-09-07 returned `rejected · payload_schema_violation · /conflict/kind` on every push, twice a minute while the app was open. |
+| **What changed** | The seeder gains a refresh marker (`DO UPDATE SET json_schema = EXCLUDED.json_schema`); migration 023 is the first refresh, and an additive change inside a version now ships a refresh migration at the current highest number as part of the same change. `docs/SYNC.md` "The schema registry lives in the database" names the rule: additive-only within a version, a removal needs a new `schema_version` and an upcaster. |
+
 ## 2026-09-14 · A second dispatch path: Codex on `gpt-5.6-sol`
 
 | | |
