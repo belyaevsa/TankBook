@@ -3191,15 +3191,164 @@
    "filed": 278,
    "closed": 245,
    "open": 33
+  },
+  {
+   "h": "a05c754",
+   "date": "2026-09-13 12:15",
+   "subj": "Journeys walk 2026-09-13 (all groups, by the orchestrator): 0 untrue ticks, PJ.300 filed - a service line item's home money is never backfilled, re-homed or read",
+   "filed": 278,
+   "closed": 245,
+   "open": 33
+  },
+  {
+   "h": "06edeec",
+   "date": "2026-09-13 17:05",
+   "subj": "RV.279 [!] filed and briefed (owner report 2026-09-13): the Expense and Service capture forms lack Edit entry's odometer and currency; J7b's status line cleared",
+   "filed": 279,
+   "closed": 245,
+   "open": 34
+  },
+  {
+   "h": "1e60022",
+   "date": "2026-09-13 18:01",
+   "subj": "RV.279: the Expense and Service capture forms carry Edit entry's odometer and currency",
+   "filed": 279,
+   "closed": 246,
+   "open": 33
+  },
+  {
+   "h": "ccf509d",
+   "date": "2026-09-13 18:03",
+   "subj": "TASKS: 16 shipped rows move to TASKS-DONE; the ledger names the 2026-09-13 block",
+   "filed": 279,
+   "closed": 246,
+   "open": 33
+  },
+  {
+   "h": "6f34380",
+   "date": "2026-09-13 18:06",
+   "subj": "J7b re-walked by the orchestrator after RV.279: NOT IMPLEMENTED on one promise - the late expense read drops the receipt's currency; RV.280 filed and briefed",
+   "filed": 280,
+   "closed": 246,
+   "open": 34
+  },
+  {
+   "h": "d8643a4",
+   "date": "2026-09-13 18:08",
+   "subj": "QUEUE: RV.280 dispatched (pid 28596); PJ.29 widened to name the Expense-mode scan, which never reaches /extract (owner report 2026-09-13: a parking receipt unread locally and in the cloud)",
+   "filed": 280,
+   "closed": 246,
+   "open": 34
+  },
+  {
+   "h": "9ceb396",
+   "date": "2026-09-13 18:17",
+   "subj": "PJ.29 pulled into v1 and briefed (product owner, 2026-09-13): every scanned document reaches the cloud gateway - expense and invoice kinds, not only the fill-up receipt; queued behind RV.280",
+   "filed": 280,
+   "closed": 246,
+   "open": 34
+  },
+  {
+   "h": "a915c59",
+   "date": "2026-09-13 18:35",
+   "subj": "RV.280: the late expense read carries the receipt's currency",
+   "filed": 280,
+   "closed": 247,
+   "open": 33
+  },
+  {
+   "h": "0fdb1f8",
+   "date": "2026-09-13 19:32",
+   "subj": "PJ.29: an Expense-mode scan reaches the cloud gateway as its own document kind",
+   "filed": 280,
+   "closed": 247,
+   "open": 33
+  },
+  {
+   "h": "d71309a",
+   "date": "2026-09-13 20:28",
+   "subj": "PJ.29a: a service invoice scan reaches the cloud gateway for its header",
+   "filed": 280,
+   "closed": 247,
+   "open": 33
+  },
+  {
+   "h": "322c323",
+   "date": "2026-09-13 20:43",
+   "subj": "RV.281: an expense is \"\u0437\u0430\u0442\u0440\u0430\u0442\u0430\" in Russian, never \"\u0440\u0430\u0441\u0445\u043e\u0434\" - the word the app uses for consumption",
+   "filed": 281,
+   "closed": 248,
+   "open": 33
+  },
+  {
+   "h": "3fd5ced",
+   "date": "2026-09-13 20:54",
+   "subj": "PJ.29 follow-up: the migrations no-op test counts the embedded .up.sql files instead of a literal",
+   "filed": 281,
+   "closed": 248,
+   "open": 33
+  },
+  {
+   "h": "16b58b9",
+   "date": "2026-09-13 21:48",
+   "subj": "RV.282 [!] filed and briefed (corpus finding 2026-09-13): a discount line is committed as the unit price on receipt-066 - the subtraction-line guard the total finder has is not consulted by the per-litre rule; dispatched (pid 14233)",
+   "filed": 282,
+   "closed": 248,
+   "open": 34
+  },
+  {
+   "h": "a52fc86",
+   "date": "2026-09-13 22:08",
+   "subj": "RV.282: a discount line is never the unit price; a printed value the arithmetic confirms is",
+   "filed": 283,
+   "closed": 249,
+   "open": 34
+  },
+  {
+   "h": "b9dc2b0",
+   "date": "2026-09-14 21:42",
+   "subj": "SH.1 and P6.6 closed on the product owner's word (backend deployed, store submitted); CORPUS-2026-09-14 briefed - the flash provider died at the banner on four launches, dispatch pending",
+   "filed": 283,
+   "closed": 249,
+   "open": 34
+  },
+  {
+   "h": "4f3da4a",
+   "date": "2026-09-14 22:05",
+   "subj": "RV.284 [!] and RV.285 [!] filed and briefed from the 2026-09-14 production log: the deployed schema registry rejects the consumption conflict kind on every push with no device surface; the provider call has no bounded timeout (102 s to a 502)",
+   "filed": 285,
+   "closed": 249,
+   "open": 36
+  },
+  {
+   "h": "5b96ef6",
+   "date": "2026-09-14 23:45",
+   "subj": "RV.284: a rejected push is terminal and visible; the schema registry refreshes on every deploy",
+   "filed": 285,
+   "closed": 250,
+   "open": 35
+  },
+  {
+   "h": "770945e",
+   "date": "2026-09-15 00:11",
+   "subj": "RV.285: the provider call has a 60 s budget and a timeout is its own outcome",
+   "filed": 285,
+   "closed": 251,
+   "open": 34
   }
  ],
  "birth": {
-  "RV.5": {
+  "RV.1": {
    "date": "2026-09-03 00:18",
    "h": "abd4243",
    "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
   },
-  "RV.1": {
+  "RV.3": {
+   "date": "2026-09-03 00:18",
+   "h": "abd4243",
+   "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
+  },
+  "RV.5": {
    "date": "2026-09-03 00:18",
    "h": "abd4243",
    "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
@@ -3214,11 +3363,6 @@
    "h": "abd4243",
    "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
   },
-  "RV.3": {
-   "date": "2026-09-03 00:18",
-   "h": "abd4243",
-   "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
-  },
   "RV.2": {
    "date": "2026-09-03 00:18",
    "h": "abd4243",
@@ -3228,6 +3372,11 @@
    "date": "2026-09-03 00:18",
    "h": "abd4243",
    "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
+  },
+  "RV.9": {
+   "date": "2026-09-03 01:25",
+   "h": "48e0eca",
+   "subj": "RV.8: show the cloud read while it runs; fix the cross-arch image build"
   },
   "RV.10": {
    "date": "2026-09-03 01:25",
@@ -3239,20 +3388,20 @@
    "h": "48e0eca",
    "subj": "RV.8: show the cloud read while it runs; fix the cross-arch image build"
   },
-  "RV.12": {
-   "date": "2026-09-03 01:25",
-   "h": "48e0eca",
-   "subj": "RV.8: show the cloud read while it runs; fix the cross-arch image build"
-  },
   "RV.11": {
    "date": "2026-09-03 01:25",
    "h": "48e0eca",
    "subj": "RV.8: show the cloud read while it runs; fix the cross-arch image build"
   },
-  "RV.9": {
+  "RV.12": {
    "date": "2026-09-03 01:25",
    "h": "48e0eca",
    "subj": "RV.8: show the cloud read while it runs; fix the cross-arch image build"
+  },
+  "RV.15": {
+   "date": "2026-09-03 02:04",
+   "h": "6d15b22",
+   "subj": "RV.5: a review step between the capture and the Confirm sheet"
   },
   "RV.13": {
    "date": "2026-09-03 02:04",
@@ -3264,22 +3413,17 @@
    "h": "6d15b22",
    "subj": "RV.5: a review step between the capture and the Confirm sheet"
   },
-  "RV.15": {
-   "date": "2026-09-03 02:04",
-   "h": "6d15b22",
-   "subj": "RV.5: a review step between the capture and the Confirm sheet"
-  },
   "RV.16": {
    "date": "2026-09-03 09:50",
    "h": "cb004c6",
    "subj": "RV.12: saving inside capture leaves the camera; RV.16: unmatched routes are Debug"
   },
-  "RV.18": {
+  "RV.17": {
    "date": "2026-09-03 11:17",
    "h": "39586f2",
    "subj": "RV.9 attachment viewer; log text format; 15 corpus fixtures"
   },
-  "RV.17": {
+  "RV.18": {
    "date": "2026-09-03 11:17",
    "h": "39586f2",
    "subj": "RV.9 attachment viewer; log text format; 15 corpus fixtures"
@@ -3339,12 +3483,12 @@
    "h": "0168b7e",
    "subj": "Register RV.29: a foreign price rendered with the home currency symbol"
   },
-  "RV.30": {
+  "RV.31": {
    "date": "2026-09-03 13:16",
    "h": "aaa4754",
    "subj": "Register RV.30 (rates published count) and RV.31 (tab tap should pop)"
   },
-  "RV.31": {
+  "RV.30": {
    "date": "2026-09-03 13:16",
    "h": "aaa4754",
    "subj": "Register RV.30 (rates published count) and RV.31 (tab tap should pop)"
@@ -3384,17 +3528,17 @@
    "h": "af6d4de",
    "subj": "Register RV.38: an in-app notification inbox"
   },
-  "RV.41": {
-   "date": "2026-09-03 21:20",
-   "h": "7a785de",
-   "subj": "Brief RV.22/23/26/33/34; register RV.39-RV.42 from a device walk"
-  },
   "RV.39": {
    "date": "2026-09-03 21:20",
    "h": "7a785de",
    "subj": "Brief RV.22/23/26/33/34; register RV.39-RV.42 from a device walk"
   },
   "RV.40": {
+   "date": "2026-09-03 21:20",
+   "h": "7a785de",
+   "subj": "Brief RV.22/23/26/33/34; register RV.39-RV.42 from a device walk"
+  },
+  "RV.41": {
    "date": "2026-09-03 21:20",
    "h": "7a785de",
    "subj": "Brief RV.22/23/26/33/34; register RV.39-RV.42 from a device walk"
@@ -3414,12 +3558,12 @@
    "h": "5647c16",
    "subj": "Register and brief RV.44: the backend's one role in notifications"
   },
-  "RV.45": {
+  "RV.46": {
    "date": "2026-09-04 08:33",
    "h": "72e19ff",
    "subj": "RV.46: the sync chip span forever after the sync finished"
   },
-  "RV.46": {
+  "RV.45": {
    "date": "2026-09-04 08:33",
    "h": "72e19ff",
    "subj": "RV.46: the sync chip span forever after the sync finished"
@@ -3439,12 +3583,12 @@
    "h": "3cf92fa",
    "subj": "Register RV.49: in-app camera photos are OCR'd sideways"
   },
-  "RV.50": {
+  "RV.51": {
    "date": "2026-09-04 11:04",
    "h": "92b0ccd",
    "subj": "Register RV.50 and RV.51 from production logs; brief RV.49"
   },
-  "RV.51": {
+  "RV.50": {
    "date": "2026-09-04 11:04",
    "h": "92b0ccd",
    "subj": "Register RV.50 and RV.51 from production logs; brief RV.49"
@@ -3474,11 +3618,6 @@
    "h": "7ca8728",
    "subj": "Mark RV.48 done and file RV.56 (the total finder)"
   },
-  "RV.57": {
-   "date": "2026-09-04 18:03",
-   "h": "a654cad",
-   "subj": "Register RV.57 (requirement) and RV.58-60 from the production log"
-  },
   "RV.59": {
    "date": "2026-09-04 18:03",
    "h": "a654cad",
@@ -3489,17 +3628,22 @@
    "h": "a654cad",
    "subj": "Register RV.57 (requirement) and RV.58-60 from the production log"
   },
+  "RV.57": {
+   "date": "2026-09-04 18:03",
+   "h": "a654cad",
+   "subj": "Register RV.57 (requirement) and RV.58-60 from the production log"
+  },
   "RV.58": {
    "date": "2026-09-04 18:03",
    "h": "a654cad",
    "subj": "Register RV.57 (requirement) and RV.58-60 from the production log"
   },
-  "RV.61": {
+  "RV.62": {
    "date": "2026-09-04 20:25",
    "h": "592e5a4",
    "subj": "Register RV.61/RV.62: service and expense have no manual door, and expense capture discards its recognition"
   },
-  "RV.62": {
+  "RV.61": {
    "date": "2026-09-04 20:25",
    "h": "592e5a4",
    "subj": "Register RV.61/RV.62: service and expense have no manual door, and expense capture discards its recognition"
@@ -3549,6 +3693,16 @@
    "h": "8fef724",
    "subj": "Register RV.71: warn when a scanned receipt's fuel kind is not the car's"
   },
+  "RV.73": {
+   "date": "2026-09-05 22:19",
+   "h": "4611320",
+   "subj": "Register the reminders gaps: one bug and five v1.1 rows"
+  },
+  "RV.75": {
+   "date": "2026-09-05 22:19",
+   "h": "4611320",
+   "subj": "Register the reminders gaps: one bug and five v1.1 rows"
+  },
   "RV.79": {
    "date": "2026-09-05 22:19",
    "h": "4611320",
@@ -3559,7 +3713,7 @@
    "h": "4611320",
    "subj": "Register the reminders gaps: one bug and five v1.1 rows"
   },
-  "RV.77": {
+  "RV.76": {
    "date": "2026-09-05 22:19",
    "h": "4611320",
    "subj": "Register the reminders gaps: one bug and five v1.1 rows"
@@ -3569,22 +3723,12 @@
    "h": "4611320",
    "subj": "Register the reminders gaps: one bug and five v1.1 rows"
   },
-  "RV.75": {
-   "date": "2026-09-05 22:19",
-   "h": "4611320",
-   "subj": "Register the reminders gaps: one bug and five v1.1 rows"
-  },
   "RV.72": {
    "date": "2026-09-05 22:19",
    "h": "4611320",
    "subj": "Register the reminders gaps: one bug and five v1.1 rows"
   },
-  "RV.76": {
-   "date": "2026-09-05 22:19",
-   "h": "4611320",
-   "subj": "Register the reminders gaps: one bug and five v1.1 rows"
-  },
-  "RV.73": {
+  "RV.77": {
    "date": "2026-09-05 22:19",
    "h": "4611320",
    "subj": "Register the reminders gaps: one bug and five v1.1 rows"
@@ -3594,17 +3738,17 @@
    "h": "ca3493e",
    "subj": "Mark RV.73 verified, register RV.80 (the RU action line that never renders)"
   },
-  "RV.81": {
-   "date": "2026-09-06 09:33",
-   "h": "4095d73",
-   "subj": "Register and brief the three the reminders series left open"
-  },
   "RV.83": {
    "date": "2026-09-06 09:33",
    "h": "4095d73",
    "subj": "Register and brief the three the reminders series left open"
   },
   "RV.82": {
+   "date": "2026-09-06 09:33",
+   "h": "4095d73",
+   "subj": "Register and brief the three the reminders series left open"
+  },
+  "RV.81": {
    "date": "2026-09-06 09:33",
    "h": "4095d73",
    "subj": "Register and brief the three the reminders series left open"
@@ -3664,12 +3808,12 @@
    "h": "75d02c9",
    "subj": "Register RV.93-RV.96 from the full My Fuel Manager export"
   },
-  "RV.94": {
+  "RV.95": {
    "date": "2026-09-06 19:08",
    "h": "75d02c9",
    "subj": "Register RV.93-RV.96 from the full My Fuel Manager export"
   },
-  "RV.95": {
+  "RV.94": {
    "date": "2026-09-06 19:08",
    "h": "75d02c9",
    "subj": "Register RV.93-RV.96 from the full My Fuel Manager export"
@@ -3679,12 +3823,12 @@
    "h": "459a29a",
    "subj": "Register RV.97: sync push dies at its own 30s timeout after an import"
   },
-  "RV.99": {
+  "RV.98": {
    "date": "2026-09-06 23:20",
    "h": "49638d5",
    "subj": "Register RV.98 and RV.99: a deleted car goes nowhere, and its confirmation"
   },
-  "RV.98": {
+  "RV.99": {
    "date": "2026-09-06 23:20",
    "h": "49638d5",
    "subj": "Register RV.98 and RV.99: a deleted car goes nowhere, and its confirmation"
@@ -3729,7 +3873,7 @@
    "h": "ff290d2",
    "subj": "Review the UI and backend test reports: register RV.107-RV.110, remove three tests"
   },
-  "RV.107": {
+  "RV.110": {
    "date": "2026-09-07 08:40",
    "h": "ff290d2",
    "subj": "Review the UI and backend test reports: register RV.107-RV.110, remove three tests"
@@ -3739,37 +3883,37 @@
    "h": "ff290d2",
    "subj": "Review the UI and backend test reports: register RV.107-RV.110, remove three tests"
   },
-  "RV.110": {
+  "RV.107": {
    "date": "2026-09-07 08:40",
    "h": "ff290d2",
    "subj": "Review the UI and backend test reports: register RV.107-RV.110, remove three tests"
-  },
-  "RV.111": {
-   "date": "2026-09-07 11:11",
-   "h": "dc30050",
-   "subj": "RV.106: a month waiting on rates says so, instead of claiming you spent nothing"
   },
   "RV.112": {
    "date": "2026-09-07 11:11",
    "h": "dc30050",
    "subj": "RV.106: a month waiting on rates says so, instead of claiming you spent nothing"
   },
-  "RV.113": {
-   "date": "2026-09-07 12:37",
-   "h": "7c9e131",
-   "subj": "Corpus: 6 pumps and 2 pump/receipt pairs; register RV.113 (Drivvo) and RV.114"
+  "RV.111": {
+   "date": "2026-09-07 11:11",
+   "h": "dc30050",
+   "subj": "RV.106: a month waiting on rates says so, instead of claiming you spent nothing"
   },
   "RV.114": {
    "date": "2026-09-07 12:37",
    "h": "7c9e131",
    "subj": "Corpus: 6 pumps and 2 pump/receipt pairs; register RV.113 (Drivvo) and RV.114"
   },
-  "RV.115": {
+  "RV.113": {
+   "date": "2026-09-07 12:37",
+   "h": "7c9e131",
+   "subj": "Corpus: 6 pumps and 2 pump/receipt pairs; register RV.113 (Drivvo) and RV.114"
+  },
+  "RV.116": {
    "date": "2026-09-07 12:45",
    "h": "9e83ac6",
    "subj": "Commit the Drivvo fixture; design the station brand list and the unsupported-field notice"
   },
-  "RV.116": {
+  "RV.115": {
    "date": "2026-09-07 12:45",
    "h": "9e83ac6",
    "subj": "Commit the Drivvo fixture; design the station brand list and the unsupported-field notice"
@@ -3779,12 +3923,12 @@
    "h": "d83e3f9",
    "subj": "Register RV.117 [v1.1]: show the timeline neighbourhood and the valid range"
   },
-  "RV.120": {
+  "RV.119": {
    "date": "2026-09-07 13:13",
    "h": "8d257f5",
    "subj": "Register RV.118-RV.120 [v1.1] from the Drivvo report screens"
   },
-  "RV.119": {
+  "RV.120": {
    "date": "2026-09-07 13:13",
    "h": "8d257f5",
    "subj": "Register RV.118-RV.120 [v1.1] from the Drivvo report screens"
@@ -3799,12 +3943,12 @@
    "h": "4b4767a",
    "subj": "Register RV.121-RV.123; record what we will not tell a driver"
   },
-  "RV.122": {
+  "RV.123": {
    "date": "2026-09-07 13:22",
    "h": "4b4767a",
    "subj": "Register RV.121-RV.123; record what we will not tell a driver"
   },
-  "RV.123": {
+  "RV.122": {
    "date": "2026-09-07 13:22",
    "h": "4b4767a",
    "subj": "Register RV.121-RV.123; record what we will not tell a driver"
@@ -3819,12 +3963,12 @@
    "h": "24b5197",
    "subj": "Corpus registries follow the new pair, and the defect it found gets a row"
   },
-  "RV.127": {
+  "RV.129": {
    "date": "2026-09-07 22:16",
    "h": "af417b3",
    "subj": "Five rows from the dead-code assessment, each verified before filing"
   },
-  "RV.129": {
+  "RV.127": {
    "date": "2026-09-07 22:16",
    "h": "af417b3",
    "subj": "Five rows from the dead-code assessment, each verified before filing"
@@ -3834,12 +3978,12 @@
    "h": "af417b3",
    "subj": "Five rows from the dead-code assessment, each verified before filing"
   },
-  "RV.130": {
+  "RV.126": {
    "date": "2026-09-07 22:16",
    "h": "af417b3",
    "subj": "Five rows from the dead-code assessment, each verified before filing"
   },
-  "RV.126": {
+  "RV.130": {
    "date": "2026-09-07 22:16",
    "h": "af417b3",
    "subj": "Five rows from the dead-code assessment, each verified before filing"
@@ -3864,12 +4008,12 @@
    "h": "9458ad6",
    "subj": "RV.126: the odometer conflict names the car's own unit"
   },
-  "RV.136": {
+  "RV.135": {
    "date": "2026-09-08 10:37",
    "h": "66cf627",
    "subj": "RV.135, RV.136: EUR history cannot be fetched; the vehicle push loop is back"
   },
-  "RV.135": {
+  "RV.136": {
    "date": "2026-09-08 10:37",
    "h": "66cf627",
    "subj": "RV.135, RV.136: EUR history cannot be fetched; the vehicle push loop is back"
@@ -3909,17 +4053,17 @@
    "h": "0c8e895",
    "subj": "RV.140: a home-currency change re-homes the pending entries, and the Log shows what it knows"
   },
+  "RV.144": {
+   "date": "2026-09-08 22:42",
+   "h": "56df054",
+   "subj": "TASKS: RV.144-RV.147 from the owner's TestFlight session"
+  },
   "RV.147": {
    "date": "2026-09-08 22:42",
    "h": "56df054",
    "subj": "TASKS: RV.144-RV.147 from the owner's TestFlight session"
   },
   "RV.145": {
-   "date": "2026-09-08 22:42",
-   "h": "56df054",
-   "subj": "TASKS: RV.144-RV.147 from the owner's TestFlight session"
-  },
-  "RV.144": {
    "date": "2026-09-08 22:42",
    "h": "56df054",
    "subj": "TASKS: RV.144-RV.147 from the owner's TestFlight session"
@@ -3999,11 +4143,6 @@
    "h": "c6ab656",
    "subj": "TASKS: file RV.161 [v1.1] - extract the station from a scanned receipt"
   },
-  "RV.165": {
-   "date": "2026-09-09 20:03",
-   "h": "c435a80",
-   "subj": "docs: DEFECT-PATTERNS part 2 - product reachability, and file RV.162-165"
-  },
   "RV.163": {
    "date": "2026-09-09 20:03",
    "h": "c435a80",
@@ -4019,12 +4158,12 @@
    "h": "c435a80",
    "subj": "docs: DEFECT-PATTERNS part 2 - product reachability, and file RV.162-165"
   },
-  "RV.167": {
-   "date": "2026-09-09 20:54",
-   "h": "8ec6bc0",
-   "subj": "TASKS: RV.166-168 from the external review of our own practice"
+  "RV.165": {
+   "date": "2026-09-09 20:03",
+   "h": "c435a80",
+   "subj": "docs: DEFECT-PATTERNS part 2 - product reachability, and file RV.162-165"
   },
-  "RV.168": {
+  "RV.167": {
    "date": "2026-09-09 20:54",
    "h": "8ec6bc0",
    "subj": "TASKS: RV.166-168 from the external review of our own practice"
@@ -4034,17 +4173,22 @@
    "h": "8ec6bc0",
    "subj": "TASKS: RV.166-168 from the external review of our own practice"
   },
+  "RV.168": {
+   "date": "2026-09-09 20:54",
+   "h": "8ec6bc0",
+   "subj": "TASKS: RV.166-168 from the external review of our own practice"
+  },
   "RV.170": {
    "date": "2026-09-09 22:16",
    "h": "1ec2b1d",
    "subj": "TASKS+QUEUE: tick RV.167, file the four rows its report produced"
   },
-  "RV.171": {
+  "RV.172": {
    "date": "2026-09-09 22:16",
    "h": "1ec2b1d",
    "subj": "TASKS+QUEUE: tick RV.167, file the four rows its report produced"
   },
-  "RV.172": {
+  "RV.171": {
    "date": "2026-09-09 22:16",
    "h": "1ec2b1d",
    "subj": "TASKS+QUEUE: tick RV.167, file the four rows its report produced"
@@ -4059,12 +4203,12 @@
    "h": "bc10a10",
    "subj": "Brief every Tier 1 and Tier 2 row, and file RV.173"
   },
-  "RV.174": {
+  "RV.175": {
    "date": "2026-09-10 01:39",
    "h": "a4dac65",
    "subj": "RV.159: a sending gate is drawn as a gate, not as an optional attachment"
   },
-  "RV.175": {
+  "RV.174": {
    "date": "2026-09-10 01:39",
    "h": "a4dac65",
    "subj": "RV.159: a sending gate is drawn as a gate, not as an optional attachment"
@@ -4074,12 +4218,12 @@
    "h": "c933a3b",
    "subj": "PJ.55: the station ranking's first rung can finally fire"
   },
-  "RV.178": {
+  "RV.177": {
    "date": "2026-09-10 05:33",
    "h": "a411ad7",
    "subj": "RV.152: changing a car's home currency asks what to do with the log"
   },
-  "RV.177": {
+  "RV.178": {
    "date": "2026-09-10 05:33",
    "h": "a411ad7",
    "subj": "RV.152: changing a car's home currency asks what to do with the log"
@@ -4104,12 +4248,12 @@
    "h": "11c9deb",
    "subj": "TASKS: file RV.182 - the catalogue row promises a tank volume the edit screen drops"
   },
-  "RV.184": {
+  "RV.183": {
    "date": "2026-09-10 10:15",
    "h": "e4c852e",
    "subj": "TASKS: file RV.183 and RV.184 from the attachment viewer screenshot"
   },
-  "RV.183": {
+  "RV.184": {
    "date": "2026-09-10 10:15",
    "h": "e4c852e",
    "subj": "TASKS: file RV.183 and RV.184 from the attachment viewer screenshot"
@@ -4124,12 +4268,12 @@
    "h": "2c48358",
    "subj": "TASKS: file RV.186, RV.187, RV.188 from the excluded-entries and conflict screenshots"
   },
-  "RV.186": {
+  "RV.187": {
    "date": "2026-09-10 11:14",
    "h": "2c48358",
    "subj": "TASKS: file RV.186, RV.187, RV.188 from the excluded-entries and conflict screenshots"
   },
-  "RV.187": {
+  "RV.186": {
    "date": "2026-09-10 11:14",
    "h": "2c48358",
    "subj": "TASKS: file RV.186, RV.187, RV.188 from the excluded-entries and conflict screenshots"
@@ -4144,12 +4288,12 @@
    "h": "c911bcb",
    "subj": "RV.186 + RV.188: a service may share its fill-up's odometer, and the conflict panel names the pair"
   },
-  "RV.191": {
+  "RV.192": {
    "date": "2026-09-10 16:24",
    "h": "c911bcb",
    "subj": "RV.186 + RV.188: a service may share its fill-up's odometer, and the conflict panel names the pair"
   },
-  "RV.192": {
+  "RV.191": {
    "date": "2026-09-10 16:24",
    "h": "c911bcb",
    "subj": "RV.186 + RV.188: a service may share its fill-up's odometer, and the conflict panel names the pair"
@@ -4269,42 +4413,22 @@
    "h": "f3e6adc",
    "subj": "RV.201: one inbox merge over entry kind, not a second inbox"
   },
-  "RV.217": {
-   "date": "2026-09-11 15:22",
-   "h": "f3e6adc",
-   "subj": "RV.201: one inbox merge over entry kind, not a second inbox"
-  },
   "RV.216": {
    "date": "2026-09-11 15:22",
    "h": "f3e6adc",
    "subj": "RV.201: one inbox merge over entry kind, not a second inbox"
   },
-  "RV.218": {
-   "date": "2026-09-11 15:57",
-   "h": "5db396b",
-   "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
-  },
-  "RV.221": {
-   "date": "2026-09-11 15:57",
-   "h": "5db396b",
-   "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
-  },
-  "RV.219": {
-   "date": "2026-09-11 15:57",
-   "h": "5db396b",
-   "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
-  },
-  "RV.223": {
-   "date": "2026-09-11 15:57",
-   "h": "5db396b",
-   "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
+  "RV.217": {
+   "date": "2026-09-11 15:22",
+   "h": "f3e6adc",
+   "subj": "RV.201: one inbox merge over entry kind, not a second inbox"
   },
   "RV.224": {
    "date": "2026-09-11 15:57",
    "h": "5db396b",
    "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
   },
-  "RV.225": {
+  "RV.221": {
    "date": "2026-09-11 15:57",
    "h": "5db396b",
    "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
@@ -4315,6 +4439,26 @@
    "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
   },
   "RV.222": {
+   "date": "2026-09-11 15:57",
+   "h": "5db396b",
+   "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
+  },
+  "RV.225": {
+   "date": "2026-09-11 15:57",
+   "h": "5db396b",
+   "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
+  },
+  "RV.218": {
+   "date": "2026-09-11 15:57",
+   "h": "5db396b",
+   "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
+  },
+  "RV.219": {
+   "date": "2026-09-11 15:57",
+   "h": "5db396b",
+   "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
+  },
+  "RV.223": {
    "date": "2026-09-11 15:57",
    "h": "5db396b",
    "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
@@ -4349,12 +4493,12 @@
    "h": "894e4e6",
    "subj": "F9a walked: NOT IMPLEMENTED on RV.230 and one promised affordance nobody built"
   },
-  "RV.232": {
+  "RV.233": {
    "date": "2026-09-11 19:02",
    "h": "18902ae",
    "subj": "F1 walked: NOT IMPLEMENTED - the Aftermath was never built, and a ticked row was cited as closing it"
   },
-  "RV.233": {
+  "RV.232": {
    "date": "2026-09-11 19:02",
    "h": "18902ae",
    "subj": "F1 walked: NOT IMPLEMENTED - the Aftermath was never built, and a ticked row was cited as closing it"
@@ -4369,12 +4513,12 @@
    "h": "70e7309",
    "subj": "RV.230: a service, expense or charge edited into a conflict is told, with one Fix"
   },
-  "RV.238": {
+  "RV.237": {
    "date": "2026-09-11 20:41",
    "h": "7212ebc",
    "subj": "J6 walked: a deferred story with three unowned promises, now filed as v1.x"
   },
-  "RV.237": {
+  "RV.238": {
    "date": "2026-09-11 20:41",
    "h": "7212ebc",
    "subj": "J6 walked: a deferred story with three unowned promises, now filed as v1.x"
@@ -4424,12 +4568,12 @@
    "h": "0c815ef",
    "subj": "RV.244: the invoice date reaches the late service recognition, as a date"
   },
-  "RV.247": {
+  "RV.248": {
    "date": "2026-09-12 03:29",
    "h": "04b7c06",
    "subj": "J7c walked: NOT IMPLEMENTED on a wrong-car write and an unread dismissal reason"
   },
-  "RV.248": {
+  "RV.247": {
    "date": "2026-09-12 03:29",
    "h": "04b7c06",
    "subj": "J7c walked: NOT IMPLEMENTED on a wrong-car write and an unread dismissal reason"
@@ -4439,12 +4583,12 @@
    "h": "88bb4e2",
    "subj": "RV.155: the pull cursor is durable on every advance, not at the end of a cycle"
   },
-  "RV.250": {
+  "RV.251": {
    "date": "2026-09-12 04:16",
    "h": "a499106",
    "subj": "RV.247: a reminder completed from the all-cars list writes to the reminder's car"
   },
-  "RV.251": {
+  "RV.250": {
    "date": "2026-09-12 04:16",
    "h": "a499106",
    "subj": "RV.247: a reminder completed from the all-cars list writes to the reminder's car"
@@ -4474,12 +4618,12 @@
    "h": "a7d5956",
    "subj": "RV.249: the pull cursor is keyed by account and monotonic"
   },
-  "RV.258": {
+  "RV.257": {
    "date": "2026-09-12 09:20",
    "h": "2f10dad",
    "subj": "RV.239: the import rows on both restore-failure screens reach the wizard"
   },
-  "RV.257": {
+  "RV.258": {
    "date": "2026-09-12 09:20",
    "h": "2f10dad",
    "subj": "RV.239: the import rows on both restore-failure screens reach the wizard"
@@ -4489,12 +4633,12 @@
    "h": "1b9925f",
    "subj": "F7 reviewed: NOT implemented - RV.259 filed (the wrong-provider question loops when both providers are empty)"
   },
-  "RV.261": {
+  "RV.260": {
    "date": "2026-09-12 09:31",
    "h": "52e3bab",
    "subj": "RV.260 [!] and RV.261 filed from the J11 walk: the restore-from-backup door does not exist; the odometer-source clause is v2"
   },
-  "RV.260": {
+  "RV.261": {
    "date": "2026-09-12 09:31",
    "h": "52e3bab",
    "subj": "RV.260 [!] and RV.261 filed from the J11 walk: the restore-from-backup door does not exist; the odometer-source clause is v2"
@@ -4514,12 +4658,12 @@
    "h": "7912e19",
    "subj": "RV.229: the import review names a consumption outlier as one, with its own next step"
   },
-  "RV.266": {
+  "RV.265": {
    "date": "2026-09-12 17:40",
    "h": "89ee6d3",
    "subj": "F2 re-walked: implemented (REVIEW-SCENARIO-F2-2026-09-12); RV.265 and RV.266 [v1.0.x] filed"
   },
-  "RV.265": {
+  "RV.266": {
    "date": "2026-09-12 17:40",
    "h": "89ee6d3",
    "subj": "F2 re-walked: implemented (REVIEW-SCENARIO-F2-2026-09-12); RV.265 and RV.266 [v1.0.x] filed"
@@ -4549,12 +4693,12 @@
    "h": "b7ee93a",
    "subj": "TASKS: RV.234 ticked (a906dc35), RV.271 filed; QUEUE: RV.248 dispatched"
   },
-  "RV.273": {
+  "RV.272": {
    "date": "2026-09-13 04:09",
    "h": "206a729",
    "subj": "RV.272 [!] and RV.273 filed from RV.271's gate: a scanned receipt's litres saved as gallons on an imperial car; J3's status line cleared"
   },
-  "RV.272": {
+  "RV.273": {
    "date": "2026-09-13 04:09",
    "h": "206a729",
    "subj": "RV.272 [!] and RV.273 filed from RV.271's gate: a scanned receipt's litres saved as gallons on an imperial car; J3's status line cleared"
@@ -4583,6 +4727,41 @@
    "date": "2026-09-13 10:35",
    "h": "4d53a8f",
    "subj": "RV.277: the expense corpus is a ratcheted gate class, and a parking ticket reads its total"
+  },
+  "RV.279": {
+   "date": "2026-09-13 17:05",
+   "h": "06edeec",
+   "subj": "RV.279 [!] filed and briefed (owner report 2026-09-13): the Expense and Service capture forms lack Edit entry's odometer and currency; J7b's status line cleared"
+  },
+  "RV.280": {
+   "date": "2026-09-13 18:06",
+   "h": "6f34380",
+   "subj": "J7b re-walked by the orchestrator after RV.279: NOT IMPLEMENTED on one promise - the late expense read drops the receipt's currency; RV.280 filed and briefed"
+  },
+  "RV.281": {
+   "date": "2026-09-13 20:43",
+   "h": "322c323",
+   "subj": "RV.281: an expense is \"\u0437\u0430\u0442\u0440\u0430\u0442\u0430\" in Russian, never \"\u0440\u0430\u0441\u0445\u043e\u0434\" - the word the app uses for consumption"
+  },
+  "RV.282": {
+   "date": "2026-09-13 21:48",
+   "h": "16b58b9",
+   "subj": "RV.282 [!] filed and briefed (corpus finding 2026-09-13): a discount line is committed as the unit price on receipt-066 - the subtraction-line guard the total finder has is not consulted by the per-litre rule; dispatched (pid 14233)"
+  },
+  "RV.283": {
+   "date": "2026-09-13 22:08",
+   "h": "a52fc86",
+   "subj": "RV.282: a discount line is never the unit price; a printed value the arithmetic confirms is"
+  },
+  "RV.284": {
+   "date": "2026-09-14 22:05",
+   "h": "4f3da4a",
+   "subj": "RV.284 [!] and RV.285 [!] filed and briefed from the 2026-09-14 production log: the deployed schema registry rejects the consumption conflict kind on every push with no device surface; the provider call has no bounded timeout (102 s to a 502)"
+  },
+  "RV.285": {
+   "date": "2026-09-14 22:05",
+   "h": "4f3da4a",
+   "subj": "RV.284 [!] and RV.285 [!] filed and briefed from the 2026-09-14 production log: the deployed schema registry rejects the consumption conflict kind on every push with no device surface; the provider call has no bounded timeout (102 s to a 502)"
   }
  },
  "death": {
@@ -4634,25 +4813,25 @@
    "subj": "RV.12: saving inside capture leaves the camera; RV.16: unmatched routes are Debug",
    "how": "ticked"
   },
-  "RV.13": {
-   "date": "2026-09-03 11:17",
-   "h": "39586f2",
-   "subj": "RV.9 attachment viewer; log text format; 15 corpus fixtures",
-   "how": "ticked"
-  },
   "RV.9": {
    "date": "2026-09-03 11:17",
    "h": "39586f2",
    "subj": "RV.9 attachment viewer; log text format; 15 corpus fixtures",
    "how": "ticked"
   },
-  "RV.11": {
+  "RV.13": {
+   "date": "2026-09-03 11:17",
+   "h": "39586f2",
+   "subj": "RV.9 attachment viewer; log text format; 15 corpus fixtures",
+   "how": "ticked"
+  },
+  "RV.15": {
    "date": "2026-09-03 11:40",
    "h": "96d5b28",
    "subj": "RV.11 the chooser anchors to its button; RV.15 the CIS feed had never parsed",
    "how": "ticked"
   },
-  "RV.15": {
+  "RV.11": {
    "date": "2026-09-03 11:40",
    "h": "96d5b28",
    "subj": "RV.11 the chooser anchors to its button; RV.15 the CIS feed had never parsed",
@@ -4754,13 +4933,13 @@
    "subj": "Mark RV.18 and RV.29 verified",
    "how": "ticked"
   },
-  "RV.24": {
+  "RV.31": {
    "date": "2026-09-03 20:02",
    "h": "df067d0",
    "subj": "Mark RV.24 and RV.31 verified",
    "how": "ticked"
   },
-  "RV.31": {
+  "RV.24": {
    "date": "2026-09-03 20:02",
    "h": "df067d0",
    "subj": "Mark RV.24 and RV.31 verified",
@@ -4772,25 +4951,25 @@
    "subj": "Mark RV.28 verified",
    "how": "ticked"
   },
-  "RV.33": {
-   "date": "2026-09-03 21:51",
-   "h": "71fbe7b",
-   "subj": "Mark RV.33 and RV.34 verified",
-   "how": "ticked"
-  },
   "RV.34": {
    "date": "2026-09-03 21:51",
    "h": "71fbe7b",
    "subj": "Mark RV.33 and RV.34 verified",
    "how": "ticked"
   },
-  "RV.26": {
+  "RV.33": {
+   "date": "2026-09-03 21:51",
+   "h": "71fbe7b",
+   "subj": "Mark RV.33 and RV.34 verified",
+   "how": "ticked"
+  },
+  "RV.22": {
    "date": "2026-09-03 22:29",
    "h": "3e8b18c",
    "subj": "Mark RV.22 and RV.26 verified; register RV.43 (date-sensitive Trends test)",
    "how": "ticked"
   },
-  "RV.22": {
+  "RV.26": {
    "date": "2026-09-03 22:29",
    "h": "3e8b18c",
    "subj": "Mark RV.22 and RV.26 verified; register RV.43 (date-sensitive Trends test)",
@@ -4820,12 +4999,6 @@
    "subj": "RV.46: the sync chip span forever after the sync finished",
    "how": "ticked"
   },
-  "RV.41": {
-   "date": "2026-09-04 09:13",
-   "h": "00ea585",
-   "subj": "Mark RV.39, RV.40 and RV.41 verified",
-   "how": "ticked"
-  },
   "RV.39": {
    "date": "2026-09-04 09:13",
    "h": "00ea585",
@@ -4833,6 +5006,12 @@
    "how": "ticked"
   },
   "RV.40": {
+   "date": "2026-09-04 09:13",
+   "h": "00ea585",
+   "subj": "Mark RV.39, RV.40 and RV.41 verified",
+   "how": "ticked"
+  },
+  "RV.41": {
    "date": "2026-09-04 09:13",
    "h": "00ea585",
    "subj": "Mark RV.39, RV.40 and RV.41 verified",
@@ -5078,13 +5257,13 @@
    "subj": "Mark RV.86 verified, register RV.91 and RV.92",
    "how": "ticked"
   },
-  "RV.94": {
+  "RV.95": {
    "date": "2026-09-06 19:14",
    "h": "af6e41b",
    "subj": "Drop RV.94 and RV.95 (product owner, 2026-09-06)",
    "how": "removed"
   },
-  "RV.95": {
+  "RV.94": {
    "date": "2026-09-06 19:14",
    "h": "af6e41b",
    "subj": "Drop RV.94 and RV.95 (product owner, 2026-09-06)",
@@ -5258,13 +5437,13 @@
    "subj": "RV.126: the odometer conflict names the car's own unit",
    "how": "ticked"
   },
-  "RV.131": {
+  "RV.128": {
    "date": "2026-09-08 08:54",
    "h": "3d28a21",
    "subj": "RV.131: the duplicate card shows the two entries it asks about",
    "how": "ticked"
   },
-  "RV.128": {
+  "RV.131": {
    "date": "2026-09-08 08:54",
    "h": "3d28a21",
    "subj": "RV.131: the duplicate card shows the two entries it asks about",
@@ -5276,13 +5455,13 @@
    "subj": "RV.132: \"Check for rates\" says what it did",
    "how": "ticked"
   },
-  "RV.82": {
+  "RV.133": {
    "date": "2026-09-08 11:29",
    "h": "2035768",
    "subj": "RV.82: the deep-link suite plants its own session",
    "how": "ticked"
   },
-  "RV.133": {
+  "RV.82": {
    "date": "2026-09-08 11:29",
    "h": "2035768",
    "subj": "RV.82: the deep-link suite plants its own session",
@@ -5462,13 +5641,13 @@
    "subj": "RV.161: a scanned receipt keeps the station it names - unmeasured, and saying so",
    "how": "ticked"
   },
-  "RV.178": {
+  "RV.177": {
    "date": "2026-09-10 10:29",
    "h": "e4766fb",
    "subj": "RV.177 + RV.178: the currency question is a sheet with a real hierarchy",
    "how": "ticked"
   },
-  "RV.177": {
+  "RV.178": {
    "date": "2026-09-10 10:29",
    "h": "e4766fb",
    "subj": "RV.177 + RV.178: the currency question is a sheet with a real hierarchy",
@@ -5504,13 +5683,13 @@
    "subj": "RV.186 + RV.188: a service may share its fill-up's odometer, and the conflict panel names the pair",
    "how": "ticked"
   },
-  "RV.184": {
+  "RV.183": {
    "date": "2026-09-10 17:24",
    "h": "e3fe547",
    "subj": "RV.183 + RV.184: the receipt viewer says when it was captured, and which station it read",
    "how": "ticked"
   },
-  "RV.183": {
+  "RV.184": {
    "date": "2026-09-10 17:24",
    "h": "e3fe547",
    "subj": "RV.183 + RV.184: the receipt viewer says when it was captured, and which station it read",
@@ -5672,13 +5851,13 @@
    "subj": "RV.218: the consumption outlier check on save that F2 promised, as a flag and never a gate",
    "how": "ticked"
   },
-  "RV.211": {
+  "RV.164": {
    "date": "2026-09-11 18:52",
    "h": "9cac6db",
    "subj": "RV.164 + RV.211: two error-surface decisions, written down and bound",
    "how": "ticked"
   },
-  "RV.164": {
+  "RV.211": {
    "date": "2026-09-11 18:52",
    "h": "9cac6db",
    "subj": "RV.164 + RV.211: two error-surface decisions, written down and bound",
@@ -5822,13 +6001,13 @@
    "subj": "RV.143: a home currency arriving by sync re-homes on the receiving device",
    "how": "ticked"
   },
-  "RV.158": {
+  "RV.138": {
    "date": "2026-09-12 05:40",
    "h": "38b0979",
    "subj": "RV.158 + RV.138: the rate drain stops at the server's coverage floor; the carry-forward gets a horizon",
    "how": "ticked"
   },
-  "RV.138": {
+  "RV.158": {
    "date": "2026-09-12 05:40",
    "h": "38b0979",
    "subj": "RV.158 + RV.138: the rate drain stops at the server's coverage floor; the carry-forward gets a horizon",
@@ -5906,13 +6085,13 @@
    "subj": "RV.263: a currency the import file declares is a correctable default",
    "how": "ticked"
   },
-  "RV.235": {
+  "RV.227": {
    "date": "2026-09-12 16:56",
    "h": "87c7346",
    "subj": "RV.227 + RV.235: nothing the user needs rests under a pinned bar",
    "how": "ticked"
   },
-  "RV.227": {
+  "RV.235": {
    "date": "2026-09-12 16:56",
    "h": "87c7346",
    "subj": "RV.227 + RV.235: nothing the user needs rests under a pinned bar",
@@ -5930,13 +6109,13 @@
    "subj": "RV.256: the persisted sync state is keyed by account",
    "how": "ticked"
   },
-  "RV.258": {
+  "RV.257": {
    "date": "2026-09-12 18:46",
    "h": "0f4157b",
    "subj": "RV.257 + RV.258: two tests that followed the host now say what they verified; UI suites run signed",
    "how": "ticked"
   },
-  "RV.257": {
+  "RV.258": {
    "date": "2026-09-12 18:46",
    "h": "0f4157b",
    "subj": "RV.257 + RV.258: two tests that followed the host now say what they verified; UI suites run signed",
@@ -5948,13 +6127,13 @@
    "subj": "RV.245: a cancelled service scan leaves no orphaned invoice pages",
    "how": "ticked"
   },
-  "RV.264": {
+  "RV.265": {
    "date": "2026-09-12 19:52",
    "h": "db3d69a",
    "subj": "RV.264 + RV.265: the flag surfaces say the right thing",
    "how": "ticked"
   },
-  "RV.265": {
+  "RV.264": {
    "date": "2026-09-12 19:52",
    "h": "db3d69a",
    "subj": "RV.264 + RV.265: the flag surfaces say the right thing",
@@ -6014,13 +6193,13 @@
    "subj": "RV.271: the pace limit and the inbox volume values speak the car's units",
    "how": "ticked"
   },
-  "RV.273": {
+  "RV.272": {
    "date": "2026-09-13 05:49",
    "h": "156cf56",
    "subj": "RV.272 + RV.273: a scanned receipt's litres cross into the car's unit at one boundary; every stored volume renders converted",
    "how": "ticked"
   },
-  "RV.272": {
+  "RV.273": {
    "date": "2026-09-13 05:49",
    "h": "156cf56",
    "subj": "RV.272 + RV.273: a scanned receipt's litres cross into the car's unit at one boundary; every stored volume renders converted",
@@ -6054,6 +6233,42 @@
    "date": "2026-09-13 11:48",
    "h": "8771bbe",
    "subj": "RV.276: two fill-ups at one reading on one day are one stop, not a conflict",
+   "how": "ticked"
+  },
+  "RV.279": {
+   "date": "2026-09-13 18:01",
+   "h": "1e60022",
+   "subj": "RV.279: the Expense and Service capture forms carry Edit entry's odometer and currency",
+   "how": "ticked"
+  },
+  "RV.280": {
+   "date": "2026-09-13 18:35",
+   "h": "a915c59",
+   "subj": "RV.280: the late expense read carries the receipt's currency",
+   "how": "ticked"
+  },
+  "RV.281": {
+   "date": "2026-09-13 20:43",
+   "h": "322c323",
+   "subj": "RV.281: an expense is \"\u0437\u0430\u0442\u0440\u0430\u0442\u0430\" in Russian, never \"\u0440\u0430\u0441\u0445\u043e\u0434\" - the word the app uses for consumption",
+   "how": "ticked"
+  },
+  "RV.282": {
+   "date": "2026-09-13 22:08",
+   "h": "a52fc86",
+   "subj": "RV.282: a discount line is never the unit price; a printed value the arithmetic confirms is",
+   "how": "ticked"
+  },
+  "RV.284": {
+   "date": "2026-09-14 23:45",
+   "h": "5b96ef6",
+   "subj": "RV.284: a rejected push is terminal and visible; the schema registry refreshes on every deploy",
+   "how": "ticked"
+  },
+  "RV.285": {
+   "date": "2026-09-15 00:11",
+   "h": "770945e",
+   "subj": "RV.285: the provider call has a 60 s budget and a timeout is its own outcome",
    "how": "ticked"
   }
  }

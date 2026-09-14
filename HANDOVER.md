@@ -1,6 +1,69 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-13 (17:10). **The scenario is the unit of work, and every v1 story but three now carries a reviewed status line.** Measured on the tree as left (`6fa402e4`): **iOS 2099 tests / 258 suites**, app-target bundle **250**, **backend 457**, lint 0 from the repo **ROOT**, localization 0 (897 keys, 100% RU), Release build 0. **101 open rows, 422 closed** (15 ticked rows still sit in `TASKS.md` awaiting the next sweep to `TASKS-DONE.md`). **One agent is running - `RV.279`, pid 45867** (the capture forms get Edit entry's odometer and currency) - the tree is otherwise clean and the briefed queue behind it is empty. Read this, then `CLAUDE.md`, then `docs/DEVELOPMENT-TIMELINE.md`, then `docs/TASKS.md`'s index.*
+*Updated 2026-09-15 (00:20). **v1.0 is tagged, submitted and deployed; the production log is now the defect source.** Measured on the tree as left (`770945ea`): **iOS 2116 tests / 262 suites**, app-target bundle **267**, **backend 227 passed / 237 Postgres-backed skipped locally** (Docker's engine will not start on this machine - CI runs them), lint 0 from the repo **ROOT**, localization 0 (900 keys, 100% RU), Release build 0. **107 open rows, 425 closed** (nine ticked rows sit in `TASKS.md` awaiting the next sweep). Nothing is running; the queue is empty. Read this, then `CLAUDE.md`, then `docs/DEVELOPMENT-TIMELINE.md`, then `docs/TASKS.md`'s index.*
+
+## Where the work stands (2026-09-15, after midnight)
+
+**Since the 2026-09-13 handover: 28 commits, 9 rows shipped** (`RV.279` `RV.280` `PJ.29` `PJ.29a`
+`RV.281` `RV.282` `RV.284` `RV.285`, `SH.1` and `P6.6` closed on the owner's word), three corpus
+registrations (**fifteen photographs**: two RN-Tver pairs, nine Circle K displays, a Sikupilli pair,
+a Lukoil e-receipt, the expense class's first invoice), the store panels rebuilt from re-shot
+frames, and **`v1.0` tagged on `c11d6704`** (local tag - push it with the branch). The RV backlog
+chart (`design/analysis/rv-backlog.png`) reads **285 filed / 251 closed / 34 open**.
+
+**Product decisions the owner made 2026-09-13/14 (do not relitigate)**: every scanned document
+reaches the cloud gateway (`PJ.29` pulled into v1 - expense, then invoice); "expenses" is
+**затраты** in Russian, never расход (`RV.281` - расход is consumption); the backend is deployed and
+the store submission is done; Codex on `gpt-5.6-sol` is a sanctioned second dispatch path.
+
+**Scenarios**: 28 journeys carry `Status: implemented`. J7b was re-walked twice (`RV.279`, then
+`RV.280`/`PJ.29`) and J7 and F4 once each after `PJ.29a`; all four implemented. Still without a
+line: J4 (owner photographs), J8b/J13 (`RV.181` device step), J6 `[v1.x]`, J12 `[v2]`.
+
+## The six things this session would tell its successor
+
+1. **The production log is the best defect source now, and it is shape-only by design.** Two
+   rows came straight out of one paste from the owner (`RV.284`, `RV.285`): a fill-up rejected on
+   every push for a week with no device surface, and a provider call held 102 s. Read
+   `Rejected=`, `Outcome=` and `DurationMs=` before anything else.
+2. **An additive schema change inside a version needs a refresh migration** (`RV.284`). Migration
+   002 seeds `payload_schemas` with `DO NOTHING`; `RV.218`'s enum value never reached the deployed
+   registry. 023 is the first refresh and every deploy carries its own; the test that would have
+   caught it (registry == embedded) exists now. **Ops step outstanding: deploy so 023 runs** - the
+   owner's two rejected rows are accepted on their next push after that.
+3. **Probe the model before blaming the provider, and check the session database before blaming
+   the model.** On 2026-09-14 `deepseek-v4-flash` died at the banner while `-v4-pro` answered a
+   probe in seconds (the owner spotted it); separately, `~/.local/share/opencode/opencode.db` had
+   reached **22 GB** on a 97% disk and was deleted on the owner's instruction. `dispatch.sh`
+   defaults to **pro** until flash answers `opencode run -m deepseek/deepseek-v4-flash "Reply PONG"`
+   again. `scripts/dispatch-codex.sh` is the third path; the Codex account has a usage cap that
+   ended one run at its report - the tree was verified without one, which is the rule anyway.
+4. **A literal count in a test is the assertion every new fixture breaks** - three times in two
+   days (`MigrationsTests` 20→21 caught by CI, `RV200ExpenseCategoryInferenceTests` 12→13, the
+   corpus row-count pin every registration). The migrations one now derives from the embedded
+   files; the others are still literals. When a row adds a fixture or a migration, grep for the pin.
+5. **Verify the sibling the agent did not run.** `RV.284`'s agent ran its two new Settings tests
+   and reported green; its seed edit had **replaced** the five flagged-state seeds, and the full
+   `SettingsUITests` had three deterministic reds. Run the whole suite a touched file belongs to,
+   never the agent's subset. Same session: `RV.282`'s agent found `RV.283` (the cross-check's
+   discount pairing) and filed it rather than fixing it - correct, it changes a classification.
+6. **Docker's engine is dead on this machine** (Desktop restarts do not bring the socket up). Every
+   Postgres-backed backend test skips locally; CI is where they run. Say so in every backend tick.
+
+## What to do next
+
+1. **Push** `main` and the `v1.0` tag; watch backend CI for the two `PayloadRegistryTests` and the
+   `provider_timeout` endpoint test that never ran here.
+2. **Deploy the backend** (owner) so migration 023 refreshes the registry.
+3. **RV.283** needs the owner's decision (which discount receipts flip classification) before a
+   brief. **PJ.300**, **RV.205/RV.114/RV.179** (photographs) and the total-plus-currency inbox
+   tick are the other owner items.
+4. Tooling rows that need no decision, in the order worth sending: `RV.203` (the write-trigger
+   flake that tripped three gates), `RV.262` (count rows since the last journeys walk - it is at
+   **9 since 2026-09-13**, the walk is due at 10), then `RV.242`, `RV.210`, `RV.129`, `RV.109`.
+5. Sweep the nine ticked rows to `TASKS-DONE.md` the way `ccf509dc` did.
+
+---
 
 ## Where the work stands (2026-09-13 evening)
 
