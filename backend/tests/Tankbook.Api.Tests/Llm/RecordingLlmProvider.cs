@@ -33,6 +33,14 @@ public sealed class RecordingLlmProvider : ILlmProvider
 
     public void SetFailure() => _handler = static (_, _, _, _) => throw new InvalidOperationException("provider down");
 
+    /// <summary>
+    /// Models the real provider running out its client's timeout budget (RV.285):
+    /// the .NET HttpClient throws a <see cref="TaskCanceledException"/> when the
+    /// 60 s budget elapses, and this double throws the same exception so the
+    /// gateway's classification can be asserted without a real 60 s wait.
+    /// </summary>
+    public void SetTimeout() => _handler = static (_, _, _, _) => throw new TaskCanceledException("the provider call timed out");
+
     public Task<LlmExtraction> ExtractAsync(
         string kind,
         byte[] imageBytes,

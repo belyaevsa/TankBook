@@ -35,4 +35,16 @@ public static class HttpClientTimeouts
     /// sub-second, so a 30 s cap is generous headroom, never a floor.
     /// </summary>
     public static readonly TimeSpan Apns = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// The cloud-vision provider call behind /extract (docs/API.md "LLM gateway
+    /// (Pro)"). The measured healthy answer is 12-36 s (RV.51), so 60 s is twice
+    /// the slowest of those and short enough that a dead provider releases the
+    /// request and the user's quota unit in a minute, not two. The device stops
+    /// waiting at 3 s and takes a late answer through the inbox, so this budget
+    /// bounds the server's work, never the user. A call that runs out this budget
+    /// is recorded as provider_timeout, never provider_failed (RV.285): the log
+    /// must tell an outage from a slow provider.
+    /// </summary>
+    public static readonly TimeSpan Llm = TimeSpan.FromSeconds(60);
 }

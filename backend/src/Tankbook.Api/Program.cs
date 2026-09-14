@@ -219,13 +219,16 @@ builder.Services.AddScoped<FeedbackService>();
 // issuer mints/validates the server's own RS256 JWTs; the signing key is
 // Auth:JwtSigningKeyBase64 (ephemeral dev fallback, see JwtAccessTokenIssuer).
 builder.Services.AddMemoryCache();
-// The bare default client remains for the LLM gateway (its own vendor contract,
-// v2); the auth JWKS and the rate feeds each get a named client with a budget
-// that fits their caller (docs/PRACTICES.md U6, HttpClientTimeouts) - a slow
-// JWKS fetch stalls every sign-in behind it, and a slow feed pins a job thread.
-builder.Services.AddHttpClient();
+// Every outbound role gets a named client with a budget that fits its caller
+// (docs/PRACTICES.md U6, HttpClientTimeouts) - a slow JWKS fetch stalls every
+// sign-in behind it, a slow feed pins a job thread, and a dead cloud-vision
+// provider must not hold a request and a quota unit for the 100 s default
+// (RV.285). The LLM gateway's budget (60 s) bounds the server's work, never the
+// user: the device stops waiting at 3 s and takes a late answer through the
+// inbox.
 builder.Services.AddHttpClient("jwks", client => client.Timeout = HttpClientTimeouts.Jwks);
 builder.Services.AddHttpClient("rates", client => client.Timeout = HttpClientTimeouts.RateFeed);
+builder.Services.AddHttpClient("llm", client => client.Timeout = HttpClientTimeouts.Llm);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<JwtAccessTokenIssuer>();
 builder.Services.AddSingleton<AppleGoogleIdTokenVerifier>();

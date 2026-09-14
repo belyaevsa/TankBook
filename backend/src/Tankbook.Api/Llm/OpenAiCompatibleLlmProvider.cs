@@ -31,7 +31,9 @@ public sealed class OpenAiCompatibleLlmProvider : ILlmProvider
 
     public OpenAiCompatibleLlmProvider(IHttpClientFactory httpClientFactory, IOptions<LlmGatewayOptions> options)
     {
-        _http = httpClientFactory.CreateClient();
+        // The "llm" named client carries the 60 s budget (HttpClientTimeouts.Llm,
+        // RV.285): a dead provider throws here in a minute, not the 100 s default.
+        _http = httpClientFactory.CreateClient("llm");
         _options = options.Value;
     }
 

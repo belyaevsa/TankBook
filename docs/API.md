@@ -626,6 +626,25 @@ A late answer is bound by hard rule 13 and by F4:
 Retries are the device's business, not the user's: one silent retry at most, never a dialog, and
 never a second 3 s wait imposed on someone who has already moved on.
 
+#### The server's side of `/extract` (the provider budget, RV.285)
+
+Because the device stops waiting at 3 s and takes a late answer through the inbox, the server's
+budget bounds the **work**, never the user. Two server-side facts complete the contract.
+
+**1 · The provider call has a bounded timeout.** The outbound call to the cloud-vision provider
+runs against a named `llm` client whose timeout is the compiled `HttpClientTimeouts.Llm` = **60 s**
+- twice the slowest measured healthy answer (12-36 s, RV.51), and short enough that a dead provider
+releases the request thread, the device's background task and the user's quota unit in a minute
+rather than the .NET `HttpClient` default of 100 s.
+
+**2 · A timeout is a distinct outcome, never folded into a generic failure.** When the provider
+runs out that budget, the ledger row and the `llm.extract` log line carry the outcome
+`provider_timeout`, distinct from `provider_failed` (a 5xx or a connect refusal). The distinction
+exists so the log can tell a slow provider from a dead one. The HTTP response is the same `502`
+(`upstream_unavailable`) either way, so the device reads both as the same F4 path - the on-device
+result stands and the user is never asked to wait (JOURNEYS F4). Retrying the provider is out of
+scope: a second 60 s on a dead provider is worse than the budget it replaces.
+
 ### `POST /extract` delivery, and the outbox when it fails (RV.44)
 
 `POST /extract` answers only when the client is still there. When the client vanishes mid-request

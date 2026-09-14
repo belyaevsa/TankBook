@@ -158,6 +158,46 @@ public class ExtractEndpointTests : IClassFixture<PostgresFixture>
         Assert.Equal(1, provider.CallCount);
     }
 
+    // ---- 4b. RV.285: a timeout is its own outcome, never provider_failed -----
+
+    [SkippableFact]
+    public async Task Extract_ProviderTimeout_IsRecordedAsProviderTimeout_NotProviderFailed()
+    {
+        var signer = new TestIdTokenSigner();
+        var provider = new RecordingLlmProvider();
+        provider.SetTimeout();
+
+        var lines = new List<string>();
+        var writer = new InMemoryLogWriter(lines);
+        await using var app = await StartAsync(signer, provider, writer);
+        var (token, account, _) = await CreateSessionAsync(app, signer, "timeout", "timeout@example.com");
+        await app.SetTierAsync(account, "pro");
+
+        var response = await ExtractAsync(app.Client, token, "receipt", SmallImage(), null);
+        Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
+
+        // The billing rule holds: a timed-out call is not metered (nothing came
+        // back to bill).
+        Assert.Equal(0, await app.CountAsync("llm_usage", "account_id = @p", new { p = account }));
+
+        // The ledger row still lands - the call was attempted - with the distinct
+        // timeout outcome and zero tokens/cost (nothing came back to bill).
+        var row = await app.ScalarAsync<(string Outcome, long PromptTokens, long CompletionTokens, decimal Cost)>(
+            "SELECT outcome, prompt_tokens, completion_tokens, cost FROM llm_calls WHERE account_id = @p",
+            new { p = account });
+        Assert.Equal("provider_timeout", row.Outcome);
+        Assert.Equal(0, row.PromptTokens);
+        Assert.Equal(0, row.CompletionTokens);
+        Assert.Equal(0m, row.Cost);
+
+        // The log names the timeout, not a generic provider failure - exactly one
+        // llm.extract line, and its outcome is the timeout. Before RV.285 this
+        // same exception folded into provider_failed.
+        var extracts = writer.JsonLines().Where(l => l.Prop("event") == "llm.extract").ToList();
+        var line = Assert.Single(extracts);
+        Assert.Equal("provider_timeout", line.Prop("outcome"));
+    }
+
     // ---- 5. No image, base64 blob, or field value reaches a log line ---------
 
     [SkippableFact]

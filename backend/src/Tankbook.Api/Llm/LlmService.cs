@@ -74,6 +74,7 @@ public sealed class LlmService
 
     private const string OutcomeOk = "ok";
     private const string OutcomeProviderFailed = "provider_failed";
+    private const string OutcomeProviderTimeout = "provider_timeout";
     private const string OutcomeOutboxed = "outboxed";
     private const string CategorySuccess = "success";
     private const string CategoryError = "error";
@@ -187,10 +188,26 @@ public sealed class LlmService
         // outage coinciding with the provider outage can no longer mask the
         // real failure - the operator sees provider_failed, not a storage
         // stack trace.
+        //
+        // A timeout is its own outcome, never folded into provider_failed
+        // (RV.285): the server runs this call against CancellationToken.None, so
+        // the only cancellation source is the client's 60 s budget - an
+        // OperationCanceledException here IS the provider running out that
+        // budget. The distinction is the question this row was filed to answer:
+        // the log must tell a slow provider (timeout) from a dead one (5xx or
+        // connect refusal). The ledger row still lands either way - the call was
+        // attempted - with zero tokens and zero cost, because nothing came back
+        // to bill.
         LlmExtraction extraction;
         try
         {
             extraction = await _provider.ExtractAsync(kind, imageBytes, hints, model, serverToken);
+        }
+        catch (OperationCanceledException)
+        {
+            await RecordCallAsync(accountId, deviceId, kind, model, extraction: null, imageBytes, OutcomeProviderTimeout, CategoryError, stopwatch.Elapsed, serverToken);
+            TankbookLog.LlmExtract(_logger, LogLevel.Error, kind, usedBefore, usedBefore, string.Empty, stopwatch.Elapsed, "provider_timeout");
+            return new ExtractOutcome(ExtractStatus.ProviderFailed, null);
         }
         catch
         {
