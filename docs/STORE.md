@@ -11,13 +11,14 @@ Written 2026-09-05.*
 `SITE.md`'s rule is that **the page may not promise what the corpus says we cannot deliver**, and
 the store page is where an over-promise costs most: it is read by someone deciding, it is quoted
 back in one-star reviews, and Apple's reviewers check it against the build. The measured position,
-re-measured 2026-09-05:
+re-measured 2026-09-14 (`Spike/ReceiptSpike/fixtures/HIGH-WATER.md`):
 
-- receipts resolve **188 of 220 asserted cells (85%)**, but only **33 of 48 receipts (69%) come
-  out with every field right** - so about a third of scans still need a correction;
-- **pump-display capture ships OFF** (24 of 178 numeric cells committed, 13% coverage against a
-  60% floor) - it may appear on a roadmap, never in the listing;
-- a fiscal QR is present on **22 of 48** receipts and carries 2 of the 5 fields;
+- receipts resolve **265 of 310 asserted cells (85%)** over 66 photographs; the per-receipt count
+  from 2026-09-05 - **33 of 48 (69%) with every field right** - is the last full one, and the cell
+  rate has not moved, so about a third of scans still need a correction;
+- **pump-display capture ships OFF** (the parser commits 56 of 279 numeric cells, 20% coverage
+  against a 60% floor) - it may appear on a roadmap, never in the listing;
+- a fiscal QR is present on **22 of 48** receipts (2026-09-05 count) and carries 2 of the 5 fields;
 - Vision misreads a digit at **confidence 1.00**, which is why every value is editable.
 
 **85% is a good number and it is not a promise that a scan finishes the job.** The listing
@@ -134,7 +135,7 @@ they would index against the promise the copy rule forbids.
 
 > No account, no subscription, no ads. Your history lives on your phone, and the export takes the receipt photos with it - so the next phone is not where the last five years go missing.
 
-**Description:**
+**Description** (the draft; the paste-ready text, refreshed 2026-09-14, is `STORE-COPY.md`):
 
 ```
 Tankbook is a fuel and running-cost log built around one promise: the history
@@ -197,10 +198,10 @@ phones"; the Russian page answers "будет ли оно работать и с
 > Без аккаунта, без подписки, без рекламы. Журнал лежит у вас в телефоне и открывается, даже если
 > наши серверы недоступны - и цифры можно проверить самому.
 
-**Description:**
+**Description** (the draft; the paste-ready text, refreshed 2026-09-14, is `STORE-COPY.md`):
 
 ```
-Tankbook - журнал расхода топлива и трат на машину. Работает у вас в телефоне,
+Tankbook - журнал расхода топлива и затрат на машину. Работает у вас в телефоне,
 без аккаунта и без подписки.
 
 ПОЧЕМУ ЭТО ВАЖНО ИМЕННО СЕЙЧАС
@@ -251,7 +252,10 @@ Tankbook - журнал расхода топлива и трат на маши�
 
 ## 4b · Screenshots: two different sets, not one translated set
 
-Five panels per language, 1290 x 2796, built by `design/store/build.py`. **The subjects and their
+Five panels per language, 1284 x 2778, built by `design/store/build.py` - **rebuilt 2026-09-14** from
+screenshots re-captured the same day, after the panels had been carrying frames from 2026-08-29
+to 2026-09-05. The paste-ready table with each panel's source frame is in `STORE-COPY.md` ->
+Screenshots. **The subjects and their
 ORDER differ**, because the first three panels are what search results show and the two audiences
 need different first three.
 

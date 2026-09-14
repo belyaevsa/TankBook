@@ -186,7 +186,7 @@ PANELS = [
 
     ("05", "P1.10-trends", "P3.4-reminders",
      ("BRING YOUR HISTORY", "Consumption and cost, per car",
-      "Import from Fuelio, Drivvo, Fuelly and more. The export is free and takes the photos too."),
+      "Import from Drivvo and My Fuel Manager. The export is free and takes the photos too."),
      ("НЕ ТОЛЬКО ЗАПРАВКИ", "ТО, страховка и напоминания",
       "Ремонты, запчасти, шины и налоги - с фотографиями и напоминаниями по пробегу.")),
 ]
