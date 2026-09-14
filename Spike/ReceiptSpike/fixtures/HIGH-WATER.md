@@ -164,6 +164,30 @@ nothing on any of them, so committed stays 56 and committed-correct stays 53: co
 0.210 -> 0.201, precision 0.946. The `D`/`95`/`98+` windows are recognised as text but the
 transaction price is never selected from them. The mode stays off.
 
+## The 2026-09-14 Gilbarco, e-receipt and parking-invoice set
+
+Five Circle K Estonia Gilbarco displays (`pump-101`..`105`), the Sikupilli paper
+half of `pump-104` (`receipt-067`), a Lukoil AI-100 OFD page (`screenshot-009`),
+and the expense class's first invoice (`parking-snabb-tallinn-et`) grow every
+Vision-backed class in one run.
+
+- Receipts move **265/310 -> 270/315** and screenshots **35/40 -> 40/45**: the
+  production scorer resolves all five asserted cells on each new document.
+- Pump numeric recall moves **53/279 -> 53/293**. No new numeric value is
+  committed, so committed-correct/committed stays 53/56, precision stays 0.946,
+  coverage falls 0.201 -> 0.191, and the mode stays off. `pump-104`'s physically
+  washed price is unasserted and the production parser abstains; it is not
+  credited from the paired receipt.
+- Expenses move **29/29 -> 33/33**: the production extractor finds parking,
+  `4.39 EUR`, and `2026-09-14`. The diagnostic Spike harness instead commits
+  VAT `0.08` as total and writes that separate finding to `recognised.csv`.
+
+The CLI and production scorer disagree on the two fuel documents too: the CLI
+scores receipt-067 3/5 (VAT `10.00` as total), screenshot-009 1/5 (VAT `358.49`
+as total), and every new pump numeric as a miss, with confident-wrong `0.5`
+litres on pump-103/104. Those are findings of the Spike implementation; the
+high-water mark remains the live `TankbookCore` measurement.
+
 ## Known trap
 
 `swift run ReceiptSpike fixtures/receipts` - the CLI a human runs when adding a fixture by

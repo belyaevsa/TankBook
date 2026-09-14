@@ -3,11 +3,13 @@
 # preamble, launch detached, health-check by log bytes at 60 s, retry ONCE on a dead
 # run (about one dispatch in four comes up with no network and writes nothing).
 #
-#   scripts/dispatch.sh <task-id> [model]      # model defaults to deepseek/deepseek-v4-flash
+#   scripts/dispatch.sh <task-id> [model]      # model defaults to deepseek/deepseek-v4-pro
+#   (flash was the default until 2026-09-14, when its endpoint stopped answering at the
+#   banner while pro answered in seconds - product owner; pass flash explicitly to try it)
 #
 # Prints "PID=<pid>" on success so the orchestrator can arm a monitor on it.
 set -u
-id="${1:?task id}"; model="${2:-deepseek/deepseek-v4-flash}"
+id="${1:?task id}"; model="${2:-deepseek/deepseek-v4-pro}"
 root="$(cd "$(dirname "$0")/.." && pwd)"
 brief="$root/agents/briefs/$id.md"; pre="$root/agents/briefs/PREAMBLE.md"
 [ -f "$brief" ] || { echo "no brief at $brief" >&2; exit 2; }

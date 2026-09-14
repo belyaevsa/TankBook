@@ -952,3 +952,18 @@ no label names a price the parser derives the unit price only from a printed val
 confirms (`total / liters`), so `receipt-066` commits the printed `2,024` - a value the document
 states, not a computation. `fuelKind` still abstains: `D B0 miles` is the loyalty product string
 that has never normalised to diesel (`receipt-001`/`042`/`045`/`046`/`059`/`064`).
+
+## Added 2026-09-14 (Circle K Sikupilli pair)
+
+`receipt-067-circlek-sikupilli-95e0-pump1-2650l-pair-ee.jpg` is Circle K Sikupilli,
+Tartu mnt 86, Tallinn, pump 1, 14/09/2026 10:10, terminal T01, arve 0068:
+`95E0 miles+ 26,50L 51,65`, `Pump 1 Hind 1,949 EUR/L`, `K O K K U 51,65`,
+`KÄIBEMAKSUTA 41,65`, `24% KM 10,00`. It has no discount line and no fiscal QR.
+The same fill is `../pump/pump-104-...-pair-ee.jpg`; the receipt is the only view
+that carries the washed-out display price. Held in a hand with the header and
+card block partly under a thumb, while the fuel block stays flat and sharp.
+
+The production corpus scorer resolves all five cells, moving receipts 265/310
+-> 270/315. The diagnostic Spike sweep resolves litres, unit price and currency,
+misses `petrol95`, and commits the VAT `10.00` as total instead of `51.65` (3/5).
+The two implementations remain deliberately reported separately.

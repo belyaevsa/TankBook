@@ -904,3 +904,26 @@ selects a transaction price from, so numeric total 267 -> 279, committed 56 and 
 53 unchanged, precision 0.946 and coverage 0.210 -> 0.201; the mode stays off on both. The four are
 full-resolution JPEGs converted from iPhone HEIC (3024x4032, orientation baked in), EXIF and ICC
 stripped, committed byte-for-byte.
+
+## Added 2026-09-14 (the Circle K Gilbarco set)
+
+Five full-resolution Circle K Estonia Gilbarco Veeder-Root displays, on the same
+two-line, seven-digit zero-padded face as `pump-094`/`095`:
+
+- `pump-101` - `0035,90 / 0017,65 / 2,034`; tight crop without the `€`/`L`
+  labels and with the photographer reflected across the digits.
+- `pump-102` - `0019,97 € / 0010,22 L / 1,954 €/L`; the stop button is visible.
+- `pump-103` - `0094,93 € / 0048,58 L / 1,954 €/L`, sharp.
+- `pump-104` - `0051,65 € / 0026,50 L`, pump 1 at Sikupilli. **The `€/L`
+  window is washed out and its expected price cell is blank**; `1,949` belongs
+  only to the paired `../receipts/receipt-067-...-pair-ee.jpg`.
+- `pump-105` - `0048,52 € / 0025,55 L / 1,899 €/L`, with glare on the total.
+
+The production scorer commits no new numeric value: numeric hits stay 53,
+numeric total grows 279 -> 293, and committed/correct stays 56/53. Precision is
+still 0.946; coverage falls 0.201 -> 0.191, and the mode remains off. In
+particular it abstains on pump-104's price. The diagnostic Spike parser also
+misses every asserted numeric cell, but commits a confident-wrong `0.5` litres
+on pump-103 and pump-104; that is a harness finding, not scored as a production
+commit. The five JPEGs are 3024x4032 conversions with orientation baked in and
+EXIF/ICC stripped, preserved byte-for-byte.

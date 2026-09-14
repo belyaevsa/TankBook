@@ -12,9 +12,9 @@ running the extractor.
 
 **Which file is the input depends on whether a photograph exists (RV.278):**
 
-- **A `.txt` with no `.jpg` beside it is hand-authored** and is the extractor's
+- **A `.txt` with no image beside it is hand-authored** and is the extractor's
   INPUT by construction. There is no photograph to read.
-- **A `.jpg` is the INPUT**, and the sweep OCRs it through Vision at test time -
+- **A `.jpg` or `.png` is the INPUT**, and the sweep OCRs it through Vision at test time -
   the same `VisionTextRecognizer` the fuel classes use. The `.txt` beside it is
   the **Vision dump**, kept for debugging and compared with the fresh OCR: a
   difference is reported as **drift** (the OCR changed under the fixture) and is
@@ -24,7 +24,7 @@ running the extractor.
 The oracle rule in `../README.md` still holds: scoring a vocabulary against the
 values the extractor produced measures nothing.
 
-**Two photographs have arrived.** The first, `parking-tallinn-airport-et.jpg`,
+**Three photographs have arrived.** The first, `parking-tallinn-airport-et.jpg`,
 is a Tallinn Airport (Tallinna Lennujaam AS) car-park ticket, 10/09/2026, 20
 minutes, `PARKIMISTEENUS 2.00 EUR`, KM 24%. The second,
 `parking-tallinn-airport-et-2.jpg`, is the same car park on 13/09/2026, whose
@@ -37,6 +37,16 @@ is also the first fixture that named its kind **only in Estonian** -
 which the RU/EN vocabulary abstained on until the two Estonian stems
 (`PARKIMI`, `PARKLA`) were added. Converted from HEIC to full-resolution JPEG
 with EXIF and ICC stripped before commit.
+
+The third, `parking-snabb-tallinn-et.png`, is the class's first invoice-shaped
+document: Snabb OÜ invoice C2654962727, 14.09.2026. Its two rows are parking
+`4,00` and service fee `0,39`; the expense truth is the paid grand total
+`Kokku maksudega / Tasutud 4,39 EUR`, never the `0,00 EUR` balance due or the
+parking row alone. It is also the first Estonian-only invoice vocabulary
+(`PARKING`, `Sõiduki numbrimärk`, `TASUTUD`). Vision's committed 67-line dump
+is `parking-snabb-tallinn-et.txt`. The production extractor scores 4/4 and moves
+the class 29/29 -> 33/33; the diagnostic Spike parser commits VAT `0,08` as the
+total, so its separate sweep is 32/33 and `recognised.csv` records that finding.
 
 Since RV.277 the folder is a **scored corpus class**, ratcheted by
 `AccuracyRatchetTests` against `../high-water.json`'s `expenses` entry, over

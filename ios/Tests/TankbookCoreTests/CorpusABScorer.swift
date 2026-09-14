@@ -399,6 +399,9 @@ enum PostSweepCorpusAdditions {
             // slip whose printed per-litre price already carries the discount,
             // so 64.04 x 2.024 = 129.62 closes exactly. Declared, not swept.
             "receipt-066-circlek-jarvevana-db0-pump4-6404l-pair-ee.jpg",
+            // 2026-09-14: the paper half of pump-104 - Circle K Sikupilli,
+            // pump 1, 26.50 L of 95E0 at 1.949 = 51.65. Declared, not swept.
+            "receipt-067-circlek-sikupilli-95e0-pump1-2650l-pair-ee.jpg",
         ],
         "pump": [
             // 2026-09-09: the owner's own fills, three of them the matched
@@ -545,6 +548,19 @@ enum PostSweepCorpusAdditions {
             "pump-098-dresser-wayne-circlek-ee-969l-2039.jpg",
             "pump-099-dresser-wayne-circlek-ee-pump1-1064l-1899.jpg",
             "pump-100-dresser-wayne-circlek-jarvevana-pump4-6404l-2024-pair-ee.jpg",
+            // 2026-09-14: five Circle K Estonia Gilbarco displays. pump-104 is
+            // the display half of receipt-067 and its price window is washed
+            // out, so that cell is deliberately blank. Declared, not swept.
+            "pump-101-gilbarco-circlek-ee-1765l-2034-closeup.jpg",
+            "pump-102-gilbarco-circlek-ee-1022l-1954.jpg",
+            "pump-103-gilbarco-circlek-ee-4858l-1954.jpg",
+            "pump-104-gilbarco-circlek-sikupilli-pump1-2650l-price-washed-pair-ee.jpg",
+            "pump-105-gilbarco-circlek-ee-2555l-1899.jpg",
+        ],
+        "screenshots": [
+            // 2026-09-14: an OFD-rendered Lukoil AI-100 e-receipt. Declared,
+            // not swept - the A/B arms remain frozen.
+            "screenshot-009-lukoil-ekaterinburg-ai100-ru.png",
         ],
     ]
 

@@ -8,19 +8,19 @@ stays off.
 ```
 fixtures/
   receipts/   receipt photos + expected.csv      -> Vision OCR (L5 accuracy gate)
-              66 files, RU + EE + KZ, 6 years. Live score in high-water.json - see its README
+              67 files, RU + EE + KZ, 6 years. Live score in high-water.json - see its README
               receipt-036 is the first NON-FISCAL terminal slip: no QR, no VAT, no fiscal ids
               receipt-047/048 are matched pairs with pump-065/066 (see high-water.json):
               048 sweeps 5/5, 047 abstains on both operands - they bracket the RUB band
   pump/       pump-display photos + expected.csv -> Vision OCR (L5, >=95% or the mode stays off)
-              100 displays, 6 makes, EE/RU/KZ. Live score in high-water.json.
+              105 displays, 6 makes, EE/RU/KZ. Live score in high-water.json.
               pump-016/017 are idle - negative fixtures
               pump-021/022/023 are sun-glared; their values came from the photographer, not the photo
               pump-002 is the SAME fill as receipt-007: independent ground truth
   fiscal/     OFD documents + expected.csv       -> text layer where there is one, OCR where there is not (P2.6)
   expenses/   expense fixtures + expected.csv -> the photograph is OCR'd at test
               time where a .jpg exists, else the .txt is the input (L5, ratcheted)
-              10 hand-authored OCR dumps + 2 photographs with their Vision dumps.
+              10 hand-authored OCR dumps + 3 photographs with their Vision dumps.
               Four cells per row: category, total, currency, date. See its README.
               A .jpg's .txt dump is compared with a fresh OCR for DRIFT, never
               scored (RV.278).
@@ -32,7 +32,7 @@ fixtures/
               with a different schema (liters/unitPrice/fuelKind vs the expense
               cells) - a separate decision, not done here.
   screenshots/ e-receipt screenshots + expected.csv -> Vision OCR, rendered text
-              8 screens, RU + Circle K EE/LV/LT. See its README on discounts vs the cross-check
+              9 screens, RU + Circle K EE/LV/LT. See its README on discounts vs the cross-check
 ```
 
 `screenshots/` is Vision OCR like `receipts/`, but of *rendered* text rather
@@ -139,9 +139,10 @@ hard rule 4 exists for.
 ## Known gaps in the current corpus
 
 - **Breadth is still the limit, not count.** Every accuracy figure below a few
-  dozen images per class is anecdote, not measurement. As of 2026-09-13 the
-  corpus holds 66 receipts, 100 pump displays, 8 screenshots, 2 fiscal
-  documents and 2 non-fuel receipt photographs (two car-park tickets, under
+  dozen images per class is anecdote, not measurement. As of 2026-09-14 the
+  corpus holds 67 receipts, 105 pump displays, 9 screenshots, 2 fiscal
+  documents and 3 non-fuel expense photographs (two car-park tickets and one
+  parking invoice, under
   `expenses/`).
 - `receipt-001.heic` (Circle K, Tallinn, Estonian): the parser reads liters,
   unit price and total exactly, and the cross-check locks

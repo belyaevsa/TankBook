@@ -87,19 +87,17 @@ level, in any build; only counts and confidence are shape. A source-scan gate
 Vision reads the characters; **the hard part is deciding what each number means**, and every
 value this pipeline produces is a suggestion the user can overwrite forever (hard rule 13).
 
-## Measured reality, 2026-09-05
+## Measured reality, 2026-09-14
 
 | class | score | note |
 |---|---|---|
-| receipts | **188/220 cells (85%)** | 33 of 48 fixtures resolve every asserted cell (69%) |
+| receipts | **270/315 cells (85.7%)** | live `TankbookCore` score |
 | fiscal | 5/5 | |
-| screenshots | 35/40 | |
-| pump | **24/178 numeric cells** | committed 24, correct 24 - see the gate note below |
+| screenshots | 40/45 | |
+| expenses | 33/33 | kind, total, currency and date |
+| pump | **53/293 numeric cells** | committed 56, correct 53 - see the gate note below |
 
-Receipts were **101/210 (48%)** on the morning of 2026-09-04 and the corpus has only grown since,
-so the movement is the parser, not the fixtures (`Spike/ReceiptSpike/fixtures/high-water.json`
-carries the per-change breakdown). **The total column now misses nothing**, and the class holds no
-confident-wrong value: every remaining miss is an honest abstention.
+`Spike/ReceiptSpike/fixtures/high-water.json` carries the per-change breakdown.
 
 **The pump number is scored differently on purpose (B1, 2026-09-04).** The old pump mark - "53/261,
 20%" - was a recall average over a denominator that mixed the 178 numeric cells the mode exists to
@@ -107,8 +105,8 @@ read, a near-free `currency` marker lookup (66 cells), and `fuelKind` (17), whic
 says a pump parser must never produce. Worse, recall scores a correct `nil` as a miss and a
 confident-wrong value as a hit - hard rule 13 inverted - and the two idle pumps' ground-truth zeros
 made it reward logging a zero-litre fill. `PumpPhotoGate` now measures **precision on committed
-numeric fields plus a coverage floor**: today 24 of 24 committed cells are correct (100% precision)
-at 13% coverage, so the mode stays off, below the 0.60 floor.
+numeric fields plus a coverage floor**: today 53 of 56 committed cells are correct (94.6% precision)
+at 19.1% coverage, so the mode stays off, below both thresholds.
 
 **Two things measured and closed, so they are not re-proposed:**
 

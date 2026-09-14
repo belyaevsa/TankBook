@@ -120,6 +120,7 @@ died instantly with `database is locked` and never reached the model (re-dispatc
 | `CORPUS-2026-09-13` | **flash** | 2026-09-13 | 817 KB |
 | `CORPUS-2026-09-13b` | **flash** | 2026-09-13 | 375 KB |
 | `RV.282` | **flash** | 2026-09-13 | 454 KB |
+| `CORPUS-2026-09-14` | **codex sol** (`gpt-5.6-sol`; flash dead at the banner, opencode DB bloated; the run hit the Codex usage cap at its report) | 2026-09-14 | 5.2 MB |
 
 ## What the four grouped dispatches of 2026-09-10 cost to verify
 

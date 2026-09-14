@@ -205,3 +205,14 @@ same conclusion `screenshot-003` reached from the Russian side, now with a secon
 brand and three more countries behind it. The hard part of these documents is not
 reading them; it is knowing which of the two unit prices to keep and which total
 is the fuel.
+
+## Added 2026-09-14 (Lukoil OFD e-receipt)
+
+`screenshot-009-lukoil-ekaterinburg-ai100-ru.png` is the rendered OFD page for
+ЛУКОЙЛ АЗС 66 418, Екатеринбург, 14.09.2026 20:20: `ТРК №5 Бензин
+автомобильный ЭКТО-100 (АИ-100-К5), л`, `20 x 99.40 1988.00`, `ИТОГО:
+1988.00`, and `НДС 22% 358.49`. Quantity comes first and is an integer; the
+22% VAT is ordinary receipt content, not a foreign-currency signal. The
+production scorer resolves all five cells, including `petrol100` and RUB, so
+screenshots move 35/40 -> 40/45. The diagnostic Spike parser resolves only the
+kind and commits VAT `358.49` as the total (1/5).
