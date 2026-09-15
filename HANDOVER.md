@@ -14,7 +14,7 @@ chart (`design/analysis/rv-backlog.png`) reads **285 filed / 251 closed / 34 ope
 **Product decisions the owner made 2026-09-13/14 (do not relitigate)**: every scanned document
 reaches the cloud gateway (`PJ.29` pulled into v1 - expense, then invoice); "expenses" is
 **затраты** in Russian, never расход (`RV.281` - расход is consumption); the backend is deployed and
-the store submission is done; Codex on `gpt-5.6-sol` is a sanctioned second dispatch path.
+the store submission is done; Codex on `gpt-5.6-sol` is a sanctioned second dispatch path. **2026-09-15**: multi-page invoices go to the cloud in **v1.1** (`PJ.301`–`PJ.303`) - every page in one `/extract` call, the provider reads the lines too, the local split stays preferred and the cloud reading is a per-line match-and-merge offer with keep-mine as the default; J7 carries the paragraph, `API.md` the planned contract.
 
 **Scenarios**: 28 journeys carry `Status: implemented`. J7b was re-walked twice (`RV.279`, then
 `RV.280`/`PJ.29`) and J7 and F4 once each after `PJ.29a`; all four implemented. Still without a

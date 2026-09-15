@@ -363,6 +363,33 @@ pages are persisted when the scan starts (RV.243, 2026-09-12):** a record saved 
 finishes still keeps its invoice, and the late read only offers values - deferring a reading never
 costs the user the pages the shutter already captured (hard rule 8).
 
+**[v1.1] Every page reaches the cloud, and the cloud may read the lines (product owner,
+2026-09-15).** The first-page, header-only rule above is the v1 shape and stays true until
+[PJ.301]–[PJ.303] ship; this paragraph is what replaces it. The document camera already
+captures every page and persists them all; what stops at one page is `/extract`. In v1.1 the
+service scan sends **all captured pages in one call** (`kind: "invoice"`, `images: [...]`,
+`API.md` → the planned multi-page contract), because line items run across pages and the total
+sits on the last one - a per-page call cannot add up. The provider is asked for the header AND
+the line items. **The local split is still preferred**: the form opens instantly on the
+deterministic split exactly as today (rule 15 - the head start never waits for the network), and
+the cloud reading is a **suggestion over it, never a replacement of it**. Its shape is the
+[RV.45] per-field ask applied per line, with one addition - **match and merge**: a cloud line is
+paired with the local line it most plausibly is (same amount, or the same words) rather than by
+position, so the offer reads as "yours: *Bremsbel. VA 148,00* → the invoice: *Front brake pads,
+parts, 148,00*"; a cloud line no local line matches is offered as a **new** line; a local line
+the cloud did not see is left alone and never deleted. For every pair the user has two answers -
+**take the invoice's** (replace title, category, cost for that line) or **keep mine** - and
+"keep mine" is the default for every line, so an ignored offer changes nothing (hard rule 13).
+Within the 3 s budget the offers render on the open form's rows, dimmed until touched; a late
+reading lands in the inbox through the ONE `GatewayInboxPolicy`, listing the same pairs. **The
+arithmetic gate applies before anything is offered**: placed cloud lines plus its unplaced
+remainder must equal the invoice's header total (hard rule 4's arithmetic, as J16 states it for
+the agent); a reading that does not add up is offered with a "doesn't add up" flag on the
+total, never applied. Camera pages only for now - a PDF from Files as an input is its own row
+when someone asks for it; the page cap is a compiled constant named in `API.md`, not a number
+here. **J16 inherits this for free**: the agent's `captureInvoice()` is this call, so v2 builds
+no second invoice pipeline.
+
 **Success metric:** ≥50% of service records carry an attachment; reminder acceptance rate ≥60%.
 
 ### J7b · Parts, tires, consumables
