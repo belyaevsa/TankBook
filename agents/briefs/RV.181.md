@@ -1,77 +1,127 @@
-# RV.181 - nothing is ever dispatched to a share destination, on the device
+# RV.181 - The diagnostics share reaches AirDrop and not Telegram: share the bundle as a FILE
 
-**Scenarios: J13 · selling the car (export), J8b · look at the receipt again (share a photo).**
-Reported again by the product owner on 2026-09-11 from the latest release build: *"still can't
-share photo or export data"*. The row was skipped on 2026-09-10 pending device evidence; the
-evidence path - the diagnostics export - goes through the same share sheet, so it cannot arrive.
-**This brief changes the presentation shape to the one known to work, and makes the outcome
-readable on screen without a share.**
+Task row: `docs/TASKS.md` -> `RV.181` (RV section, status `[~]`, the device report of 2026-09-15 at
+the end of the row). Scenario: J13 export / J8b share, and the diagnostics evidence path.
 
-## What the tree does today, and the hypothesis
+## Where you may write
 
-Every share is `ActivityView` (`Shared/ActivityView.swift`): a `UIViewControllerRepresentable`
-whose host controller `present`s a `UIActivityViewController` once it is in a window. Every call
-site puts that inside a SwiftUI `.sheet(item:)`. The receipt photo is the deepest case:
-`ReceiptCardView` `.sheet` -> `AttachmentViewerView` `.sheet(item: $shareable)` -> `ActivityView`
-host -> `present(activity)`. **Three modal levels.** The export (`ExportFlow.swift:32`) and the
-diagnostics bundle (`DiagnosticsPreviewView.swift:38`) are two levels.
+Only inside this repository checkout. Never commit. Never tick `docs/TASKS.md`.
 
-`Coordinator.finish` runs `completion` and then **`dismissSheet()`**. For *Save to Files* and
-*Copy*, the whole activity completes inside the activity controller, so dismissing the host after
-is harmless - which is exactly why *Save to Files worked under both shapes* on the simulator. For
-Messages, Mail, AirDrop-with-compose and every third-party share extension, the activity controller
-dismisses ITSELF first and the destination's UI is presented **from the presenting controller** -
-the SwiftUI-hosted `ShareHostController`. If the host sheet is torn down at that moment (SwiftUI
-re-evaluating `.sheet(item:)`, or `finish` firing on an intermediate callback), the destination UI
-is dismissed with it and nothing is dispatched. **This is a hypothesis.** The orchestrator's earlier
-"no presenter" diagnosis was withdrawn; do not treat this one as proven either. It is, however,
-the well-known failure shape for `UIActivityViewController` inside nested SwiftUI sheets, and the
-fix below removes the shape whether or not the mechanism is exactly this.
+## Write code first, explore second
 
-## Build
+The seam is one file and the change is one call site plus one small service function. Do not
+re-investigate the presenter - that was done over three sessions and is recorded in the row.
 
-1. **Present from the top-most presented controller of the key window, not from a sheet host.**
-   Replace `ActivityView`'s sheet-hosted presentation with a `SharePresenter` (a small
-   `@MainActor` helper) that finds the key window's root, walks `presentedViewController` to the
-   top, and calls `present(activity)` there. Call sites stop wrapping it in `.sheet`; they call
-   `SharePresenter.present(items:completion:)` from their button action. No SwiftUI sheet is
-   involved in the share at all, so nothing SwiftUI does can tear the destination down. Keep
-   `ShareOutcome` and the shape-only logging exactly as they are.
-2. **Single-item photo and PDF shares use `ShareLink`** (`AttachmentViewerView` only) - the
-   SwiftUI-native path with no presentation of ours. The export keeps UIKit because it shares a
-   directory plus separate CSV files, which `ShareLink` cannot carry. Say in code why the two
-   differ (one reason, at `ActivityView`).
-3. **Make the outcome readable without a share.** The diagnostics preview (`DiagnosticsPreviewView`)
-   is on-screen text with `.textSelection(.enabled)`; ensure the last `share` outcome lines - the
-   operation, `outcome`, `activity=`, `error=` - are in that preview text, so the owner can
-   screenshot them after a failed share. If the preview already includes recent log lines, say
-   so; if not, add the last N `ui` lines to it (shape only, hard rule 12).
-4. `docs/ERRORS.md` -> the share rows, and the `ActivityView` doc comment: replace the "deliberate
-   choice, not a proven fix" paragraph with what the code does now and the reason.
+## The defect, and what is already ruled out
 
-## Tests
+**Device report (product owner, iPhone 13, build 1344, 2026-09-15):** Settings -> About -> diagnostics
+preview -> Share. Chosen **AirDrop**: the bundle arrived on the Mac. Chosen **Telegram**: nothing
+arrived. Same app, same minute, same payload.
 
-- **L1**: `SharePresenter.topMost(from:)` walks a presented chain to the top (a UIKit unit test
-  with stacked controllers).
-- **L4 `ExportUITests` / `EditEntryUITests`**: the share sheet appears from each door and *Copy*
-  completes with a `completed` outcome logged - the simulator cannot prove a destination
-  dispatch, **say so plainly**; what it can prove is that the sheet is presented from the top-most
-  controller and the outcome is logged.
-- **L4**: the diagnostics preview contains a `share` line after a share.
-- No screenshots unless a screen changed.
+**Ruled out:** the presenter. `SharePresenter.present` (`ios/App/Sources/Shared/ActivityView.swift`)
+presents from the key window's top-most controller and the completion gate logs the outcome
+(`docs/LOGGING.md` -> Shares). AirDrop is an out-of-process extension and it completed, so the
+hand-off works. The failure is destination-specific.
 
-## Mutation - named
+**The payload:** `DiagnosticsPreviewView.presentShare()` (`DiagnosticsPreviewView.swift:79-86`) hands
+the sheet `items: [text]` - ONE `String` built by `DiagnosticsService.makePreviewText()`
+(`DiagnosticsService.swift:61`): the header, ~60 log lines, sync counts, row counts. In the owner's
+bundle that is roughly 12-15 KB of text.
 
-Present from the sheet host again on one door; the top-most L1 goes red, and the L4 asserting the
-presenter is the window's top-most controller goes red. Byte-identical restore; verbatim.
+**Hypothesis (not yet confirmed by the `diagnostics.share` outcome line - the owner's bundle was
+generated before the share, so it does not carry one):** Telegram's share extension accepts plain
+text only up to its message limit (4096 characters) and refuses or drops anything longer, while
+AirDrop, Notes and Mail accept a `String` of any length. Whether or not that is the exact mechanism,
+**a file is accepted by every destination**, and the export door already shares files
+(`ExportFlow.swift:27`) - so the robust fix does not depend on confirming the hypothesis.
 
-## The device step, for the owner - write it into the report
+**Confirm what you can before changing anything:** read the two files above and
+`docs/LOGGING.md` -> Shares. If `makePreviewText()` is already written to disk somewhere (an OB row
+may have added a file export - `grep -rn 'diagnostics' ios/App/Sources/Settings/*.swift`), reuse it.
 
-After this ships: one share attempt of a receipt photo to Messages on the iPhone 13, then Settings
--> About -> the diagnostics preview, screenshot of the `share` line. That is the evidence that
-either closes the row or names the destination error.
+## What to build
+
+1. **Share the diagnostics as a file.** Write the preview text to
+   `<tmp or caches>/tankbook-diagnostics-<yyyyMMdd-HHmm>.txt` (UTF-8, `.txt`, file protection
+   `completeUntilFirstUserAuthentication` like every file the app writes - `docs/SECURITY.md`), and
+   hand the sheet `items: [fileURL]`. Keep the on-screen preview exactly as it is. Log
+   `AppLog.share(operation: "diagnostics.share", kind: "file", ...)` - `kind` changes from `text` to
+   `file`; the event name does not. Remove the temp file after the completion handler fires
+   (success or not); a share the user never finishes may leave one behind - sweep the directory on
+   the next write so at most one exists.
+2. **Keep the text as a second item ONLY if you verify it does not change which destinations
+   appear.** A `[fileURL, text]` pair makes some extensions take the text and ignore the file. Default
+   to `[fileURL]` alone; say in the report which you chose and why.
+3. **Do not touch the other four doors** (export, per-car export, import send-file, the receipt
+   photo). They already share file URLs / images. If you find one that shares a bare `String`, report
+   it - do not fix it here.
+4. Docs in the same change: `docs/LOGGING.md` -> Shares: the `kind` for `diagnostics.share` becomes
+   `file`. `docs/TASKS.md` is the orchestrator's - do not edit. `docs/ERRORS.md` if the diagnostics
+   preview has a row naming the share.
+
+## Explicitly out of scope
+
+- Re-diagnosing the presenter. `RV.181`'s history is in the row; the seam stays as it is.
+- Telegram-specific code of any kind. There is no destination detection (hard rule 12: never log a
+  destination app either).
+- `RV.286` - a sibling agent is live in `ios/Sources/TankbookCore/Auth/`,
+  `ios/App/Sources/Settings/AccountDevices*.swift`, `SettingsView.swift`, `backend/`. Do not touch
+  those.
+
+## Docs to read, in order
+
+1. `docs/LOGGING.md` -> Shares (line ~170) - the authority for the log shape.
+2. `docs/SECURITY.md` -> file protection classes (hard rule 11).
+3. `docs/ERRORS.md` -> Settings / About & feedback.
+
+## Checks (exit codes, from the repo ROOT)
+
+- `scripts/gate.sh` -> 0. Baseline: **`swift test` 2116 / 262**, app-target bundle **267** - the app
+  bundle must RISE (the new tests below are app-target). `swiftlint lint` from the repo root, 0.
+- `xcodebuild test -only-testing:TankbookUITests/RV181ShareHandoffUITests` - report the observed
+  count (non-zero), and note `testExportReachesSaveToFiles` is a known flake that passes alone.
+- Screenshot, EN and RU, dark: the diagnostics preview with the share sheet OPEN showing the file
+  row (the sheet's header names the `.txt`). The simulator cannot prove a Telegram dispatch - state
+  that plainly; the owner's iPhone is the acceptance.
+
+## Tests you must add (app-target bundle, `ios/App/Tests/`)
+
+- `RV181DiagnosticsFileShareTests`: the share item built for the diagnostics preview is a single
+  file URL whose path ends in `.txt`, whose contents equal `makePreviewText()`'s output byte for byte
+  (oracle: the preview on screen IS the file), and whose file protection attribute is
+  `completeUntilFirstUserAuthentication` (oracle: `SECURITY.md`). **Red on today's code**: today the
+  item is a `String`.
+- The temp file is gone after the completion handler runs with `completed: false` (a cancel must not
+  leave the bundle on disk).
+- Extend `RV181ShareSeamSourceTests` (it greps sources for the seam) only if it asserts the diagnostics
+  call shape.
+
+## Mutation the brief names
+
+Change `items: [fileURL]` back to `items: [text]`; `RV181DiagnosticsFileShareTests` must go red.
+Report the output.
 
 ## Vacuous traps
 
-- Asserting the sheet appears. It always appeared; the dispatch is what fails.
-- Keeping a `.sheet` around the new presenter "for dismissal" - that is the shape being removed.
+- A test that asserts the share sheet APPEARS - that passes on today's code and is exactly how this
+  row shipped broken twice.
+- Writing the file but still passing `[text]` to the sheet.
+- Asserting the `.txt` exists without reading it back against `makePreviewText()`.
+
+## Standing fences
+
+- `swiftlint lint` from the repo ROOT, not `ios/`.
+- Check the test COUNT, not the exit code.
+- Never stash, move or `git checkout` for a clean baseline.
+- Never `pgrep -f`; use `pgrep -x`. Never `pkill -f`.
+- `simctl launch` on a running app ignores new arguments - `terminate` first.
+- Assume you are not alone in the checkout: another agent is live on RV.286. Never move, rename or
+  revert a file you did not create.
+- You cannot see your own screenshots. State what you captured.
+- Never commit.
+
+## Report back
+
+Exit codes observed (verbatim), the failing-then-passing output for the headline test, the mutation
+output, which tests RAN, the item shape you chose ([fileURL] or [fileURL, text]) and why, and
+**anything you found and did not fix** - in particular any other door that shares a bare `String`.
