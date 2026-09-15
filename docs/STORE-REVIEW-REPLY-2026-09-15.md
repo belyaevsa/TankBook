@@ -68,15 +68,20 @@ enables sync between the user's devices.
 
 ## 4. External services
 
-| Service | Used for | Notes |
-|---|---|---|
-| Sign in with Apple; Google Sign-In (OAuth 2.0 with PKCE via `ASWebAuthenticationSession`, no SDK) | Optional account creation and sign-in | Sign-in is optional; both providers are offered side by side |
-| Our own backend, `api.tankbook.live` (ASP.NET Core, PostgreSQL, S3-compatible object storage), hosted at [hosting provider, region] | Sync and restore of the user's own records and receipt images; account management | Only used when signed in; the server validates structure and does not interpret the user's data |
-| DeepSeek (vision model, via our backend's gateway) | Reading a photographed receipt or invoice into form fields | The image is sent to the model through our server for that reading; API keys never ship in the app. Retention on our side is 30 days for auditing, then purged |
-| European Central Bank and Bank of Russia public reference rates | Currency conversion for entries in a foreign currency | Public data; fetched by our backend, delivered to the app as a rate pack |
-| Apple Push Notification service | Optional, silent nudges to refresh sync when signed in; reminder notifications are local | No third-party push provider |
+- Sign in with Apple and Google Sign-In (OAuth 2.0 with PKCE, no SDK) – optional account creation
+  and sign-in; both offered side by side.
+- Our own backend at `api.tankbook.live` (ASP.NET Core, PostgreSQL, S3-compatible storage, hosted at
+  [provider, region]) – sync and restore of the user's own records and receipt images, account
+  management. Used only when signed in; the server validates structure and does not interpret the
+  user's data.
+- DeepSeek vision model, called through our backend – reads a photographed receipt or invoice into
+  form fields. API keys stay server-side; images are kept 30 days for auditing, then purged.
+- European Central Bank and Bank of Russia public reference rates – currency conversion, fetched by
+  our backend.
+- Apple Push Notification service – silent sync nudges when signed in; reminder notifications are
+  local.
 
-No analytics SDK, no advertising SDK, no crash-reporting SDK, no payment processor.
+No analytics, advertising, crash-reporting or payment SDKs.
 
 ## 5. Regional differences
 
