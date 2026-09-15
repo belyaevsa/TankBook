@@ -138,3 +138,5 @@ the standing rule that a report is not a gate:
 | `RV.176+PR.28` | 198 orphans audited, all given lines | True, but **138 of those lines were never run** - their seeds were inferred. A wrong line is worse than none: the check goes green on a line EXISTING, not on it reproducing the frame. Filed as `RV.194` |
 
 **Three of the four were caught by opening a screenshot**, which no agent can do.
+| RV.286 | 2026-09-15 | deepseek-v4-flash | shipped `81208898` |
+| RV.181 (file share) | 2026-09-15 | deepseek-v4-flash | shipped `59288113`, row stays `[~]` for the device step |
