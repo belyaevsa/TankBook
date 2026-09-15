@@ -1745,6 +1745,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.181-diagnostics-share": {
+      "commit": "4c424a22",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.181-diagnostics-share-ru": {
+      "commit": "4c424a22",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.182-catalog-fill-tank": {
       "commit": "dff5366",
       "device": "iPhone 17",

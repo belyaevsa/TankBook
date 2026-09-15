@@ -30,15 +30,16 @@ final class RV181ShareSeamSourceTests: XCTestCase {
             + "offenders: \(offenders)")
     }
 
-    /// The surfaces the seam serves: diagnostics text, the receipt photo/PDF,
-    /// the account and per-car exports (both via `ExportFlow`), and "send us the
-    /// file". Each must call `SharePresenter.present(` - the top-most-controller
-    /// presentation. A surface that goes back to hosting the activity in a
-    /// `.sheet` drops the token and fails here (RV.181).
+    /// The surfaces the seam serves: diagnostics (via `DiagnosticsShare`, which
+    /// owns the file payload), the receipt photo/PDF, the account and per-car
+    /// exports (both via `ExportFlow`), and "send us the file". Each must call
+    /// `SharePresenter.present(` - the top-most-controller presentation. A
+    /// surface that goes back to hosting the activity in a `.sheet` drops the
+    /// token and fails here (RV.181).
     func testEveryShareSurfaceGoesThroughTheSharePresenter() throws {
         let sources = try Self.sourcesDirectory()
         let expected = [
-            "Settings/DiagnosticsPreviewView.swift",
+            "Settings/DiagnosticsShare.swift",
             "EditEntry/AttachmentViewerView.swift",
             "Export/ExportFlow.swift",
             "Import/ImportWizardView.swift"
@@ -49,6 +50,18 @@ final class RV181ShareSeamSourceTests: XCTestCase {
             XCTAssertTrue(text.contains("SharePresenter.present("),
                           "\(relative) must share through SharePresenter, not its own sheet")
         }
+    }
+
+    /// RV.181: the diagnostics preview no longer hands the sheet its raw text
+    /// (`kind: "text"`) - it delegates to `DiagnosticsShare`, which writes the
+    /// preview to a `.txt` and shares the file URL. A preview that goes back to
+    /// `SharePresenter.present(items: [text])` drops this token and fails here.
+    func testTheDiagnosticsPreviewSharesThroughDiagnosticsShare() throws {
+        let sources = try Self.sourcesDirectory()
+        let url = sources.appendingPathComponent("Settings/DiagnosticsPreviewView.swift")
+        let text = try String(contentsOf: url, encoding: .utf8)
+        XCTAssertTrue(text.contains("DiagnosticsShare.present("),
+                      "DiagnosticsPreviewView must share through DiagnosticsShare, not a raw string")
     }
 
     // MARK: - Source tree (mirrors ReleaseSeedGateTests)

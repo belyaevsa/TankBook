@@ -3,9 +3,10 @@ import TankbookCore
 
 /// The "Diagnostics preview" sheet (docs/LOGGING.md §5, design/screens/
 /// About.dc.html's diagnostics row): shows EXACTLY the text that would be sent -
-/// not a summary of it, not a count - and shares that same string through the
-/// system share sheet. §5's whole point is that the user reads the bytes before
-/// anything leaves the device; a screen that summarised instead would break it.
+/// not a summary of it, not a count - and shares that same text through the
+/// system share sheet as a file (`DiagnosticsShare`). §5's whole point is that
+/// the user reads the bytes before anything leaves the device; a screen that
+/// summarised instead would break it.
 ///
 /// Reached from About -> the diagnostics consent card's "Preview what will be
 /// shared" (only reachable once the opt-in is on). Back path: Close / swipe-down
@@ -40,7 +41,10 @@ struct DiagnosticsPreviewView: View {
                             .accessibilityIdentifier("diagnosticsShareButton")
                     }
                 }
-                .task { await model.buildPreviewText() }
+                .task {
+                    await model.buildPreviewText()
+                    presentShareIfRequested()
+                }
         }
         .presentationDragIndicator(.visible)
     }
@@ -78,11 +82,19 @@ struct DiagnosticsPreviewView: View {
 
     private func presentShare() {
         guard let text = model.previewText else { return }
-        // Shape only (docs/LOGGING.md §4): that the share ended, how, and that
-        // the payload was text - never the text, its length, its hash or a
-        // destination app (hard rule 12).
-        SharePresenter.present(items: [text]) { outcome in
-            AppLog.share(operation: "diagnostics.share", kind: "text", outcome: outcome)
+        DiagnosticsShare.present(text: text)
+    }
+
+    /// DEBUG/screenshot only: `-diagnosticsAutoShare` opens the share sheet a
+    /// beat after the preview appears, so the sheet - and the `.txt` file row it
+    /// names - can be screenshotted without a UI test driving a tap (`simctl`
+    /// cannot tap). Production never passes the argument.
+    private func presentShareIfRequested() {
+        guard ProcessInfo.processInfo.arguments.contains("-diagnosticsAutoShare") else { return }
+        guard model.previewText != nil else { return }
+        Task {
+            try? await Task.sleep(for: .milliseconds(600))
+            presentShare()
         }
     }
 }

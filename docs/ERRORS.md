@@ -629,7 +629,10 @@ separate consent from the feedback one, because it sends log data where the feed
 none. While it is off the preview is unreachable; turning it on reveals **"Preview what will be
 shared"**, which opens the Diagnostics preview sheet showing the exact text that would be sent -
 not a summary (docs/LOGGING.md §5: the user reads the bytes). Sharing goes through the system share
-sheet (`SharePresenter`); the bundle is never posted automatically.
+sheet (`SharePresenter`); the bundle is never posted automatically. **The share hands the sheet the
+preview as a file** (`tankbook-diagnostics-<yyyyMMdd-HHmm>.txt`), not as raw text, because a
+destination that accepts only short messages drops the 12-15 KB bundle while every destination
+accepts a file (RV.181).
 
 **A send acknowledges itself where the user is looking (RV.160, decided 2026-09-10).** The complaint
 was "after feedback sent, there is no confirmation that the feedback was sent". A confirmation
@@ -659,7 +662,7 @@ Re-entering About starts a fresh composer.
 | Rate-limited (`rate_limited`) | Composer collapses into: "Saved – today's limit is reached, so this one's queued for tomorrow." (`feedbackRateLimited`) | Nothing to do |
 | Service error (other non-202) | Composer collapses into: "Saved – we'll try again when the service is back." (`feedbackQueuedRetry` - queued, hard rule 8) | Nothing to do |
 | **Diagnostics opt-in off** | The "Attach diagnostics" row shows its toggle (default OFF) and explanation; no preview affordance | Toggle it on · leave it off |
-| **Diagnostics preview** | The preview sheet renders the exact bundle text, with Share in the bar | Share (system sheet) · Close / swipe-down - nothing was sent |
+| **Diagnostics preview** | The preview sheet renders the exact bundle text, with Share in the bar. Share hands the sheet that text as a `.txt` file (RV.181) | Share (system sheet) · Close / swipe-down - nothing was sent |
 
 ### Vehicle catalog updates (background, `SYNC.md` → Reference data)
 

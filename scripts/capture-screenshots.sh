@@ -133,6 +133,7 @@ record_manifest() {
 capture() {
     local name="$1" lang="$2"; shift 2
     local path="${OUT}/${name}.png"
+    local wait_seconds="${CAPTURE_SLEEP:-6}"
     if [ -n "${FILTER:-}" ]; then
         local wanted=1 pattern
         for pattern in ${FILTER}; do
@@ -148,7 +149,7 @@ capture() {
         xcrun simctl launch "${DEVICE}" "${BUNDLE}" \
             -AppleLanguages "(en)" -AppleLocale en_US -homeResetDatabase -freezeSyncState "$@" >/dev/null 2>&1
     fi
-    sleep 6
+    sleep "${wait_seconds}"
     if xcrun simctl io "${DEVICE}" screenshot "${path}" >/dev/null 2>&1; then
         CAPTURED+=("${name}")
         record_manifest "${name}"
@@ -1328,6 +1329,19 @@ capture OB.4-about-diagnostics                           en -presentScreen about
 capture OB.4-about-diagnostics-ru                        ru -presentScreen about -seedDiagnosticsData
 capture OB.4-diagnostics-preview                         en -presentScreen about -diagnosticsAutoOpenPreview -seedDiagnosticsData
 capture OB.4-diagnostics-preview-ru                      ru -presentScreen about -diagnosticsAutoOpenPreview -seedDiagnosticsData
+
+# RV.181: the diagnostics share hands the sheet a FILE, not the raw preview
+# text. The sheet's header names the `tankbook-diagnostics-<yyyyMMdd-HHmm>.txt`;
+# a destination that caps short messages (Telegram, 4096 characters) drops the
+# 12-15 KB string while every destination accepts a file. `-diagnosticsAutoShare`
+# opens the sheet after the preview appears (`simctl` cannot tap); the bundle
+# build plus the sheet animation runs past the default 6 s, so these two frames
+# wait longer. The simulator cannot prove a Telegram dispatch - the owner's
+# iPhone is the acceptance.
+CAPTURE_SLEEP=12
+capture RV.181-diagnostics-share    en -presentScreen about -diagnosticsConsentOn -seedDiagnosticsData -diagnosticsAutoOpenPreview -diagnosticsAutoShare
+capture RV.181-diagnostics-share-ru ru -presentScreen about -diagnosticsConsentOn -seedDiagnosticsData -diagnosticsAutoOpenPreview -diagnosticsAutoShare
+CAPTURE_SLEEP=6
 capture P1.13-confirm-odometer                           en -seedVehicleForUITests -presentScreen confirmManual -screenshotOdometer 123600
 capture P1.13-confirm-odometer-ru                        ru -seedVehicleForUITests -presentScreen confirmManual -screenshotOdometer 123600
 capture P1.13b-conflict-quote-ru                         ru -seedVehicleForUITests -presentScreen confirmManual -screenshotOdometer 121727

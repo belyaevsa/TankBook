@@ -118,7 +118,7 @@ event name made every request line identical.
 
 | Event | Fields (all Safe class) |
 |---|---|
-| `auth.session` | provider (apple/google), outcome (created/matched/rejected), failureReason (invalid_signature / expired / clock_skew / revoked), accountHash on success – the salted hash of the **account id**, the same value the follow-up request scope logs (RV.63). A rejected exchange logs no accountHash (no account was resolved – null is honest). **Never the token.** |
+| `auth.session` | provider (apple/google), outcome (created/matched/reactivated/rejected), failureReason (invalid_signature / expired / clock_skew / revoked), accountHash on success – the salted hash of the **account id**, the same value the follow-up request scope logs (RV.63). A rejected exchange logs no accountHash (no account was resolved – null is honest). **Never the token.** `reactivated` is a sign-in during the deletion grace period that cleared `deleted_at` (RV.286, docs/SYNC.md → "Account deletion") – it is a distinct value so a production log answers "did a grace sign-in happen?" in one grep. |
 | `auth.refresh` | outcome, rotation id, `reuse_detected: true` when a rotated token is replayed – this one is a **security event**, log at WARN and include deviceId |
 | `sync.push` | batchSize, accepted, conflicts, rejected, `commits` (DB transactions committed for the batch – one per push since RV.105, so a number near batchSize is the per-record-transaction regression signal even when a fast host hides it in durationMs), `clamped` (the count of stamps clamped to server time – the server half of `sync.clock.skew`, OB.2), `assignedScnRange: [from,to]`, durationMs; and a compact per-item array of `{id, entityType, schemaVersion, outcome, errorCode?, pointer?}` – **ids and outcomes, never values** |
 | `sync.pull` | sinceScn, returned, nextSince, more, durationMs |
@@ -179,6 +179,14 @@ record of a share that actually reached its hand-off.
 | `<surface>.share` | `outcome` (`completed` / `cancelled` / **`failed`**), `kind` - the payload class (`text` / `photo` / `pdf` / `csv` / `file`), never a filename |
 | `<surface>.share` (Warning, only when `outcome == failed`) | `reason` = `activity=<UIActivity type> error=<domain>#<code>` |
 
+**`diagnostics.share` carries `kind: "file"`, not `"text"` (RV.181).** The preview is written to a
+`tankbook-diagnostics-<yyyyMMdd-HHmm>.txt` and the sheet is handed that file URL, because the
+2026-09-15 device report had the bundle reach AirDrop and not Telegram, and the leading reading is
+that a destination which accepts only short messages (Telegram's limit is 4096 characters) drops a
+12-15 KB string while every destination accepts a file. The outcome line this section defines is
+what confirms or refutes that on the owner's next device share. The `kind` still names only the payload class; the filename never rides
+the log.
+
 **`failed` is a distinct outcome, and that is the point of the row.** A share the user chose that
 then failed at its destination used to be logged as `cancelled`, because the seam kept only
 `UIActivityViewController`'s `completed` flag and dropped the activity type and the error. A device
@@ -187,7 +195,7 @@ from "I closed the sheet", which is why RV.181 could not be diagnosed from diagn
 
 The warning's `reason` is Safe-class throughout: an Apple activity identifier and an error domain
 and code are system codes, never the shared content (hard rule 12). The items being shared - a
-diagnostics text, a receipt image, an export - never reach the log at any level.
+diagnostics file, a receipt image, an export - never reach the log at any level.
 
 ### Tire swap reminders
 `tire.swapReminder` – `outcome` (`proposed` / `accepted` / `declined`), one line per stage of the
