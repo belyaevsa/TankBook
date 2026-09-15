@@ -82,15 +82,16 @@ public struct RemoteAuthService: AuthService {
 
     public func signIn(identity: ProviderIdentity) async throws -> AuthSession {
         // The stored deviceId (when one exists - a returning install or a
-        // re-sign-in) travels with the session exchange so the server reuses the
-        // row. Absent on a fresh install. It is an unverified claim: the server
-        // binds any reuse to the authenticated account. The store is read only
-        // for a host the allowlist permits - it holds the tokens, and they must
-        // never be fetched for a non-allowlisted host (docs/SECURITY.md -> "the
-        // token is bound to the host, not to the session").
+        // re-sign-in after a sign-out, which keeps the id) travels with the
+        // session exchange so the server reuses the row. Absent on a fresh
+        // install. It is an unverified claim: the server binds any reuse to the
+        // authenticated account. The store is read only for a host the allowlist
+        // permits - it holds the tokens, and they must never be fetched for a
+        // non-allowlisted host (docs/SECURITY.md -> "the token is bound to the
+        // host, not to the session").
         var deviceBody: [String: Any] = ["name": device.name, "platform": device.platform]
         if HostAllowlist.allows(url: endpoint("auth/session")),
-           let deviceId = try? sessionStore.load()?.deviceId {
+           let deviceId = (try? sessionStore.deviceId()) ?? nil {
             deviceBody["deviceId"] = deviceId
         }
         let body: [String: Any] = [

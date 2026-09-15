@@ -171,11 +171,22 @@ private struct StubAuthService: AuthService {
 /// `InMemorySessionStore` - that type lives in the package test target, which
 /// the app-target bundle cannot import.
 private final class InMemorySessionStore: SessionStore, @unchecked Sendable {
-    private let lock = OSAllocatedUnfairLock<AuthSession?>(initialState: nil)
+    private struct State {
+        var session: AuthSession?
+        var deviceId: String?
+    }
+    private let lock = OSAllocatedUnfairLock(initialState: State())
 
-    func load() throws -> AuthSession? { lock.withLock { $0 } }
-    func save(_ session: AuthSession) throws { lock.withLock { $0 = session } }
-    func clear() throws { lock.withLock { $0 = nil } }
+    func load() throws -> AuthSession? { lock.withLock { $0.session } }
+    func save(_ session: AuthSession) throws {
+        lock.withLock {
+            $0.session = session
+            $0.deviceId = session.deviceId
+        }
+    }
+    func clear() throws { lock.withLock { $0.session = nil } }
+    func deviceId() throws -> String? { lock.withLock { $0.deviceId } }
+    func forgetDevice() throws { lock.withLock { $0.deviceId = nil } }
     func setAuthExpired(_ expired: Bool) throws {}
     func isAuthExpired() throws -> Bool { false }
     func setDeviceRevoked(_ revoked: Bool) throws {}

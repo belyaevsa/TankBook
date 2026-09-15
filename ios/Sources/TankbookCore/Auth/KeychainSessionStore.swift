@@ -91,10 +91,17 @@ public struct KeychainSessionStore: SessionStore {
     public func clear() throws {
         delete(Account.accessToken)
         delete(Account.refreshToken)
-        delete(Account.deviceId)
         delete(Account.metadata)
         delete(Account.authExpired)
         delete(Account.deviceRevoked)
+    }
+
+    public func deviceId() throws -> String? {
+        read(Account.deviceId)
+    }
+
+    public func forgetDevice() throws {
+        delete(Account.deviceId)
     }
 
     public func setAuthExpired(_ expired: Bool) throws {

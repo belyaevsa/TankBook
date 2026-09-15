@@ -106,6 +106,35 @@ struct AuthServiceTests {
                 "a fresh install has no stored deviceId and sends none")
     }
 
+    /// RV.286: a sign-out clears the credentials but keeps the deviceId, so the
+    /// next sign-in presents it and the server re-attaches this install's row.
+    /// This is the app half of the grace-period reactivation path - without it
+    /// every re-sign-in minted a fresh device row.
+    @Test func signInSendsTheStoredDeviceIdAfterSignOut() async throws {
+        let transport = AuthRecordingTransport()
+        let stored = AuthSession(accessToken: "old-at", refreshToken: "old-rt",
+                                 accountId: "acc", deviceId: "dev-286", provider: .apple)
+        let store = InMemorySessionStore(session: stored)
+        try store.clear()
+        #expect(try store.load() == nil, "the credentials are gone")
+        #expect(try store.deviceId() == "dev-286",
+                "the deviceId survives the sign-out clear")
+
+        let service = makeService(transport: transport, store: store)
+        transport.script([
+            TankbookHTTPResponse(status: 200, body: """
+                {"accessToken":"at","refreshToken":"rt","accountId":"acc","deviceId":"dev-286"}
+                """.data(using: .utf8)!)
+        ])
+
+        _ = try await service.signIn(identity: identity())
+
+        let body = try JSONSerialization.jsonObject(with: transport.receivedRequests()[0].body ?? Data()) as? [String: Any]
+        let device = body?["device"] as? [String: Any]
+        #expect(device?["deviceId"] as? String == "dev-286",
+                "a re-sign-in after a sign-out re-attaches the install's own device row")
+    }
+
     // MARK: - The account email prefers the server (RV.39)
 
     /// The regression is that the credential's email is nil on every re-sign-in,

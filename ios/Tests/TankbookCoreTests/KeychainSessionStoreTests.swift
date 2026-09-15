@@ -106,4 +106,26 @@ struct KeychainSessionStoreTests {
         #expect(try store.isDeviceRevoked() == false,
                 "a saved session is a session that can authenticate again")
     }
+
+    // MARK: - The per-install deviceId (RV.286)
+
+    /// The `deviceId` is an identifier, not a credential: it survives `clear()`
+    /// so a re-sign-in on this install re-attaches its own device row instead of
+    /// minting a new one. Only `forgetDevice()` removes it (docs/SECURITY.md: it
+    /// "must survive reinstall-with-restore").
+    @Test func clearKeepsTheDeviceIdUntilForgetDevice() throws {
+        let store = KeychainSessionStore(service: "test.auth.\(UUID().uuidString)")
+        defer { try? store.forgetDevice() }
+
+        try store.save(makeSession())
+        #expect(try store.deviceId() == "device-1")
+
+        try store.clear()
+        #expect(try store.load() == nil, "the credentials are gone")
+        #expect(try store.deviceId() == "device-1",
+                "the per-install deviceId survives sign-out (docs/SECURITY.md)")
+
+        try store.forgetDevice()
+        #expect(try store.deviceId() == nil)
+    }
 }

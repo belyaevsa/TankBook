@@ -805,7 +805,7 @@ tests:
 - A device deleted server-side (user revokes it) gets `410` on its cursor → the cycle ends as above;
   after a re-attaching sign-in, sync resumes from the applied cursor (nothing local was lost, so no
   full re-pull is needed - the pull is resumable by `since`).
-- Account deletion: tombstone the account (`accounts.deleted_at`), purge `records`/`blobs` after the grace period; devices get `410` → local data stays local (the user keeps their log; it just stops syncing). The grace period defaults to the 30-day undo window (hard rule 8) and is configurable (`Account:DeletionGraceDays`); it must never be shorter than the undo window, so a tombstoned account stays fully recoverable for the whole window before the purge job deletes anything.
+- Account deletion: tombstone the account (`accounts.deleted_at`), purge `records`/`blobs` after the grace period; devices get `410` → local data stays local (the user keeps their log; it just stops syncing). The grace period defaults to the 30-day undo window (hard rule 8) and is configurable (`Account:DeletionGraceDays`); it must never be shorter than the undo window, so a tombstoned account stays fully recoverable for the whole window before the purge job deletes anything. **Signing in with the same Apple/Google subject during the grace period reactivates the account: `deleted_at` is cleared, the presenting device re-attaches, sync resumes from the applied cursor.** The `auth.session` log names this outcome `reactivated`, and a reactivated account leaves the purge job's working set.
 - Restore-on-new-device shows the F7 verification stats from the pull stream before finishing (entries count, date range, last odometer).
 
 ## Phasing

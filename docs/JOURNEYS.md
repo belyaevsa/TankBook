@@ -573,7 +573,6 @@ deleted.
 ## Edge & exit
 
 ### J11a · First sign-in (there is no "registration")
-**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J11a-2026-09-12)
 **Trigger:** the user wants a second device, or taps "Sign in to sync" in Settings – typically weeks after installing, with a local log already on the phone.
 
 | Stage | Doing | Notes |
@@ -584,6 +583,8 @@ deleted.
 | Confirm | "Your garage now follows your account" | One line, no ceremony – the account card shows it (with the device count) right after the first push. *(RV.54, product owner, 2026-09-04: the device count counts LIVE devices only – it answers "how many devices can reach my data", a revoked device's next pull gets 410 so it does not count, and a revoke therefore visibly decrements the number. The revoked rows stay in the Account & devices list, marked – the number changed meaning, the list never loses history. `docs/SYNC.md` -> The Settings sync surface.)* |
 
 **⚠ The wrong-provider trap:** the user signed in with Google on Android but taps Apple on the new iPhone → two identities, two accounts, and the "restore" finds an empty account. v1 ships **no account linking**; two mitigations. *Proactive:* the Sign in screen carries a warn-amber notice at the decision moment – "Pick one and keep it. Apple and Google create separate accounts – use the same one on every device." *Reactive:* honest detection – if the signed-in account is empty *and* the user came through "Already use Tankbook?", say "Nothing is stored under this Apple ID. Last time, did you sign in with Google?" with a one-tap provider switch – never show an empty garage as if their data were gone. (Same guard in reverse when a local log exists: J11a never overwrites local data – it uploads it.) *(PJ.3: "came through 'Already use Tankbook?'" is now REAL – the Welcome root carries the restore intent, so a fresh install over an empty account asks the honest question; the `-signInWrongProvider` fixture that used to stand in for it is retired. **RV.23:** since Welcome now offers a general-purpose "Sign in to Tankbook" door too, the intent is carried by **which door was tapped** – only "Already use Tankbook? Restore your garage." passes `arrivedViaRestore: true`. The peer button passes `false`, so a brand-new user whose account is empty *because it is new* lands on the F7 empty-restore screen and is never asked about a previous sign-in they never made.)*
+
+**Fallbacks:** signing in with the same Apple/Google subject during the deletion grace period reactivates the account: `deleted_at` is cleared, the presenting device re-attaches, and sync resumes from the applied cursor – the user is never locked out for the rest of the 30-day window (`docs/SYNC.md` → "Account deletion", RV.286). The app keeps the per-install `deviceId` across a sign-out, so the re-sign-in re-attaches this install's own device row instead of minting a new one (`docs/SECURITY.md`).
 
 **Success metric:** first-sign-in completion ≥90% from the Sign in screen; wrong-provider recoveries resolved in-flow ≥95%; zero "my data disappeared" reviews traced to provider mix-ups.
 

@@ -95,6 +95,16 @@ the account again by presenting a valid id token, and re-attach is what makes a 
 re-sign-in cycle on one phone a single row rather than two (`docs/SECURITY.md` -> "Device
 identity").
 
+**A sign-in during the deletion grace period reactivates the account (RV.286).** `POST
+/auth/session` has three outcomes for the verified subject: `created` (no account existed),
+`matched` (a live account), and **`reactivated`** - the subject maps to a tombstoned account
+(`accounts.deleted_at IS NOT NULL`) and the exchange clears `deleted_at`, so the account and every
+device the tombstone had blocked go live again and sync resumes from the applied cursor. The
+account leaves the purge job's working set; the `auth.session` log records `Outcome=reactivated`
+(docs/LOGGING.md §3, docs/SYNC.md -> "Account deletion"). Once the purge has deleted the
+tombstoned account the subject is free again and the next sign-in is `created` with a new account
+id.
+
 **The client's half of the token lifecycle (PR.1/PR.2).** A `401` on any bearer endpoint is an
 auth event, never a gate from a newer server: the client refreshes **once** through a single shared
 `SessionRefresher` actor (concurrent `401`s await the one in-flight refresh, because a reuse of a

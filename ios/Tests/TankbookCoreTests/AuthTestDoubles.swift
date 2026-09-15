@@ -13,6 +13,7 @@ import os
 final class InMemorySessionStore: SessionStore, @unchecked Sendable {
     private struct State {
         var session: AuthSession?
+        var deviceId: String?
         var authExpired = false
         var deviceRevoked = false
         var loadCount = 0
@@ -21,7 +22,12 @@ final class InMemorySessionStore: SessionStore, @unchecked Sendable {
     private let lock = OSAllocatedUnfairLock(initialState: State())
 
     init(session: AuthSession? = nil) {
-        if let session { lock.withLock { $0.session = session } }
+        if let session {
+            lock.withLock {
+                $0.session = session
+                $0.deviceId = session.deviceId
+            }
+        }
     }
 
     func load() throws -> AuthSession? {
@@ -32,6 +38,7 @@ final class InMemorySessionStore: SessionStore, @unchecked Sendable {
     func save(_ session: AuthSession) throws {
         lock.withLock {
             $0.session = session
+            $0.deviceId = session.deviceId
             $0.authExpired = false
             $0.deviceRevoked = false
         }
@@ -39,10 +46,20 @@ final class InMemorySessionStore: SessionStore, @unchecked Sendable {
 
     func clear() throws {
         lock.withLock {
+            // The deviceId survives a clear, exactly as the Keychain store's
+            // does (docs/SECURITY.md: it must survive reinstall-with-restore).
             $0.session = nil
             $0.authExpired = false
             $0.deviceRevoked = false
         }
+    }
+
+    func deviceId() throws -> String? {
+        lock.withLock { $0.deviceId }
+    }
+
+    func forgetDevice() throws {
+        lock.withLock { $0.deviceId = nil }
     }
 
     func setAuthExpired(_ expired: Bool) throws {

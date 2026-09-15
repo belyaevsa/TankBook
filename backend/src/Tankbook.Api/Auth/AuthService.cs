@@ -103,7 +103,7 @@ public sealed class AuthService
         var subject = verification.Subject!;
         var email = verification.Email!;
 
-        var (accountId, created, accountEmail) = await _repository.FindOrCreateAccountAsync(provider, subject, email, cancellationToken);
+        var (accountId, outcome, accountEmail) = await _repository.FindOrCreateAccountAsync(provider, subject, email, cancellationToken);
         var resolvedDeviceId = await _repository.FindOrCreateDeviceAsync(accountId, deviceId, deviceName, devicePlatform, cancellationToken);
 
         var accessToken = _issuer.Issue(accountId, resolvedDeviceId);
@@ -122,12 +122,26 @@ public sealed class AuthService
         // RV.63: accountHash is the salted hash of the ACCOUNT ID, the same
         // value the bearer-request scope logs - so this auth.session line joins
         // the request lines that follow it. The account is resolved above
-        // (created or matched both return an id), so the id is available here.
+        // (created, matched or reactivated all return an id), so the id is
+        // available here.
         var accountHash = AccountHash.ForAccount(accountId, _loggingOptions.HashSalt);
-        TankbookLog.AuthSession(_logger, provider, created ? "created" : "matched", accountHash: accountHash);
+        TankbookLog.AuthSession(_logger, provider, OutcomeName(outcome), accountHash: accountHash);
 
         return new SessionExchangeResult(true, accessToken, refreshToken, accountId, resolvedDeviceId, accountEmail, null, accountHash);
     }
+
+    /// <summary>
+    /// The <c>auth.session</c> Outcome value for a resolved account
+    /// (docs/LOGGING.md §3): <c>created</c>, <c>matched</c>, or
+    /// <c>reactivated</c> when a sign-in during the deletion grace period brought
+    /// a tombstoned account back (RV.286, docs/SYNC.md "Account deletion").
+    /// </summary>
+    public static string OutcomeName(AccountResolution outcome) => outcome switch
+    {
+        AccountResolution.Created => "created",
+        AccountResolution.Reactivated => "reactivated",
+        _ => "matched",
+    };
 
     /// <summary>
     /// Rotates a refresh token: issues a new pair, invalidates the presented

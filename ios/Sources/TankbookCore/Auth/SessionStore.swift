@@ -12,8 +12,20 @@ public protocol SessionStore: Sendable {
     /// means the session can authenticate again.
     func save(_ session: AuthSession) throws
     /// Removes every stored credential (sign-out; docs/SECURITY.md -> the
-    /// sign-out test: the local database is untouched, only sync stops).
+    /// sign-out test: the local database is untouched, only sync stops). The
+    /// per-install `deviceId` is an identifier, not a credential, and is kept -
+    /// see `deviceId()`.
     func clear() throws
+    /// The per-install device id, when one exists. It is an identifier, not a
+    /// credential, and it survives `clear()`: docs/SECURITY.md says it "must
+    /// survive reinstall-with-restore", and keeping it lets a re-sign-in on this
+    /// install re-attach its own device row instead of minting a new one
+    /// (RV.286, RV.41). `forgetDevice()` is the only thing that removes it.
+    func deviceId() throws -> String?
+    /// Removes the stored device id and nothing else. Nothing in the product
+    /// calls this today; it exists so the id's lifetime is one explicit seam
+    /// rather than a side effect of `clear()`.
+    func forgetDevice() throws
     /// Marks the session as having failed authentication (a rejected refresh).
     /// A marked session must not arm the cloud gateway (RV.26) and reads as
     /// "session expired - sign in again", never as an ordinary sign-out.

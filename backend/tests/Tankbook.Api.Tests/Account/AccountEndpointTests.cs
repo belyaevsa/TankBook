@@ -274,6 +274,78 @@ public class AccountEndpointTests : IClassFixture<PostgresFixture>
         Assert.DoesNotContain(app.Services.GetServices<IHostedService>(), h => h is AccountPurgeHostedService);
     }
 
+    // ---- 10. RV.286: a grace sign-in reactivates, it does not lock out -----
+
+    /// <summary>
+    /// The headline: the user deletes the account, changes their mind, and signs
+    /// in again with the same Apple subject inside the grace window. The account
+    /// must be reactivated - <c>deleted_at</c> cleared, the presenting device
+    /// re-attached, and the first pull on the new bearer answers 200 rather than
+    /// 410. The purge job's working set must no longer hold the account. Oracle:
+    /// docs/SYNC.md - "a tombstoned account stays fully recoverable for the whole
+    /// window".
+    /// </summary>
+    [SkippableFact]
+    public async Task SignInDuringGrace_Reactivates_AndSyncResumes()
+    {
+        var signer = new TestIdTokenSigner();
+        var writer = new InMemoryLogWriter([]);
+        await using var app = await StartAsync(signer, new RecordingBlobStorage(), writer, deletionGraceDays: 30);
+        var (token, accountId, deviceId) = await CreateSessionAsync(app, signer, "react-sub", "react@example.com");
+        await InsertRecordAsync(app, accountId, scn: 1);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await DeleteAccountAsync(app.Client, token)).StatusCode);
+        Assert.True(await app.ScalarAsync<bool>("SELECT deleted_at IS NOT NULL FROM accounts WHERE id = @p", new { p = accountId }));
+
+        // The app still holds its deviceId across the sign-out, so the re-sign-in
+        // presents the SAME id and the server re-attaches that row.
+        var (token2, accountId2, deviceId2) = await CreateSessionAsync(
+            app, signer, "react-sub", "react@example.com", deviceId: deviceId);
+
+        Assert.Equal(accountId, accountId2);
+        Assert.Equal(deviceId, deviceId2);
+        Assert.False(await app.ScalarAsync<bool>("SELECT deleted_at IS NOT NULL FROM accounts WHERE id = @p", new { p = accountId }));
+        Assert.Equal(1, await app.CountAsync("devices", "account_id = @p", new { p = accountId }));
+
+        // The whole point: the token just issued does not 410 on first use.
+        Assert.Equal(HttpStatusCode.OK, (await PullAsync(app.Client, token2)).StatusCode);
+
+        // The account left the purge job's working set.
+        using var scope = app.Services.CreateScope();
+        var repository = scope.ServiceProvider.GetRequiredService<AccountRepository>();
+        var due = await repository.ListDueAccountsAsync(DateTimeOffset.UtcNow.AddDays(60), CancellationToken.None);
+        Assert.DoesNotContain(due, a => a.Id == accountId);
+
+        // The log names the reactivation, not a match (RV.286, docs/LOGGING.md).
+        Assert.Contains(writer.Lines, l => l.Contains("auth.session", StringComparison.Ordinal) && l.Contains("reactivated", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// The reactivation window is the grace period and no longer: once the purge
+    /// job has deleted the tombstoned account, the subject is free again and a
+    /// sign-in creates a NEW empty account with a different id (docs/SYNC.md).
+    /// </summary>
+    [SkippableFact]
+    public async Task SignInAfterPurge_CreatesANewAccount()
+    {
+        var signer = new TestIdTokenSigner();
+        await using var app = await StartAsync(signer, new RecordingBlobStorage(), deletionGraceDays: 1);
+        var (_, accountId, _) = await CreateSessionAsync(app, signer, "purged-sub", "purged@example.com");
+
+        await app.Db.ExecuteAsync("UPDATE accounts SET deleted_at = now() - interval '2 days' WHERE id = @p", new { p = accountId });
+        using (var scope = app.Services.CreateScope())
+        {
+            var purge = scope.ServiceProvider.GetRequiredService<AccountPurgeService>();
+            await purge.PurgeDueAccountsAsync(CancellationToken.None);
+        }
+
+        Assert.Equal(0, await app.CountAsync("accounts", "id = @p", new { p = accountId }));
+
+        var (_, newAccountId, _) = await CreateSessionAsync(app, signer, "purged-sub", "purged@example.com");
+        Assert.NotEqual(accountId, newAccountId);
+        Assert.Equal(1, await app.CountAsync("accounts", "apple_sub = 'purged-sub'"));
+    }
+
     // ---- helpers -----------------------------------------------------------
 
     private static string Sha(char c) => new(c, 64);
@@ -325,14 +397,18 @@ public class AccountEndpointTests : IClassFixture<PostgresFixture>
         TestIdTokenSigner signer,
         string subject,
         string email,
-        string deviceName = "iPhone")
+        string deviceName = "iPhone",
+        Guid? deviceId = null)
     {
         var idToken = signer.Mint("apple", subject, email);
+        var device = deviceId is null
+            ? (object)new { name = deviceName, platform = "ios" }
+            : new { name = deviceName, platform = "ios", deviceId };
         var response = await app.Client.PostAsJsonAsync("/v1/auth/session", new
         {
             provider = "apple",
             idToken,
-            device = new { name = deviceName, platform = "ios" },
+            device,
         });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<SessionResponse>();

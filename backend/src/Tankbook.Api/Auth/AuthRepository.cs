@@ -45,6 +45,17 @@ public sealed record RefreshRotationResult(
     Guid? DeviceId,
     Guid? ChainId);
 
+/// <summary>How a session exchange resolved the verified subject to an account.</summary>
+public enum AccountResolution
+{
+    /// <summary>No account existed for the subject; this call inserted it.</summary>
+    Created,
+    /// <summary>An account existed and was already live.</summary>
+    Matched,
+    /// <summary>An account existed but was tombstoned within the grace period; this call cleared <c>deleted_at</c> (docs/SYNC.md "Account deletion").</summary>
+    Reactivated,
+}
+
 /// <summary>
 /// Database access for accounts, devices, and refresh tokens (migrations 001 and
 /// 004). The find-or-create path agrees with the unique constraints under real
@@ -77,13 +88,20 @@ public sealed class AuthRepository
 
     /// <summary>
     /// Finds the account for the verified subject, or creates it. Returns the
-    /// account id, whether this call created the account, and the account's
-    /// stored email (the column set at creation, never refreshed - the verified
-    /// id token's email is a first-sight value, not a rolling override).
-    /// Race-safe: a concurrent create for the same subject loses the insert (ON
-    /// CONFLICT DO NOTHING) and re-selects the winner.
+    /// account id, how the subject resolved (created / matched / reactivated),
+    /// and the account's stored email (the column set at creation, never
+    /// refreshed - the verified id token's email is a first-sight value, not a
+    /// rolling override). Race-safe: a concurrent create for the same subject
+    /// loses the insert (ON CONFLICT DO NOTHING) and re-selects the winner.
+    ///
+    /// A tombstoned account within the grace period is reactivated rather than
+    /// matched: clearing <c>deleted_at</c> restores it and every device the
+    /// tombstone had blocked, and the row leaves the purge job's working set
+    /// (docs/SYNC.md: "a tombstoned account stays fully recoverable for the
+    /// whole window"). The UPDATE is atomic and idempotent; a concurrent
+    /// reactivation loses it and falls through to the live select.
     /// </summary>
-    public async Task<(Guid AccountId, bool Created, string Email)> FindOrCreateAccountAsync(
+    public async Task<(Guid AccountId, AccountResolution Outcome, string Email)> FindOrCreateAccountAsync(
         string provider,
         string subject,
         string email,
@@ -103,7 +121,20 @@ public sealed class AuthRepository
 
             if (inserted is not null)
             {
-                return (inserted.Value, true, email);
+                return (inserted.Value, AccountResolution.Created, email);
+            }
+
+            var reactivateSql = provider == "apple"
+                ? "UPDATE accounts SET deleted_at = NULL WHERE apple_sub = @Sub AND deleted_at IS NOT NULL RETURNING id, email"
+                : "UPDATE accounts SET deleted_at = NULL WHERE google_sub = @Sub AND deleted_at IS NOT NULL RETURNING id, email";
+            var reactivated = await _db.QuerySingleOrDefaultAsync<(Guid Id, string Email)>(new CommandDefinition(
+                reactivateSql,
+                new { Sub = subject },
+                cancellationToken: cancellationToken));
+
+            if (reactivated != default)
+            {
+                return (reactivated.Id, AccountResolution.Reactivated, reactivated.Email);
             }
 
             var selectSql = provider == "apple"
@@ -113,7 +144,7 @@ public sealed class AuthRepository
                 selectSql,
                 new { Sub = subject },
                 cancellationToken: cancellationToken));
-            return (existing.Id, false, existing.Email);
+            return (existing.Id, AccountResolution.Matched, existing.Email);
         }
         finally
         {
