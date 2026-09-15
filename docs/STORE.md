@@ -289,6 +289,10 @@ device's own language.
 - **No subscription in v1** - Pro is cut (P6.16), so no in-app purchases are declared. The free
   tier includes cloud reading at 50 reads a day (RV.4).
 
+- **The 2026-09-15 review reply** (screen-recording script, purpose, setup, external services, regions,
+  regulated material) is `STORE-REVIEW-REPLY-2026-09-15.md`; its text is also the Notes field of App
+  Review Information, and the two are kept identical.
+
 ## 6 · App Store Connect: the exact answers (2026-09-05)
 
 Every field on the App Information and age-rating screens, with the reason. These are answers to
