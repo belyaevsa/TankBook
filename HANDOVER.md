@@ -1,35 +1,87 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-15 (00:20). **v1.0 is tagged, submitted and deployed; the production log is now the defect source.** Measured on the tree as left (`770945ea`): **iOS 2116 tests / 262 suites**, app-target bundle **267**, **backend 227 passed / 237 Postgres-backed skipped locally** (Docker's engine will not start on this machine - CI runs them), lint 0 from the repo **ROOT**, localization 0 (900 keys, 100% RU), Release build 0. **107 open rows, 425 closed** (nine ticked rows sit in `TASKS.md` awaiting the next sweep). Nothing is running; the queue is empty. Read this, then `CLAUDE.md`, then `docs/DEVELOPMENT-TIMELINE.md`, then `docs/TASKS.md`'s index.*
+*Updated 2026-09-18 (13:45). **v1.0 build 1344 was REJECTED by App Review (guideline 4.0, "hard to
+read type"); the fix is on `main` (`RV.293`, `2055a926`) and build 1368 is being uploaded.** This is
+a **fresh machine** (macOS 27.0, Xcode 27.0, iOS 27.0 simulator) set up today. Measured on the tree
+as left: **iOS 2077 + 45 tests / 253 suites** (56 s), app-target bundle **276**, **backend 469 / 469
+- 0 skipped, the first time the Postgres-backed half ran locally** (Docker works here), lint 0
+errors / 668 warnings from the repo ROOT, Release build 0. **120 open rows, 425 closed** (thirteen
+ticked rows sit in `TASKS.md` awaiting the sweep). Nothing is running; the queue is empty. Read
+this, then `CLAUDE.md`, then `docs/DEVELOPMENT-TIMELINE.md`, then `docs/TASKS.md`'s index.*
 
-## Corpus registration 2026-09-18: fifteen photographs, one parser fix, one row filed
+## Where the work stands (2026-09-18, early afternoon)
 
-Registered the owner's 2026-09-14..17 set: `receipt-068`..`073` (six Telegram-routed Russian
-fuel-card slips - two RN-Tver terminal/order pairs, one photographed **sideways**, and the paper
-halves of two Gazpromneft pumps) and `pump-106`..`114` (five Telegram-routed Russian faces, four
-full-resolution Circle K Gilbarco HEICs with orientation 6 baked in before the EXIF strip). Corpus
-now **73 receipts / 114 pumps**; receipts **270/315 -> 286/345**, compressed arm 285/345, pump
-**53/293 -> 53/320** with nothing committed (precision 0.946, coverage 0.175, mode off).
-`high-water.json`, `PumpPhotoGate.measuredNumericTotal`, `CorpusCompressionTests.recordedReceipts`,
-the row-count pin and the post-sweep declarations all moved; `EXTRACTION.md` and the three
-fixture READMEs describe every file. Full `swift test` **2121 / 263** green on a quiet tree; a run
-overlapped by doc edits false-redded `RV.157`'s four debounce tests, exactly as this file warns.
+**The rejection.** App Review's screenshot was the Sign in sheet on an **iPad in
+iPhone-compatibility mode, in LIGHT appearance**: a white pill with no title. The hand-drawn Apple
+button drew `Theme.Palette.midnight` on `Color.white`, and `midnight.light` is `#F5F6F8`. Every
+committed capture of that sheet was dark, so nothing had seen it. `RV.293` replaced it with Apple's
+own `ASAuthorizationAppleIDButton` (black on light, white on dark, Apple's localisation), kept the
+flow's one `startSignIn(provider:)` path, and shipped the four captures
+`RV.293-sign-in{,-ru,-light,-light-ru}` - the light pair is the rejection frame.
 
-**The registration found a rule-13 defect and it is fixed (`RV.291`).** `receipt-069` made the
-parser commit **1899.00** - a misread `63.30 X 30.000` multiplied through - over a `2 049.00` the
-slip prints twice, because `nonFuelListSum` counted the fuel line itself as a shop item when
-`fuelOperandIndex` could not place it, and the mixed-receipt branch of `resolveTotal` fired first.
-`RV56TotalPropertyTests` (zero confident-wrong totals over the class) caught it on registration -
-the whole-class property did its job. The fix excludes the ladder's resolved pair by identity
-(`EXTRACTION.md` 5c-ii). **A trimmed reproduction passed on the mutant**: dropping one card line
-let `fuelOperandIndex` place the pair, so the L1 quotes all 25 of Vision's lines with their boxes.
-Run the mutation before trusting a fixture test built from a subset.
+**The machine.** Installed today: Xcode 27, `xcodegen` 2.46, `swiftlint` 0.65.1, `gh` (not yet
+logged in), Docker (engine up; `dev-up.sh` now pulls MinIO from **quay.io** - Docker Hub denies
+`minio/minio`). The distribution identity is in the login keychain (`Apple Distribution: Stanislav
+Belyaev (A4TC6KS3BN)`, valid to 2027-09-08; the `.p12` in `~/.private_keys` had to be re-encoded
+with `openssl pkcs12 -legacy` because macOS's importer cannot read OpenSSL 3's ciphers - the
+password is the owner's, not written here), the WWDR G3 intermediate is installed, and the two App Store profiles were copied from
+the old machine into `~/Library/Developer/Xcode/UserData/Provisioning Profiles/`. The App Store
+Connect key `6C4FXV5G2W` is **not Admin**: automatic export tried cloud-managed signing and failed
+until the profiles were present. `TANKBOOK_TEAM_ID=A4TC6KS3BN`; `ASC_ISSUER_ID` lives only in the
+owner's shell.
 
-**Two confident-wrong litres are filed, not fixed (`RV.292`)**: `receipt-068` commits `1.0` from a
-sideways-garbled unit legend (`1 ВД.«1 ЛИТР`), `receipt-072` commits `10630454945` from
-`0010630454945L` - a register number that grew a trailing `L` and reads as a marked volume. The
-receipts class has whole-class properties for totals and kinds and **none for litres**; the row
-asks for one.
+**Two things macOS 27 broke, both fixed or fenced (`RV.294`).** (1) `swift test` **hung** with the
+RV.52 signature - and with ONE Vision request in flight at gate limit 1. The blocked *waiters* on
+the cooperative pool were the problem, not the performs: the wait now suspends (`withSlot` is
+`async`, `recognizeText` is `async throws`, no synchronous entry point remains). (2) Vision on 27
+reads the corpus **below every recorded mark** (receipts 274/345 vs 286, pump 13 vs 53, three
+confidently wrong totals). Owner's decision: keep the macOS 26 numbers; the four measured suites
+carry `.visionMeasuredRuntimeOnly` and **skip with the reason printed** off macOS 26. `RV.295` is
+the device measurement on iOS 27 that decides whether the parser, not the tests, needs work.
+
+## The five things this session would tell its successor
+
+1. **Light mode is a release check, not a theme option.** The rejection was a light-only defect
+   on a screen every capture had shot dark. Any screen that hard-codes `Color.white` or
+   `Color.black` against a palette token is this defect waiting; `grep -rn "Color.white"
+   ios/App/Sources` found exactly the one site. When a task touches a sheet the reviewer meets
+   (Welcome, Sign in, paywall later), capture light too.
+2. **`swift test` green on macOS 27 is not the L5 gate.** The four accuracy suites skip here; CI
+   on the measured runtime is where the marks are enforced. Do not extend a high-water mark or a
+   fixture count from this machine (`docs/TESTING.md` → "The OCR accuracy suites are
+   runtime-specific").
+3. **A test that hosts a `UIViewRepresentable` needs a `UIWindow`**, or SwiftUI never
+   materialises it - and on Xcode 27 the window-less version also wedged `xcodebuild test` for ten
+   minutes after printing its results. `AppleSignInButtonStyleTests` shows the working shape.
+4. **`simctl` and `xcodebuild test` still fight over the device** - three of four captures failed
+   when a queued capture started while a test bundle ran. Sequence them; never queue a capture on
+   a log line.
+5. **Diagnose a hang with `sample`, not with guesses.** One `sample <pid> 3` showed the fourteen
+   parked waiters and the single perform; a limit-1 experiment then ruled out the count. The RV.52
+   note's "blocking gate alone does not help" was the clue that a *second* blocking wait existed.
+
+## What to do next
+
+1. **Owner: finish the resubmission.** Wait for build 1368 to process, swap it onto version 1.0
+   (Build section → ⊖ 1344 → + 1368 → Save), reply in the Resolution Center naming the fix, Submit.
+   `docs/STORE-REVIEW-REPLY-2026-09-18.md` is not written yet - write it if the owner wants the
+   Notes text mirrored the way 09-15's was.
+2. **Push `main`** (three commits ahead) and watch `iOS Core` on CI: which macOS `macos-latest`
+   resolves to decides whether the L5 suites run or skip there - if it is 27 too, the marks are
+   enforced nowhere and `RV.295` moves up.
+3. **`gh auth login`** on this machine; the ASC exports into `~/.zshrc` (team id, key id, issuer id,
+   key path) so `release.sh` runs without a hand-typed environment.
+4. Unchanged from 09-15: deploy the backend so migration 023 runs; `RV.283` decision; `RV.203`,
+   `RV.262`, then `RV.242`, `RV.210`, `RV.129`, `RV.109`; sweep the thirteen ticked rows to
+   `TASKS-DONE.md`; the journeys walk is at **11 rows since 2026-09-13** - it is due.
+
+## Decisions the product owner made 2026-09-18 (do not relitigate)
+
+- OCR accuracy suites keep the macOS 26 numbers and skip elsewhere (option A over re-baselining).
+- The Sign in with Apple button is the system control; the Google button stays hand-drawn.
+- The reviewer's iPad remark is boilerplate - `TARGETED_DEVICE_FAMILY` stays `1`.
+
+---
 
 ## Where the work stands (2026-09-15, after midnight)
 
