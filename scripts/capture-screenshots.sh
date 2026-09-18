@@ -575,6 +575,17 @@ capture P4.4-sign-in-ru           ru -presentScreen signIn
 capture P4.4-wrong-provider       en -presentWelcome -presentScreen signIn -signInStubAuth -signInAutoStart
 capture P4.4-wrong-provider-ru    ru -presentWelcome -presentScreen signIn -signInStubAuth -signInAutoStart
 
+# RV.293: App Review's 4.0 rejection frame - the Sign in sheet in LIGHT, where
+# the hand-drawn Apple button rendered midnight (#F5F6F8) on white and its title
+# vanished. The button is Apple's own control now, black on light and white on
+# dark; the light pair is the proof, the dark pair the regression check.
+capture RV.293-sign-in            en -presentScreen signIn
+capture RV.293-sign-in-ru         ru -presentScreen signIn
+xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
+capture RV.293-sign-in-light      en -presentScreen signIn
+capture RV.293-sign-in-light-ru   ru -presentScreen signIn
+xcrun simctl ui "${DEVICE}" appearance dark >/dev/null 2>&1
+
 # P4.7: restore end-to-end - the Restoring screen (verification stats before
 # finishing), the empty-restore recovery entry point (F7's merge-conflict
 # prevention), and the backend-down state (the honest F7 copy with its next

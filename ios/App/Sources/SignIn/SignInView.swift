@@ -112,6 +112,7 @@ struct SignInSheet: View {
 struct SignInView: View {
     let flow: SignInFlow
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(spacing: 0) {
@@ -199,11 +200,28 @@ struct SignInView: View {
 
     private var providerButtons: some View {
         VStack(spacing: 11) {
-            providerButton(provider: .apple, identifier: "signInAppleButton")
+            appleButton
             if SignInView.offersGoogle {
                 providerButton(provider: .google, identifier: "signInGoogleButton")
             }
         }
+    }
+
+    /// The system control (`AppleSignInButton`); the spinner sits on top of it
+    /// while its own request runs, the way the Google button shows one inline.
+    private var appleButton: some View {
+        let isSigningIn = flow.phase == .signingIn(.apple)
+        return AppleSignInButton { flow.startSignIn(provider: .apple) }
+            .frame(height: AppleSignInButton.height)
+            .id(colorScheme)
+            .overlay {
+                if isSigningIn {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(colorScheme == .dark ? Theme.Palette.midnight : Theme.Palette.dash)
+                }
+            }
+            .disabled(isSigningIn || isOtherProviderSigningIn(.apple))
     }
 
     /// Whether this build can actually run the Google flow (SH.4). Derived from
@@ -212,6 +230,9 @@ struct SignInView: View {
     /// that threw on tap.
     static var offersGoogle: Bool { GoogleOAuth.Configuration.fromBundle() != nil }
 
+    /// The non-Apple providers keep a hand-drawn button; Apple's is the system
+    /// control (`appleButton`), which the HIG requires and which stays legible
+    /// in both schemes on its own.
     private func providerButton(provider: AuthProvider, identifier: String) -> some View {
         let isSigningIn = flow.phase == .signingIn(provider)
         return Button {
@@ -221,21 +242,21 @@ struct SignInView: View {
                 if isSigningIn {
                     ProgressView()
                         .controlSize(.small)
-                        .tint(provider == .apple ? Theme.Palette.midnight : Theme.Palette.ink)
+                        .tint(Theme.Palette.ink)
                 } else {
                     providerMark(provider)
                 }
-                Text(provider == .apple ? "Sign in with Apple" : "Continue with Google")
+                Text("Continue with Google")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(provider == .apple ? Theme.Palette.midnight : Theme.Palette.ink)
+                    .foregroundStyle(Theme.Palette.ink)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 15)
-            .background(provider == .apple ? Color.white : Theme.Palette.dash)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .frame(height: AppleSignInButton.height)
+            .background(Theme.Palette.dash)
+            .clipShape(RoundedRectangle(cornerRadius: AppleSignInButton.cornerRadius))
             .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(provider == .apple ? Color.clear : Theme.Palette.hairline, lineWidth: 1)
+                RoundedRectangle(cornerRadius: AppleSignInButton.cornerRadius)
+                    .stroke(Theme.Palette.hairline, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -248,17 +269,10 @@ struct SignInView: View {
         return false
     }
 
-    @ViewBuilder
     private func providerMark(_ provider: AuthProvider) -> some View {
-        if provider == .apple {
-            Image(systemName: "apple.logo")
-                .font(.system(size: 17))
-                .foregroundStyle(Theme.Palette.midnight)
-        } else {
-            Text(verbatim: "G")
-                .font(.system(size: 17, weight: .bold))
-                .foregroundStyle(Theme.Palette.ink)
-        }
+        Text(verbatim: "G")
+            .font(.system(size: 17, weight: .bold))
+            .foregroundStyle(Theme.Palette.ink)
     }
 
     private var reassurances: some View {

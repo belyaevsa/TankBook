@@ -2465,6 +2465,26 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.293-sign-in": {
+      "commit": "bbacba1f",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.293-sign-in-light": {
+      "commit": "bbacba1f",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.293-sign-in-light-ru": {
+      "commit": "bbacba1f",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.293-sign-in-ru": {
+      "commit": "bbacba1f",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "RV.37-replace-ask": {
       "commit": "4e7104f",
       "device": "iPhone 17",

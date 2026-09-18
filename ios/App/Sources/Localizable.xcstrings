@@ -11667,23 +11667,6 @@
         }
       }
     },
-    "Sign in with Apple": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in with Apple"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Войти через Apple"
-          }
-        }
-      }
-    },
     "Sign out": {
       "extractionState": "manual",
       "localizations": {

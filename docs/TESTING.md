@@ -518,21 +518,68 @@ background dispatch thread it does not (40 concurrent callers measured clean).
 (the single choke point every OCR request in the process passes through – tests and
 app alike) runs its `perform` on a background dispatch thread through `VisionRequestGate`.
 That is the half that removes the hang: no cooperative thread is ever inside the
-recognizer. The API stays synchronous – the caller waits on a per-call completion
-semaphore – so the app's callers are untouched. The second half is the gate's bound
+recognizer. (The API was synchronous at first – the caller waited on a per-call completion
+semaphore; RV.294 below is why it is `async` now.) The second half is the gate's bound
 (`VisionOCRConcurrency.limit = 8`) that caps in-flight performs so a future suite cannot
 exhaust the dispatch pool. The **limit is defence-in-depth, not the hang fix**: raising
 it to 100 leaves the suite green, while running the body on the caller's thread hangs it
 again. `ios/Sources/TankbookCore/Extraction/VisionRequestGate.swift` records this so nobody
 "restores rigour" by reverting to a blocking gate around a caller-thread perform.
 
+**The second hang, and the third half (RV.294, macOS 27, 2026-09-18).** On macOS 27 the
+full suite hung again with the RV.52 signature – and it hung with **one** request in flight
+and `VisionOCRConcurrency.limit = 1`. The sample: fourteen test cases parked in the gate's
+`DispatchSemaphore.wait()` on cooperative threads, the single admitted `perform` on its
+dispatch thread waiting on a Vision-internal semaphore, and nothing running. Every OCR suite
+passed **alone** in under a second. The reading: on macOS 27 the text detector completes
+part of its work through Swift concurrency, so it needs a cooperative thread to finish – and
+the *waiters*, not the performs, had taken them all. RV.52's hop moved the `perform` off the
+pool but left the *wait* on it, which was enough on 26 and is not on 27. The fix is that the
+wait now **suspends**: `VisionRequestGate.withSlot` is `async` (an async counting semaphore
+plus a continuation resumed from the dispatch thread), `VisionTextRecognizer.recognizeText`
+is `async throws`, and **there is no synchronous entry point** – the type checker is what
+stops the next caller from blocking a cooperative thread on Vision. The two app callers
+already sat in async contexts (`CapturePipeline`'s detached task; `ServiceInvoiceScanner`,
+which is `@MainActor` and had been OCR-ing *synchronously on the main actor* – it suspends
+now). The named mutation is `VisionRequestGateTests.waitersSuspendRatherThanBlock`: 64
+callers on a one-slot gate whose body cannot finish until a `Task` runs on the pool; a
+blocking gate hangs it (the trait's time limit is the failure), a suspending one completes
+it. The suite runs in **56 s** on the new gate.
+
 **The rule for the next person adding an OCR test.** Call `VisionTextRecognizer` –
-never `VNImageRequestHandler.perform` directly – and the gate applies automatically;
-there is nothing to opt into. If you are tempted to raise `VisionOCRConcurrency.limit`,
-re-measure the ceiling first (the probe pattern is the synchronous parameterized test
-above) and keep the same margin: the recorded 8 is ceiling 11 minus 3. The cost of the
-gate is nil in wall-clock – the suite runs *faster* than the blocking baseline because
-the recognizer is no longer driven from the cooperative pool.
+never `VNImageRequestHandler.perform` directly – and `await` it; the gate applies
+automatically and there is nothing to opt into. If you are tempted to raise
+`VisionOCRConcurrency.limit`, re-measure the ceiling first (the probe pattern is the
+parameterized test above) and keep the same margin: the recorded 8 is ceiling 11 minus 3.
+The cost of the gate is nil in wall-clock – the suite runs *faster* than the blocking
+baseline because the recognizer is no longer driven from the cooperative pool.
+
+## The OCR accuracy suites are runtime-specific (measured on macOS 26)
+
+Every L5 number – the high-water marks in `Spike/ReceiptSpike/fixtures/high-water.json`,
+`PumpPhotoGate`'s measured counts, RV.56's *zero confident-wrong totals*, the screenshot
+cross-check values and the expense `.txt` dumps – is a measurement of **one Vision runtime**,
+exactly as the L4 snapshot baselines are measurements of one simulator runtime (the section
+below). Measured 2026-09-18 on **macOS 27.0** against the same corpus and the same parser:
+receipts **274/345** resolved (mark 286), pump **13/320** (mark 53), screenshots **39/45**
+(mark 40), three receipts with a *confidently wrong* total where the mark is zero,
+`receipt-038` losing its litres, and one expense dump drifted. Nothing in the tree changed;
+the recognizer under it did.
+
+The decision (product owner, 2026-09-18): **keep the macOS 26 numbers and run the four
+measured suites only on the runtime they were measured on** – `ScreenshotCrossCheckTests`,
+`CorpusCompressionTests`, `RV56TotalPropertyTests` and `CorpusAccuracyGateTests` carry
+`.visionMeasuredRuntimeOnly` (`VisionMeasuredRuntime.swift`), and elsewhere they **skip with
+the reason printed**, never silently. Re-baselining on 27 was rejected because it would lower
+every mark and turn "zero confident-wrong totals" into "three". The open question is not this
+Mac's Vision but the **iPhone's**: the app runs on iOS, and whether iOS 27 reads receipts the
+way macOS 27 does is a device measurement (`RV.295`). Two consequences until it is made:
+
+1. **A green `swift test` on macOS 27 is not evidence the parser is at its mark** – the skips
+   are printed in the run and CI on the measured runtime is where the numbers are enforced.
+2. **Extending a high-water mark or a fixture needs the measured runtime** – a number recorded
+   on 27 would be compared against 26's marks by the next 26 run.
+
 
 ## The baseline gate: it builds and it lints (every task, no exceptions)
 
