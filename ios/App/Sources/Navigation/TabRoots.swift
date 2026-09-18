@@ -305,6 +305,7 @@ struct AppRootView: View {
         .animation(.easeOut(duration: 0.2), value: toastCenter.message)
         .environment(toastCenter)
         .environment(carSelection)
+        .sharedFileOpener(tab: $tabSelection, logPath: $logPath)
         .environment(invoiceSession)
         .environment(expenseEntrySession)
         .environment(reminderCompletionSession)
@@ -318,9 +319,7 @@ struct AppRootView: View {
             BlobPrefetchService.shared.attach(pathMonitor)
             runPurgeIfNeeded()
             #if DEBUG
-            // PJ.5/RV.78: replay a tap/action via the delegate's own handle.
-            NotificationReplayDriver.driveIfRequested()
-            ToastScreenshotPoses.showIfRequested(toastCenter: toastCenter)
+            DebugLaunchHooks.run(toastCenter: toastCenter)
             #endif
             // RV.59: the automatic pass (config, sync, rates, the two outboxes)
             // is OWNED by the `scenePhase == .active` transition below - launch

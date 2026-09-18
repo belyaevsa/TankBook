@@ -43,6 +43,20 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         ITSAppUsesNonExemptEncryption: false
+        # PJ.21: share-to-Tankbook (docs/JOURNEYS.md J2 "shares the file to
+        # Tankbook"). A CSV or plain-text export shared from Files, Mail or the
+        # other app's share sheet opens Tankbook with the file, and the root
+        # hands it to the import wizard's source step. Alternate rank: Tankbook
+        # is an importer, not the system's CSV editor. The system types cover
+        # CSV/text, so no imported type declaration is needed.
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Fuel log export
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.comma-separated-values-text
+              - public.plain-text
+        LSSupportsOpeningDocumentsInPlace: false
         # Google sign-in's iOS client id (SH.4). A PUBLIC identifier, not a
         # secret - docs/SECURITY.md says so explicitly, and hard rule 11 is
         # about keys, not identities. Unset here on purpose: until SH.1

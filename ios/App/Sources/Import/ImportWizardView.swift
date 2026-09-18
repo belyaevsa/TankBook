@@ -12,6 +12,7 @@ struct ImportWizardView: View {
     @Environment(AppCarSelection.self) private var carSelection
     @Environment(AppToastCenter.self) private var toastCenter
     @Environment(AppConfigService.self) private var configService
+    @Environment(ImportShareInbox.self) private var shareInbox
 
     @State private var model: ImportFlowModel?
     @State private var showingFilePicker = false
@@ -44,6 +45,8 @@ struct ImportWizardView: View {
                                                 configService: configService)
             }
             if let model {
+                // PJ.21: a file shared to Tankbook waits at the source step.
+                model.sharedFile = shareInbox.take()
                 await model.loadFormats()
                 #if DEBUG
                 ImportTestSeed.seedFlowIfRequested(model: model)
@@ -138,7 +141,21 @@ struct ImportWizardView: View {
         case .source:
             ImportSourceView(
                 model: model,
-                onChooseFile: { showingFilePicker = true },
+                onChooseFile: {
+                    if model.sharedFile != nil {
+                        let preferred = carSelection.selectedVehicle((try? model.repository.liveVehicles()) ?? [])?.id
+                        model.parseSharedFile(preferredVehicleID: preferred)
+                    } else {
+                        showingFilePicker = true
+                    }
+                },
+                onChooseAnotherFile: {
+                    if let shared = model.sharedFile {
+                        ImportService.makePickedFileStager().dispose(shared.url)
+                        model.sharedFile = nil
+                    }
+                    showingFilePicker = true
+                },
                 onNotSupported: { showingNotSupported = true },
                 onBack: { dismiss() },
                 onContinueBatch: { model.continueAfterBatchFailures() })

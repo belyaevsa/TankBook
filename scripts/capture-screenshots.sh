@@ -573,6 +573,12 @@ capture PJ.61-part-number-ru          ru -seedEditEntryService -presentScreen ed
 capture PJ.61-part-number-create      en -seedServiceEntryLifetime -presentScreen serviceEntry
 capture PJ.61-part-number-create-ru   ru -seedServiceEntryLifetime -presentScreen serviceEntry
 
+# PJ.21: share-to-Tankbook - the wizard's source step with a shared file
+# waiting: the primary action names the file, the picker is the second door.
+# RU is where "Прочитать fuel-log.csv" tests the bar's width.
+capture PJ.21-import-shared-file    en -openFile fuel-log.csv -importStubFormats one
+capture PJ.21-import-shared-file-ru ru -openFile fuel-log.csv -importStubFormats one
+
 # P4.4: the Sign in sheet (with the warn-amber "pick one and keep it" notice at
 # the decision moment) and the J11a wrong-provider question (empty account +
 # "Already use Tankbook?"). RU is where the amber notice - a paragraph - is the

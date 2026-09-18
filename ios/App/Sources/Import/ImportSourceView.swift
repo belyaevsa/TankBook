@@ -11,6 +11,8 @@ import TankbookCore
 struct ImportSourceView: View {
     let model: ImportFlowModel
     let onChooseFile: () -> Void
+    /// PJ.21: with a shared file waiting, the picker is the second door.
+    var onChooseAnotherFile: () -> Void = {}
     let onNotSupported: () -> Void
     let onBack: () -> Void
     /// RV.93: the whole-export pick's "Continue with N files" (some of the pick
@@ -374,49 +376,9 @@ struct ImportSourceView: View {
     /// the standing notice IS its surface - so it stays.
 }
 
-// MARK: - The "How to export" link and the inconsistent-dates card (RV.85)
+// MARK: - Failure cards and the bottom bar
 
 extension ImportSourceView {
-    /// The shared "How to export" link into the source app's guide page
-    /// (PJ.33). `Text` is a literal so the label localises (never a `String`).
-    fileprivate func helpLink(_ url: URL, identifier: String) -> some View {
-        Link(destination: url) {
-            HStack(spacing: 6) {
-                Image(systemName: "questionmark.circle")
-                    .font(.caption)
-                Text("How to export")
-                    .font(.caption.weight(.semibold))
-            }
-            .foregroundStyle(Theme.Palette.action)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-        }
-        .accessibilityIdentifier(identifier)
-    }
-
-    /// The mixed-date-order file's own card (RV.85). Lives in an extension so
-    /// `parseErrorCard`'s switch and this struct stay under the lint ceilings.
-    fileprivate var inconsistentDatesCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("This file mixes two date formats.")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.Palette.warn)
-            Text("Some dates only read one way, others the other way.")
-                .font(.caption)
-                .foregroundStyle(Theme.Palette.inkSoft)
-                .lineSpacing(1.4)
-            Text("Fix the dates in the export, then pick the file again.")
-                .font(.caption)
-                .foregroundStyle(Theme.Palette.inkSoft)
-                .lineSpacing(1.4)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .formCard()
-        .accessibilityIdentifier("importInconsistentDatesCard")
-    }
-
     /// The whole-export pick's per-file failures (RV.93, hard rule 7): each
     /// card names its file, says what happened, and the bar below offers the
     /// next step - continue with the files that parsed, or pick again when none
@@ -578,6 +540,8 @@ extension ImportSourceView {
                             ProgressView().tint(Theme.Palette.inkSoft)
                             Text("Reading file…")
                         }
+                    } else if let shared = model.sharedFile {
+                        Text(L10n.readSharedFile(fileName: shared.name))
                     } else {
                         Text("Choose file")
                     }
@@ -585,6 +549,16 @@ extension ImportSourceView {
                 .accessibilityIdentifier("importChooseFileButton")
                 .padding(.bottom, 12)
                 .padding(.top, 6)
+                if model.sharedFile != nil, !model.isParsing {
+                    Button(action: onChooseAnotherFile) {
+                        Text("Choose a different file")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.Palette.inkSoft)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.bottom, 12)
+                    .accessibilityIdentifier("importChooseAnotherFileButton")
+                }
                 if model.isParsing {
                     // PR.6: the parse is the one part of import that needs the
                     // connection (hard rule 9's exception), and it can sit on a

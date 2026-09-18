@@ -965,6 +965,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "PJ.21-import-shared-file": {
+      "commit": "e480713d",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.21-import-shared-file-ru": {
+      "commit": "e480713d",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "PJ.22-service-lifetime": {
       "commit": "1791c80",
       "device": "iPhone 17",

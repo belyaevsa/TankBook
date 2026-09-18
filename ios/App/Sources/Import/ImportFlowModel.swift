@@ -70,6 +70,10 @@ final class ImportFlowModel {
 
     var pickedFormat: ImportFormat?
     var pickedFileName: String?
+    /// A file another app shared to Tankbook, waiting at the source step for
+    /// the format declaration (`ImportShareInbox`). The step's primary action
+    /// reads it instead of opening the picker; `nil` is the ordinary flow.
+    var sharedFile: ImportShareInbox.SharedFile?
     var uploadedFileData: Data?
     /// RV.93: the successfully-parsed files of the current pick. ONE for a
     /// single-file pick (the flow stays byte-for-byte); several for a

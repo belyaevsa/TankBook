@@ -4156,6 +4156,23 @@
         }
       }
     },
+    "Choose a different file": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a different file"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выбрать другой файл"
+          }
+        }
+      }
+    },
     "Choose file": {
       "extractionState": "manual",
       "localizations": {
@@ -10076,6 +10093,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Считано с чека"
+          }
+        }
+      }
+    },
+    "Read %1$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read %1$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Прочитать %1$@"
           }
         }
       }

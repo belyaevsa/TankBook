@@ -534,6 +534,16 @@ extension ImportFlowModel {
     /// was showing (a prior batch's per-file failures, an undecided preview) is
     /// dropped before the new files stage. Nothing is written - this is the
     /// same nothing-was-staged promise as `cancelParse`.
+    /// The shared file's parse: the same single-file path a picked file runs,
+    /// the staged copy disposed once its bytes are read (RV.73).
+    func parseSharedFile(preferredVehicleID: UUID?) {
+        guard let shared = sharedFile else { return }
+        preparePick()
+        parse(fileURL: shared.url, preferredVehicleID: preferredVehicleID)
+        ImportService.makePickedFileStager().dispose(shared.url)
+        sharedFile = nil
+    }
+
     func preparePick() {
         parseFiles = []
         fileFailures = []
