@@ -1470,6 +1470,59 @@
         }
       }
     },
+    "%lld fills": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld fill"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld fills"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld заправки"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld заправок"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld заправка"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld заправок"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld entries excluded": {
       "extractionState": "manual",
       "localizations": {
@@ -4407,6 +4460,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Расход, который из этого получается"
+          }
+        }
+      }
+    },
+    "%1$@ costs you %2$@%% more than %3$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ costs you %2$@%% more than %3$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ обходится вам на %2$@%% дороже, чем %3$@"
+          }
+        }
+      }
+    },
+    "%1$@ and %2$@ cost you about the same": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ and %2$@ cost you about the same"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ и %2$@ обходятся вам примерно одинаково"
           }
         }
       }
@@ -9889,6 +9976,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Тип привода"
+          }
+        }
+      }
+    },
+    "Price by brand · per L": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Price by brand · per L"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Цена по брендам · за л"
+          }
+        }
+      }
+    },
+    "Price by brand · per gal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Price by brand · per gal"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Цена по брендам · за галлон"
           }
         }
       }

@@ -1095,6 +1095,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },
+    "PJ.31-trends-brand-prices": {
+      "commit": "6538cddc",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.31-trends-brand-prices-ru": {
+      "commit": "6538cddc",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "PJ.33-import-guide": {
       "commit": "e8cf18f1",
       "device": "iPhone 17",

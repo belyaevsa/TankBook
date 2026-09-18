@@ -52,6 +52,14 @@ enum ManualFillUpUnitCopy {
         }
     }
 
+    /// The per-brand price card's eyebrow (J8), one phrase per unit.
+    static func priceByBrandTitle(for unit: VolumeUnit) -> String {
+        switch unit {
+        case .l: L10n.localize("Price by brand · per L")
+        case .galUS, .galUK: L10n.localize("Price by brand · per gal")
+        }
+    }
+
     /// The "fills in from total ÷ …" caption under an empty price row.
     static func fillsFromTotal(for unit: VolumeUnit) -> String {
         switch unit {

@@ -28,6 +28,8 @@ struct TrendsView: View {
     /// Trends"). Loaded from the synced preference on every `load`, flipped
     /// through the notification coordinator, which persists and reschedules.
     @State private var monthlySummaryEnabled = false
+    /// The car's stations, for the per-brand price card (J8).
+    @State private var stations: [Station] = []
 
     /// Derived, never stored (hard rule 2): recomputed from the current entries
     /// on every render - `TrendsStats` wraps `HomeStats`, so Home and Trends
@@ -35,7 +37,8 @@ struct TrendsView: View {
     private var stats: TrendsStats? {
         guard let vehicle else { return nil }
         return TrendsStats(vehicle: vehicle, entries: entries,
-                           duplicateResolutions: resolvedDuplicateKeys)
+                           duplicateResolutions: resolvedDuplicateKeys,
+                           stations: stations)
     }
 
     var body: some View {
@@ -87,6 +90,9 @@ struct TrendsView: View {
     private func fullLayout(_ stats: TrendsStats) -> some View {
         if stats.home.hasEntries {
             tileGrid(stats)
+            if !stats.brandPrices.isEmpty {
+                TrendsBrandPricesCard(stats: stats)
+            }
             if stats.home.excludedEntryCount > 0 {
                 ExcludedEntriesFootnote(
                     count: stats.home.excludedEntryCount,
@@ -242,6 +248,7 @@ struct TrendsView: View {
             self.vehicle = selected
             entries = try repository.liveEntries(forVehicle: selected.id)
             resolvedDuplicateKeys = (try? repository.resolvedDuplicateKeys()) ?? []
+            stations = (try? repository.liveStations()) ?? []
             monthlySummaryEnabled = (try? repository.livePreferences())?
                 .notifications.monthlySummary ?? false
         } catch {

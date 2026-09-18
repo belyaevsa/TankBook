@@ -108,6 +108,54 @@ final class TrendsUITests: XCTestCase {
                        "one segment in the previous window is not a window - no arrow")
     }
 
+    // MARK: - Price by brand (PJ.31, J8)
+
+    /// The full-history seed fills at Shell and Neste, four each: the card
+    /// lists both brands, cheapest first, and the sentence names the gap the
+    /// engine measured (about 1%, from the seed's prices) - never a bare
+    /// "Shell is more expensive".
+    func testTwoBrandsRenderTheirRowsAndTheGapSentence() {
+        let app = launch(args: ["-seedHomeFullHistory"])
+
+        XCTAssertTrue(anyElement(app, "trendsBrandPricesCard").waitForExistence(timeout: 10),
+                      "two brands with two fills each must render the card")
+        // Each row is one combined element: "Neste, 4 fills, …".
+        for brand in ["Neste", "Shell"] {
+            let row = app.descendants(matching: .any).matching(
+                NSPredicate(format: "label BEGINSWITH %@", "\(brand), 4 fills")).firstMatch
+            XCTAssertTrue(row.exists, "the \(brand) row names the brand and its fill count")
+        }
+        let sentence = app.staticTexts["Shell costs you 1% more than Neste"]
+        XCTAssertTrue(sentence.waitForExistence(timeout: 5),
+                      "the sentence names the dearest, the gap and the cheapest")
+    }
+
+    func testTwoBrandsRenderTheGapSentenceInRussian() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-selectTrendsTab", "-seedHomeFullHistory",
+                               "-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU"]
+        app.launch()
+
+        XCTAssertTrue(anyElement(app, "trendsBrandPricesCard").waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Shell обходится вам на 1% дороже, чем Neste"].waitForExistence(timeout: 5),
+                      "the RU sentence is one phrase with the brands inside it")
+
+        app.terminate()
+        let reset = XCUIApplication()
+        reset.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        reset.launch()
+        reset.terminate()
+    }
+
+    /// One brand only (the two-windows seed has no stations): no card - a
+    /// comparison needs something to compare against.
+    func testOneBrandRendersNoCard() {
+        let app = launch(args: ["-seedHomeTwoWindows"])
+        XCTAssertTrue(anyElement(app, "trendsConsumptionTile").waitForExistence(timeout: 10))
+        XCTAssertFalse(anyElement(app, "trendsBrandPricesCard").exists,
+                       "a lone brand must not be compared against nothing")
+    }
+
     // MARK: - The excluded footnote (real count, routes to the flagged entry)
 
     func testExcludedFootnoteShowsRealCountAndRoutesToTheFlaggedEntry() {

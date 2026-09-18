@@ -92,6 +92,13 @@ public struct TrendsStats: Equatable, Sendable {
     /// began). Converted via the same derivation as Home's vital, so the
     /// series' final point IS the tile's figure.
     public let priceSeries: [TrendPoint]
+    /// Price per unit by station brand over the last year, cheapest first
+    /// (docs/JOURNEYS.md J8); empty until two brands have two fills each, so
+    /// the card is absent rather than a one-row comparison.
+    public let brandPrices: [BrandPriceSeries]
+    /// "Shell costs you 4% more than Neste" - the dearest against the
+    /// cheapest, `nil` below two brands.
+    public let brandPriceGap: BrandPriceGap?
     /// The honest span of the cost/km figure in months: the time its km span
     /// actually covers, never the full window when the data is younger (the
     /// same honesty rule as the headline's label). `nil` whenever the figure
@@ -105,7 +112,8 @@ public struct TrendsStats: Equatable, Sendable {
 
     public init(vehicle: Vehicle, entries: [any Entry],
                 asOf: Date = Date(), calendar: Calendar = .current,
-                duplicateResolutions: Set<DuplicateDetector.PairKey> = []) {
+                duplicateResolutions: Set<DuplicateDetector.PairKey> = [],
+                stations: [Station] = []) {
         self.vehicle = vehicle
         self.home = HomeStats(vehicle: vehicle, entries: entries, asOf: asOf,
                               calendar: calendar, duplicateResolutions: duplicateResolutions)
@@ -138,6 +146,10 @@ public struct TrendsStats: Equatable, Sendable {
         self.spendSeries = Self.monthlySpendSeries(entries: countingEntries, calendar: calendar, asOf: asOf,
                                                    vehicleHome: vehicle.homeCurrency)
         self.priceSeries = Self.priceSeries(entries: countingEntries, vehicleHome: vehicle.homeCurrency)
+        let brandPrices = BrandPrices.series(entries: countingEntries, stations: stations,
+                                             vehicleHome: vehicle.homeCurrency, asOf: asOf)
+        self.brandPrices = brandPrices.count >= 2 ? brandPrices : []
+        self.brandPriceGap = BrandPrices.gap(brandPrices)
         // The span label describes the figure that is actually shown: when the
         // window's money is not exact (a pending row, or mixed home currencies),
         // the figure is absent and no label may claim a span for a number that
