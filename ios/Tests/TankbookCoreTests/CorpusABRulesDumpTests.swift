@@ -27,7 +27,7 @@ struct CorpusABRulesDumpTests {
 
     private static let languages = ["en-US", "de-DE", "pl-PL", "cs-CZ", "ru-RU"]
 
-    @Test func regenerateRulesSnapshot() throws {
+    @Test func regenerateRulesSnapshot() async throws {
         let writing = ProcessInfo.processInfo.environment["TANKBOOK_WRITE_CORPUS_FILES"] == "1"
         guard writing else { return } // CI no-op: the offline tests read the committed files.
         var summaries: [String] = []
@@ -47,7 +47,7 @@ struct CorpusABRulesDumpTests {
             var records: [String: ExtractionRecord] = [:]
             for image in imageURLs {
                 guard expected[image.lastPathComponent] != nil else { continue }
-                let ocrLines = try VisionTextRecognizer.recognizeText(in: image, languages: Self.languages)
+                let ocrLines = try await VisionTextRecognizer.recognizeText(in: image, languages: Self.languages)
                 let result = extractor.extract(lines: ocrLines)
                 records[image.lastPathComponent] = ExtractionRecord(
                     filename: image.lastPathComponent, extraction: result

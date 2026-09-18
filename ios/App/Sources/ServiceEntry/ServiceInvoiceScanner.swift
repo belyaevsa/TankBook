@@ -25,7 +25,7 @@ enum ServiceInvoiceScanner {
             return ServiceScanOutcome(prefill: ServiceEntryPrefill(),
                                       recognition: ServiceRecognition())
         }
-        let linesByPage = images.map(ocrLines)
+        let linesByPage = await ocrLinesByPage(images)
         let split = InvoiceSplitter().split(lines: linesByPage.flatMap { $0 })
         let pages = enrichPages(stagedPages, linesByPage: linesByPage,
                                 extractedTimestamp: split.date, repository: repository)
@@ -88,17 +88,26 @@ enum ServiceInvoiceScanner {
 
     static func appendPages(images: [UIImage]) async -> [InvoicePage] {
         guard let repository = try? AppStore.repository(), !images.isEmpty else { return [] }
-        let linesByPage = images.map(ocrLines)
+        let linesByPage = await ocrLinesByPage(images)
         return persistPages(repository: repository, images: images,
                             linesByPage: linesByPage, extractedTimestamp: nil)
     }
 
     // MARK: - Helpers
 
-    private static func ocrLines(_ image: UIImage) -> [OCRLine] {
-        guard let cgImage = image.cgImage else { return [] }
-        return (try? VisionTextRecognizer.recognizeText(image: cgImage,
-                                                        languages: languages)) ?? []
+    /// One OCR pass per page, in page order; the main actor suspends while
+    /// each runs rather than blocking on it.
+    private static func ocrLinesByPage(_ images: [UIImage]) async -> [[OCRLine]] {
+        var linesByPage: [[OCRLine]] = []
+        for image in images {
+            guard let cgImage = image.cgImage else {
+                linesByPage.append([])
+                continue
+            }
+            linesByPage.append((try? await VisionTextRecognizer.recognizeText(image: cgImage,
+                                                                              languages: languages)) ?? [])
+        }
+        return linesByPage
     }
 
     private static func persistPages(repository: TankbookRepository,

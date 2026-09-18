@@ -156,7 +156,7 @@ import Vision
 // Asserted over the WHOLE class - every fixture either matches its expected
 // total or returns nil - not as three individual expectations, so a NEW wrong
 // total added later fails too.
-@Suite("RV.56: zero confident-wrong totals over the whole receipts class (Vision-gated)")
+@Suite("RV.56: zero confident-wrong totals over the whole receipts class (Vision-gated)", .visionMeasuredRuntimeOnly)
 struct RV56TotalPropertyTests {
 
     private static let repoRoot = URL(fileURLWithPath: #filePath).standardizedFileURL
@@ -168,7 +168,7 @@ struct RV56TotalPropertyTests {
         .appendingPathComponent("Spike/ReceiptSpike/fixtures")
     private static let languages = ["en-US", "de-DE", "pl-PL", "cs-CZ", "ru-RU"]
 
-    @Test func noReceiptTotalIsConfidentlyWrong() throws {
+    @Test func noReceiptTotalIsConfidentlyWrong() async throws {
         let folder = Self.fixturesRoot.appendingPathComponent("receipts")
         let expected = try CorpusScorer.loadExpected(folder.appendingPathComponent("expected.csv"))
         let images = try CorpusScorer.imageFilenames(in: folder)
@@ -179,7 +179,7 @@ struct RV56TotalPropertyTests {
         for image in images {
             guard let want = expected[image]?.total else { continue }
             let url = folder.appendingPathComponent(image)
-            let ocr = try VisionTextRecognizer.recognizeText(in: url, languages: Self.languages)
+            let ocr = try await VisionTextRecognizer.recognizeText(in: url, languages: Self.languages)
             let result = extractor.extract(lines: ocr, source: .receipt)
             guard let got = result.total?.corpusBoundaryDouble else { continue }
             if abs(got - want) >= CorpusScorer.tolerance {

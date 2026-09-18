@@ -2,17 +2,15 @@ import Foundation
 import Testing
 @testable import TankbookCore
 
-// RV.52 - the L1 for the Vision request gate. The gate's contract is a pure
-// decision: it admits at most `limit` bodies concurrently, and it releases the
-// slot on both the success and the throwing path. A gate that leaked a slot on
-// an error would deadlock the suite the first time an OCR call fails, so the
-// throw path is asserted directly rather than trusted.
-//
-// The callers below are raw `Thread`s, deliberately not `DispatchQueue`
-// (`concurrentPerform`): the gate itself dispatches each body to a background
-// dispatch queue, so driving it from the global queue competes with its own
-// work and makes the peak read unreliable. Real threads leave the dispatch pool
-// free for the bodies, so the peak measures the gate's bound and nothing else.
+// The L1 for the Vision request gate. The gate's contract is a pure decision:
+// it admits at most `limit` bodies concurrently, it releases the slot on both
+// the success and the throwing path, and a caller waiting for a slot SUSPENDS
+// rather than blocks. A gate that leaked a slot on an error would deadlock the
+// suite the first time an OCR call fails, so the throw path is asserted
+// directly rather than trusted; a gate that blocked its waiters would hang the
+// suite on macOS 27 (docs/TESTING.md -> "Vision OCR concurrency ceiling"), so
+// the suspension is asserted by parking more waiters than the cooperative pool
+// has threads and checking the bodies still complete.
 
 @Suite("Vision request gate (RV.52)")
 struct VisionRequestGateTests {
@@ -45,28 +43,26 @@ struct VisionRequestGateTests {
         }
     }
 
-    /// Runs `count` callers on raw threads and returns the peak body concurrency.
-    private func peakConcurrency(gate: VisionRequestGate, count: Int) -> Int {
+    /// Runs `count` concurrent callers and returns the peak body concurrency.
+    private func peakConcurrency(gate: VisionRequestGate, count: Int) async -> Int {
         let peak = Peak()
-        let group = DispatchGroup()
-        for _ in 0..<count {
-            group.enter()
-            Thread.detachNewThread {
-                try? gate.withSlot {
-                    peak.enter()
-                    Thread.sleep(forTimeInterval: 0.1)
-                    peak.exit()
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<count {
+                group.addTask {
+                    try? await gate.withSlot {
+                        peak.enter()
+                        Thread.sleep(forTimeInterval: 0.1)
+                        peak.exit()
+                    }
                 }
-                group.leave()
             }
         }
-        group.wait()
         return peak.peak
     }
 
     @Test("the gate admits at most its limit concurrently, and not just one")
-    func gateAdmitsAtMostItsLimitConcurrently() {
-        let peak = peakConcurrency(gate: VisionRequestGate(limit: 4), count: 40)
+    func gateAdmitsAtMostItsLimitConcurrently() async {
+        let peak = await peakConcurrency(gate: VisionRequestGate(limit: 4), count: 40)
         // 40 callers would run ~12+ at once unconstrained on this machine; the
         // gate must hold them to 4, and must actually use all 4 (a strict-serial
         // gate that admitted one at a time would also pass "<=" but fail "==").
@@ -75,22 +71,50 @@ struct VisionRequestGateTests {
     }
 
     @Test("the gate releases its slot when the body throws")
-    func gateReleasesItsSlotWhenTheBodyThrows() {
+    func gateReleasesItsSlotWhenTheBodyThrows() async {
         let gate = VisionRequestGate(limit: 3)
         do {
-            _ = try gate.withSlot { () -> Int in throw TestError.boom }
+            _ = try await gate.withSlot { () -> Int in throw TestError.boom }
         } catch {
             // expected
         }
         // If the throw leaked a slot, the gate would now admit only 2; the
         // workload below must still reach the full limit of 3.
-        #expect(peakConcurrency(gate: gate, count: 30) == 3)
+        #expect(await peakConcurrency(gate: gate, count: 30) == 3)
     }
 
     @Test("the gate returns the body's value")
-    func gateReturnsTheBodysValue() throws {
+    func gateReturnsTheBodysValue() async throws {
         let gate = VisionRequestGate(limit: 2)
-        let value = try gate.withSlot { 42 }
+        let value = try await gate.withSlot { 42 }
         #expect(value == 42)
+    }
+
+    @Test("waiters suspend: a body that needs the cooperative pool still finishes under a full queue of waiters",
+          .timeLimit(.minutes(1)))
+    func waitersSuspendRatherThanBlock() async {
+        // Models Vision on macOS 27: the body, on its dispatch thread, cannot
+        // finish until a Task runs on the cooperative pool. With a blocking
+        // wait, `waiters` callers parked on a semaphore occupy every cooperative
+        // thread, that Task never runs, and the run hangs (the time limit is
+        // the failure signal). A suspending wait holds no thread, so the Task
+        // runs and every caller finishes. The count is well above any
+        // machine's core count.
+        let gate = VisionRequestGate(limit: 1)
+        let waiters = 64
+        let completed = Peak()
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0..<waiters {
+                group.addTask {
+                    try? await gate.withSlot {
+                        let poolTurn = DispatchSemaphore(value: 0)
+                        Task { poolTurn.signal() }
+                        poolTurn.wait()
+                        completed.enter()
+                    }
+                }
+            }
+        }
+        #expect(completed.peak == waiters)
     }
 }

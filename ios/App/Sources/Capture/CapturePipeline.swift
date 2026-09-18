@@ -58,9 +58,9 @@ enum CapturePipeline {
                                   bandProvider: (any FuelPriceBandProvider)?) async -> (CaptureAssembly, [OCRLine]) {
         await Task.detached(priority: .userInitiated) {
             let cgImage = box.image
-            let lines = (try? VisionTextRecognizer.recognizeText(image: cgImage,
-                                                                 orientation: box.orientation,
-                                                                 languages: languages)) ?? []
+            let lines = (try? await VisionTextRecognizer.recognizeText(image: cgImage,
+                                                                       orientation: box.orientation,
+                                                                       languages: languages)) ?? []
             let qrPayload = CaptureQRDetector.detectPayload(in: cgImage, orientation: box.orientation)
             let assembly = ExtractionAssembler.assemble(lines: lines,
                                                         qrPayload: qrPayload,

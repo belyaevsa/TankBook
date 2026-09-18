@@ -26,10 +26,10 @@ struct ExtractionAssemblerTests {
     // MARK: - A corpus fixture resolves the extraction it expects + a crop rect per field
 
     @Test("receipt-011 resolves its expected fields and a crop rect per resolved field")
-    func receiptFixtureResolvesExtractionAndCropRects() throws {
+    func receiptFixtureResolvesExtractionAndCropRects() async throws {
         let image = Self.fixturesRoot
             .appendingPathComponent("receipts/receipt-011-samara-diesel-ru.png")
-        let ocr = try VisionTextRecognizer.recognizeText(in: image, languages: Self.languages)
+        let ocr = try await VisionTextRecognizer.recognizeText(in: image, languages: Self.languages)
         let assembly = ExtractionAssembler.assemble(lines: ocr, qrPayload: nil, source: .receipt)
 
         // The extraction the fixture's expected.csv promises.

@@ -21,7 +21,7 @@ import Vision
 // image did not). This is what stops "make the upload faster" from quietly
 // becoming "read the receipt worse".
 
-@Suite("OCR corpus accuracy through the gateway compression step (P6.3, L5)")
+@Suite("OCR corpus accuracy through the gateway compression step (P6.3, L5)", .visionMeasuredRuntimeOnly)
 struct CorpusCompressionTests {
 
     private static let repoRoot = URL(fileURLWithPath: #filePath).standardizedFileURL
@@ -49,7 +49,7 @@ struct CorpusCompressionTests {
     private static let recordedReceipts = (hits: 285, total: 345)
 
     @Test("receipt hits through the compression step never fall below the recorded mark")
-    func compressionDoesNotCostAccuracy() throws {
+    func compressionDoesNotCostAccuracy() async throws {
         let folder = Self.fixturesRoot.appendingPathComponent("receipts")
         let expected = try CorpusScorer.loadExpected(folder.appendingPathComponent("expected.csv"))
         let images = try CorpusScorer.imageFilenames(in: folder)
@@ -70,7 +70,7 @@ struct CorpusCompressionTests {
                 continue
             }
             compressed += 1
-            let ocrLines = try VisionTextRecognizer.recognizeText(image: rendition, languages: Self.languages)
+            let ocrLines = try await VisionTextRecognizer.recognizeText(image: rendition, languages: Self.languages)
             let qrAnchor = CorpusScorer.qrAnchor(forImage: image, in: folder)
             let result = extractor.extract(lines: ocrLines, source: .receipt, qrAnchor: qrAnchor)
             records[image] = ExtractionRecord(filename: image, extraction: result)

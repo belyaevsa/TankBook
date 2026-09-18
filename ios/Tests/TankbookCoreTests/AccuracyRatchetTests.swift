@@ -94,7 +94,7 @@ import Vision
 // L5 accuracy gate (docs/TESTING.md): the Spike harness grown into a test. It
 // OCRs the fixture corpus with Vision and scores each class against its
 // expected.csv, then ratchets against Spike/ReceiptSpike/fixtures/high-water.json.
-@Suite("OCR corpus accuracy gate (L5)")
+@Suite("OCR corpus accuracy gate (L5)", .visionMeasuredRuntimeOnly)
 struct CorpusAccuracyGateTests {
 
     private static let repoRoot = URL(fileURLWithPath: #filePath).standardizedFileURL
@@ -131,7 +131,7 @@ struct CorpusAccuracyGateTests {
         }
     }
 
-    @Test func corpusScoresDoNotRegress() throws {
+    @Test func corpusScoresDoNotRegress() async throws {
         let highWater = try loadHighWater()
         var failures: [String] = []
         for name in ["receipts", "pump", "fiscal", "screenshots", "expenses"] {
@@ -142,9 +142,9 @@ struct CorpusAccuracyGateTests {
             // hand-authored `.txt` (RV.278).
             let scored: ScoredClass
             switch name {
-            case "pump": scored = try scorePump().scoredClass
-            case "expenses": scored = try scoreExpenses().scoredClass
-            default: scored = try scoreClass(name)
+            case "pump": scored = try await scorePump().scoredClass
+            case "expenses": scored = try await scoreExpenses().scoredClass
+            default: scored = try await scoreClass(name)
             }
             let recorded = highWater.recorded(for: name)
             if let violation = AccuracyRatchet.violation(
@@ -160,13 +160,13 @@ struct CorpusAccuracyGateTests {
         #expect(failures.isEmpty, Comment(stringLiteral: failures.joined(separator: "\n")))
     }
 
-    @Test func everyClassIsScored() throws {
+    @Test func everyClassIsScored() async throws {
         for name in ["receipts", "pump", "fiscal", "screenshots", "expenses"] {
             let total: Int
             switch name {
-            case "pump": total = try scorePump().numericTotal
-            case "expenses": total = try scoreExpenses().total
-            default: total = try scoreClass(name).total
+            case "pump": total = try await scorePump().numericTotal
+            case "expenses": total = try await scoreExpenses().total
+            default: total = try await scoreClass(name).total
             }
             #expect(total > 0, "\(name) scored no fields")
         }
@@ -176,8 +176,8 @@ struct CorpusAccuracyGateTests {
     /// kind vocabulary. The recorded floor must cover every asserted cell (kind,
     /// total, currency, date), so a fixture silently dropped from the folder
     /// cannot shrink the total under the recorded one.
-    @Test func expenseClassScoresKindAndMoneyCells() throws {
-        let scored = try scoreExpenses()
+    @Test func expenseClassScoresKindAndMoneyCells() async throws {
+        let scored = try await scoreExpenses()
         #expect(scored.total >= 12, "the expense class must assert at least one cell per fixture")
         #expect(scored.hits > 0, "the expense class resolved nothing")
     }
@@ -188,8 +188,8 @@ struct CorpusAccuracyGateTests {
     /// dump beside it still describes what Vision now reads. A non-empty list
     /// fails the suite, and the fix is to review the new OCR, regenerate the
     /// `.txt` with `--dump-text`, and re-check `expected.csv` against the paper.
-    @Test func expensePhotoDumpsHaveNotDrifted() throws {
-        let fixtures = try Self.expenseFixtureSet.get().fixtures
+    @Test func expensePhotoDumpsHaveNotDrifted() async throws {
+        let fixtures = try await Self.expenseFixtureTask.value.fixtures
         let drifts = CorpusScorer.expenseDrifts(in: fixtures)
         #expect(drifts.isEmpty, Comment(stringLiteral: drifts.joined(separator: "\n")))
     }
@@ -201,13 +201,13 @@ struct CorpusAccuracyGateTests {
     /// `expected.csv` cell: an abstention (`nil`) is allowed - an empty field
     /// the user fills - but a committed kind that contradicts the paper fails.
     /// The next legend read therefore fails the suite, not just lowers a score.
-    @Test func noReceiptCommitsAFuelKindItsExpectedContradicts() throws {
+    @Test func noReceiptCommitsAFuelKindItsExpectedContradicts() async throws {
         let folder = Self.fixturesRoot.appendingPathComponent("receipts")
         let expected = try CorpusScorer.loadExpected(folder.appendingPathComponent("expected.csv"))
         let images = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
             .filter { CorpusScorer.imageExtensions.contains($0.pathExtension.lowercased()) }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
-        let records = try extractRecords(folder: folder, images: images, expected: expected, source: .receipt)
+        let records = try await extractRecords(folder: folder, images: images, expected: expected, source: .receipt)
         var contradictions: [String] = []
         for image in images {
             guard let wantKind = expected[image.lastPathComponent]?.fuelKind else { continue }
@@ -228,8 +228,8 @@ struct CorpusAccuracyGateTests {
     /// precision is below the 99% threshold or coverage below the 60% floor. A
     /// flag flipped on below the gate is exactly what `PumpPhotoGate.violation`
     /// catches.
-    @Test func pumpModeShipsOffWhileTheCorpusIsBelowTheGate() throws {
-        let scored = try scorePump()
+    @Test func pumpModeShipsOffWhileTheCorpusIsBelowTheGate() async throws {
+        let scored = try await scorePump()
         #expect(scored.numericHits == PumpPhotoGate.measuredNumericHits,
                 "measured numeric hits \(PumpPhotoGate.measuredNumericHits) must match the live \(scored.numericHits)")
         #expect(scored.numericTotal == PumpPhotoGate.measuredNumericTotal,
@@ -250,14 +250,14 @@ struct CorpusAccuracyGateTests {
 
     // MARK: - Scoring
 
-    private func scoreClass(_ name: String) throws -> ScoredClass {
+    private func scoreClass(_ name: String) async throws -> ScoredClass {
         let folder = Self.fixturesRoot.appendingPathComponent(name)
         let expected = try CorpusScorer.loadExpected(folder.appendingPathComponent("expected.csv"))
         let images = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
             .filter { CorpusScorer.imageExtensions.contains($0.pathExtension.lowercased()) }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
         let source: ExtractionSource = name == "pump" ? .pump : .receipt
-        let records = try extractRecords(folder: folder, images: images, expected: expected, source: source)
+        let records = try await extractRecords(folder: folder, images: images, expected: expected, source: source)
         // The same scorer `CorpusScorer` that the P4.12 A/B uses for both arms,
         // so the rules arm of the A/B is scored with an identical comparison.
         return CorpusScorer.score(
@@ -270,13 +270,13 @@ struct CorpusAccuracyGateTests {
 
     /// The pump class scored under the re-scoped B1 metric (numeric-only
     /// precision/coverage/recall, currency reported separately).
-    private func scorePump() throws -> PumpScore {
+    private func scorePump() async throws -> PumpScore {
         let folder = Self.fixturesRoot.appendingPathComponent("pump")
         let expected = try CorpusScorer.loadExpected(folder.appendingPathComponent("expected.csv"))
         let images = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
             .filter { CorpusScorer.imageExtensions.contains($0.pathExtension.lowercased()) }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
-        let records = try extractRecords(folder: folder, images: images, expected: expected, source: .pump)
+        let records = try await extractRecords(folder: folder, images: images, expected: expected, source: .pump)
         return CorpusScorer.scorePump(
             name: "pump",
             images: images.map(\.lastPathComponent),
@@ -292,13 +292,13 @@ struct CorpusAccuracyGateTests {
     /// the `.txt` directly - there the `.txt` IS the input by construction. The
     /// cache keeps the four tests that score the class from paying the two
     /// photographs' OCR four times.
-    private static let expenseFixtureSet: Result<
+    private static let expenseFixtureTask: Task<
         (fixtures: [ExpenseFixture], expected: [ExpenseExpectedRow]), Error
-    > = Result {
-        try loadExpenseFixtures()
+    > = Task {
+        try await loadExpenseFixtures()
     }
 
-    private static func loadExpenseFixtures() throws
+    private static func loadExpenseFixtures() async throws
         -> (fixtures: [ExpenseFixture], expected: [ExpenseExpectedRow]) {
         let folder = fixturesRoot.appendingPathComponent("expenses")
         let expected = try CorpusScorer.loadExpenseExpected(
@@ -306,7 +306,7 @@ struct CorpusAccuracyGateTests {
         var fixtures: [ExpenseFixture] = []
         for row in expected {
             if let photo = photograph(for: row.filename, in: folder) {
-                let ocr = try VisionTextRecognizer.recognizeText(in: photo, languages: languages)
+                let ocr = try await VisionTextRecognizer.recognizeText(in: photo, languages: languages)
                 let regenerated = ocr.map(\.text).joined(separator: "\n") + "\n"
                 let dumpURL = folder.appendingPathComponent(row.filename)
                 let committed = try? String(contentsOf: dumpURL, encoding: .utf8)
@@ -336,14 +336,14 @@ struct CorpusAccuracyGateTests {
             .first { FileManager.default.fileExists(atPath: $0.path) }
     }
 
-    private func scoreExpenses() throws -> ExpenseScore {
-        let loaded = try Self.expenseFixtureSet.get()
+    private func scoreExpenses() async throws -> ExpenseScore {
+        let loaded = try await Self.expenseFixtureTask.value
         return CorpusScorer.scoreExpenses(
             name: "expenses", fixtures: loaded.fixtures, expected: loaded.expected)
     }
 
     private func extractRecords(folder: URL, images: [URL], expected: [String: ExpectedRow],
-                                source: ExtractionSource) throws -> [String: ExtractionRecord] {
+                                source: ExtractionSource) async throws -> [String: ExtractionRecord] {
         // The scorer injects the bundled band pack - a corpus fixture has no
         // user history (a fresh device, no prior fill-ups), so ladder step 3
         // yields nothing and the recorded number is the parser running with the
@@ -354,7 +354,7 @@ struct CorpusAccuracyGateTests {
         var records: [String: ExtractionRecord] = [:]
         for image in images {
             guard expected[image.lastPathComponent] != nil else { continue }
-            let ocrLines = try VisionTextRecognizer.recognizeText(in: image, languages: Self.languages)
+            let ocrLines = try await VisionTextRecognizer.recognizeText(in: image, languages: Self.languages)
             // The pump class is scored as a pump (source .pump) - the pump
             // parser paths (no fuel kind, P2.13 digit repair) are pump-source
             // behaviour, and scoring them as receipts would measure a parser

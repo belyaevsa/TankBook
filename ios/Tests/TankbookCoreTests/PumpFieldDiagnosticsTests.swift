@@ -27,7 +27,7 @@ struct PumpFieldDiagnosticsTests {
 
     private static let languages = ["en-US", "de-DE", "pl-PL", "cs-CZ", "ru-RU"]
 
-    @Test func dumpPumpFieldOutcomes() throws {
+    @Test func dumpPumpFieldOutcomes() async throws {
         guard ProcessInfo.processInfo.environment["TANKBOOK_WRITE_CORPUS_FILES"] == "1",
               let out = ProcessInfo.processInfo.environment["TANKBOOK_DIAG_OUT"] else { return }
         let outDir = URL(fileURLWithPath: out)
@@ -44,7 +44,7 @@ struct PumpFieldDiagnosticsTests {
         var committed = 0, correct = 0, scored = 0
         for image in images {
             guard let want = expected[image] else { continue }
-            let ocrLines = try VisionTextRecognizer.recognizeText(
+            let ocrLines = try await VisionTextRecognizer.recognizeText(
                 in: folder.appendingPathComponent(image), languages: Self.languages)
             let got = extractor.extract(lines: ocrLines, source: .pump)
 
