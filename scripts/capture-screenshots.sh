@@ -1022,6 +1022,10 @@ xcrun simctl ui "${DEVICE}" appearance dark >/dev/null 2>&1
 # дней") and the list's chip run longest.
 capture PJ.4-home-reminder    en -seedSettingsSignedIn -seedHomeReminderDue
 capture PJ.4-home-reminder-ru ru -seedSettingsSignedIn -seedHomeReminderDue
+# RV.122: the reminder chip strip - three due chips (overdue, date, distance)
+# in due order and the "All reminders" door last; RU is where chips bite.
+capture RV.122-home-reminder-chips    en -seedSettingsSignedIn -seedHomeReminderChips
+capture RV.122-home-reminder-chips-ru ru -seedSettingsSignedIn -seedHomeReminderChips
 
 # PJ.5: the notification deep link - a tapped reminder opens Reminders with
 # the completion sheet for the REMINDER the identifier named (the fixed

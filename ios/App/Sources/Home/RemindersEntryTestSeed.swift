@@ -36,6 +36,31 @@ enum RemindersEntryTestSeed {
         try? repository.upsertReminder(oilChange)
     }
 
+    /// RV.122's strip: one car with a fill at 118 500 km and FOUR reminders -
+    /// an overdue date (tyres, 3 days ago), a distance due in 420 km (oil), a
+    /// date due in 12 days (insurance) and one scheduled far out (inspection,
+    /// 60 days) that must NOT appear. Several on purpose: with one reminder
+    /// neither the order nor the trailing door can fail.
+    static func seedChips(_ repository: TankbookRepository) {
+        let now = Date()
+        let volvo = HomeTestSeed.makeVehicle()
+        try? repository.upsertVehicle(volvo)
+        try? repository.upsertFillUp(HomeTestSeed.makeFill(
+            vehicleID: volvo.id,
+            HomeTestSeed.FillSpec(daysAgo: 1, odometer: 118_500, litres: 42.3,
+                                  amount: "71.02", price: "1.679", stationID: nil)))
+        func add(_ title: String, _ category: ReminderCategory, days: Int? = nil, odometer: Int? = nil) {
+            try? repository.upsertReminder(ReminderLifecycle.makeReminder(
+                vehicleId: volvo.id, title: title, category: category,
+                dueDate: days.map { now.addingTimeInterval(TimeInterval($0) * 86_400) },
+                dueOdometer: odometer, recurrence: nil))
+        }
+        add("Tyre change", .tires, days: -3)
+        add("Oil change", .oil, odometer: 118_920)
+        add("Insurance renewal", .insurance, days: 12)
+        add("Inspection", .inspection, days: 60)
+    }
+
     /// The calm state: reminders EXIST across two cars but none is inside the
     /// attention window - the "nothing due" case that used to have no path at
     /// all. The Home row is present with no count chip and still reaches the

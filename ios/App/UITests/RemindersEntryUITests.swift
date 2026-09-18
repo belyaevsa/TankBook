@@ -43,8 +43,8 @@ final class RemindersEntryUITests: XCTestCase {
                       "with nothing due the Reminders door must still be present")
         XCTAssertFalse(app.staticTexts["homeRemindersDueCount"].exists,
                        "nothing due means no amber count chip")
-        XCTAssertFalse(app.buttons["homeReminderViewButton"].exists,
-                       "nothing due means the urgent banner is absent - the row is the only door")
+        XCTAssertFalse(app.descendants(matching: .any)["homeReminderChips"].exists,
+                       "nothing due means the chip strip is absent - the row is the only door")
 
         row.tap()
         XCTAssertTrue(app.navigationBars["Reminders"].waitForExistence(timeout: 5),
@@ -71,10 +71,9 @@ final class RemindersEntryUITests: XCTestCase {
         XCTAssertEqual(chip.label, "2 due",
                        "the count must span BOTH cars; chip was \(chip.label)")
 
-        let view = app.buttons["homeReminderViewButton"]
-        XCTAssertTrue(view.exists, "the urgent banner stays beside the calm row")
+        XCTAssertTrue(app.buttons["homeReminderChipAll"].exists, "the chip strip stays beside the calm row")
         XCTAssertTrue(textContaining(app, "Insurance renewal").exists,
-                      "the banner still shows the most urgent reminder")
+                      "the strip still shows the selected car's due reminder")
     }
 
     // MARK: - The empty state is the discovery path

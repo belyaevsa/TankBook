@@ -554,7 +554,7 @@ records that a completion happened, never whether it beat the due point, so the 
 "on time". Nothing in History is deletable; the 30-day undo for a real delete lives in Recently
 deleted.
 
-⚠ The completion→entry→next-cycle chain is where competitors leak: a reminder marked done with no record and no follow-up is a dead end (Drivvo's pattern). Ours is a loop. *(PJ.4: Reminders has a production entry point – the Home banner derives from real reminders and VehicleDetail carries a reminders row, so this journey is reachable in a Release build.)*
+⚠ The completion→entry→next-cycle chain is where competitors leak: a reminder marked done with no record and no follow-up is a dead end (Drivvo's pattern). Ours is a loop. *(PJ.4: Reminders has a production entry point – the Home banner derives from real reminders and VehicleDetail carries a reminders row, so this journey is reachable in a Release build. **RV.122, 2026-09-19: the single banner became the chip strip** – every due reminder of the selected car is its own amber chip saying what and when or how far, in due order, with "All reminders" as the last chip; a chip lands on that reminder in the merged list. Nothing due, no strip – the RV.76 row is the door then.)*
 
 **Success metric:** completed reminders that create an entry ≥50%; recurring reminders auto-rescheduled 100%.
 

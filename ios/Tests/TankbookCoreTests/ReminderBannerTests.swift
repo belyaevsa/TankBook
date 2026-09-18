@@ -2,13 +2,22 @@ import Foundation
 import Testing
 @testable import TankbookCore
 
-/// PJ.4: the Home banner's reminder selection. The banner is REAL data - it
-/// derives from the live reminders via `ReminderLifecycle.derivedStatus`, never
-/// from a stored flag or a launch argument. These tests pin the derivation:
-/// presence = some active reminder is attention-due, the subject is the
-/// earliest one, and a completed reminder drops the banner by construction
-/// (terminal rows never re-derive, docs/SCHEMA.md).
+/// PJ.4 / RV.122: the Home strip's FIRST chip - the selection the single
+/// banner used to make, now the head of `ReminderChips.items`. The strip is
+/// REAL data - it derives from the live reminders via
+/// `ReminderLifecycle.derivedStatus`, never from a stored flag or a launch
+/// argument. These tests pin the derivation: presence = some active reminder
+/// is attention-due, the first chip is the earliest one, and a completed
+/// reminder drops off by construction (terminal rows never re-derive,
+/// docs/SCHEMA.md).
 @Suite struct ReminderBannerTests {
+
+    /// The first chip's reminder, or nil for an absent strip.
+    private func firstChip(among reminders: [Reminder], currentOdometer: Int?, now: Date) -> Reminder? {
+        guard case .reminder(let chip)? = ReminderChips.items(among: reminders, currentOdometer: currentOdometer,
+                                                              now: now).first else { return nil }
+        return chip.reminder
+    }
 
     private static let vehicleID = UUID.v7()
 
@@ -42,7 +51,7 @@ import Testing
     /// far out sees no banner at all.
     @Test func noAttentionDueReminderShowsNoBanner() {
         let far = makeReminder(dueDate: days(60))
-        #expect(ReminderBanner.bannerReminder(
+        #expect(firstChip(
             among: [far], currentOdometer: nil, now: now) == nil)
     }
 
@@ -50,10 +59,10 @@ import Testing
     /// days is not - the window boundary is part of the derivation.
     @Test func attentionWindowBoundaryIsRespected() {
         let atEdge = makeReminder(dueDate: days(12))
-        #expect(ReminderBanner.bannerReminder(
+        #expect(firstChip(
             among: [atEdge], currentOdometer: nil, now: now) == atEdge)
         let outside = makeReminder(dueDate: days(13))
-        #expect(ReminderBanner.bannerReminder(
+        #expect(firstChip(
             among: [outside], currentOdometer: nil, now: now) == nil)
     }
 
@@ -62,7 +71,7 @@ import Testing
     /// silently drop a due task.
     @Test func overdueReminderStillShows() {
         let overdue = makeReminder(dueDate: days(-4))
-        #expect(ReminderBanner.bannerReminder(
+        #expect(firstChip(
             among: [overdue], currentOdometer: nil, now: now) == overdue)
     }
 
@@ -70,10 +79,10 @@ import Testing
     /// odometer halves are independent attention drivers.
     @Test func odometerReminderInsideWindowShows() {
         let odometer = makeReminder(dueDate: nil, dueOdometer: 118_500)
-        #expect(ReminderBanner.bannerReminder(
+        #expect(firstChip(
             among: [odometer], currentOdometer: 118_000, now: now) == odometer)
         let far = makeReminder(dueDate: nil, dueOdometer: 120_000)
-        #expect(ReminderBanner.bannerReminder(
+        #expect(firstChip(
             among: [far], currentOdometer: 118_000, now: now) == nil)
     }
 
@@ -86,7 +95,7 @@ import Testing
                                  createdAt: Date(timeIntervalSince1970: 1_751_000_000))
         let inNine = makeReminder(title: "Oil change", dueDate: days(9))
         let inThree = makeReminder(title: "Winter tires", dueDate: days(3))
-        let chosen = ReminderBanner.bannerReminder(
+        let chosen = firstChip(
             among: [inNine, inThree, inTwo], currentOdometer: nil, now: now)
         #expect(chosen?.title == "Inspection")
     }
@@ -98,7 +107,7 @@ import Testing
                                  createdAt: Date(timeIntervalSince1970: 1_749_000_000))
         let newer = makeReminder(dueDate: days(5),
                                  createdAt: Date(timeIntervalSince1970: 1_751_000_000))
-        let chosen = ReminderBanner.bannerReminder(
+        let chosen = firstChip(
             among: [newer, older], currentOdometer: nil, now: now)
         #expect(chosen == older)
     }
@@ -111,14 +120,14 @@ import Testing
     /// No flag is stored anywhere - the status IS the state.
     @Test func bannerGoesAwayWhenTheReminderCompletes() {
         let reminder = makeReminder(dueDate: days(3))
-        #expect(ReminderBanner.bannerReminder(
+        #expect(firstChip(
             among: [reminder], currentOdometer: nil, now: now) == reminder)
 
         let result = ReminderLifecycle.complete(
             reminder, entryId: nil,
             completionDate: now, completionOdometer: nil, now: now)
         #expect(result.completed.status == .done(entryId: nil))
-        #expect(ReminderBanner.bannerReminder(
+        #expect(firstChip(
             among: [result.completed], currentOdometer: nil, now: now) == nil)
     }
 
@@ -127,7 +136,7 @@ import Testing
     @Test func dismissedReminderNeverShows() {
         let dismissed = ReminderLifecycle.dismiss(
             makeReminder(dueDate: days(1)), reason: "sold the tires", now: now)
-        #expect(ReminderBanner.bannerReminder(
+        #expect(firstChip(
             among: [dismissed], currentOdometer: nil, now: now) == nil)
     }
 
@@ -136,11 +145,11 @@ import Testing
     /// re-derived on every read, never cached.
     @Test func rescheduleOutOfWindowRetiresTheBanner() {
         let reminder = makeReminder(dueDate: days(2))
-        #expect(ReminderBanner.bannerReminder(
+        #expect(firstChip(
             among: [reminder], currentOdometer: nil, now: now) == reminder)
         let rescheduled = ReminderLifecycle.reschedule(
             reminder, dueDate: days(90), dueOdometer: nil, now: now)
-        #expect(ReminderBanner.bannerReminder(
+        #expect(firstChip(
             among: [rescheduled], currentOdometer: nil, now: now) == nil)
     }
 
@@ -148,7 +157,7 @@ import Testing
     /// attention cannot be evaluated and it must not fabricate a due state.
     @Test func odometerReminderWithNoCurrentOdometerShowsNothing() {
         let odometer = makeReminder(dueDate: nil, dueOdometer: 118_500)
-        #expect(ReminderBanner.bannerReminder(
+        #expect(firstChip(
             among: [odometer], currentOdometer: nil, now: now) == nil)
     }
 }

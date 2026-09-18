@@ -82,15 +82,13 @@ struct HomeView: View {
         entries.compactMap(\.odometer).max() ?? vehicle?.initialOdometer
     }
 
-    /// The reminder banner's subject (PJ.4): the earliest attention-due
-    /// reminder, derived at read time from the live rows (hard rule 2's spirit
-    /// - derived, never stored). `nil` hides the banner entirely; it retires
-    /// itself the moment the reminder completes, because `.done` rows never
-    /// re-derive (docs/SCHEMA.md).
-    private var bannerReminder: Reminder? {
-        ReminderBanner.bannerReminder(among: reminders,
-                                      currentOdometer: currentOdometer,
-                                      now: Date())
+    /// The reminder strip's chips (RV.122): every attention-due reminder of
+    /// this car in due order, derived at read time from the live rows (hard
+    /// rule 2's spirit - derived, never stored). Empty hides the strip; a chip
+    /// retires itself the moment its reminder completes, because `.done` rows
+    /// never re-derive (docs/SCHEMA.md).
+    private var reminderChips: [ReminderChipItem] {
+        ReminderChips.items(among: reminders, currentOdometer: currentOdometer, now: Date())
     }
 
     /// Title and settings gear on ONE row (docs/DESIGN.md: "The tab-root
@@ -268,8 +266,7 @@ struct HomeView: View {
     private func fullLayout(_ stats: HomeStats) -> some View {
         HomeBanners(presentables: presentables,
                     vehicleName: stats.vehicle.name,
-                    bannerReminder: bannerReminder,
-                    currentOdometer: currentOdometer)
+                    reminderChips: reminderChips)
         // RV.76: the calm door to Reminders, present whether or not anything is
         // due. It sits directly under the urgent banner area - "the row, with
         // its count, beside the banner" (design/screens/RemindersEntry.dc.html)

@@ -19,8 +19,8 @@ import Foundation
 /// state (`sync.session == nil`), never by a launch flag.
 ///
 /// The reminder banner used to be a fixture here too (`-forceReminderDue`).
-/// Since PJ.4 it is REAL data: `ReminderBanner.bannerReminder` derives it from
-/// the live reminders at read time, so a Release build reaches the Reminders
+/// Since PJ.4 it is REAL data (the RV.122 chip strip): `ReminderChips.items`
+/// derives it from the live reminders at read time, so a Release build reaches the Reminders
 /// screen with no launch argument (the reason `-forceReminderDue` existed).
 struct HomePresentables {
     /// Archived car returned via sync (S5): "…came back with 1 new entry – stays archived."

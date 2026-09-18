@@ -346,21 +346,20 @@ final class HomeUITests: XCTestCase {
     func testReminderBannerDerivesFromRealReminderAndReachesList() {
         let app = launch(args: ["-seedHomeReminderDue"])
 
-        let view = app.buttons["homeReminderViewButton"]
-        XCTAssertTrue(view.waitForExistence(timeout: 10),
-                      "a seeded due reminder must render the banner")
+        // RV.122: the single banner became the chip strip; a seeded due
+        // reminder renders as its chip, the door is the trailing chip.
+        let chip = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "homeReminderChip_")).firstMatch
+        XCTAssertTrue(chip.waitForExistence(timeout: 10), "a seeded due reminder must render its chip")
 
-        // The banner names the ACTUAL reminder and its due count - never the
+        // The chip names the ACTUAL reminder and its due count - never the
         // old "Insurance renews in 12 days" fixture sentence.
-        XCTAssertTrue(textContaining(app, "Insurance renewal").exists,
-                      "the banner must carry the real reminder's title")
-        XCTAssertTrue(textContaining(app, "in 12 days").exists,
-                      "the banner must carry the real due count")
+        XCTAssertTrue(textContaining(app, "Insurance renewal").exists, "the chip must carry the real reminder's title")
+        XCTAssertTrue(textContaining(app, "in 12 days").exists, "the chip must carry the real due count")
 
-        view.tap()
+        chip.tap()
         XCTAssertTrue(app.navigationBars["Reminders"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Insurance renewal"].waitForExistence(timeout: 5),
-                      "the banner reaches the list holding the same reminder")
+                      "the chip reaches the list holding the same reminder")
     }
 
     // MARK: - RV.100 deleting the last car lands on the zero-car Add-car surface

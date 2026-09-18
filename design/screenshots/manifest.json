@@ -571,9 +571,9 @@
       "runtime": "iOS.26.5"
     },
     "P5.3-home-banner-en": {
-      "commit": "ee223fe",
+      "commit": "7d36649c",
       "device": "iPhone 17",
-      "runtime": "iOS.26.5"
+      "runtime": "iOS.27.0"
     },
     "P5.3-home-banner-en-xl": {
       "commit": "ee223fe",
@@ -581,9 +581,9 @@
       "runtime": "iOS.26.5"
     },
     "P5.3-home-banner-ru": {
-      "commit": "ee223fe",
+      "commit": "7d36649c",
       "device": "iPhone 17",
-      "runtime": "iOS.26.5"
+      "runtime": "iOS.27.0"
     },
     "P5.3-home-banner-ru-xl": {
       "commit": "ee223fe",
@@ -1206,14 +1206,14 @@
       "runtime": "iOS.26.5"
     },
     "PJ.4-home-reminder": {
-      "commit": "057e7e3",
+      "commit": "7d36649c",
       "device": "iPhone 17",
-      "runtime": "iOS.26.5"
+      "runtime": "iOS.27.0"
     },
     "PJ.4-home-reminder-ru": {
-      "commit": "057e7e3",
+      "commit": "7d36649c",
       "device": "iPhone 17",
-      "runtime": "iOS.26.5"
+      "runtime": "iOS.27.0"
     },
     "PJ.4-reminders": {
       "commit": "a52fc86c",
@@ -1584,6 +1584,16 @@
       "commit": "c160cf2",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
+    },
+    "RV.122-home-reminder-chips": {
+      "commit": "7d36649c",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.122-home-reminder-chips-ru": {
+      "commit": "7d36649c",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
     },
     "RV.126-confirm-conflict": {
       "commit": "9458ad6",

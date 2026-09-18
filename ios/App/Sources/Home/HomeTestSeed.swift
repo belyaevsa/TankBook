@@ -66,6 +66,7 @@ enum HomeTestSeed {
             ("-seedHomeAnomaly", AnomalyTestSeed.seed),
             ("-seedHomeReminderDue", seedReminderDue),
             ("-seedHomeRemindersDue", RemindersEntryTestSeed.seedDue),
+            ("-seedHomeReminderChips", RemindersEntryTestSeed.seedChips),
             ("-seedHomeRemindersNothingDue", RemindersEntryTestSeed.seedNothingDue),
             ("-seedHomeGarageCounts", RemindersEntryTestSeed.seedGarageCounts),
             ("-seedHomeMultiYearLog", seedMultiYearLog),
