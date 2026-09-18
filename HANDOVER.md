@@ -1,11 +1,11 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-18 (13:45). **v1.0 build 1344 was REJECTED by App Review (guideline 4.0, "hard to
+*Updated 2026-09-18 (19:45; the 1.1 tranche section below is the newest). **v1.0 build 1344 was REJECTED by App Review (guideline 4.0, "hard to
 read type"); the fix is on `main` (`RV.293`, `2055a926`) and build 1368 is being uploaded.** This is
 a **fresh machine** (macOS 27.0, Xcode 27.0, iOS 27.0 simulator) set up today. Measured on the tree
 as left: **iOS 2077 + 45 tests / 253 suites** (56 s), app-target bundle **276**, **backend 469 / 469
 - 0 skipped, the first time the Postgres-backed half ran locally** (Docker works here), lint 0
-errors / 668 warnings from the repo ROOT, Release build 0. **120 open rows, 425 closed** (thirteen
+errors / 668 warnings from the repo ROOT, Release build 0. **118 open rows, 425 closed** (nineteen
 ticked rows sit in `TASKS.md` awaiting the sweep). Nothing is running; the queue is empty. Read
 this, then `CLAUDE.md`, then `docs/DEVELOPMENT-TIMELINE.md`, then `docs/TASKS.md`'s index.*
 
@@ -59,6 +59,30 @@ the device measurement on iOS 27 that decides whether the parser, not the tests,
 5. **Diagnose a hang with `sample`, not with guesses.** One `sample <pid> 3` showed the fourteen
    parked waiters and the single perform; a limit-1 experiment then ruled out the count. The RV.52
    note's "blocking gate alone does not help" was the clue that a *second* blocking wait existed.
+
+## The 1.1 tranche (2026-09-18, evening): six rows shipped by the orchestrator, one commit each
+
+`PJ.15` after-save insight toast (`1ea1b806`) · `PJ.30` hero trend arrow (`9a023e54`) · `PJ.35`
+background photo prefetch (`add52ca5`) · `PJ.24` "Scan invoice" on ReminderComplete (`e480713d`) ·
+`PJ.21` share-to-Tankbook (`6538cddc`) · `PJ.31` price by brand (`d5175dac`). Each has its L1 and
+L4, its EN+RU captures opened by the orchestrator, and a green gate at 668 lint warnings. Filed on
+the way: **`RV.296`** (MPG / km-per-L cars print a L/100km number under an MPG label - the engine
+never converts `per100`; every renderer is affected), **`RV.297`** (the price tile's "▲0.0%"),
+**`RV.298`** (an expense-kind reminder's completion has no scan door - Capture cannot open in a
+mode with a completion attached), **`RV.299`** (`ImportUITests.testSendUsTheFile…` is red on the
+iOS 27 simulator on `e480713d` too - pre-existing, not PJ.21's). **The journeys walk is now due**:
+17 rows shipped since 2026-09-13.
+
+Three things the tranche taught, worth keeping:
+- **A SwiftUI `accessibilityIdentifier` on a container propagates to every child and overrides
+  theirs** - a child identifier cannot be queried (the hero delta, the brand rows). Query children by
+  label, as the Trends captions already do.
+- **The 700-line / 300-line lint caps bite on every touched view** (`TabRoots`, `ManualFillUpView`,
+  `ImportSourceView`, `L10n`, `ConfirmManualUITests`). Move the new code into a sibling file
+  (`+Feature.swift`, a `ViewModifier`, an extension) rather than trimming the existing one.
+- **A failing UI test wedges `xcodebuild test` for ten minutes on Xcode 27** ("Failure collecting
+  diagnostics from simulator: timed out after 600 s"); a passing run returns at once. Read the
+  `Executed N tests` line as soon as it prints and kill the process.
 
 ## What to do next
 
