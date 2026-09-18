@@ -291,6 +291,7 @@ struct AppRootView: View {
         // The bar stays put when the keyboard rises (the keyboard covers it, as
         // it covers the system tab bar) instead of riding up with the safe area.
         .ignoresSafeArea(.keyboard)
+        .blobPrefetchLandedMarker()
         .overlay(alignment: .bottom) {
             if let message = toastCenter.message {
                 DeltaToast(message: message) {
@@ -314,6 +315,7 @@ struct AppRootView: View {
         .environment(inbox)
         .task {
             pathMonitor.start()
+            BlobPrefetchService.shared.attach(pathMonitor)
             runPurgeIfNeeded()
             #if DEBUG
             // PJ.5/RV.78: replay a tap/action via the delegate's own handle.

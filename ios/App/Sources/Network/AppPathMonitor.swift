@@ -21,10 +21,16 @@ public final class AppPathMonitor: @unchecked Sendable {
     private let monitor = NWPathMonitor()
     private let queue = DispatchQueue(label: "tankbook.pathmonitor")
     private let lock = OSAllocatedUnfairLock(initialState: "unknown")
+    private let constrained = OSAllocatedUnfairLock(initialState: false)
     private var lastStatus: String {
         get { lock.withLock { $0 } }
         set { lock.withLock { $0 = newValue } }
     }
+
+    /// Whether the current path is constrained (Low Data Mode). Read by the
+    /// background photo prefetch, which spends nothing on a constrained path;
+    /// a user-opened photo still downloads (docs/SYNC.md -> Delivery).
+    public var isConstrained: Bool { constrained.withLock { $0 } }
 
     public init() {}
 
@@ -33,6 +39,7 @@ public final class AppPathMonitor: @unchecked Sendable {
     public func start() {
         monitor.pathUpdateHandler = { [weak self] path in
             guard let self else { return }
+            self.constrained.withLock { $0 = path.isConstrained }
             let to = Self.status(path.status)
             let from = self.lastStatus
             guard to != from else { return }

@@ -1105,6 +1105,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "PJ.35-restore-prefetch": {
+      "commit": "9a023e54",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.35-restore-prefetch-ru": {
+      "commit": "9a023e54",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "PJ.36-export-share": {
       "commit": "266e7af",
       "device": "iPhone 17",

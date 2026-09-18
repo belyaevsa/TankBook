@@ -111,15 +111,15 @@ private let pullPolicy = SyncSchemaPolicy(minSupported: 1, current: 1)
 // `productionCallSitesMatchTheWiredAndUnwiredSplit`.
 
 /// Kinds a production call site consults today: sync cycles (`SyncCoordinator`),
-/// blob upload (`SyncEngine`) and the rate pack refresh (`RateStore`).
-private let wiredWorkKinds: [PowerWorkKind] = [.syncCycle, .blobUpload, .ratePackRefresh]
+/// blob upload (`SyncEngine`), blob prefetch (`BlobPrefetcher`) and the rate
+/// pack refresh (`RateStore`).
+private let wiredWorkKinds: [PowerWorkKind] = [.syncCycle, .blobUpload, .blobPrefetch, .ratePackRefresh]
 
-/// Kinds the policy covers but no production call site consults yet - the three
-/// docs/SYNC.md marks "policy present, call site not wired": blob prefetch (no
-/// prefetch path exists), the catalog pack fetch (`VehicleCatalogUpdater` is
-/// never instantiated in the app) and any repeating timer job (no timer cycle
-/// exists).
-private let unwiredWorkKinds: [PowerWorkKind] = [.blobPrefetch, .catalogPackFetch, .timerJob]
+/// Kinds the policy covers but no production call site consults yet - the two
+/// docs/SYNC.md marks "policy present, call site not wired": the catalog pack
+/// fetch (`VehicleCatalogUpdater` is never instantiated in the app) and any
+/// repeating timer job (no timer cycle exists).
+private let unwiredWorkKinds: [PowerWorkKind] = [.catalogPackFetch, .timerJob]
 
 private extension PowerWorkKind {
     /// The source identifier, for the P6.20 source-scan guard.

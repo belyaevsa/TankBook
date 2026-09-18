@@ -210,6 +210,33 @@ final class SignInUITests: XCTestCase {
                       "the J11a confirmation line follows the first push")
     }
 
+    // MARK: - The post-restore photo prefetch (PJ.35, docs/JOURNEYS.md J11)
+
+    /// A restore that lands an attachment whose photo is not on the device
+    /// starts the background prefetch: the Restoring screen's bar reports the
+    /// download and reaches the end on its own - the user never waits on it.
+    func testRestoreStartsThePhotoPrefetchAndTheBarReachesTheEnd() {
+        let app = launch(["-presentScreen", "signIn", "-signInStubAuth", "-signInStubRestored",
+                          "-seedBlobFetchDelay", "6"])
+
+        let apple = app.buttons["signInAppleButton"]
+        XCTAssertTrue(apple.waitForExistence(timeout: 10))
+        apple.tap()
+
+        XCTAssertTrue(app.buttons["restoringOpenGarageButton"].waitForExistence(timeout: 10))
+        // One blob, held 6 s by the seeded transport: the bar is on screen at
+        // 0% and gone once the blob lands (the row hides at 100%).
+        let downloading = app.staticTexts.matching(
+            NSPredicate(format: "label BEGINSWITH 'downloading'")).firstMatch
+        XCTAssertTrue(downloading.waitForExistence(timeout: 5),
+                      "the restore must start the photo prefetch and report it on the bar")
+        let gone = NSPredicate(format: "exists == false")
+        expectation(for: gone, evaluatedWith: downloading)
+        waitForExpectations(timeout: 15)
+        XCTAssertTrue(app.buttons["restoringOpenGarageButton"].exists,
+                      "the finish affordance never waited on the photos")
+    }
+
     // MARK: - The restoring screen's verification stats (docs/JOURNEYS.md J11)
 
     /// The Restoring screen shows the verification stats - numbers, not a

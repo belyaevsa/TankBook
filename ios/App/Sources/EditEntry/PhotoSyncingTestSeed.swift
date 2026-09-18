@@ -62,6 +62,15 @@ enum PhotoSyncingTestSeed {
     /// would race `-openAttachmentViewer` (which opens the viewer first) and the
     /// screenshot could show "signed out" instead of "downloading". Called from
     /// the app root init, next to `SettingsTestSeed.seedSessionAtLaunchIfRequested`.
+    /// PJ.35: what a restore pull leaves behind - an entry whose attachment
+    /// row landed but whose full rendition did not. The sign-in stub's
+    /// restored outcome plants it so the post-restore prefetch has a blob to
+    /// fetch through the seeded transport.
+    @MainActor
+    static func seedRestoredRemotePhoto() {
+        seed(.remote)
+    }
+
     static func seedSessionAtLaunchIfRequested() {
         guard ProcessInfo.processInfo.arguments.contains("-seedPhotoRemote") else { return }
         let store = KeychainSessionStore()

@@ -139,6 +139,11 @@ final class SignInFlow {
     /// Called when the sheet should close (dismissed by the user, or the flow
     /// finished without a screen to show - a plain sign-in or an upload).
     var onFinished: () -> Void = {}
+    /// Starts the background photo prefetch once the restore pull has landed
+    /// (docs/JOURNEYS.md J11: "photos download in the background by
+    /// recency"), reporting into the Restoring screen's bar. Injected so the
+    /// stubbed flows run none; `makeDefault` wires the app's service.
+    var startPhotoPrefetch: (RestoreProgress) -> Void = { _ in }
 
     init(
         arrivedViaRestore: Bool,
@@ -317,6 +322,7 @@ final class SignInFlow {
         case .restored(let stats):
             phase = .restoring(RestoreSnapshot(
                 stats: stats, email: signedInEmail, provider: signedInProvider ?? .apple))
+            startPhotoPrefetch(restoreProgress)
         case .empty:
             // The wrong-provider question asks "did you sign in with Google?" -
             // which is only an honest question when this build offers Google
@@ -392,7 +398,7 @@ extension SignInFlow {
             await sync.firstPushNow()
         }
 
-        return SignInFlow(
+        let flow = SignInFlow(
             arrivedViaRestore: restoreIntent,
             idTokenProvider: idTokenProvider,
             authService: authService,
@@ -401,6 +407,12 @@ extension SignInFlow {
             localHasData: { (try? AppStore.repository().hasLocalData()) ?? false },
             firstPush: firstPush
         )
+        // A restore the user asked for: the photos follow the records. The
+        // policy still defers the blobs under Low Power Mode (docs/SYNC.md).
+        flow.startPhotoPrefetch = { progress in
+            BlobPrefetchService.shared.start(trigger: .userInitiated, progress: progress)
+        }
+        return flow
     }
 
     @MainActor

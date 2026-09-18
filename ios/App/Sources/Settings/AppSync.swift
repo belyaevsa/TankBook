@@ -562,6 +562,12 @@ final class AppSync {
         // PR.14: the post-batch toast count. A batch that flagged nothing
         // clears any earlier count; the toast is about what just arrived.
         lastBatchFlaggedEntries = outcome.flaggedEntries > 0 ? outcome.flaggedEntries : nil
+        // A pull that brought records may have brought attachment rows whose
+        // photos are not here yet: prefetch them newest-first, on the cycle's
+        // own trigger (docs/SYNC.md -> Delivery). The service gates itself.
+        if outcome.pulled > 0 {
+            BlobPrefetchService.shared.start(trigger: trigger)
+        }
     }
 
     /// RV.58: a 410 (device revoked) ends this device's session. The server

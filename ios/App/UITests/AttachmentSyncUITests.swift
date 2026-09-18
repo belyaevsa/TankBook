@@ -32,4 +32,26 @@ final class AttachmentSyncUITests: XCTestCase {
                       "the entry must be editable while the blob is pending")
         XCTAssertTrue(app.buttons["editEntrySaveButton"].exists)
     }
+
+    /// PJ.35: the background prefetch fetches the missing rendition without
+    /// the entry ever being opened - opened afterwards, the chip carries no
+    /// shimmer. `-runBlobPrefetch` stands in for "a pull just landed".
+    func testPrefetchClearsTheShimmerWithoutOpeningTheEntry() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedPhotoRemote",
+                               "-seedBlobFetchDelay", "0.2", "-runBlobPrefetch"]
+        app.launch()
+
+        // Home lists the seeded entry; give the prefetch its 0.2 s.
+        let row = app.buttons.matching(identifier: "logEntryButton").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        let landed = app.staticTexts["blobPrefetchLanded"]
+        XCTAssertTrue(landed.waitForExistence(timeout: 10),
+                      "the prefetch never reported completion")
+        row.tap()
+
+        XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.descendants(matching: .any)["attachmentPhotoSyncing"].exists,
+                       "the rendition was prefetched - the chip must not shimmer")
+    }
 }

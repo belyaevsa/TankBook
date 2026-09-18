@@ -263,7 +263,7 @@ Presigned upload means the ASP.NET server never proxies file bytes – it stays 
 - **Share from the viewer (RV.17) is the third consumer of that on-demand fetch, not a second download path.** The viewer already fetches the full rendition on open; the Share affordance is offered only once that fetch has landed, so the bytes handed to the share sheet are always the verified full rendition – never the 44 pt payload thumbnail. When the fetch failed (offline, or the bytes did not verify), the share affordance is withheld, never a dead button (`docs/ERRORS.md` → Edit entry). The share itself exports a domain value by the user's deliberate act, which is fine; it is logged shape-only (that it happened and its outcome, never what was shared, its hash or its size – hard rule 12).
 - **Deleting a receipt (RV.37) is a tombstone, never a file quietly unlinked.** The attachment record carries `deletedAt` and syncs like every other entity, and the entry is unlinked from the id in the same write transaction. Because attachments are content-addressed and shared (a mixed receipt's fill-up and expenses reference the SAME id), the tombstone is written only once no other live entry references it – deleting from one entry never blanks a sibling's receipt. The blob itself is left untouched: reclamation is the orphan sweep's job (below), which protects a blob while a tombstoned record is still inside the 30-day undo window.
 - `GET /blobs/{sha256}` (authenticated) → `302` redirect to a short-lived presigned GET (TTL ~10 min, single object). The device caches the file locally forever after – content addressing means no revalidation, ever.
-- New-device restore: text records first (the garage is usable in seconds), blobs trickle in background by recency. Restore never blocks on photos.
+- New-device restore: text records first (the garage is usable in seconds), blobs trickle in background by recency. Restore never blocks on photos. **The prefetch (PJ.35, 2026-09-18)** is `BlobPrefetcher` in core, driven by the app's `BlobPrefetchService` after a restore (reporting into the Restoring screen's bar) and after any pull that brought records: the plan is every live attachment whose full rendition is not on the device, ordered by its owning entry's date, newest first (`BlobPrefetchPlan.newestFirst`), fetched one at a time through the same `LazyBlobFetcher` an opened entry uses. It defers whole - downloading nothing - under Low Power Mode (the table below) and on a **constrained path** (Low Data Mode, `AppPathMonitor.isConstrained`); a blob that fails stays pending and the next run, or opening its entry, retries. One run at a time; the log line is `blob.prefetch` with the trigger, the outcome code and counts only.
 
 ### Protection
 
@@ -574,21 +574,21 @@ was silently cancelled has no next step (hard rule 7) and reads as a hang.
 | Defers while Low Power Mode is on | Never defers |
 |---|---|
 | Opportunistic sync cycles (launch, foreground, debounced write) | Any **save** – always local, always immediate (hard rule 1) |
-| Attachment/blob **upload** – the heaviest work there is; **prefetch** *(policy present, call site not wired)* | A sync, restore, export or retry the **user asked for** |
+| Attachment/blob **upload** – the heaviest work there is; **prefetch** (`BlobPrefetchService`, PJ.35) | A sync, restore, export or retry the **user asked for** |
 | Rate pack refresh (`RateStore.refresh`) | Capture, OCR and the confirm sheet the user is standing in |
 | Vehicle catalog pack fetch *(policy present, call site not wired)* | An already-scheduled local notification |
 | Any repeating timer job *(policy present, call site not wired)* | Reading, editing and deleting – the whole local app |
 
-**Wired vs policy-only (P6.20).** Three of the rules above are *policy present, call site
+**Wired vs policy-only (P6.20).** Two of the rules above are *policy present, call site
 not wired*: the `PowerWorkKind` case exists and `LowPowerPolicy.defers` covers it, but no
-production code consults it today, so nothing enforces the deferral yet. They are **blob
-prefetch** (there is no prefetch path), the **vehicle catalog pack fetch**
-(`VehicleCatalogUpdater` consults the policy but is never instantiated in the app), and any
-**repeating timer job** (no timer cycle exists - the same fiction the "launch, foreground and
-timer cycles" phrasing once hid). The rules stay - they are what a future call site must obey -
-but the enum and this table must not claim coverage they do not have. `LowPowerModeTests` pins
-the split with a source-scan guard that fails when a case moves between the wired and unwired
-sets without this doc moving with it.
+production code consults it today, so nothing enforces the deferral yet. They are the
+**vehicle catalog pack fetch** (`VehicleCatalogUpdater` consults the policy but is never
+instantiated in the app) and any **repeating timer job** (no timer cycle exists - the same
+fiction the "launch, foreground and timer cycles" phrasing once hid). **Blob prefetch** moved
+to the wired set with PJ.35 (`BlobPrefetcher.run` consults it). The rules stay - they are what
+a future call site must obey - but the enum and this table must not claim coverage they do not
+have. `LowPowerModeTests` pins the split with a source-scan guard that fails when a case moves
+between the wired and unwired sets without this doc moving with it.
 
 **What the OS already does, and what it does not.** iOS disables Background App Refresh in Low
 Power Mode and deprioritises discretionary `URLSession` work, so the app must neither duplicate

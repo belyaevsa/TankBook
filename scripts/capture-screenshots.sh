@@ -943,6 +943,13 @@ capture RV.229-import-review-consumption-ru ru -presentScreen importWizard -seed
 # overflow check on both affordances.
 capture PR.6-restore-cancel    en -presentScreen signIn -signInRestore -seedRestoreProgress
 capture PR.6-restore-cancel-ru ru -presentScreen signIn -signInRestore -seedRestoreProgress
+# PJ.35: the SAME bar moved by the real prefetch - the stubbed sign-in lands a
+# restored account whose attachment row has no rendition here, the seeded
+# transport holds the one blob for 30 s, and the bar reads the run's own
+# progress (0% of 1) rather than the posed 38%. `-signInAutoStart` taps
+# through; the frame is the Restoring screen a real restore shows.
+capture PJ.35-restore-prefetch    en -presentScreen signIn -signInStubAuth -signInStubRestored -signInAutoStart -seedBlobFetchDelay 30
+capture PJ.35-restore-prefetch-ru ru -presentScreen signIn -signInStubAuth -signInStubRestored -signInAutoStart -seedBlobFetchDelay 30
 
 # PR.6b: the import parse Cancel made VISIBLE (not merely present) and the bar
 # naming the reading state while parsing. The Cancel must render above the owned

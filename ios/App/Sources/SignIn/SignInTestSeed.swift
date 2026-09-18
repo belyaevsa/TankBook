@@ -105,8 +105,13 @@ enum SignInTestSeed {
     /// `-signInRestore`.
     struct StubRestoreProvider: RestoreProviding {
         let outcome: RestoreOutcome
+        /// Runs as the "pull" - what the restore leaves in the database.
+        var landsRecords: @MainActor () -> Void = {}
 
-        func restore(accountId: String) async -> RestoreOutcome { outcome }
+        func restore(accountId: String) async -> RestoreOutcome {
+            await landsRecords()
+            return outcome
+        }
     }
 
     static func stubAuthService() -> any AuthService { StubAuthService() }
@@ -129,10 +134,28 @@ enum SignInTestSeed {
             outcome = .empty
         case .restoreUnreachable:
             outcome = .unreachable
+        case .stubAuth where ProcessInfo.processInfo.arguments.contains("-signInStubRestored"):
+            // PJ.35: the real flow through the stubs lands on a restored
+            // account, so the post-restore photo prefetch runs for real
+            // (against `-seedPhotoRemote`'s planted attachment and transport).
+            let snapshot = restoreSnapshot()
+            outcome = .restored(RestoreStats(
+                carCount: snapshot.carCount,
+                carNames: snapshot.carNames,
+                entryCount: snapshot.entryCount,
+                earliestEntry: snapshot.earliestEntry,
+                latestEntry: snapshot.latestEntry,
+                lastOdometerKm: snapshot.lastOdometerKm,
+                lastOdometerDistanceUnit: snapshot.lastOdometerDistanceUnit,
+                lastOdometerDaysAgo: snapshot.lastOdometerDaysAgo))
         case .none, .stubAuth:
             outcome = .empty
         }
-        return StubRestoreProvider(outcome: outcome)
+        var provider = StubRestoreProvider(outcome: outcome)
+        if ProcessInfo.processInfo.arguments.contains("-signInStubRestored") {
+            provider.landsRecords = { PhotoSyncingTestSeed.seedRestoredRemotePhoto() }
+        }
+        return provider
     }
 }
 #endif
