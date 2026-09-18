@@ -732,6 +732,13 @@ HEADLINE   headline(segments, window = 90 days, floor = 3):
              if count < floor: take the `floor` most recent segments overall (window extends)
              value = Σ liters / Σ km × 100        // distance-weighted, not mean of per100s
              label = honest span: "last 3 months" / "last 5 months" / "first estimate · N fill cycles"
+PROVENANCE (RV.118, 2026-09-19) what the headline is MADE OF, beside it on Home and Trends:
+             fills inside the headline's own spanDays (the same window, never a second one),
+             and how many of them were full tanks - "6 fills · last 90 days · 4 full tanks".
+             No closed segment: "Not enough data yet · N fills · M full tanks" with the counts
+             the car has, never a computed average. No fills: no line. EV cars: no line (the
+             segments are charge sessions, not fills). HeadlineProvenance.derive, read off the
+             engine's Headline - a coverage counted beside the figure, not a second computation.
 LIFETIME   Σ liters / Σ km over all conflict-free segments – secondary stat.
 ANOMALY    rolling (trailing 90 days) vs the SEASONALLY-ALIGNED baseline: the same-length window
            one year (365 days) earlier, drawn from the trailing 12 months – NOT month-over-month

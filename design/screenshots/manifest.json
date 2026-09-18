@@ -1575,6 +1575,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.118-home-provenance": {
+      "commit": "881733a5",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.118-home-provenance-ru": {
+      "commit": "881733a5",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "RV.121-home-anomaly": {
       "commit": "c160cf2",
       "device": "iPhone 17",

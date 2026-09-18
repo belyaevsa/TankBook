@@ -144,7 +144,8 @@ struct TrendsView: View {
                          value: ManualFillUpFormat.decimal(headline.value, fractionDigits: 1),
                          identifier: "trendsConsumptionTile",
                          unit: TrendsFormat.consumptionUnit(stats.vehicle.headlineUnit),
-                         caption: L10n.honestSpanLabel(headline.label),
+                         caption: stats.home.provenance.map(L10n.headlineProvenance)
+                             ?? L10n.honestSpanLabel(headline.label),
                          series: stats.consumptionSeries.map { .some($0.value) },
                          seriesColor: Self.consumptionColor(stats.vehicle),
                          trend: stats.consumptionTrend,

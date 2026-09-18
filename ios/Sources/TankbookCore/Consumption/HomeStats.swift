@@ -112,6 +112,10 @@ public struct HomeStats: Equatable, Sendable {
     public let needsAnotherFullTank: Bool
     /// True when at least one entry exists at all.
     public let hasEntries: Bool
+    /// RV.118: what the headline is made of - its span, the fills in it and
+    /// how many were full tanks - or "not enough data yet" with the count the
+    /// car has. Nil with no fills. Read off the engine's own headline.
+    public let provenance: HeadlineProvenance?
 
     public init(vehicle: Vehicle, entries: [any Entry],
                 asOf: Date = Date(), calendar: Calendar = .current,
@@ -169,6 +173,8 @@ public struct HomeStats: Equatable, Sendable {
         }
         self.needsAnotherFullTank = countingFills.contains(where: { $0.isFull }) && headline == nil
         self.hasEntries = !entries.isEmpty
+        self.provenance = usesEV ? nil
+            : HeadlineProvenance.derive(headline: headline, countingFills: countingFills, asOf: asOf)
     }
 
     // MARK: - Private derivation (all on top of the engine)

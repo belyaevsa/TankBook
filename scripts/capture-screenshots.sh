@@ -1026,6 +1026,10 @@ capture PJ.4-home-reminder-ru ru -seedSettingsSignedIn -seedHomeReminderDue
 # in due order and the "All reminders" door last; RU is where chips bite.
 capture RV.122-home-reminder-chips    en -seedSettingsSignedIn -seedHomeReminderChips
 capture RV.122-home-reminder-chips-ru ru -seedSettingsSignedIn -seedHomeReminderChips
+# RV.118: the headline's provenance line under the figure - "5 fills · last
+# 90 days · 5 full tanks" - and its RU plurals.
+capture RV.118-home-provenance    en -seedSettingsSignedIn -seedHomeFullHistory
+capture RV.118-home-provenance-ru ru -seedSettingsSignedIn -seedHomeFullHistory
 
 # PJ.5: the notification deep link - a tapped reminder opens Reminders with
 # the completion sheet for the REMINDER the identifier named (the fixed
