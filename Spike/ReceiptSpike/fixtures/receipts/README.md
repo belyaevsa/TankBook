@@ -967,3 +967,60 @@ The production corpus scorer resolves all five cells, moving receipts 265/310
 -> 270/315. The diagnostic Spike sweep resolves litres, unit price and currency,
 misses `petrol95`, and commits the VAT `10.00` as total instead of `51.65` (3/5).
 The two implementations remain deliberately reported separately.
+
+## Added 2026-09-18 (Russian fuel-card slips by Telegram)
+
+Six non-fiscal fuel-card slips, all **routed through Telegram** (1280 px, recompressed, EXIF
+already absent, committed byte-for-byte after a strip). Two two-slip pairs and two pump pairs:
+
+- `receipt-068-rn-tver-azk15-95-3000l-nonfiscal-terminal-slip-sideways-pair-ru.jpeg` - the
+  PetrolPlus terminal slip of АО "РН-Тверь" АЗК 15, 16/09/26 21:27: `АИ-95 30.00 2049.00`,
+  `ИТОГО 2049.00`, `Цена за ед. 68.30`, and the `1 ед.=1 литр для нефтепродуктов/суг` legend.
+  **Photographed sideways**: the slip lies across a car seat and the frame is landscape, so the
+  text runs bottom-to-top. Vision still reads it (`VNImageRequestHandler` rotates), but the
+  geometry the label/value pairing relies on is transposed. **The parser commits litres `1.0`**
+  - the unit legend's `1` - the `receipt-044` shape coming back through the sideways read: Vision
+  emits `1 ВД.«1 ЛИТР ДЛЯ НЕМТЕПРОДУКТОВ/СУГ` and `1 ед.-1 МЗ для кт`, and
+  `ReceiptNoiseFilter.unitConvention` keys on `ЕД` and `=`, both garbled. Filed as RV.292. Total
+  and price abstain.
+- `receipt-069-rn-tver-azk15-95k5-3000l-nonfiscal-order-slip-sideways-pair-ru.jpeg` - the
+  order slip (`КВИТАНЦИЯ ЗАКАЗА`) of the same fill, also sideways, with the terminal slip's tail
+  upside-down at the top of the frame: `АИ-95-К5`, `РУБ 68.30 X 30.000`, `ИТОГ 2 049.00`, `КБО
+  Топливная карта РН-Кар 2 049.00`. **The thousands space** in `2 049.00` is a first for the
+  corpus; `NumberScanner.decimals` already reads it. Vision misreads the price as `63.30`, and the
+  parser **committed `1899.00`** - the misread pair multiplied through - because
+  `fuelOperandIndex` could not place the pair and `nonFuelListSum` then counted the fuel line as a
+  shop item, taking the mixed-receipt branch past the printed, twice-repeated `2 049.00`.
+  **Fixed as RV.291** in the same change: the pair the ladder resolved the operands from is
+  excluded from the non-fuel sum by identity, and the slip now resolves `2049.00`; litres 30 and
+  currency resolve, the price abstains (`63.30` fails the arithmetic against the printed total).
+  **`receipt-068`, `receipt-069` and `../pump/pump-107` are a triplet of one fill.**
+- `receipt-070-gazpromneft-edrovo-azs10031-gdrive95-fuelcard-pair-ru.jpeg` - Gazpromneft АЗС
+  №10031 (Едрово, Novgorod obl.), 16/09/2026 14:46, `Бензин G-Drive 95<АИ-95-К5>`, `71.05 x
+  48.000 =3410.40`, `ИТОГО =3410.40`, held on a denim lap. **The same fill as
+  `../pump/pump-109`.** The `receipt-061` shape - an unmarked money line whose two operands both
+  sit inside the RUB price band - so the parser abstains on litres, price and total; kind and
+  currency resolve.
+- `receipt-071-gazpromneft-gdrive95-fuelcard-header-cut-pair-ru.jpeg` - the same slip family,
+  15/09/2026 20:22, `70.31 x 42.000 =2953.02`, `ИТОГО =2953.02`, with the **station header cut
+  off above `ТРК<МРК,ГНК>: 4`**, so no station name or address is in frame. **The same fill as
+  `../pump/pump-110`**, whose display truncates the total to `2953.0`. Abstains the same way as
+  070.
+- `receipt-072-rn-tver-chkalovskaya-95firm-1500l-nonfiscal-terminal-slip-pair-ru.jpeg` - the
+  PetrolPlus terminal slip of АЗК Чкаловская TN250, 14/09/26 07:01: `АИ95ФИРМ 15.00 1069.50`,
+  `ИТОГО 1069.50`, `Цена за ед. 71.30`; the order slip's tail is in frame above it. Total and
+  currency resolve. **The parser commits litres `10630454945`** - the `РН ККТ` register number of
+  the slip above, emitted as `0010630454945L` on a line of its own (the label became `KKT` and
+  `ННІ ККТ` elsewhere), so the fiscal-identifier filter, which keys on the label, never sees it,
+  the 14-digit bare-run rule misses a 13-digit run with a letter on it, and the trailing `L` reads
+  as a volume marker. Filed as RV.292 with 068.
+- `receipt-073-rn-tver-chkalovskaya-pulsar95-1500l-nonfiscal-order-slip-pair-ru.jpeg` - the
+  order slip of the same fill: `АИ-95-К5 Pulsar-95`, `РУБ 71.30 X 15.000`, `ИТОГ 1 069.50`
+  (thousands space again), on a crumpled slip over a printed page. Litres, price, total and
+  currency resolve; **`fuelKind` abstains** - `Pulsar-95` / `АИ-95-К5 Pulsar-95` is a legend the
+  normaliser has not seen, and the `АИ95ФИРМ` on 072 is the same gap (the `receipt-062`/`063`
+  shape). **072 and 073 are a pair of one fill**; no pump photo.
+
+Receipts move **270/315 -> 286/345** with RV.291 in: 16 of the 30 new cells resolve. The
+diagnostic Spike harness reads 070..073 fully (its band ladder places the Gazpromneft operands)
+and nothing on the two sideways slips.

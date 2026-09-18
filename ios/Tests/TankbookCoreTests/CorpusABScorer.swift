@@ -402,6 +402,20 @@ enum PostSweepCorpusAdditions {
             // 2026-09-14: the paper half of pump-104 - Circle K Sikupilli,
             // pump 1, 26.50 L of 95E0 at 1.949 = 51.65. Declared, not swept.
             "receipt-067-circlek-sikupilli-95e0-pump1-2650l-pair-ee.jpg",
+            // 2026-09-18: six Telegram-routed Russian fuel-card slips. 068/069
+            // are the terminal slip and the order slip of ONE RN-Tver AZK 15
+            // fill (30.00 L at 68.30 = 2049.00), both photographed sideways;
+            // 072/073 are the same two-slip shape at Chkalovskaya (15.00 L at
+            // 71.30 = 1069.50, the order slip prints `1 069.50` with a
+            // thousands space); 070 is the paper half of pump-109 (Edrovo,
+            // 48.000 x 71.05) and 071 the paper half of pump-110 (42.000 x
+            // 70.31), its station header cut off. Declared, not swept.
+            "receipt-068-rn-tver-azk15-95-3000l-nonfiscal-terminal-slip-sideways-pair-ru.jpeg",
+            "receipt-069-rn-tver-azk15-95k5-3000l-nonfiscal-order-slip-sideways-pair-ru.jpeg",
+            "receipt-070-gazpromneft-edrovo-azs10031-gdrive95-fuelcard-pair-ru.jpeg",
+            "receipt-071-gazpromneft-gdrive95-fuelcard-header-cut-pair-ru.jpeg",
+            "receipt-072-rn-tver-chkalovskaya-95firm-1500l-nonfiscal-terminal-slip-pair-ru.jpeg",
+            "receipt-073-rn-tver-chkalovskaya-pulsar95-1500l-nonfiscal-order-slip-pair-ru.jpeg",
         ],
         "pump": [
             // 2026-09-09: the owner's own fills, three of them the matched
@@ -556,6 +570,23 @@ enum PostSweepCorpusAdditions {
             "pump-103-gilbarco-circlek-ee-4858l-1954.jpg",
             "pump-104-gilbarco-circlek-sikupilli-pump1-2650l-price-washed-pair-ee.jpg",
             "pump-105-gilbarco-circlek-ee-2555l-1899.jpg",
+            // 2026-09-18: five Telegram-routed Russian displays - two Wayne
+            // SUMMA/LITRY faces that truncate the total to 0.1 RUB (110 is the
+            // display half of receipt-071), a night-lit zero-padded Scheidt &
+            // Bachmann face paired with receipt-068/069, a daylight Scheidt &
+            // Bachmann with the photographer reflected, and the Tokheim half
+            // of receipt-070 - plus four full-resolution Circle K Estonia
+            // Gilbarco displays, 114 with sun glare across the price window.
+            // Declared, not swept.
+            "pump-106-wayne-gazpromneft-gdrive95-5100l-7031-truncated-total-ru.jpeg",
+            "pump-107-scheidt-bachmann-rn-tver-azk15-3000l-6830-night-zero-padded-pair-ru.jpeg",
+            "pump-108-scheidt-bachmann-rn-3249l-6830-reflection-ru.jpeg",
+            "pump-109-tokheim-gazpromneft-edrovo-4800l-7105-pair-ru.jpeg",
+            "pump-110-wayne-gazpromneft-gdrive95-4200l-7031-truncated-total-pair-ru.jpeg",
+            "pump-111-gilbarco-circlek-ee-5046l-1999.jpg",
+            "pump-112-gilbarco-circlek-ee-461l-2199.jpg",
+            "pump-113-gilbarco-circlek-ee-522l-2014.jpg",
+            "pump-114-gilbarco-circlek-ee-6987l-2074-price-glare.jpg",
         ],
         "screenshots": [
             // 2026-09-14: an OFD-rendered Lukoil AI-100 e-receipt. Declared,

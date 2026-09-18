@@ -35,15 +35,18 @@ struct CorpusCompressionTests {
     private static let languages = ["en-US", "de-DE", "pl-PL", "cs-CZ", "ru-RU"]
 
     /// The recorded high-water mark for receipts through the compression step.
-    /// The compressed run stays at or above the uncompressed ratchet
-    /// (high-water.json): the resize is not lossy for this parser, and it
-    /// still clears a smear the full-resolution image does not, so the
-    /// compressed figure runs one cell ahead of the uncompressed one.
+    /// Measured against the uncompressed ratchet (high-water.json) on every
+    /// corpus change: the resize is not lossy for this parser, and it used to
+    /// clear a smear the full-resolution image did not, so the compressed
+    /// figure ran one cell ahead. Since the 2026-09-18 set it runs one cell
+    /// BEHIND (285 against 286): the six Telegram-routed 1280 px slips are
+    /// already below the rendition's long edge, so the step only re-encodes
+    /// them, and one cell on that set reads differently after the re-encode.
     /// `total` is the corpus's asserted receipt cells and must match exactly -
     /// a shrinking corpus means the compression step dropped an image. `hits`
     /// is a floor, not a measurement: it may only rise when a run measures a
     /// higher figure, so accuracy can improve but never silently regress.
-    private static let recordedReceipts = (hits: 271, total: 315)
+    private static let recordedReceipts = (hits: 285, total: 345)
 
     @Test("receipt hits through the compression step never fall below the recorded mark")
     func compressionDoesNotCostAccuracy() throws {

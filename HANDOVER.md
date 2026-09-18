@@ -2,6 +2,35 @@
 
 *Updated 2026-09-15 (00:20). **v1.0 is tagged, submitted and deployed; the production log is now the defect source.** Measured on the tree as left (`770945ea`): **iOS 2116 tests / 262 suites**, app-target bundle **267**, **backend 227 passed / 237 Postgres-backed skipped locally** (Docker's engine will not start on this machine - CI runs them), lint 0 from the repo **ROOT**, localization 0 (900 keys, 100% RU), Release build 0. **107 open rows, 425 closed** (nine ticked rows sit in `TASKS.md` awaiting the next sweep). Nothing is running; the queue is empty. Read this, then `CLAUDE.md`, then `docs/DEVELOPMENT-TIMELINE.md`, then `docs/TASKS.md`'s index.*
 
+## Corpus registration 2026-09-18: fifteen photographs, one parser fix, one row filed
+
+Registered the owner's 2026-09-14..17 set: `receipt-068`..`073` (six Telegram-routed Russian
+fuel-card slips - two RN-Tver terminal/order pairs, one photographed **sideways**, and the paper
+halves of two Gazpromneft pumps) and `pump-106`..`114` (five Telegram-routed Russian faces, four
+full-resolution Circle K Gilbarco HEICs with orientation 6 baked in before the EXIF strip). Corpus
+now **73 receipts / 114 pumps**; receipts **270/315 -> 286/345**, compressed arm 285/345, pump
+**53/293 -> 53/320** with nothing committed (precision 0.946, coverage 0.175, mode off).
+`high-water.json`, `PumpPhotoGate.measuredNumericTotal`, `CorpusCompressionTests.recordedReceipts`,
+the row-count pin and the post-sweep declarations all moved; `EXTRACTION.md` and the three
+fixture READMEs describe every file. Full `swift test` **2121 / 263** green on a quiet tree; a run
+overlapped by doc edits false-redded `RV.157`'s four debounce tests, exactly as this file warns.
+
+**The registration found a rule-13 defect and it is fixed (`RV.291`).** `receipt-069` made the
+parser commit **1899.00** - a misread `63.30 X 30.000` multiplied through - over a `2 049.00` the
+slip prints twice, because `nonFuelListSum` counted the fuel line itself as a shop item when
+`fuelOperandIndex` could not place it, and the mixed-receipt branch of `resolveTotal` fired first.
+`RV56TotalPropertyTests` (zero confident-wrong totals over the class) caught it on registration -
+the whole-class property did its job. The fix excludes the ladder's resolved pair by identity
+(`EXTRACTION.md` 5c-ii). **A trimmed reproduction passed on the mutant**: dropping one card line
+let `fuelOperandIndex` place the pair, so the L1 quotes all 25 of Vision's lines with their boxes.
+Run the mutation before trusting a fixture test built from a subset.
+
+**Two confident-wrong litres are filed, not fixed (`RV.292`)**: `receipt-068` commits `1.0` from a
+sideways-garbled unit legend (`1 ВД.«1 ЛИТР`), `receipt-072` commits `10630454945` from
+`0010630454945L` - a register number that grew a trailing `L` and reads as a marked volume. The
+receipts class has whole-class properties for totals and kinds and **none for litres**; the row
+asks for one.
+
 ## Where the work stands (2026-09-15, after midnight)
 
 **Since the 2026-09-13 handover: 28 commits, 9 rows shipped** (`RV.279` `RV.280` `PJ.29` `PJ.29a`

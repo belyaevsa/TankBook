@@ -87,15 +87,15 @@ level, in any build; only counts and confidence are shape. A source-scan gate
 Vision reads the characters; **the hard part is deciding what each number means**, and every
 value this pipeline produces is a suggestion the user can overwrite forever (hard rule 13).
 
-## Measured reality, 2026-09-14
+## Measured reality, 2026-09-18
 
 | class | score | note |
 |---|---|---|
-| receipts | **270/315 cells (85.7%)** | live `TankbookCore` score |
+| receipts | **286/345 cells (82.9%)** | live `TankbookCore` score |
 | fiscal | 5/5 | |
 | screenshots | 40/45 | |
 | expenses | 33/33 | kind, total, currency and date |
-| pump | **53/293 numeric cells** | committed 56, correct 53 - see the gate note below |
+| pump | **53/320 numeric cells** | committed 56, correct 53 - see the gate note below |
 
 `Spike/ReceiptSpike/fixtures/high-water.json` carries the per-change breakdown.
 
@@ -106,7 +106,7 @@ says a pump parser must never produce. Worse, recall scores a correct `nil` as a
 confident-wrong value as a hit - hard rule 13 inverted - and the two idle pumps' ground-truth zeros
 made it reward logging a zero-litre fill. `PumpPhotoGate` now measures **precision on committed
 numeric fields plus a coverage floor**: today 53 of 56 committed cells are correct (94.6% precision)
-at 19.1% coverage, so the mode stays off, below both thresholds.
+at 17.5% coverage, so the mode stays off, below both thresholds.
 
 **Two things measured and closed, so they are not re-proposed:**
 
@@ -404,6 +404,33 @@ total at all** (label-free pump displays, receipt-038) still settles on the prod
 receipt's fuel amount still comes from the fuel line (hard rule 4). Measured: receipts
 **223/265 -> 225/265** (two wrong totals became two correct hits; total-field misses 3 -> 1, the
 remaining miss being receipt-056's deliberately-nil zero).
+
+### 5c-ii. The resolved operand pair is never a shop item (RV.291, 2026-09-18)
+
+Rule 1 above - a verified mixed receipt keeps the fuel line - has a precondition the `receipt-052`
+fix stated and did not fully close: the non-fuel sum must exclude the fuel line *by identity*.
+`nonFuelListSum` excluded the pair `OperandPair.fuelOperandIndex` placed (the volume-marked pair,
+or the unmarked pair directly under a product line) and nothing else. On `receipt-069` - an RN-Tver
+order slip photographed sideways and routed through Telegram - the pair `63.30 X 30.000` (a
+misread of `68.30`) sits under a `КВИТАНЦИЯ ЗАКАЗА` header with a card line between it and the
+product line, so `fuelOperandIndex` could not place it; the band ladder still read litres 30 and
+price 63.30 from it. `nonFuelListSum` then counted that same line as a priced shop item, rule 1
+declared the slip mixed, and the parser committed the pair's own product - **1899** - over a
+`2 049.00` the paper prints twice. A misread digit multiplied through and committed as the total,
+the exact outcome rule 4 exists to prevent, reached through a door rule 1 held open.
+
+The fix is one identity: `resolveTotal` passes the operands it resolved into `nonFuelListSum`, and
+a pair whose two operands are those values in either order (operand order carries no information -
+the receipt-036/037 triplet) is the fuel line and is skipped. With the fuel line no longer counted
+the slip is fuel-only, rule 3 finds the repeated `2 049.00`, and the total is the printed figure;
+the misread `63.30` then fails the arithmetic against it and the price abstains. Measured: receipts
+**285/345 -> 286/345**, no other fixture moves, and `RV56TotalPropertyTests` - zero
+confident-wrong totals over the whole receipts class - is green again. The cross-check's own call
+to `nonFuelListSum` is untouched; its outcomes are pinned separately and were not re-derived here.
+
+`RV291OperandPairIdentityTests` quotes Vision's full read of the fixture with its geometry; a
+trimmed subset passed on the mutant, because dropping the card line let `fuelOperandIndex` place
+the pair. The test is real only with every line in.
 
 ### 5d. A discount line is never the unit price (RV.282, 2026-09-13)
 

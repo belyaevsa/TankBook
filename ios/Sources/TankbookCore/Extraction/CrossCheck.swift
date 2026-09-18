@@ -141,18 +141,49 @@ public extension ExtractionCrossCheck {
     /// pair would count an unmarked fuel line as its own non-fuel item, which is
     /// what made the `resolveTotal` mixed-receipt fallback prefer the fuel
     /// line's own derived product over the printed total on `receipt-052`.
-    static func nonFuelListSum(in lines: [OCRLine]) -> Decimal {
+    ///
+    /// `resolvedOperands` is the second identity the caller may know: the
+    /// litres and unit price the ladder already read off a pair that
+    /// `fuelOperandIndex` could NOT place (no volume marker, the product line
+    /// not directly above it - `receipt-069`'s `63.30 X 30.000` under a
+    /// `КВИТАНЦИЯ ЗАКАЗА` header). A pair whose two operands are exactly those
+    /// values, in either order, IS the fuel line and is skipped; counting it
+    /// here declared the document mixed and handed `resolveTotal` the pair's
+    /// own product, over a printed total the paper repeats (RV.291).
+    static func nonFuelListSum(in lines: [OCRLine],
+                               resolvedOperands: (liters: Double, unitPrice: Double)? = nil) -> Decimal {
         let fuelIndex = OperandPair.fuelOperandIndex(in: lines)
         var sum = Decimal.zero
         for (index, line) in lines.enumerated() {
             if index == fuelIndex { continue }
             guard !line.text.hasVolumeMarker else { continue }
             guard let pair = MixedReceiptDetector.quantityPricePair(line.text) else { continue }
+            if let resolved = resolvedOperands, isSamePair(pair, as: resolved) { continue }
             let quantity = ConfirmFormat.decimal(fromExtraction: pair.quantity, fractionDigits: 2) ?? 0
             let price = ConfirmFormat.decimal(fromExtraction: pair.price, fractionDigits: 3) ?? 0
             sum += quantity * price
         }
         return sum
+    }
+
+    /// `resolveTotal`'s form: the ladder's optionals, an identity only when both
+    /// resolved.
+    static func nonFuelListSum(in lines: [OCRLine], liters: Double?, unitPrice: Double?) -> Decimal {
+        let resolved = liters.flatMap { volume in unitPrice.map { (liters: volume, unitPrice: $0) } }
+        return nonFuelListSum(in: lines, resolvedOperands: resolved)
+    }
+
+    /// Whether an operand pair is the resolved (litres, price) pair in either
+    /// order. Operand order carries no information (`SCHEMA.md` -> the
+    /// receipt-036/037 triplet prints `x25.00 лит x99.99` and `99.99 X 25 Л` for
+    /// one fill), so both orders identify the line.
+    private static func isSamePair(_ pair: (quantity: Double, price: Double),
+                                   as resolved: (liters: Double, unitPrice: Double)) -> Bool {
+        let straight = abs(pair.quantity - resolved.liters) < 0.005
+            && abs(pair.price - resolved.unitPrice) < 0.005
+        let swapped = abs(pair.quantity - resolved.unitPrice) < 0.005
+            && abs(pair.price - resolved.liters) < 0.005
+        return straight || swapped
     }
 
     /// The discount lines a document prints: a line carrying a discount

@@ -389,8 +389,8 @@ public struct FuelExtractor: Sendable {
         // total the parser can corroborate, and a single printed read never
         // outranks the product - either could carry one misread digit, so with
         // no reason to prefer one side the parser abstains rather than commit a
-        // plausible wrong number (hard rule 13; RV.153).
-        if ExtractionCrossCheck.nonFuelListSum(in: lines) > 0 {
+        // plausible wrong number (hard rule 13; RV.153; RV.291 excludes the resolved pair).
+        if ExtractionCrossCheck.nonFuelListSum(in: lines, liters: liters, unitPrice: unitPrice) > 0 {
             return totalDecimal(fuelLine)
         }
         let residual = fuelLine - total

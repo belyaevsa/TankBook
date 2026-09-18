@@ -188,6 +188,30 @@ as total), and every new pump numeric as a miss, with confident-wrong `0.5`
 litres on pump-103/104. Those are findings of the Spike implementation; the
 high-water mark remains the live `TankbookCore` measurement.
 
+## The 2026-09-18 Telegram slips, Russian faces and four Gilbarco
+
+Six Telegram-routed Russian fuel-card slips (`receipt-068`..`073`), five Telegram-routed Russian
+displays (`pump-106`..`110`) and four full-resolution Circle K Estonia Gilbarco displays
+(`pump-111`..`114`). Measured three times: before the RV.291 fix, after it, and once more through
+the compression arm.
+
+- Receipts move **270/315 -> 286/345**. Before RV.291 the figure was 285/345 and `receipt-069`
+  carried a **confident-wrong total** - `63.30 x 30.000 = 1899` over a printed, twice-repeated
+  `2 049.00` - which turned `RV56TotalPropertyTests` red. The fix (the ladder's resolved operand
+  pair is excluded from `nonFuelListSum` by identity) resolves that cell and moves no other; the
+  compressed arm records **285/345**, one cell behind the uncompressed run for the first time.
+- Pump numeric recall moves **53/293 -> 53/320**. Nothing is committed on the nine new displays,
+  so committed-correct/committed stays 53/56, precision stays 0.946, coverage falls 0.191 ->
+  0.175, and the mode stays off. `PumpPhotoGate.measuredNumericTotal` moves to 320.
+- Two confident-wrong litres are recorded and NOT fixed here: `receipt-068` commits `1.0` (the
+  unit legend, sideways) and `receipt-072` commits `10630454945` (a `РН ККТ` register number
+  emitted as `0010630454945L`, the trailing `L` reading as a volume marker). Filed as RV.292; the ratchet counts them as misses.
+- Screenshots (40/45), fiscal (5/5) and expenses (33/33) are unchanged.
+
+The Spike CLI disagrees as usual: it reads the four upright Russian slips fully and the two
+sideways ones not at all, resolves `pump-112` and commits `102049.000` on `pump-107` and `0.5`
+litres on `pump-114` - harness findings, not the recorded mark.
+
 ## Known trap
 
 `swift run ReceiptSpike fixtures/receipts` - the CLI a human runs when adding a fixture by

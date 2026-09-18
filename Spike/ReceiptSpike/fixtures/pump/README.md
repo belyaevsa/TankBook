@@ -927,3 +927,56 @@ misses every asserted numeric cell, but commits a confident-wrong `0.5` litres
 on pump-103 and pump-104; that is a harness finding, not scored as a production
 commit. The five JPEGs are 3024x4032 conversions with orientation baked in and
 EXIF/ICC stripped, preserved byte-for-byte.
+
+## Added 2026-09-18 (Russian faces by Telegram, and four more Gilbarco)
+
+Nine displays. Five reached us **through Telegram** (1280 px, recompressed, EXIF already absent,
+committed byte-for-byte after a strip that changed nothing); four are the owner's own HEICs,
+converted to full-resolution JPEG (3024x4032, orientation 6 baked in, EXIF and ICC stripped).
+
+- `pump-106-wayne-gazpromneft-gdrive95-5100l-7031-truncated-total-ru.jpeg` - the Wayne
+  `СУММА / ЛИТРЫ` face with the grade windows below: `3585.8 / 51.00`, `70.31` lit in the
+  `95 G-Drive` window. `51.00 x 70.31 = 3585.81`, so this pump **truncates its total to 0.1 ₽**;
+  ground truth records `3585.80`, what the picture contains (the `pump-083` rule). No paper half.
+- `pump-107-scheidt-bachmann-rn-tver-azk15-3000l-6830-night-zero-padded-pair-ru.jpeg` - the
+  `Итого / Количество / Цена за Л` face at night under the lit `ЗЕРНО` cafe sign, and the first
+  Scheidt & Bachmann read that **zero-pads to seven digits**: `02049.0 / 0030.00 / 068.30`. A
+  label-free reader that takes digit count as scale has a new trap here. The photographer is
+  reflected across the price window. **The same fill as `../receipts/receipt-068` and
+  `receipt-069`**, the terminal slip and the order slip of one preset 30-litre fill at RN-Tver
+  АЗК 15 on 16.09.2026 21:27. The corpus already held `pump-087/088/090` at the identical
+  `2049.0 / 30.00 / 68.30`; that is a different fill on a different day at the same price, with
+  no paper, so the values repeat while the shape and the pair are new.
+- `pump-108-scheidt-bachmann-rn-3249l-6830-reflection-ru.jpeg` - `2219.1 / 32.49 / 68.30`, the
+  daylight face with the photographer and a car reflected. `32.49 x 68.30 = 2219.067`; the
+  display shows `2219.1`, recorded as `2219.10`. The `MANN`/`Mönchengladbach` maker plate is at
+  the frame's left edge.
+- `pump-109-tokheim-gazpromneft-edrovo-4800l-7105-pair-ru.jpeg` - the Tokheim `Стоимость /
+  Количество / Цена за 1 литр` face, comma decimals: `3410,4 / 48,00 / 71,05`. **The same fill as
+  `../receipts/receipt-070-gazpromneft-edrovo-azs10031-gdrive95-fuelcard-pair-ru.jpeg`**, which
+  prints `71.05 x 48.000 = 3410.40`; display and paper agree exactly. Same site and price as
+  `pump-065`/`receipt-047`.
+- `pump-110-wayne-gazpromneft-gdrive95-4200l-7031-truncated-total-pair-ru.jpeg` - the Wayne face
+  again, `2953.0 / 42.00`, `70.31` in the `95 G-Drive` window, the `ДИЗЕЛЬ / 92 / 95 / 95 G-Drive /
+  100 G-Drive` grade strip fully in frame. **The same fill as
+  `../receipts/receipt-071-gazpromneft-gdrive95-fuelcard-header-cut-pair-ru.jpeg`**, whose
+  `70.31 x 42.000 = 2953.02` is the untruncated figure; ground truth records `2953.00`.
+- `pump-111-gilbarco-circlek-ee-5046l-1999.jpg` - Gilbarco Veeder-Root, `0100,87 / 0050,46 /
+  1,999 €/L`, the corpus's first Gilbarco read above 100 EUR (a seven-digit money field with the
+  hundreds digit lit). Sun glare across the lower half of the total.
+- `pump-112-gilbarco-circlek-ee-461l-2199.jpg` - `0010,14 € / 0004,61 L / 2,199 €/L`, a top-up
+  small enough that five of seven digits are padding, and the highest per-litre price in the
+  Estonian set. The last litre digit sits under glare; `10.14 / 2.199 = 4.611` confirms it.
+- `pump-113-gilbarco-circlek-ee-522l-2014.jpg` - `0010,51 € / 0005,22 L / 2,014 €/L`, the price
+  window glared but legible; `5.22 x 2.014 = 10.513`.
+- `pump-114-gilbarco-circlek-ee-6987l-2074-price-glare.jpg` - `0144,91 € / 0069,87 L`, the
+  `€/L` window **washed by direct sun** to a faint `2,074`. Unlike `pump-104` the digits are still
+  readable and `69.87 x 2.074 = 144.910` closes to the cent, so the price cell IS asserted.
+
+`fuelKind` stays empty on all nine, including the three whose paper halves name АИ-95 / G-Drive
+95. **The production parser commits nothing on any of the 27 numeric cells**: numeric total 293 ->
+320, committed stays 56 and committed-correct 53, precision 0.946, coverage 0.191 -> 0.175, the
+mode stays off. The diagnostic Spike harness reads `pump-112` (4.60 / 2.199 / 10.14, the litres a
+hundredth short) and commits confident-wrong values on two others - `102049.000` on `pump-107`,
+the zero-padded total with a stray leading `1`, and `0.5` litres on `pump-114` - harness findings,
+not production commits.
