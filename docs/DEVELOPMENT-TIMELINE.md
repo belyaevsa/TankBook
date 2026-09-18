@@ -11,6 +11,15 @@ decisions.
 
 ---
 
+## 2026-09-18 · Pump displays get a trained reader; Python training code enters the repo
+
+| | |
+|---|---|
+| **Commits** | the PU tranche on branch `pump-reader` (this entry lands with PU's first commit) |
+| **Reason** | Product owner: *"we need to develop our own library to recognize pump photos. Not rely on OCR solely."* Steps 1–3 of `docs/EXTRACTION.md`'s order were done and pump mode was still off at 53/320 - the rules parser is blind on seven-segment glyphs and Vision misreads them at confidence 1.00. |
+| **Evidence** | `PumpPhotoGate` 53/320 committed-correct (P2.7 off since 2026-08-25); `pump-004` (wrong digit at 1.00), `pump-009` (decimal shift), `pump-013`/`pump-015` (9-as-4); the cloud model's five confident swaps in the P4.12 A/B. |
+| **What changed** | Two things. **A trained model is now part of the extraction pipeline** for one narrow, optical, synthesizable problem - the corpus stays held-out and the same gate scores it, which is the condition EXTRACTION.md set. **Python lives in the repo** under `ml/pump-reader/`, outside every gate but its own `pytest`; nothing in `scripts/gate.sh` or CI depends on it. The tranche is built in a worktree (`../fuel-counter-ios-pump-reader`, branch `pump-reader`) - the one exception to the no-worktrees rule, asked for by the product owner. |
+
 ## 2026-09-14 · An additive schema change ships a registry refresh migration
 
 | | |
