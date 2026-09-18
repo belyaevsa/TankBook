@@ -26,7 +26,7 @@ struct ServiceScanOutcome {
 /// fuel path uses. The boundary is the save (`DeferredRecognition`), never a
 /// second producer.
 ///
-/// PJ.29a: the session also owns the CLOUD reading of the same first page
+/// PJ.29a: the session also owns the CLOUD reading of the same pages
 /// (`gateway`), started by the capture path once the local split has produced
 /// its outcome. The one save boundary seals both reads: a cloud answer that
 /// lands after the save routes to the inbox, never to the editor (hard rule 13).
@@ -53,6 +53,11 @@ final class ServiceInvoiceSession {
     /// Bumped when a cloud answer is ready, so the sheet can apply it (the
     /// answer is not `Equatable`-triggerable on its own).
     private(set) var gatewayRevision = 0
+    /// PJ.303: the served page cap the scan exceeded, so no cloud reading was
+    /// started for it (docs/ERRORS.md -> Service & expenses). Every page is
+    /// still kept and split on the device; the form names the cap. Nil when
+    /// the scan fit or no gateway was asked for.
+    var pageCapExceeded: Int?
     /// The record a cloud read is about, once the user saves. It exists so a
     /// gateway started AFTER the save (a very slow local split can delay
     /// `startGateway` past `markSaved`) still knows the record is already saved
@@ -107,19 +112,40 @@ final class ServiceInvoiceSession {
     /// answer is routed by `onSavedAnswer`, never applied to the editor (hard
     /// rule 13).
     ///
+    /// Every captured page goes in ONE request (docs/API.md "multi-page
+    /// invoices"): the header is on the first page, the lines may run onto the
+    /// rest, and the server pairs nothing - the device does. A page whose
+    /// rendition fails is skipped rather than failing the call; the first page
+    /// must render or there is no call. `maxInvoicePages` is the served cap the
+    /// client checks before uploading (the camera stopped there first).
+    ///
     /// A fresh `GatewayScanSession` per scan: `start` is one-shot, so a second
     /// scan must not inherit the first's started state.
-    func startGateway(image: UIImage,
+    func startGateway(pages images: [UIImage],
                       hints: GatewayExtractHints,
                       captureId: String,
+                      maxInvoicePages: Int = ConfigDocument.ExtractLimits.defaultMaxInvoicePages,
                       transport injectedTransport: (any GatewayExtractTransport)? = nil,
                       onSavedAnswer: @escaping @MainActor (GatewayExtraction, UUID) -> Void) {
         gateway = GatewayScanSession()
-        guard let cgImage = image.cgImage,
-              let transport = injectedTransport ?? GatewayScanStarter.makeTransport(),
-              let jpeg = GatewayRendition.jpegData(from: cgImage) else { return }
+        pageCapExceeded = nil
+        guard let transport = injectedTransport
+                ?? GatewayScanStarter.makeTransport(maxInvoicePages: maxInvoicePages) else { return }
+        // Over the cap there is no partial call: the total sits on the last
+        // page, so a truncated reading would fail the arithmetic gate on every
+        // such invoice and offer nothing usable. The device's split stands and
+        // the form says why (docs/ERRORS.md -> Service & expenses).
+        guard images.count <= maxInvoicePages else {
+            pageCapExceeded = maxInvoicePages
+            return
+        }
+        let renditions = images.compactMap { image in
+            image.cgImage.flatMap { GatewayRendition.jpegData(from: $0) }
+        }
+        guard let first = renditions.first else { return }
         let request = GatewayExtractRequest(kind: "invoice",
-                                            imageJPEG: jpeg,
+                                            imageJPEG: first,
+                                            pages: Array(renditions.dropFirst()),
                                             hints: hints,
                                             captureId: captureId)
         gateway.start(transport: transport, request: request) { [weak self] extraction in
@@ -163,6 +189,7 @@ final class ServiceInvoiceSession {
         deferred.cancel()
         pendingPrefill = nil
         pendingGatewayExtraction = nil
+        pageCapExceeded = nil
         gatewaySavedEntryID = nil
         gateway = GatewayScanSession()
     }

@@ -17460,6 +17460,125 @@
           }
         }
       }
+    },
+    "From the invoice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From the invoice"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Из счёта"
+          }
+        }
+      }
+    },
+    "Also on the invoice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Also on the invoice"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Есть ещё в счёте"
+          }
+        }
+      }
+    },
+    "Take" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Take"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Взять"
+          }
+        }
+      }
+    },
+    "The reading doesn't add up to the invoice total – check the lines." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The reading doesn't add up to the invoice total – check the lines."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Распознанные позиции не сходятся с итогом счёта – проверьте позиции."
+          }
+        }
+      }
+    },
+    "This invoice has more pages than the cloud reading takes (%lld) – every page is kept and split on the device. Check the lines." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This invoice has more pages than the cloud reading takes (%lld) – every page is kept and split on the device. Check the lines."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "В счёте больше страниц, чем принимает облачное распознавание (%lld) – все страницы сохранены и разобраны на устройстве. Проверьте позиции."
+          }
+        }
+      }
+    },
+    "New line" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New line"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новая строка"
+          }
+        }
+      }
+    },
+    "Doesn't add up – check the lines" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Doesn't add up – check the lines"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не сходится – проверьте позиции"
+          }
+        }
+      }
     }
 
   },

@@ -1095,6 +1095,26 @@
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },
+    "PJ.303-inbox-line-pairs": {
+      "commit": "f1fd58c5",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.303-inbox-line-pairs-ru": {
+      "commit": "f1fd58c5",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.303-service-line-offers": {
+      "commit": "f1fd58c5",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.303-service-line-offers-ru": {
+      "commit": "f1fd58c5",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "PJ.31-trends-brand-prices": {
       "commit": "6538cddc",
       "device": "iPhone 17",

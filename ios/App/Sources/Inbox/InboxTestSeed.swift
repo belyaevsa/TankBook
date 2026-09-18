@@ -23,6 +23,10 @@ import TankbookCore
 /// - `-seedInboxNothingToChange` (RV.45 honesty rule 2): an item whose reading
 ///   AGREES with the saved entry - the no-op card must say so and offer no
 ///   update action.
+/// - `-seedInboxServiceLines` (PJ.303): the same saved service with two lines
+///   and a late reading whose lines pair onto them by title, not position - one
+///   agrees (no offer), one differs (offered on the user's row), one is new -
+///   and whose total does not add up to its lines (the amber flag).
 /// - `-seedInboxService` (RV.201): a saved service invoice plus a late service
 ///   recognition that differs on vendor, line item and total - the shape that
 ///   proves the per-field ask reaches an entry kind that is not a fill-up.
@@ -51,12 +55,19 @@ enum InboxTestSeed {
         if arguments.contains("-seedInboxService") {
             seedServiceItem()
         }
+        if arguments.contains("-seedInboxServiceLines") {
+            seedServiceItem(lines: true)
+        }
         if arguments.contains("-seedInboxExpense") {
             seedExpenseItem()
         }
         if arguments.contains("-seedInboxExpenseCurrency") {
             seedExpenseItem(recognitionCurrency: .pln)
         }
+    }
+
+    private static func eur(_ amount: String) -> Money {
+        Money(amount: Decimal(string: amount)!, currency: .eur, homeCurrency: .eur)
     }
 
     /// The seeded car's units. Metric by default; `-seedInboxMiles` makes it an
@@ -284,7 +295,7 @@ enum InboxTestSeed {
     /// user must be able to decline it. This is the seed the RV.201 L4 suite and
     /// the EN/RU screenshots use.
     @MainActor
-    private static func seedServiceItem() {
+    private static func seedServiceItem(lines: Bool = false) {
         let arguments = ProcessInfo.processInfo.arguments
         if arguments.contains("-homeResetDatabase") {
             AppStore.resetForTestsOncePerLaunch()
@@ -310,19 +321,25 @@ enum InboxTestSeed {
             money: Money(amount: Decimal(string: "200.00")!, currency: .eur, homeCurrency: .eur),
             note: nil, attachments: [], provenance: .manual, conflict: .none,
             purchaseGroupId: nil, vendor: "Old Garage",
-            items: [ServiceItem(title: "Oil change", category: .oil,
-                                cost: Money(amount: Decimal(string: "80.00")!, currency: .eur,
-                                            homeCurrency: .eur))],
+            items: [ServiceItem(title: "Oil change", category: .oil, cost: eur("80.00"))]
+                + (lines ? [ServiceItem(title: "Brake pads front", category: .brakes, cost: eur("89.00"))] : []),
             usedParts: [], tireSetId: nil)
         try? repository.upsertServiceRecord(service)
 
+        // The reordered cloud lines: the brake line first, the oil line second,
+        // so a by-position pairing would offer the oil line against the brake
+        // row - the trap PJ.302's matcher exists to avoid.
+        let lineItems: [ServiceRecognition.LineItem] = lines
+            ? [.init(title: "BRAKE PADS FRONT", category: .brakes, cost: eur("95.00")),
+               .init(title: "Oil change", category: .oil, cost: eur("80.00")),
+               .init(title: "Environmental fee", category: .other(""), cost: eur("3.50"))]
+            : [.init(title: "Brake pads", category: .brakes, cost: eur("120.00"))]
         let recognition = InboxRecognition.service(ServiceRecognition(
             vendor: .init(value: "New Garage", confidence: 0.9),
             total: .init(value: Decimal(string: "250.00")!, confidence: 0.9),
             currency: .init(value: .eur, confidence: 0.9),
-            lineItems: [.init(title: "Brake pads", category: .brakes,
-                              cost: Money(amount: Decimal(string: "120.00")!, currency: .eur,
-                                          homeCurrency: .eur))]))
+            lineItems: lineItems,
+            doesNotAddUp: lines))
         let item = GatewayInboxItem(id: UUID.v7(), entryId: entryID,
                                     createdAt: now, recognition: recognition)
         if let data = try? JSONEncoder().encode([item]) {

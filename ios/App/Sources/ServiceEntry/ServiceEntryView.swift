@@ -39,7 +39,7 @@ struct ServiceEntryView: View {
 
     @State var form = ServiceEntryFormState()
     @FocusState private var focus: ServiceEntryFocus?
-    @State private var vehicle: Vehicle?
+    @State var vehicle: Vehicle?
     @State private var showDatePicker = false
     @State private var didLoad = false
     /// RV.245: set the moment a save lands, so the one dismissal path can tell
@@ -47,9 +47,9 @@ struct ServiceEntryView: View {
     @State private var didSave = false
     @State private var lastKnownOdometer: Int?
     /// The scanned invoice's pages (P3.1b). Empty on the typed path.
-    @State private var pages: [InvoicePage] = []
-    @State private var selectedPageIndex = 0
-    @State private var showDocumentCamera = false
+    @State var pages: [InvoicePage] = []
+    @State var selectedPageIndex = 0
+    @State var showDocumentCamera = false
     /// The parts on the shelf and the parts linked into this service (P3.2).
     @State private var shelfParts: [Expense] = []
     @State private var linkedParts: [Expense] = []
@@ -78,6 +78,10 @@ struct ServiceEntryView: View {
     /// screen). The local split has first claim (F4); a cloud answer never
     /// refills one of these.
     @State var gatewayOnDeviceResolved: Set<FieldRef> = []
+    /// PJ.303: the cloud's lines paired onto the rows (`ServiceEntryGateway`).
+    /// Beside the form, never in it: an unanswered offer changes nothing.
+    @State var lineOffers: [ServiceLineOffer] = []
+    @State var readingDoesNotAddUp = false
     /// Arming guard for the vendor/date/currency touch hooks: the load-time
     /// pre-fill must not count as a user touch.
     @State private var gatewayTouchTrackingArmed = false
@@ -93,6 +97,12 @@ struct ServiceEntryView: View {
     private var distanceUnit: DistanceUnit { vehicle?.units.distance ?? .km }
 
     var body: some View {
+        ScrollViewReader { proxy in
+            content.onChange(of: lineOffers) { _, _ in scrollToLineOffersForScreenshot(proxy) }
+        }
+    }
+
+    private var content: some View {
         ScrollView {
             VStack(spacing: 9) {
                 if vehicle == nil {
@@ -114,6 +124,9 @@ struct ServiceEntryView: View {
                     if invoiceSession.gateway.phase == .authExpired, !authExpiredNoticeDismissed {
                         GatewayAuthExpiredNoticeView(dismiss: { authExpiredNoticeDismissed = true })
                     }
+                    if let cap = invoiceSession.pageCapExceeded {
+                        ServicePageCapNoteView(cap: cap)
+                    }
                     if !pages.isEmpty {
                         ServiceEntryPageStrip(pages: pages,
                                               selectedIndex: $selectedPageIndex,
@@ -133,6 +146,7 @@ struct ServiceEntryView: View {
                             onSelect: { form.tireSetId = $0 })
                     } else {
                         ServiceEntryHeader(vendor: $form.vendor, totalText: totalText)
+                        if readingDoesNotAddUp { ServiceReadingDoesNotAddUpLine() }
                         currencyCard
                     }
                     ServiceEntryDateOdometerCard(
@@ -153,12 +167,7 @@ struct ServiceEntryView: View {
                             .padding(.horizontal, Theme.Spacing.cardPadding)
                     }
                     if form.mode == .service {
-                        ForEach($form.items) { $item in
-                            ServiceEntryItemCard(item: $item) {
-                                form.items.removeAll { $0.id == item.id }
-                            }
-                        }
-                        ServiceEntryAddItemButton(action: addItem)
+                        lineItemsSection
                     }
                     ServiceEntryPartsSection(
                         shelfParts: suggestedShelfParts,
@@ -315,7 +324,7 @@ struct ServiceEntryView: View {
 
     // MARK: - Actions
 
-    private func addItem() {
+    func addItem() {
         form.items.append(ServiceEntryItemDraft())
     }
 
@@ -484,40 +493,6 @@ struct ServiceEntryView: View {
         pages = prefill.pages
         selectedPageIndex = 0
     }
-
-    // MARK: - Pages (P3.1b)
-
-    private func addPage() {
-        showDocumentCamera = true
-    }
-
-    private func handleAddedPages(_ images: [UIImage]) {
-        Task {
-            let newPages = await ServiceInvoiceScanner.appendPages(images: images)
-            pages.append(contentsOf: newPages)
-            form.attachments = pages.map(\.attachment.id)
-            selectedPageIndex = max(0, pages.count - 1)
-        }
-    }
-
-    /// Removing a page deletes its file - no orphan (docs/ERRORS.md -> Service &
-    /// expenses: "Multi-page scan interrupted" names the next step; here the
-    /// user removed a page on purpose, so there is nothing to warn about).
-    private func removePage(_ page: InvoicePage) {
-        pages.removeAll { $0.id == page.id }
-        form.attachments = pages.map(\.attachment.id)
-        if selectedPageIndex >= pages.count {
-            selectedPageIndex = max(0, pages.count - 1)
-        }
-        do {
-            let repository = try AppStore.repository()
-            let store = InvoicePageStore(repository: repository, files: InvoiceAttachmentFiles())
-            try store.removePage(page.attachment)
-        } catch {
-            AppLog.error(operation: "serviceEntry.pageRemoval", category: .ui, error: error)
-        }
-    }
-
 }
 
 // MARK: - Save

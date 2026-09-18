@@ -630,6 +630,18 @@ whose lines do not sum to its header total within CHECK 3's tolerance is `doesNo
 are still offered, and the total's offer carries `attention` so the copy says *check the lines*
 rather than presenting the sum as settled.
 
+**Where the offers render (PJ.303, 2026-09-18).** Two surfaces, one pairing. Within the 3 s budget
+`ServiceEntryView.offerLines` runs the same `LineMatcher` over the form's rows and holds the pairs as
+`ServiceLineOffer`s BESIDE the form, never in it: a paired offer is the strip under its row (Take /
+Keep), a `new` one is a dimmed card after the split (Add / Dismiss), and the flag is an amber line
+under the header total. Nothing is written until an answer is tapped, so a save with every offer
+unanswered persists the local split unchanged. A late reading goes to the inbox through the one
+policy and the card lists the same pairs - the label names the USER'S row (`pairedLocalIndex`), the
+"you entered" column shows that row, and an unpaired line is "New line". The capture sends every
+page in one request; over the served cap (`extract.maxInvoicePages`, in `AppConfig.maxInvoicePages`)
+no call is made - the total sits on the last page, so a truncated reading would fail the arithmetic
+gate every time - and the form names the cap while every page is kept and split on the device.
+
 ## Cross-multiplication as digit repair
 
 New, 2026-08-26, and specific to seven-segment displays.

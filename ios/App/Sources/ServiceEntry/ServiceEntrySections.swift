@@ -343,6 +343,11 @@ struct ServiceEntryDateOdometerCard: View {
 struct ServiceEntryItemCard: View {
     @Binding var item: ServiceEntryItemDraft
     let onDelete: () -> Void
+    /// PJ.303: the cloud line paired with this row, if it differs. Rendered as
+    /// the strip under the fields; nil on the typed path and once answered.
+    var offer: ServiceLineOffer?
+    var onTakeOffer: (ServiceLineOffer) -> Void = { _ in }
+    var onKeepOffer: (ServiceLineOffer) -> Void = { _ in }
 
     /// A scanned row renders dimmed until the user edits it (hard rule 13: the
     /// scanned value is a default input, never read-only). Editing any field
@@ -386,6 +391,11 @@ struct ServiceEntryItemCard: View {
             ServiceItemLifetimeFields(lifetime: $item.lifetime)
             // PJ.61: the SAME part-number editor the edit door's item row uses.
             ServiceItemPartNumberField(partNumber: $item.partNumber)
+            if let offer {
+                ServiceLineOfferStrip(offer: offer,
+                                      onTake: { onTakeOffer(offer) },
+                                      onKeep: { onKeepOffer(offer) })
+            }
         }
         .padding(13)
         .formCard()

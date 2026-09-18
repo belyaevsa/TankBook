@@ -434,3 +434,22 @@ private func scalar(_ value: UInt32) -> String {
     #expect(document.extract?.maxInvoicePages == 4)
     #expect(ConfigDocument.ExtractLimits.defaultMaxInvoicePages == 6)
 }
+
+/// PJ.303: the served cap reaches the resolved `AppConfig` the capture path
+/// reads - from a document that carries it, the compiled default from one
+/// that does not, and as a sparse override (a remote document silent on the
+/// key leaves the current cap standing).
+@Test func maxInvoicePagesResolvesFromTheDocumentAndOverridesSparsely() throws {
+    let raw = try #require(String(bytes: fixtureData("parity.document.json"), encoding: .utf8))
+    let without = try ConfigDocument.parse(Data(raw.utf8))
+    let with = try ConfigDocument.parse(Data(raw.replacingOccurrences(
+        of: "\"version\": 7,", with: "\"version\": 7, \"extract\": {\"maxInvoicePages\": 4},").utf8))
+    let url = try #require(without.apiBaseURL)
+
+    let base = AppConfig(document: without, apiBaseURL: url)
+    #expect(base.maxInvoicePages == ConfigDocument.ExtractLimits.defaultMaxInvoicePages)
+    #expect(AppConfig(document: with, apiBaseURL: url).maxInvoicePages == 4)
+    #expect(base.applying(remote: with).maxInvoicePages == 4)
+    #expect(AppConfig(document: with, apiBaseURL: url).applying(remote: without).maxInvoicePages == 4,
+            "a remote document without the key leaves the served cap standing")
+}

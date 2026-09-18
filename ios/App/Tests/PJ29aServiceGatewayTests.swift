@@ -100,7 +100,7 @@ final class PJ29aServiceGatewayTests: XCTestCase {
         let transport = RecordingTransport(answer: answer())
         let session = ServiceInvoiceSession()
         session.startGateway(
-            image: image(),
+            pages: [image()],
             hints: GatewayExtractHints(currency: "EUR", locale: "en", vehicleFuelKinds: []),
             captureId: "capture-1",
             transport: transport,
@@ -116,6 +116,47 @@ final class PJ29aServiceGatewayTests: XCTestCase {
         XCTAssertEqual(request.captureId, "capture-1")
     }
 
+    /// PJ.303: every captured page goes in the ONE request, first page as the
+    /// header rendition and the rest as `pages` (docs/API.md "multi-page
+    /// invoices"). Sending `images.first` alone is the v1 shape this replaces.
+    func testEveryPageRidesTheOneRequest() async throws {
+        let transport = RecordingTransport(answer: answer())
+        let session = ServiceInvoiceSession()
+        session.startGateway(
+            pages: [image(), image(), image()],
+            hints: GatewayExtractHints(currency: "EUR", locale: "en", vehicleFuelKinds: []),
+            captureId: "capture-3",
+            transport: transport,
+            onSavedAnswer: { _, _ in })
+        try await Task.sleep(for: .milliseconds(80))
+
+        let requests = await transport.requests
+        let request = try XCTUnwrap(requests.first)
+        XCTAssertTrue(request.isMultiPage)
+        XCTAssertEqual(request.allPages.count, 3, "all three pages must ride the one request")
+        XCTAssertNil(session.pageCapExceeded)
+    }
+
+    /// PJ.303: over the served cap no request is made - a truncated reading
+    /// would fail the arithmetic gate on every such invoice - and the session
+    /// names the cap for the form (docs/ERRORS.md -> Service & expenses).
+    func testAScanOverTheCapMakesNoRequestAndNamesTheCap() async throws {
+        let transport = RecordingTransport(answer: answer())
+        let session = ServiceInvoiceSession()
+        session.startGateway(
+            pages: [image(), image(), image()],
+            hints: GatewayExtractHints(currency: "EUR", locale: "en", vehicleFuelKinds: []),
+            captureId: "capture-cap",
+            maxInvoicePages: 2,
+            transport: transport,
+            onSavedAnswer: { _, _ in })
+        try await Task.sleep(for: .milliseconds(80))
+
+        let requests = await transport.requests
+        XCTAssertTrue(requests.isEmpty, "no partial call over the cap")
+        XCTAssertEqual(session.pageCapExceeded, 2)
+    }
+
     func testALateInvoiceAnswerIsRoutedToTheInboxThroughTheOnePolicy() async throws {
         UserDefaults.standard.removeObject(forKey: AppInbox.storageKey)
         let service = try savedService()
@@ -125,7 +166,7 @@ final class PJ29aServiceGatewayTests: XCTestCase {
         let transport = RecordingTransport(answer: answer(), gate: gate)
 
         session.startGateway(
-            image: image(),
+            pages: [image()],
             hints: GatewayExtractHints(currency: "EUR", locale: "en", vehicleFuelKinds: []),
             captureId: "capture-2",
             transport: transport,
@@ -155,7 +196,7 @@ final class PJ29aServiceGatewayTests: XCTestCase {
         let transport = RecordingTransport(answer: answer())
 
         session.startGateway(
-            image: image(),
+            pages: [image()],
             hints: GatewayExtractHints(currency: "EUR", locale: "en", vehicleFuelKinds: []),
             captureId: "capture-3",
             transport: transport,

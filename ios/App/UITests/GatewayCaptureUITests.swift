@@ -84,7 +84,7 @@ final class GatewayCaptureUITests: XCTestCase {
     /// "keep typing", and it carries no spinner (the whole point is that the
     /// user need not wait).
     func testTheProceedNoteIsVisibleWhileTheRequestIsInFlight() {
-        let app = launch(args: ["-seedVehicleForUITests", "-presentScreen", "confirmManual",
+        let app = launch(args: ["-clearSessionForTests", "-seedVehicleForUITests", "-presentScreen", "confirmManual",
                                 "-seedConfirmPrefillSparse", "-seedGateway",
                                 "-seedGatewayDelay", "30"])
         openSheet(app)
@@ -101,8 +101,8 @@ final class GatewayCaptureUITests: XCTestCase {
     /// absent on a local-only parse (no `-seedGateway`, so no transport is armed
     /// and the phase never leaves `.idle`).
     func testTheProceedNoteIsAbsentOnALocalOnlyParse() {
-        let app = launch(args: ["-seedVehicleForUITests", "-presentScreen", "confirmManual",
-                                "-seedConfirmPrefillSparse"])
+        let app = launch(args: ["-clearSessionForTests", "-seedVehicleForUITests",
+                                "-presentScreen", "confirmManual", "-seedConfirmPrefillSparse"])
         openSheet(app)
 
         XCTAssertFalse(note(app).exists,
@@ -419,7 +419,7 @@ final class GatewayCaptureUITests: XCTestCase {
     /// A signed-out user has no gateway transport, so no request is sent and no
     /// note appears; the local read still opens the form (hard rules 1 and 15).
     func testASignedOutExpenseScanShowsNoNote() {
-        let app = launchExpenseCapture(["-seedExpenseScan"])
+        let app = launchExpenseCapture(["-seedExpenseScan", "-clearSessionForTests"])
         shootAndUseExpense(app)
 
         XCTAssertTrue(app.textFields["expenseEntryAmountField"].waitForExistence(timeout: 15))
@@ -531,7 +531,7 @@ final class GatewayCaptureUITests: XCTestCase {
     /// A signed-out user has no gateway transport, so no request is sent and no
     /// note appears; the local split still opens the form (hard rules 1 and 15).
     func testASignedOutServiceScanShowsNoNote() {
-        let app = launchServiceCapture([])
+        let app = launchServiceCapture(["-clearSessionForTests"])
         openServiceForm(app)
 
         XCTAssertEqual(fieldValue(app, "serviceEntryVendorField"), "Local Garage",

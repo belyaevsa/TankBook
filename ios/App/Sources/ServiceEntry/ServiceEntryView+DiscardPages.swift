@@ -1,5 +1,6 @@
 import Foundation
 import TankbookCore
+import UIKit
 
 // RV.245: the dismissed-without-save half of the scan lifecycle. Pages persist
 // at scan start so a deferred read cannot lose them (RV.243); the trade is that
@@ -47,4 +48,42 @@ extension ServiceEntryView {
         }
         AppLog.shared.emit(InvoicePagesDiscarded(pageCount: removed))
     }
+}
+
+// MARK: - Pages (P3.1b)
+
+// The add/remove half of the page strip, beside the discard half above; the
+// sheet file sits at the linter's length ceiling.
+extension ServiceEntryView {
+    func addPage() {
+        showDocumentCamera = true
+    }
+
+    func handleAddedPages(_ images: [UIImage]) {
+        Task {
+            let newPages = await ServiceInvoiceScanner.appendPages(images: images)
+            pages.append(contentsOf: newPages)
+            form.attachments = pages.map(\.attachment.id)
+            selectedPageIndex = max(0, pages.count - 1)
+        }
+    }
+
+    /// Removing a page deletes its file - no orphan (docs/ERRORS.md -> Service &
+    /// expenses: "Multi-page scan interrupted" names the next step; here the
+    /// user removed a page on purpose, so there is nothing to warn about).
+    func removePage(_ page: InvoicePage) {
+        pages.removeAll { $0.id == page.id }
+        form.attachments = pages.map(\.attachment.id)
+        if selectedPageIndex >= pages.count {
+            selectedPageIndex = max(0, pages.count - 1)
+        }
+        do {
+            let repository = try AppStore.repository()
+            let store = InvoicePageStore(repository: repository, files: InvoiceAttachmentFiles())
+            try store.removePage(page.attachment)
+        } catch {
+            AppLog.error(operation: "serviceEntry.pageRemoval", category: .ui, error: error)
+        }
+    }
+
 }

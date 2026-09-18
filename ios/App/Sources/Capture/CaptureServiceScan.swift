@@ -8,7 +8,7 @@ import UIKit
 // ceiling), the same split `CaptureExpenseScan.swift` made. The document
 // camera's result and the `-captureAutoServiceScan` test hook both land in
 // `scanServiceInvoice`; this extension owns the local split's hand-off and the
-// cloud reading of the invoice's first page.
+// cloud reading of every captured page.
 
 extension CaptureView {
     /// The document camera returned pages: OCR them, split deterministically,
@@ -21,9 +21,9 @@ extension CaptureView {
     /// entry is saved becomes an inbox item through the ONE policy
     /// (`AppInbox.recordLateGatewayAnswer`), never a second producer.
     ///
-    /// PJ.29a: once the local split lands, the cloud reading of the same first
-    /// page starts (F4: never awaited). A late answer reaches the inbox through
-    /// the same one policy.
+    /// PJ.29a: once the local split lands, the cloud reading of the same pages
+    /// starts (F4: never awaited). A late answer reaches the inbox through the
+    /// same one policy.
     func scanServiceInvoice(_ images: [UIImage]) {
         let homeCurrency = (try? currentVehicle())?.homeCurrency ?? .eur
         let session = invoiceSession
@@ -47,11 +47,12 @@ extension CaptureView {
     }
 
     /// PJ.29a: runs the local split and, once it has produced the outcome, fires
-    /// the cloud reading of the FIRST page. An invoice may have several pages;
-    /// the header is on the first, and only the header crosses the gateway - the
-    /// line items stay the local deterministic split's (docs/JOURNEYS.md J7).
-    /// Starting the gateway here, never awaited, keeps F4: the form opens on the
-    /// local read and the cloud is a head start, not a wait.
+    /// the cloud reading of EVERY page in one request (docs/API.md "multi-page
+    /// invoices"). The header is on the first page and the lines may run onto
+    /// the rest; the cloud's lines are paired onto the local split by the
+    /// device (docs/JOURNEYS.md J7), never taken as the split. Starting the
+    /// gateway here, never awaited, keeps F4: the form opens on the local read
+    /// and the cloud is a head start, not a wait.
     private func serviceScanOutcome(images: [UIImage], staged: [InvoicePage],
                                     homeCurrency: CurrencyCode) async -> ServiceScanOutcome {
         #if DEBUG
@@ -62,24 +63,24 @@ extension CaptureView {
         if let seeded = ServiceScanTestSeed.outcome(from: ProcessInfo.processInfo.arguments,
                                                     pages: staged,
                                                     homeCurrency: homeCurrency) {
-            startServiceGatewayIfAvailable(image: images.first)
+            startServiceGatewayIfAvailable(pages: images)
             return seeded
         }
         #endif
         let outcome = await ServiceInvoiceScanner.process(images: images, stagedPages: staged,
                                                           homeCurrency: homeCurrency)
-        startServiceGatewayIfAvailable(image: images.first)
+        startServiceGatewayIfAvailable(pages: images)
         return outcome
     }
 
-    /// PJ.29a: fires `/extract` with `kind: "invoice"` for the first captured
-    /// page, under the same guards the fill-up and expense paths use -
+    /// PJ.29a: fires `/extract` with `kind: "invoice"` for every captured page,
+    /// under the same guards the fill-up and expense paths use -
     /// `allowsServerBacked` withholds the call under `.required` (docs/CONFIG.md),
     /// a guest has no transport, and a non-JPEG rendition gets no call. The
     /// answer is delivered to the open sheet through the session, or, once the
     /// record is saved, to the inbox through the ONE policy.
-    private func startServiceGatewayIfAvailable(image: UIImage?) {
-        guard config.allowsServerBacked, let image else { return }
+    private func startServiceGatewayIfAvailable(pages: [UIImage]) {
+        guard config.allowsServerBacked, !pages.isEmpty else { return }
         let vehicle = try? currentVehicle()
         let language = Locale.current.language.languageCode?.identifier ?? "en"
         let hints = GatewayExtractHints(currency: vehicle?.homeCurrency.rawValue,
@@ -87,11 +88,13 @@ extension CaptureView {
                                         vehicleFuelKinds: [])
         let inbox = self.inbox
         invoiceSession.startGateway(
-            image: image,
+            pages: pages,
             hints: hints,
             captureId: UUID.v7().uuidString,
+            maxInvoicePages: config.config.maxInvoicePages,
             onSavedAnswer: { extraction, entryID in
-                let reading = ServiceRecognitionBuilder.reading(fromGateway: extraction)
+                let reading = ServiceRecognitionBuilder.reading(fromGateway: extraction,
+                                                                homeCurrency: vehicle?.homeCurrency)
                 inbox.recordLateGatewayAnswer(.service(reading.recognition), entryID: entryID)
             })
     }
@@ -99,15 +102,24 @@ extension CaptureView {
     /// DEBUG/test-only: `-captureAutoServiceScan` (with `-captureFixtureImage`)
     /// runs the real service scan a beat after the surface appears, so a UI test
     /// and `simctl` can reach the service form the document camera would have
-    /// produced without driving the system scanner. Production never passes the
-    /// argument; it routes through the exact call `DocumentCamera`'s result makes.
+    /// produced without driving the system scanner. `-captureAutoServiceScanPages
+    /// <n>` repeats the fixture as n pages, the way a multi-page scan lands.
+    /// Production never passes the argument; it routes through the exact call
+    /// `DocumentCamera`'s result makes.
     func presentServiceScanIfRequested() {
         #if DEBUG
-        guard ProcessInfo.processInfo.arguments.contains("-captureAutoServiceScan"),
+        let arguments = ProcessInfo.processInfo.arguments
+        guard arguments.contains("-captureAutoServiceScan"),
               let image = fixtureImage() else { return }
+        var pageCount = 1
+        if let index = arguments.firstIndex(of: "-captureAutoServiceScanPages"),
+           arguments.indices.contains(index + 1),
+           let count = Int(arguments[index + 1]) {
+            pageCount = max(1, count)
+        }
         Task {
             try? await Task.sleep(for: .milliseconds(600))
-            scanServiceInvoice([image])
+            scanServiceInvoice(Array(repeating: image, count: pageCount))
         }
         #endif
     }

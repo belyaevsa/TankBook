@@ -155,7 +155,8 @@ private struct InboxItemCard: View {
                 // take what remains and wrap by word.
                 GridRow {
                     fieldCell(offer, volumeUnit: volumeUnit)
-                    Text(InboxValueFormat.yours(offer.field, entry: entry, volumeUnit: volumeUnit))
+                    Text(InboxValueFormat.yours(offer.field, entry: entry, volumeUnit: volumeUnit,
+                                                pairedLocalIndex: offer.pairedLocalIndex))
                         .valueStyle(emphasis: .muted)
                         .gridColumnAlignment(.trailing)
                     Text(InboxValueFormat.receipt(offer.field, entry: entry,
@@ -183,10 +184,20 @@ private struct InboxItemCard: View {
         VStack(alignment: .leading, spacing: 2) {
             // Ideal width, never compressed: the grid may not squeeze a
             // single word until it breaks mid-word ("Мастер-ская").
-            Text(InboxValueFormat.label(offer.field, volumeUnit: volumeUnit))
+            Text(InboxValueFormat.label(for: offer, volumeUnit: volumeUnit))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.Palette.ink)
                 .fixedSize(horizontal: true, vertical: false)
+            // PJ.303: the arithmetic gate's flag rides the total offer - the
+            // cloud's lines do not sum to the total it read. Amber attention
+            // under the label, never a blocked tick (hard rules 5, 7).
+            if offer.attention {
+                Text(L10n.inboxReadingDoesNotAddUp)
+                    .font(.caption2)
+                    .foregroundStyle(Theme.Palette.warn)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("inboxReadingDoesNotAddUp")
+            }
             // Only the fill-blank case carries a caption: the amber receipt
             // value beside a typed one already says "replaces", and repeating
             // it on every row wasted the space (product owner, 2026-09-11).

@@ -26,6 +26,15 @@ enum InboxValueFormat {
         FieldLabel.text(field, volumeUnit: volumeUnit)
     }
 
+    /// The label for an OFFER: a line offer names the user's own row it pairs
+    /// with (PJ.302 - `pairedLocalIndex`, never the cloud's index, which is
+    /// the ref's) or "New line" when the cloud read one the split did not.
+    static func label(for offer: GatewayInboxPolicy.FieldOffer, volumeUnit: VolumeUnit = .l) -> String {
+        guard case .lineItem = offer.field else { return label(offer.field, volumeUnit: volumeUnit) }
+        guard let local = offer.pairedLocalIndex else { return L10n.localize("New line") }
+        return label(.lineItem(local), volumeUnit: volumeUnit)
+    }
+
     /// One stable, DISTINCT accessibility id per field ref (RV.201). The old
     /// `default: "inboxTick_other"` gave two different non-fuel fields the same
     /// id, so a UI test asserting one could not tell it from the other - a test
@@ -49,8 +58,12 @@ enum InboxValueFormat {
 
     /// The user's saved value for a field, or the blank marker. The volume
     /// value renders in the owning car's unit, not the stored litre figure
-    /// (RV.271).
-    static func yours(_ field: FieldRef, entry: InboxEntry, volumeUnit: VolumeUnit) -> String {
+    /// (RV.271). A line offer's "yours" is the PAIRED local line
+    /// (`pairedLocalIndex`), never the line at the cloud's index: the pairing
+    /// is by amount and title, not position (PJ.302), and a new cloud line has
+    /// no "yours" at all.
+    static func yours(_ field: FieldRef, entry: InboxEntry, volumeUnit: VolumeUnit,
+                      pairedLocalIndex: Int? = nil) -> String {
         switch field {
         case .date:
             return entry.date.formatted(.dateTime.month(.abbreviated).day().year())
@@ -75,8 +88,9 @@ enum InboxValueFormat {
         case .vendor:
             guard case .service(let service) = entry else { return blank }
             return service.vendor ?? blank
-        case .lineItem(let index):
-            return lineItemYours(entry: entry, index: index)
+        case .lineItem:
+            guard let pairedLocalIndex else { return blank }
+            return lineItemYours(entry: entry, index: pairedLocalIndex)
         case .category:
             guard case .expense(let expense) = entry else { return blank }
             return L10n.expenseCategoryLabel(expense.category)

@@ -171,7 +171,8 @@ final class GatewayScanSession {
 @MainActor
 enum GatewayScanStarter {
     static func makeTransport(
-        arguments: [String] = ProcessInfo.processInfo.arguments
+        arguments: [String] = ProcessInfo.processInfo.arguments,
+        maxInvoicePages: Int = ConfigDocument.ExtractLimits.defaultMaxInvoicePages
     ) -> (any GatewayExtractTransport)? {
         if let seed = GatewaySeedTransport.from(arguments: arguments) { return seed }
         let store = KeychainSessionStore()
@@ -190,7 +191,8 @@ enum GatewayScanStarter {
             // transport shares - a stale (but valid) session refreshes on the
             // gateway's 401 exactly as sync does, so a cloud reading that can
             // succeed does instead of being refused silently.
-            refresher: AppSessionRefresher.shared)
+            refresher: AppSessionRefresher.shared,
+            maxInvoicePages: maxInvoicePages)
     }
 }
 
@@ -208,12 +210,21 @@ enum GatewayScanStarter {
 /// phase and the sign-in notice shows). It exists because a UI test cannot hit
 /// a real server to produce a 401 the refresh cannot fix; the seed stands in
 /// for the dead-session outcome.
+///
+/// `-seedGatewayExpectPages <n>` (PJ.303) is the stub's assertion that every
+/// staged invoice page reached the request: a request carrying any other page
+/// count is refused, so the seeded answer never arrives and the test that
+/// waits for it fails instead of passing on a first-page-only call.
 struct GatewaySeedTransport: GatewayExtractTransport {
     let delay: Duration
     let extraction: GatewayExtraction
     let failure: SyncServerError?
+    let expectedPages: Int?
 
     func extract(_ request: GatewayExtractRequest) async throws -> GatewayExtraction {
+        if let expectedPages, request.allPages.count != expectedPages {
+            throw GatewayExtractError.tooManyPages(cap: expectedPages)
+        }
         try await Task.sleep(for: delay)
         if let failure { throw failure }
         return extraction
@@ -222,6 +233,11 @@ struct GatewaySeedTransport: GatewayExtractTransport {
     static func from(arguments: [String]) -> GatewaySeedTransport? {
         guard arguments.contains("-seedGateway") else { return nil }
         let authExpired = arguments.contains("-seedGatewayAuthExpired")
+        var expectedPages: Int?
+        if let index = arguments.firstIndex(of: "-seedGatewayExpectPages"),
+           arguments.indices.contains(index + 1) {
+            expectedPages = Int(arguments[index + 1])
+        }
         let delay: Duration
         if let index = arguments.firstIndex(of: "-seedGatewayDelay"),
            arguments.indices.contains(index + 1),
@@ -232,7 +248,8 @@ struct GatewaySeedTransport: GatewayExtractTransport {
         }
         return GatewaySeedTransport(delay: delay,
                                     extraction: Self.seededExtraction(arguments),
-                                    failure: authExpired ? .authExpired : nil)
+                                    failure: authExpired ? .authExpired : nil,
+                                    expectedPages: expectedPages)
     }
 
     /// The scripted answer. The values are distinctive (99.99 total, 1.679
@@ -242,6 +259,9 @@ struct GatewaySeedTransport: GatewayExtractTransport {
     /// locks cleanly instead of showing an amber mismatch - the point of that
     /// capture is the dimmed suggestion fields, not a cross-check argument.
     private static func seededExtraction(_ arguments: [String]) -> GatewayExtraction {
+        if arguments.contains("-seedGatewayInvoiceLines") {
+            return Self.seededInvoiceLines
+        }
         if arguments.contains("-seedGatewayConsistent") {
             return GatewayExtraction(
                 total: .init(value: Decimal(string: "71.02")!, confidence: 0.92),
@@ -265,6 +285,33 @@ struct GatewaySeedTransport: GatewayExtractTransport {
             pipeline: "seed"
         )
     }
+}
+
+// MARK: - The seeded invoice reading (PJ.303)
+
+extension GatewaySeedTransport {
+    /// `-seedGatewayInvoiceLines`: a cloud reading of the `-seedServiceScan`
+    /// invoice whose ONE local line ("Brake pads front", 89.00) it reads at a
+    /// different amount, plus a line the local split never produced. Built to
+    /// dodge the vacuous trap the row names: a reading that matched the split
+    /// line for line would render no offer and prove nothing. The lines sum to
+    /// 98.50 against a 100.00 header, so the arithmetic gate flags it too.
+    static let seededInvoiceLines = GatewayExtraction(
+        total: .init(value: Decimal(string: "100.00")!, confidence: 0.92),
+        date: .init(value: "09.08.2026", confidence: 0.80),
+        currency: .init(value: .eur, confidence: 0.60),
+        vendor: .init(value: "Local Garage", confidence: 0.80),
+        lineItems: [
+            GatewayLineItem(index: 0,
+                            title: .init(value: "BRAKE PADS FRONT", confidence: 0.9),
+                            amount: .init(value: Decimal(string: "95.00")!, confidence: 0.9),
+                            category: .init(value: .brakes, confidence: 0.8)),
+            GatewayLineItem(index: 1,
+                            title: .init(value: "Environmental fee", confidence: 0.9),
+                            amount: .init(value: Decimal(string: "3.50")!, confidence: 0.9))
+        ],
+        pipeline: "seed"
+    )
 }
 
 // MARK: - Field mapping

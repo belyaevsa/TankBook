@@ -1536,6 +1536,15 @@ capture PJ.29-expense-gateway-note-ru                    ru -seedVehicleForUITes
 capture PJ.29a-service-gateway-note                      en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode service -captureFixtureImage "${RV5_FIXTURE}" -seedServiceScan -captureAutoServiceScan -seedGateway -seedGatewayDelay 30
 capture PJ.29a-service-gateway-note-ru                   ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode service -captureFixtureImage "${RV5_FIXTURE}" -seedServiceScan -captureAutoServiceScan -seedGateway -seedGatewayDelay 30
 
+# PJ.303: every page reaches the cloud and its lines are offered on the split -
+# the form with the paired offer strip on the brake row, the new-line card and
+# the amber "doesn't add up" flag under the total (the seeded reading arrives
+# inside the budget); and the inbox card listing the same pairs.
+capture PJ.303-service-line-offers                       en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode service -captureFixtureImage "${RV5_FIXTURE}" -seedServiceScan -captureAutoServiceScan -captureAutoServiceScanPages 2 -seedGateway -seedGatewayInvoiceLines -seedGatewayDelay 0.5 -screenshotLineOffers
+capture PJ.303-service-line-offers-ru                    ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode service -captureFixtureImage "${RV5_FIXTURE}" -seedServiceScan -captureAutoServiceScan -captureAutoServiceScanPages 2 -seedGateway -seedGatewayInvoiceLines -seedGatewayDelay 0.5 -screenshotLineOffers
+capture PJ.303-inbox-line-pairs                          en -seedSettingsSignedIn -seedInboxServiceLines -inboxReset -presentScreen inbox
+capture PJ.303-inbox-line-pairs-ru                       ru -seedSettingsSignedIn -seedInboxServiceLines -inboxReset -presentScreen inbox
+
 # RV.279: the Expense and Service capture forms now render the odometer card and
 # the currency chip row Edit entry has, so the two doors to one entry are the
 # same screen. The expense frame is the foreign-prefilled state (a 289.50 PLN

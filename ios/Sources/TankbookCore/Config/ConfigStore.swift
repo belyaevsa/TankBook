@@ -658,6 +658,7 @@ public struct DebugConfigOverride: Sendable, Equatable {
     public var appUpdate: ConfigDocument.AppUpdateNotice?
     public var rolloutSalt: String?
     public var flags: [String: ConfigDocument.FeatureFlag]?
+    public var maxInvoicePages: Int?
 
     public init() {}
 
@@ -674,6 +675,7 @@ public struct DebugConfigOverride: Sendable, Equatable {
             appUpdate: appUpdate ?? base.appUpdate,
             rolloutSalt: rolloutSalt ?? base.rolloutSalt,
             flags: flags ?? base.flags,
+            maxInvoicePages: maxInvoicePages ?? base.maxInvoicePages,
             version: base.version
         )
     }

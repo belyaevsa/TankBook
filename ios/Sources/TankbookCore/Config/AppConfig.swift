@@ -25,6 +25,11 @@ public struct AppConfig: Sendable, Equatable {
     public let appUpdate: ConfigDocument.AppUpdateNotice?
     public let rolloutSalt: String
     public let flags: [String: ConfigDocument.FeatureFlag]
+    /// The gateway's invoice page cap (`extract.maxInvoicePages`, docs/API.md
+    /// "multi-page invoices"): the document camera stops at it and the client
+    /// refuses a request over it before any upload. The compiled default when
+    /// no document carries the key.
+    public let maxInvoicePages: Int
 
     /// The version of the applied document, for logging (`config.apply`). The
     /// bundled layer's own version when no remote document applied.
@@ -59,6 +64,7 @@ public struct AppConfig: Sendable, Equatable {
         appUpdate: ConfigDocument.AppUpdateNotice? = nil,
         rolloutSalt: String,
         flags: [String: ConfigDocument.FeatureFlag],
+        maxInvoicePages: Int = ConfigDocument.ExtractLimits.defaultMaxInvoicePages,
         version: Int
     ) {
         self.apiBaseURL = apiBaseURL
@@ -72,6 +78,7 @@ public struct AppConfig: Sendable, Equatable {
         self.appUpdate = appUpdate
         self.rolloutSalt = rolloutSalt
         self.flags = flags
+        self.maxInvoicePages = maxInvoicePages
         self.version = version
     }
 
@@ -92,6 +99,8 @@ public struct AppConfig: Sendable, Equatable {
             appUpdate: document.appUpdate,
             rolloutSalt: document.rolloutSalt,
             flags: document.flags,
+            maxInvoicePages: document.extract?.maxInvoicePages
+                ?? ConfigDocument.ExtractLimits.defaultMaxInvoicePages,
             version: document.version
         )
     }
@@ -139,6 +148,7 @@ public struct AppConfig: Sendable, Equatable {
             appUpdate: appUpdate,
             rolloutSalt: rolloutSalt,
             flags: flags,
+            maxInvoicePages: maxInvoicePages,
             version: version
         )
     }
@@ -169,6 +179,7 @@ public struct AppConfig: Sendable, Equatable {
             appUpdate: value("appUpdate", remote.appUpdate, appUpdate),
             rolloutSalt: value("rolloutSalt", remote.rolloutSalt, rolloutSalt),
             flags: value("flags", remote.flags, flags),
+            maxInvoicePages: value("extract", remote.extract?.maxInvoicePages ?? maxInvoicePages, maxInvoicePages),
             version: remote.version
         )
     }

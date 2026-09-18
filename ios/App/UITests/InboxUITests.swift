@@ -331,8 +331,13 @@ final class InboxUITests: XCTestCase {
                       "the invoice's first line must be tickable")
         XCTAssertTrue(app.buttons["inboxTick_total"].exists,
                       "the service total must be tickable")
-        XCTAssertTrue(app.staticTexts["Row 1"].waitForExistence(timeout: 5),
-                      "the first line is labelled from one, not zero (RV.216)")
+        // PJ.303: the seed's cloud line (Brake pads, 120.00) pairs with no
+        // saved line (Oil change, 80.00), so it is labelled as a NEW line - the
+        // paired case, labelled from the user's row, is
+        // `GatewayInvoiceLinesUITests` ("Row 1"). A zero-based label is still
+        // the RV.216 defect.
+        XCTAssertTrue(app.staticTexts["New line"].waitForExistence(timeout: 5),
+                      "a cloud line with no partner is labelled as a new line")
         XCTAssertFalse(app.staticTexts["Row 0"].exists,
                        "a zero-based line label is the defect")
         XCTAssertFalse(app.buttons["inboxTick_volume"].exists,
@@ -357,8 +362,8 @@ final class InboxUITests: XCTestCase {
         XCTAssertTrue(app.buttons["inboxTick_vendor"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["inboxTick_lineItem_0"].exists)
         XCTAssertTrue(app.buttons["inboxTick_total"].exists)
-        XCTAssertTrue(app.staticTexts["Строка 1"].waitForExistence(timeout: 5),
-                      "the first line is labelled from one in RU too (RV.216)")
+        XCTAssertTrue(app.staticTexts["Новая строка"].waitForExistence(timeout: 5),
+                      "a cloud line with no partner is labelled as a new line in RU too")
         XCTAssertFalse(app.staticTexts["Строка 0"].exists,
                        "a zero-based line label is the defect")
         app.buttons["inboxLeaveButton"].tap()

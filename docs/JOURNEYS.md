@@ -388,7 +388,13 @@ the agent); a reading that does not add up is offered with a "doesn't add up" fl
 total, never applied. Camera pages only for now - a PDF from Files as an input is its own row
 when someone asks for it; the page cap is a compiled constant named in `API.md`, not a number
 here. **J16 inherits this for free**: the agent's `captureInvoice()` is this call, so v2 builds
-no second invoice pipeline.
+no second invoice pipeline. **Shipped 2026-09-18** ([PJ.301]–[PJ.303]): the capture sends every
+page in one call; on the form the offer strip sits under the paired row ("From the invoice" ·
+Take / Keep), a new line is a dimmed "Also on the invoice" card (Add / Dismiss), and the
+"doesn't add up" flag is an amber line under the header total; the inbox card labels a paired
+line by the user's row and an unpaired one "New line" (`ERRORS.md` → Service & expenses, Inbox).
+Over the served page cap no cloud call is made and the form says so - every page is still kept
+and split on the device.
 
 **Success metric:** ≥50% of service records carry an attachment; reminder acceptance rate ≥60%.
 
