@@ -52,6 +52,7 @@ public static class ImportEndpoints
         [FromForm] string? format,
         IFormFile? file,
         ImportService imports,
+        Microsoft.Extensions.Options.IOptions<ImportOptions> options,
         HttpContext httpContext,
         CancellationToken cancellationToken)
     {
@@ -105,7 +106,13 @@ public static class ImportEndpoints
                 deviceId.Value,
                 cancellationToken);
 
-            return Results.Json(response, WireJson, statusCode: StatusCodes.Status200OK);
+            // The cold-start hint rides this uncacheable response and nothing
+            // else (docs/API.md "detectedCountry"); it is not stored with the parse.
+            var hinted = response with
+            {
+                DetectedCountry = Reference.DetectedCountry.From(httpContext.Request, options.Value.DetectedCountryHeader),
+            };
+            return Results.Json(hinted, WireJson, statusCode: StatusCodes.Status200OK);
         }
         catch (ImportFileTooLargeException ex)
         {

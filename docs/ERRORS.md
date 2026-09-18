@@ -412,6 +412,8 @@ evidence this path never gathers is a default the app cannot justify.
 | Condition | Shows | Next step |
 |---|---|---|
 | Free-tier car limit reached on "Add car" | Sheet explains the cap (never mid-capture): "Free keeps up to 3 cars. Archive one to add another." | Archive a car · cancel. **The "Pro" action was removed in v1 (RV.70)**: it pushed `Route.paywall`, which resolves to a blank screen, and a reachable placeholder is an App Review rejection while the store metadata declares no paid tier. Restore it together with a real paywall, not before. Existing cars are never locked (anti-CarScope rule) |
+| A station's name matched no brand (RV.115) | The station settings' **Brand** card reads "No brand" in `inkSoft` - a first-class state, not a gap: the Log row titles itself with the station's name. Nothing warns | **Change** opens the picker: pick a chain, type your own word ("Use “…”"), or keep "No brand" |
+| The matcher chose the wrong chain (RV.115; hard rule 13) | The brand shows beneath the station on the entry row and beside the site in the Garage's Stations list, so a wrong pick is visible where the station is | **Change brand** in the entry's station menu, or **Change** on the station's Brand card. The pick is permanent - no pack update, merge or re-scan puts the matcher's choice back |
 
 ### Vehicle detail
 | Condition | Shows | Next step |

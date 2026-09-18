@@ -1327,6 +1327,14 @@ capture RV.160-about-feedback-offline-ru ru -feedbackConsentOn -feedbackTranspor
 capture PJ.55-station-favourite    en -seedStationSettings -presentScreen stationSettings
 capture PJ.55-station-favourite-ru ru -seedStationSettings -presentScreen stationSettings
 
+# RV.115 / RV.180: the station's Brand card - the chain the matcher chose
+# beside the site's printed line, changeable - and the Stations list row
+# naming both.
+capture RV.115-station-brand    en -seedStationSettings -seedStationBrand -presentScreen stationSettings
+capture RV.115-station-brand-ru ru -seedStationSettings -seedStationBrand -presentScreen stationSettings
+capture RV.115-stations-list    en -seedStationSettings -seedStationBrand -presentScreen stations
+capture RV.115-stations-list-ru ru -seedStationSettings -seedStationBrand -presentScreen stations
+
 # Two names for one picture is a defect this file produced ten times before
 # anyone counted (see alias_shot). A deliberate alias is a copy and is expected;
 # anything else identical means two capture lines are shooting the same frame -

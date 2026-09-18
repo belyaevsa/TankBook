@@ -20,12 +20,14 @@ struct StationSettingsView: View {
     @State private var station: Station?
     @State private var didLoad = false
     @State private var loadFailed = false
+    @State private var isPickingBrand = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
                 if let station {
                     header(station)
+                    section("Brand") { brandCard(station) }
                     section("Location") { locationCard(station) }
                     section("Favourite") { favouriteCard(station) }
                 } else if loadFailed {
@@ -38,6 +40,11 @@ struct StationSettingsView: View {
         }
         .scrollContentBackground(.hidden)
         .background(Theme.Palette.midnight)
+        .sheet(isPresented: $isPickingBrand) {
+            if let station {
+                StationBrandPickerSheet(station: station) { setBrand($0) }
+            }
+        }
         .task { await load() }
         .onAppear { if didLoad { reload() } }
     }
@@ -50,23 +57,62 @@ struct StationSettingsView: View {
         }
     }
 
-    /// The station's own identity: name in the card header, its brand (when an
-    /// import or the seed recorded one) beneath it. The name is runtime data.
+    /// The station's own identity: the site's name in the card header - the
+    /// full printed line that tells two forecourts of one chain apart (RV.180).
     private func header(_ station: Station) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(station.name)
-                .font(.title3.weight(.bold))
-                .foregroundStyle(Theme.Palette.ink)
-                .lineLimit(2)
-            if let brand = station.brand {
-                Text(brand)
-                    .font(.caption)
-                    .foregroundStyle(Theme.Palette.inkSoft)
+        Text(station.name)
+            .font(.title3.weight(.bold))
+            .foregroundStyle(Theme.Palette.ink)
+            .lineLimit(2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(Theme.Spacing.cardPadding)
+            .formCard()
+    }
+
+    /// RV.115 / RV.180: the chain this site belongs to - what the Log row and
+    /// the picker show. Matched from the vocabulary when the station was
+    /// created, a DEFAULT the user changes here (hard rule 13); "No brand" is
+    /// a first-class state, never a gap to fill.
+    private func brandCard(_ station: Station) -> some View {
+        Button {
+            isPickingBrand = true
+        } label: {
+            HStack {
+                Text(station.brand ?? L10n.localize("No brand"))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(station.brand == nil ? Theme.Palette.inkSoft : Theme.Palette.ink)
+                    .accessibilityIdentifier("stationSettingsBrandValue")
+                Spacer(minLength: 8)
+                Text("Change")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.action)
             }
+            .padding(Theme.Spacing.cardPadding)
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Theme.Spacing.cardPadding)
+        .buttonStyle(.plain)
         .formCard()
+        .accessibilityIdentifier("stationSettingsBrandButton")
+    }
+
+    /// The brand write - the user's pick, kept forever: no pack update, sync
+    /// merge or re-scan rewrites it (`setStationBrand`). Field NAME only in
+    /// the log (hard rule 12).
+    private func setBrand(_ brand: String?) {
+        do {
+            let repository = try AppStore.repository()
+            if let station {
+                _ = try loggedWrite(AppLog.shared, op: .update,
+                                    entityType: Station.entityType,
+                                    entityId: station.id, source: .manual,
+                                    fieldsChanged: ["brand"]) {
+                    try repository.setStationBrand(id: station.id, brand)
+                }
+            }
+            reload()
+        } catch {
+            AppLog.error(operation: "stationSettings.setBrand", category: .ui, error: error)
+        }
     }
 
     private func locationCard(_ station: Station) -> some View {

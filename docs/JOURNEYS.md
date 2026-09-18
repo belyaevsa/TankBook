@@ -130,6 +130,19 @@ user mid-restore.
 
 Same shape as J3, with the deltas: camera pointed at the pump display before hanging up the nozzle (→ prompt tip on first use: "no receipt? Shoot the pump"); OCR reads the three numbers, arithmetic triple-match assigns them (⚠ glare/LED segments – the spike's ~95% gate applies before this ships); station name auto-suggested from location + favorites. This journey is **unowned by any competitor** – it must feel as reliable as J3 or not exist.
 
+**One chain, one station (RV.115 + RV.180, shipped 2026-09-18).** A station has a **brand** (the
+chain) and a **name** (the site's full printed line). The brand is matched once, when the station is
+minted - from a typed name, a scanned station line or an imported column - against the station brand
+vocabulary (`docs/API.md` → `GET /reference/station-brands`), so `Газпром`, `Gazpromneft` and `ООО
+"Газпромнефть-Центр" АЗС 12089` all land under `Gazpromneft`; the Log row and Trends' price-per-brand
+line show the brand, the station row on Confirm shows the site with the brand beneath it, and the
+Garage's Stations list shows both. A name matching nothing is the user's own station with no brand.
+The brand is a default (hard rule 13): the user changes it - a vocabulary pick, their own word or
+"No brand" - from the entry's station row (**Change brand** in the station menu) or in the Garage's
+station settings, and no later pack, merge or re-scan rewrites it. The picker orders the vocabulary
+on the device: the capture's country first, then the chains the user already fuels at, then the
+device region, then the server's cold-start hint, then the rest.
+
 **Station suggestion – the logic (written 2026-08-30, shipped as PJ.19 [v1.1]).** The station
 field is a default input (hard rule 13): the app proposes one, the user changes it in one tap, and
 a changed station is theirs. The proposal is ranked, first match wins:
@@ -548,7 +561,7 @@ deleted.
 ### J8 · The monthly glance
 **Status: implemented 2026-09-11** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J8-2026-09-11c)
 **Trigger:** idle curiosity, end of month, or the "August: €212 on the Volvo" notification (opt-in).
-**Journey:** open Trends → hero consumption metric with trend arrow *(PJ.30, 2026-09-18: the arrow is the current 90-day window against the one before it - "▼20%" - and is absent, never invented, when either window does not stand on its own segments)* → monthly spend bars → price-per-liter line per station brand ("Shell costs you 4% more than Neste") *(PJ.31, 2026-09-18: a card under the tiles, one line per brand over the last year, the sentence from the engine's means - absent below two brands with two fills each; "brand" is the station's own name until `RV.115` lands the brand vocabulary)*. Feeling sought: *control*, not accounting homework. → Every chart answers a sentence-shaped question; no chart junk. Exit within 60 seconds, satisfied.
+**Journey:** open Trends → hero consumption metric with trend arrow *(PJ.30, 2026-09-18: the arrow is the current 90-day window against the one before it - "▼20%" - and is absent, never invented, when either window does not stand on its own segments)* → monthly spend bars → price-per-liter line per station brand ("Shell costs you 4% more than Neste") *(PJ.31, 2026-09-18: a card under the tiles, one line per brand over the last year, the sentence from the engine's means - absent below two brands with two fills each; since `RV.115` (2026-09-18) "brand" is the station's matched brand, falling back to its name)*. Feeling sought: *control*, not accounting homework. → Every chart answers a sentence-shaped question; no chart junk. Exit within 60 seconds, satisfied.
 
 **Success metric:** ≥40% of MAU open Trends monthly; session length short (it's a glance, not a report).
 

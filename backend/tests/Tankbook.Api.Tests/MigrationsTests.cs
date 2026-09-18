@@ -38,6 +38,8 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         "llm_calls",
         "llm_ledger_pending",
         "delivery_outbox",
+        "station_brands",
+        "station_brand_pack_state",
     };
 
     [SkippableFact]

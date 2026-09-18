@@ -536,6 +536,22 @@ devices typing the same name mint the same id and converge instead of duplicatin
 name match selects the existing station rather than minting a second row. A blank or
 whitespace-only name creates nothing.
 
+**The brand is matched once, at minting, and is the user's from then on (RV.115 / RV.180,
+2026-09-18).** `brand` is the chain a `name` belongs to, set by the resolver from the station
+brand vocabulary (`docs/API.md` → `GET /reference/station-brands`: brands with alias spellings and
+a home `country`, bundled as a seed pack, cached, refreshed with `since_version`) through
+`StationBrandMatcher` - case- and script-insensitive, whole tokens only, legal forms and the
+generic station nouns dropped, longest spelling wins - so `Газпром`, `ГАЗПРОМНЕФТЬ`, `Gazpromneft`,
+`G-Drive` and `ООО "Газпромнефть-Центр" АЗС 12089` all mint stations carrying `brand = "Gazpromneft"`.
+`name` stays the site's full printed line: the brand is what the Log row and a picker show
+(the `displayTitle` accessor on the station), the name is what tells two forecourts of one chain apart, and a receipt
+naming only the chain invents no site. A name matching nothing mints a station with `brand = nil` -
+the user's own station, a first-class state, never an error. **Only a minted station is matched**:
+an existing station keeps whatever brand it has - matched, the user's own word, or cleared - so no
+later pack, sync merge or re-scan rewrites it (hard rule 13). The user changes the brand on the
+per-station settings screen and from the entry's station row (a vocabulary pick, their own word,
+or "No brand"), and the write is `setStationBrand`, an ordinary `.dirty` station edit.
+
 **The favourite is set by the user, never inferred (PJ.55).** `favorite` is the only station field
 the save stamp does not write: a favourite is a statement about the user's preference, not an
 observation about a visit, so no visit count, `lastUsedAt` or later curation may set it, and the

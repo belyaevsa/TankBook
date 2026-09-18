@@ -41,6 +41,10 @@ let package = Package(
                 // price bands): day-one offline capture can still tell a litre
                 // price from a volume on an unmarked receipt.
                 .copy("Extraction/FuelPriceBands.seed.json"),
+                // Bundled station brand seed pack (docs/API.md -> station
+                // brands): a name typed or imported on day one still groups
+                // under its chain, offline.
+                .copy("Stations/StationBrands.seed.json"),
                 // Bundled payload JSON Schemas (docs/SCHEMA.md -> Payload
                 // schemas). The per-car archive reader validates every payload
                 // against the registered contract before it imports anything;

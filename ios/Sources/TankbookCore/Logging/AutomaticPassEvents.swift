@@ -30,6 +30,8 @@ public enum AutomaticPassMark: String, Sendable, CaseIterable, Equatable {
     case delivery
     /// Reaching the feedback-outbox flush.
     case feedback
+    /// Reaching the station-brand pack refresh (RV.115).
+    case stationBrands
     /// The pass returned from its last step.
     case finished
 }

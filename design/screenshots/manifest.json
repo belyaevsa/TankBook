@@ -1525,6 +1525,26 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.115-station-brand": {
+      "commit": "758fe592",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.115-station-brand-ru": {
+      "commit": "758fe592",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.115-stations-list": {
+      "commit": "758fe592",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.115-stations-list-ru": {
+      "commit": "758fe592",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "RV.116-import-unsupported-notice": {
       "commit": "fe94b0f",
       "device": "iPhone 17",

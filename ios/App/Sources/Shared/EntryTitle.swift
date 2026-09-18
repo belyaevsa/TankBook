@@ -15,9 +15,10 @@ enum EntryTitle {
     static func text(_ entry: any Entry, stations: [Station]) -> String {
         switch entry {
         case let fill as FillUp:
+            // RV.180: the BRAND when the station has one, else its name.
             if let stationID = fill.stationId,
-               let name = stations.first(where: { $0.id == stationID })?.name {
-                return name
+               let title = stations.first(where: { $0.id == stationID })?.displayTitle {
+                return title
             }
             return fill.fuelKind.fuelKindLabel
         case let charge as ChargeSession:
@@ -37,8 +38,8 @@ enum EntryTitle {
         switch entry.kind {
         case .fuel:
             if let stationID = entry.stationId,
-               let name = stations.first(where: { $0.id == stationID })?.name {
-                return name
+               let title = stations.first(where: { $0.id == stationID })?.displayTitle {
+                return title
             }
             return entry.fuelKind?.fuelKindLabel ?? L10n.localize("Fuel")
         case .charge:

@@ -19,6 +19,10 @@ public sealed class ImportOptions
     /// <summary>How often the background purge job runs a pass.</summary>
     public int PurgeIntervalMinutes { get; set; } = 60;
 
+    /// <summary>The request header the edge sets to the connection's country, echoed as the
+    /// parse response's <c>detectedCountry</c> hint (docs/API.md). Never stored.</summary>
+    public string DetectedCountryHeader { get; set; } = Reference.DetectedCountry.DefaultHeader;
+
     public TimeSpan RetentionPeriod => TimeSpan.FromDays(RetentionDays);
 
     public TimeSpan PurgeInterval => TimeSpan.FromMinutes(PurgeIntervalMinutes);

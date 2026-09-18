@@ -21,7 +21,12 @@ extension ManualFillUpView {
               let name = selectedStation?.name else { return }
         self.scannedStationID = nil
         do {
-            _ = try repository.createStation(named: name)
+            guard let created = try repository.createStation(named: name) else { return }
+            // RV.180: a brand the user changed on the row before saving is
+            // theirs, not the matcher's; the minted row takes the pick.
+            if let chosen = selectedStation, chosen.brand != created.brand {
+                try repository.setStationBrand(id: created.id, chosen.brand)
+            }
         } catch {
             AppLog.error(operation: "confirmManual.stationCreate",
                          category: .ui, error: error)

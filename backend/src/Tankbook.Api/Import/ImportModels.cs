@@ -149,7 +149,9 @@ public sealed record ImportParseRow(
     int UnparsedCount,
     DateTime CreatedAt);
 
-/// <summary>The wire envelope for a stored parse (docs/API.md "Import parsing").</summary>
+/// <summary>The wire envelope for a stored parse (docs/API.md "Import parsing").
+/// <c>DetectedCountry</c> rides only the POST's fresh response (docs/API.md
+/// "detectedCountry"): a per-request hint, absent from the stored parse.</summary>
 public sealed record ImportParseResponse(
     Guid ImportId,
     string Format,
@@ -158,4 +160,8 @@ public sealed record ImportParseResponse(
     JsonNode? Unparsed,
     JsonNode? Ambiguities,
     JsonNode? VehicleGroups,
-    JsonNode? Unsupported);
+    JsonNode? Unsupported)
+{
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? DetectedCountry { get; init; }
+}

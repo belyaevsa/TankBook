@@ -25,6 +25,7 @@ enum ImportTestSeed {
             || arguments.contains("-seedImportConsumption")
             || arguments.contains("-seedImportResolvedDates")
             || arguments.contains("-seedImportService")
+            || arguments.contains("-seedImportBrand")
             || arguments.contains("-seedImportCars")
             || arguments.contains("-seedImportCarsDecided")
             || arguments.contains("-seedImportCarsNewCar")
@@ -162,15 +163,7 @@ enum ImportTestSeed {
             // must wear its own label and next step, never the timeline's.
             model.installSeededConsumptionParse()
             model.showReview()
-        } else if arguments.contains("-seedImportReview") {
-            model.installSeededParse(resourceName: "import-parse-review",
-                                     fileName: "MyFuelManager_2026-08.csv",
-                                     rawFileResource: "import-mfm-review")
-            model.showReview()
-        } else if arguments.contains("-seedImportService") {
-            model.installSeededServiceParse()
-            model.showReview()
-        } else {
+        } else if !seedReviewParseIfRequested(arguments: arguments, model: model) {
             seedImportRequestFlow(arguments: arguments, model: model)
         }
         // RV.263: the auto-confirm screenshot seam commits without a tap, so a
@@ -186,6 +179,26 @@ enum ImportTestSeed {
     /// each failure state renders from an actual request rather than a fixture.
     /// Split out of `seedFlowIfRequested` to keep its complexity under the
     /// linter's ceiling; it no-ops when none of its flags is present.
+    /// The seeds that open straight on the review: the MFM review fixture, the
+    /// non-fuel row (service) and the branded station (RV.115). Returns
+    /// whether one was requested.
+    @MainActor
+    private static func seedReviewParseIfRequested(arguments: [String], model: ImportFlowModel) -> Bool {
+        if arguments.contains("-seedImportReview") {
+            model.installSeededParse(resourceName: "import-parse-review",
+                                     fileName: "MyFuelManager_2026-08.csv",
+                                     rawFileResource: "import-mfm-review")
+        } else if arguments.contains("-seedImportService") {
+            model.installSeededServiceParse()
+        } else if arguments.contains("-seedImportBrand") {
+            model.installSeededBrandParse()
+        } else {
+            return false
+        }
+        model.showReview()
+        return true
+    }
+
     @MainActor
     private static func seedImportRequestFlow(arguments: [String], model: ImportFlowModel) {
         if arguments.contains("-seedImportParse422") {

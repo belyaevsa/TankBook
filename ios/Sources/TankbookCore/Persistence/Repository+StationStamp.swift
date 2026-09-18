@@ -73,4 +73,21 @@ extension TankbookRepository {
         try upsertStation(live, syncState: .dirty)
         return true
     }
+
+    /// RV.115 / RV.180: the user's own brand for a station - a vocabulary pick,
+    /// their own word, or nil for "no brand". The write is theirs permanently:
+    /// no pack update, sync merge or re-scan touches a saved station's brand
+    /// (the resolver sets one only when it MINTS a station). Returns false
+    /// when nothing changed.
+    @discardableResult
+    public func setStationBrand(id: UUID, _ brand: String?,
+                                at now: Date = Date()) throws -> Bool {
+        let trimmed = brand?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let next = (trimmed?.isEmpty ?? true) ? nil : trimmed
+        guard var live = try station(id: id), live.brand != next else { return false }
+        live.brand = next
+        live.updatedAt = now
+        try upsertStation(live, syncState: .dirty)
+        return true
+    }
 }

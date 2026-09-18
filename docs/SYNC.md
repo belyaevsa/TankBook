@@ -301,11 +301,15 @@ entry); the count is a presentation, never a write. The alternative – clearing
 locally-created entry owns – was rejected too: a record that merged down from another device is
 re-dirtied and indistinguishable from one authored here, so the sweep would still race a restore.
 
-## Reference data: server-curated packs (vehicle catalog, rates)
+## Reference data: server-curated packs (vehicle catalog, rates, station brands)
 
 The vehicle catalog is **curated on the server**, and the server is the **master copy**. The app ships a
 bundled seed pack, downloads updated packs into a cache, and **where the two overlap the server's values
-win**. Same mechanism for exchange-rate packs (`P5`).
+win**. Same mechanism for exchange-rate packs (`P5`) and, since RV.115 (2026-09-18), for the **station
+brand vocabulary** (`GET /reference/station-brands`, `StationBrandStore`): a full pack replaces the held
+set, a delta overlays by id, a version not above the held one is ignored. The same limit as the catalog
+applies: the pack changes what the NEXT station matches and never rewrites a saved station's `brand`
+(`docs/SCHEMA.md` → Station).
 
 This is a *different channel from user-data sync*, and conflating the two is the mistake to avoid. Nothing
 here has an SCN, a tombstone, a dirty queue or a conflict state, because the flow is **one-way and
