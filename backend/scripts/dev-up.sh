@@ -16,7 +16,9 @@ POSTGRES_PASSWORD="tankbook"
 POSTGRES_VOLUME="tankbook-postgres-data"
 
 MINIO_NAME="tankbook-minio"
-MINIO_IMAGE="minio/minio"
+# Docker Hub no longer serves minio/minio (pull is denied); quay.io is the
+# upstream registry.
+MINIO_IMAGE="quay.io/minio/minio"
 MINIO_API_PORT="9000"
 MINIO_CONSOLE_PORT="9001"
 MINIO_ROOT_USER="tankbook"
