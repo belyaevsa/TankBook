@@ -49,19 +49,30 @@ only; the checkpoint lives in `.out/`, which is gitignored).
 
 ## Held-out score
 
-`windows.json` was **absent** when this row ran (PU.2 is still in flight), so the
-held-out numbers are not available yet. The scorer was exercised instead on a
-synthetic fake (`ml/pump-reader/.out/make_fake_windows.py`): 10 PU.1 rows rendered
-without augmentation, quads = the tight glyph bounding box. That is a sanity run,
-**not** the held-out number.
+Run by the orchestrator on 2026-09-19 once PU.2's `windows.json` landed (114
+fixtures, 433 non-empty windows scored, 23 unreadable windows skipped):
 
 ```
-per-segment mean 0.968   per-glyph 0.814   per-window 0.5   (10 synthetic windows)
+per-segment mean 0.596   per-glyph 0.123   per-window 0.000
+per-segment: a 0.485  b 0.636  c 0.656  d 0.465  e 0.700  f 0.533  g 0.541  dp 0.751
 ```
 
-Two clean-data gaps worth re-checking against the real corpus when it lands:
-`scheidt` (VFD) and `tokheim` (amber LED) read 0/2 windows each on the fake. VFD
-is only a 0.1 prior, so a real-corpus VFD miss would argue for raising it.
+`runs/2026-09-19/held-out-score.json` holds the full table; `held-out-cells.png`
+shows what the scorer fed the model for six fixtures, and it is the diagnosis:
+**the naive equal-width slicer, not the classifier, is what this number
+measures.** The annotated quads carry a margin, a leading blank cell is not the
+same width as a digit cell, and on Gilbarco heads the comma sits in its own
+narrow cell - so most cells straddle two glyphs. Where a cell happens to land on
+one glyph (`0>0`, `8>8`, `9>9`, `3>3`, `4>4`, `6>6` on the sheet) the model
+reads it right. This is exactly PU.4's job: a column-projection slicer that
+finds the real glyph pitch. The per-glyph number above is the **before**; PU.4
+re-runs this scorer with its slicer and records the after under the same row.
+
+Two things the sheet says about the renders themselves, for PU.6: real LCD
+glyphs are noticeably **bolder** (thicker segments relative to the cell) than
+the `gilbarco` profile draws, and real cells carry the neighbouring glyph's
+edge at both sides - the crop jitter should include horizontal spill from a
+neighbour, not only a shift of the glyph itself.
 
 ## Named mutation: drop the dp bit
 
