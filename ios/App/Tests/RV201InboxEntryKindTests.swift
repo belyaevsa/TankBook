@@ -151,7 +151,10 @@ final class RV201InboxEntryKindTests: XCTestCase {
         XCTAssertEqual(String(format: en, "1"), "Row 1")
         XCTAssertEqual(String(format: ru, "1"), "Строка 1")
 
-        // `.lineItem(0)` still addresses the first saved item through the merge.
+        // `.lineItem(0)` addresses the CLOUD's first line through the merge; the
+        // local line it lands on is the matcher's partner (PJ.302 - by amount,
+        // then title, never by index). The same amount pairs it with the saved
+        // item, so taking it retitles that item.
         let (repository, vehicle) = try makeVehicle()
         let now = Date()
         let service = ServiceRecord(
@@ -167,8 +170,8 @@ final class RV201InboxEntryKindTests: XCTestCase {
         try repository.upsertServiceRecord(service)
 
         let recognition = InboxRecognition.service(ServiceRecognition(
-            lineItems: [.init(title: "Brake pads", category: .brakes,
-                              cost: Money(amount: Decimal(string: "120.00")!,
+            lineItems: [.init(title: "Oil and filter change", category: .oil,
+                              cost: Money(amount: Decimal(string: "80.00")!,
                                           currency: .eur, homeCurrency: .eur))]))
         let merged = GatewayInboxPolicy.merged(entry: .service(service),
                                                recognition: recognition,
@@ -177,8 +180,9 @@ final class RV201InboxEntryKindTests: XCTestCase {
             XCTFail("a service merge must stay a service")
             return
         }
-        XCTAssertEqual(result.items.first?.title, "Brake pads",
-                       "the ref addresses items[0]; the 1-based label must not move it")
+        XCTAssertEqual(result.items.map(\.title), ["Oil and filter change"],
+                       "the ref addresses the cloud line, the 1-based label must not move it; " +
+                       "the same amount pairs it onto items[0]")
     }
 
     // MARK: - Catalog reading (the ServerErrorCodeL10nTests pattern)

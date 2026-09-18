@@ -601,6 +601,35 @@ and a late answer becomes an inbox item through `GatewayInboxPolicy.item(recogni
 one policy. The same guards apply: `config.allowsServerBacked` withholds the call under `.required`,
 a guest gets no transport, and a non-JPEG rendition gets no call.
 
+**Every page reaches the cloud, and the cloud may read the lines (PJ.301/PJ.302, 2026-09-18;
+decided 2026-09-15, product owner).** The paragraph above is the header-only shape an older
+client still sends as `image`. The client now sends **every captured page** of an invoice as
+`images` (docs/API.md "multi-page invoices"; `GatewayExtractRequest.pages`, capped by the served
+`extract.maxInvoicePages`), and the answer carries the line items as `lineItem[n].title/amount/
+category` fields, decoded into `GatewayExtraction.lineItems` and, by
+`ServiceRecognitionBuilder.reading(fromGateway:homeCurrency:)`, into `ServiceRecognition.lineItems`
+- a category the device does not know becomes `.other("")`, a line with no title is not offered, a
+line's cost takes the reading's currency, else the car's home currency, else none.
+
+**The line merge outcomes.** The local split stays the form's; the cloud's lines are OFFERS paired
+onto it by `LineMatcher` (core, `Inbox/LineMatcher.swift`), and the pairing is deterministic and
+**never by position** - the provider's printed order and the splitter's order need not agree, and a
+by-position pairing turns one shifted line into a column of wrong offers. Each cloud line resolves
+to exactly one of:
+
+| Outcome | Rule | What the user sees |
+|---|---|---|
+| `sameAmount` | the first free local line with the same amount (CHECK 3 tolerance) | an offer only when title, category or cost differ; a partner that agrees is no offer |
+| `title` | no amount match; the free local title with the highest token overlap ≥ 0.5 | the same |
+| `new` | neither | a `fillsBlank` offer: a dimmed appended line the user accepts or leaves |
+
+A local line no cloud line pairs with is **left alone** - the cloud never proposes deleting what the
+user's split has. Every offer defaults to **keep mine**; `merged(taking:)` re-runs the same pairing
+so a ticked line lands on the local line it was shown against. **The arithmetic gate**: a reading
+whose lines do not sum to its header total within CHECK 3's tolerance is `doesNotAddUp`; its lines
+are still offered, and the total's offer carries `attention` so the copy says *check the lines*
+rather than presenting the sum as settled.
+
 ## Cross-multiplication as digit repair
 
 New, 2026-08-26, and specific to seven-segment displays.

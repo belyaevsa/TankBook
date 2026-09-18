@@ -1,20 +1,22 @@
 import Foundation
 
-// MARK: - PJ.29a the cloud invoice reading
+// MARK: - The cloud invoice reading
 //
 // A service invoice is a document kind of its own at the gateway (`kind:
-// "invoice"`): the provider is asked for the header only - vendor, total, date,
-// currency - because the line items are the device's deterministic split
-// (docs/JOURNEYS.md J7, `InvoiceSplitter`). This file is the ONE core seam that
-// turns a `GatewayExtraction` into the header pre-fill the form takes and the
-// `ServiceRecognition` the inbox compares against a saved record, so the
-// on-time and late routes cannot disagree about what the invoice's header said.
+// "invoice"`). Sent the header-only way the provider reads vendor, total, date
+// and currency; sent as pages (docs/API.md "multi-page invoices") it reads the
+// line items too, and this file is the ONE core seam that turns a
+// `GatewayExtraction` into the header pre-fill the form takes and the
+// `ServiceRecognition` the inbox and the open form compare against the local
+// split, so the on-time and late routes cannot disagree about what the
+// invoice said.
 //
-// The type is the guard, not just the builder: `ServicePrefill` has no line-item
-// member, so a cloud answer can never carry line items across - the local
-// split's items are the form's and stay untouched (hard rule 13). An all-nil
-// extraction becomes an empty prefill, which the form renders as the ordinary
-// empty sheet, never an error (hard rule 7).
+// The line items are OFFERS, never a replacement: the local deterministic
+// split (`InvoiceSplitter`) stays the form's, and `LineMatcher` pairs each
+// cloud line onto it with keep-mine as the default (hard rule 13). The
+// arithmetic gate marks a reading whose lines do not sum to its total. An
+// all-nil extraction becomes an empty prefill, which the form renders as the
+// ordinary empty sheet, never an error (hard rule 7).
 
 /// The header one cloud `invoice` reading offers the service form. Lives in core
 /// (never the app target) so the extraction -> prefill mapping is L1-testable
@@ -60,26 +62,70 @@ public struct ServiceGatewayReading: Sendable, Equatable {
 }
 
 /// The ONE seam where a cloud `GatewayExtraction` becomes the service form's
-/// header pre-fill AND the inbox's recognition (PJ.29a). Both are built here,
-/// from one decode. The field set is the invoice header's own - vendor, total,
-/// currency, date - and `lineItems` is deliberately EMPTY: the line items are
-/// the local deterministic split's, and a cloud answer never replaces them
-/// (docs/JOURNEYS.md J7). A nil field is absent, never guessed (hard rule 13);
-/// an unknown currency string was already dropped by the wire decode.
+/// header pre-fill AND the recognition the form and the inbox pair onto the
+/// local split. Both are built here, from one decode. A nil field is absent,
+/// never guessed (hard rule 13); an unknown currency string was already
+/// dropped by the wire decode.
+///
+/// A line item needs a title to be offered (a bare amount names nothing);
+/// its cost is the line's amount in the reading's currency, else in
+/// `homeCurrency` when the caller knows one, else no cost. A line whose
+/// category the device did not recognise is offered as `.other("")` - the
+/// device's own code for "a line, unclassified".
 public enum ServiceRecognitionBuilder {
-    public static func reading(fromGateway extraction: GatewayExtraction) -> ServiceGatewayReading {
+    public static func reading(fromGateway extraction: GatewayExtraction,
+                               homeCurrency: CurrencyCode? = nil) -> ServiceGatewayReading {
         let date = extraction.date.flatMap { ConfirmDate.parse($0.value) }
         let prefill = ServicePrefill(
             vendor: extraction.vendor?.value,
             total: extraction.total?.value,
             currency: extraction.currency?.value,
             date: date)
+        let currency = extraction.currency?.value ?? homeCurrency
+        let lines = extraction.lineItems.compactMap { line -> ServiceRecognition.LineItem? in
+            guard let title = line.title?.value else { return nil }
+            let cost = line.amount.flatMap { amount -> Money? in
+                guard let currency else { return nil }
+                return Money(amount: amount.value, currency: currency, homeCurrency: homeCurrency ?? currency)
+            }
+            return ServiceRecognition.LineItem(title: title, category: line.category?.value ?? .other(""), cost: cost)
+        }
         let recognition = ServiceRecognition(
             vendor: extraction.vendor,
             total: extraction.total,
             currency: extraction.currency,
             date: date.map { GatewayFieldValue(value: $0, confidence: 0.9) },
-            lineItems: [])
+            lineItems: lines,
+            doesNotAddUp: Self.doesNotAddUp(lines: extraction.lineItems, total: extraction.total?.value))
         return ServiceGatewayReading(prefill: prefill, recognition: recognition)
     }
+
+    /// The arithmetic gate: the lines' amounts against the header total within
+    /// CHECK 3's tolerance (`ConfirmConfidenceGate.crossCheckTolerance`). A
+    /// reading with no lines or no total is not checked - nothing to sum.
+    static func doesNotAddUp(lines: [GatewayLineItem], total: Decimal?) -> Bool {
+        let amounts = lines.compactMap { $0.amount?.value }
+        guard let total, !amounts.isEmpty else { return false }
+        let sum = amounts.reduce(Decimal(0), +)
+        return abs(sum - total) > ConfirmConfidenceGate.crossCheckTolerance(amount: total)
+    }
+}
+
+extension ServiceCategory {
+    /// The line-item category vocabulary the gateway forwards (docs/API.md
+    /// "multi-page invoices"): the model's word mapped onto the device's own
+    /// codes, exactly as `ExpenseCategory(gatewayValue:)` does. An unknown
+    /// string is nil - the line keeps no category rather than a guessed one
+    /// (hard rule 13).
+    public init?(gatewayValue: String) {
+        guard let category = Self.gatewayVocabulary[gatewayValue.lowercased()] else { return nil }
+        self = category
+    }
+
+    private static let gatewayVocabulary: [String: ServiceCategory] = [
+        "oil": .oil, "brakes": .brakes, "tires": .tires, "tyres": .tires, "battery": .battery,
+        "filters": .filters, "filter": .filters, "inspection": .inspection,
+        "repair": .repair, "labour": .repair, "labor": .repair, "parts": .parts, "wash": .wash,
+        "fee": .other(""), "other": .other("")
+    ]
 }

@@ -419,3 +419,18 @@ private func scalar(_ value: UInt32) -> String {
     #expect(document.maintenance?.severity == .info)
     #expect(document.tier3CloudFallback == false, "the rest of the document still applies")
 }
+
+/// PJ.302: the extract limits the server echoes decode when present, and a
+/// document without them (every document before migration 024) parses with
+/// `extract == nil` - the compiled default then applies.
+@Test func extractLimitsDecodeWhenPresentAndAreNilOtherwise() throws {
+    let raw = try #require(String(bytes: fixtureData("parity.document.json"), encoding: .utf8))
+    let without = try ConfigDocument.parse(Data(raw.utf8))
+    #expect(without.extract == nil)
+
+    let with = raw.replacingOccurrences(of: "\"version\": 7,",
+                                        with: "\"version\": 7, \"extract\": {\"maxInvoicePages\": 4},")
+    let document = try ConfigDocument.parse(Data(with.utf8))
+    #expect(document.extract?.maxInvoicePages == 4)
+    #expect(ConfigDocument.ExtractLimits.defaultMaxInvoicePages == 6)
+}

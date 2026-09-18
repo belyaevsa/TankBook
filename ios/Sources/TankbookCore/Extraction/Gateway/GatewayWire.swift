@@ -54,6 +54,13 @@ public struct GatewayExtraction: Sendable, Equatable, Codable {
     /// the `ExpenseCategory` codes, and an unknown string is dropped, never
     /// guessed (hard rule 13).
     public var category: GatewayFieldValue<ExpenseCategory>?
+    /// The invoice's LINE ITEMS a multi-page `invoice` answer read (PJ.302,
+    /// docs/API.md "multi-page invoices"): `lineItem[n].title/amount/category`
+    /// gathered by index, in printed order. Empty on every other answer and on
+    /// a header-only invoice reading. A line with neither a title nor an
+    /// amount is dropped at decode; a category string the device does not know
+    /// is dropped from its line, never guessed (hard rule 13).
+    public var lineItems: [GatewayLineItem]
     /// The provider/pipeline id the server reports (docs/SCHEMA.md,
     /// `ExtractionMeta.pipeline`), for regression tracking.
     public var pipeline: String
@@ -67,6 +74,7 @@ public struct GatewayExtraction: Sendable, Equatable, Codable {
         currency: GatewayFieldValue<CurrencyCode>? = nil,
         vendor: GatewayFieldValue<String>? = nil,
         category: GatewayFieldValue<ExpenseCategory>? = nil,
+        lineItems: [GatewayLineItem] = [],
         pipeline: String = ""
     ) {
         self.total = total
@@ -77,6 +85,7 @@ public struct GatewayExtraction: Sendable, Equatable, Codable {
         self.currency = currency
         self.vendor = vendor
         self.category = category
+        self.lineItems = lineItems
         self.pipeline = pipeline
     }
 
@@ -96,13 +105,38 @@ public struct GatewayExtraction: Sendable, Equatable, Codable {
     }
 }
 
+/// One line item a multi-page invoice answer read (PJ.302). Each member is
+/// its own field on the wire with its own confidence; the index is the printed
+/// order the provider assigned.
+public struct GatewayLineItem: Sendable, Equatable, Codable {
+    public var index: Int
+    public var title: GatewayFieldValue<String>?
+    public var amount: GatewayFieldValue<Decimal>?
+    public var category: GatewayFieldValue<ServiceCategory>?
+
+    public init(index: Int, title: GatewayFieldValue<String>? = nil,
+                amount: GatewayFieldValue<Decimal>? = nil,
+                category: GatewayFieldValue<ServiceCategory>? = nil) {
+        self.index = index
+        self.title = title
+        self.amount = amount
+        self.category = category
+    }
+}
+
 /// The request body for `POST /extract`.
 public struct GatewayExtractRequest: Sendable, Equatable {
     /// One of the kinds the server accepts (docs/API.md): `receipt`, `pump`,
-    /// `chargeScreenshot`, `invoice`.
+    /// `chargeScreenshot`, `invoice`, `expense`.
     public var kind: String
-    /// The rendition's JPEG bytes, produced by `GatewayRendition`.
+    /// The rendition's JPEG bytes, produced by `GatewayRendition` - the one
+    /// page of every kind but a multi-page invoice, whose pages are `pages`.
     public var imageJPEG: Data
+    /// The FURTHER pages of a multi-page invoice (PJ.302), after `imageJPEG`,
+    /// in order. Non-empty only for `kind == "invoice"`; the encoder then sends
+    /// `images` (every page) and the answer carries the line items. Empty for
+    /// every other kind and for an invoice sent the header-only way.
+    public var pages: [Data]
     /// The optional context hints the server forwards to the provider.
     public var hints: GatewayExtractHints
     /// The device's own correlation token (RV.44): echoed opaquely into the
@@ -114,14 +148,23 @@ public struct GatewayExtractRequest: Sendable, Equatable {
     public init(
         kind: String,
         imageJPEG: Data,
+        pages: [Data] = [],
         hints: GatewayExtractHints = GatewayExtractHints(),
         captureId: String? = nil
     ) {
         self.kind = kind
         self.imageJPEG = imageJPEG
+        self.pages = pages
         self.hints = hints
         self.captureId = captureId
     }
+
+    /// Every page in order: `imageJPEG` first, then `pages`.
+    public var allPages: [Data] { [imageJPEG] + pages }
+
+    /// Whether this request travels as `images` (the multi-page invoice shape
+    /// that asks for line items): an invoice with any page beyond the first.
+    public var isMultiPage: Bool { kind == "invoice" && !pages.isEmpty }
 }
 
 /// The optional `hints` object of the request (docs/API.md): what the device
@@ -149,6 +192,9 @@ public enum GatewayExtractError: Error, Equatable, Sendable {
     /// (docs/API.md). The rendition settings are tuned far below this, so
     /// reaching it means a bug, not a normal path.
     case envelopeTooLarge
+    /// More invoice pages than the served cap (`extract.maxInvoicePages`,
+    /// PJ.302): the camera stops at the cap, so reaching this is a bug too.
+    case tooManyPages(cap: Int)
 }
 
 // MARK: - Decoding
@@ -170,14 +216,34 @@ extension GatewayExtraction {
         let pipeline = object["pipeline"]?.stringValue ?? ""
 
         var extraction = GatewayExtraction(pipeline: pipeline)
+        var lines: [Int: GatewayLineItem] = [:]
         for (rawRef, fieldNode) in fields {
-            guard let ref = FieldRef(string: rawRef),
-                  let field = fieldNode.objectValue,
+            guard let field = fieldNode.objectValue,
                   let valueNode = field["value"] else { continue }
             let confidence = field["confidence"]?.numericValue ?? 0
+            if let (index, member) = lineItemRef(rawRef) {
+                var line = lines[index] ?? GatewayLineItem(index: index)
+                line.apply(member: member, valueNode: valueNode, confidence: confidence)
+                lines[index] = line
+                continue
+            }
+            guard let ref = FieldRef(string: rawRef) else { continue }
             extraction.apply(ref: ref, valueNode: valueNode, confidence: confidence)
         }
+        extraction.lineItems = lines.values
+            .filter { $0.title != nil || $0.amount != nil }
+            .sorted { $0.index < $1.index }
         return extraction
+    }
+
+    /// `lineItem[n].member` → (n, member); nil for any other ref.
+    static func lineItemRef(_ raw: String) -> (Int, String)? {
+        guard raw.hasPrefix("lineItem["),
+              let close = raw.firstIndex(of: "]"),
+              let index = Int(raw[raw.index(raw.startIndex, offsetBy: 9)..<close]),
+              raw[raw.index(after: close)...].hasPrefix(".") else { return nil }
+        let member = String(raw[raw.index(close, offsetBy: 2)...])
+        return member.isEmpty ? nil : (index, member)
     }
 
     /// Decodes one field node into the typed value the extraction holds, or nil
@@ -213,7 +279,7 @@ extension GatewayExtraction {
 
     /// The raw number token: `.number` carries it exactly; a quoted string the
     /// provider sometimes emits is accepted when it parses as a number.
-    private static func numericToken(_ node: JSONValue) -> String? {
+    fileprivate static func numericToken(_ node: JSONValue) -> String? {
         switch node {
         case .number(let token): return token
         case .string(let token) where Double(token) != nil: return token
@@ -221,7 +287,31 @@ extension GatewayExtraction {
         }
     }
 
-    private static let posix = Locale(identifier: "en_US_POSIX")
+    fileprivate static let posix = Locale(identifier: "en_US_POSIX")
+}
+
+extension GatewayLineItem {
+    /// One `lineItem[n].<member>` field; an unknown member or an unparseable
+    /// value is skipped, never fatal.
+    fileprivate mutating func apply(member: String, valueNode: JSONValue, confidence: Double) {
+        switch member {
+        case "title":
+            if let text = valueNode.stringValue, !text.trimmingCharacters(in: .whitespaces).isEmpty {
+                title = .init(value: text, confidence: confidence)
+            }
+        case "amount":
+            if let token = GatewayExtraction.numericToken(valueNode),
+               let value = Decimal(string: token, locale: GatewayExtraction.posix) {
+                amount = .init(value: value, confidence: confidence)
+            }
+        case "category":
+            if let raw = valueNode.stringValue, let category = ServiceCategory(gatewayValue: raw) {
+                self.category = .init(value: category, confidence: confidence)
+            }
+        default:
+            break
+        }
+    }
 }
 
 extension GatewayExtraction {

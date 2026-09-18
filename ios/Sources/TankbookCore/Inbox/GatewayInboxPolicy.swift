@@ -114,10 +114,21 @@ public enum GatewayInboxPolicy {
     public struct FieldOffer: Equatable, Sendable, Identifiable {
         public let field: FieldRef
         public let disposition: Disposition
+        /// PJ.302: the arithmetic gate on a service total - the reading's lines
+        /// do not sum to the total it offers, so the copy must say "check the
+        /// lines" rather than present the sum as settled. False on every other
+        /// offer.
+        public let attention: Bool
+        /// PJ.302: for a `.lineItem(n)` offer, the local line it pairs with
+        /// (`LineMatcher`); nil is a new line the user can append.
+        public let pairedLocalIndex: Int?
 
-        public init(field: FieldRef, disposition: Disposition) {
+        public init(field: FieldRef, disposition: Disposition,
+                    attention: Bool = false, pairedLocalIndex: Int? = nil) {
             self.field = field
             self.disposition = disposition
+            self.attention = attention
+            self.pairedLocalIndex = pairedLocalIndex
         }
 
         public var id: FieldRef { field }
@@ -232,28 +243,35 @@ public enum GatewayInboxPolicy {
         return out
     }
 
-    /// Service: the vendor, the invoice's line items (by position) and the
-    /// header's total/currency/date. A line the record does not yet hold is a
-    /// blank to fill; a line whose title, category or cost differs is a
-    /// disagreement to offer.
+    /// Service: the vendor, the invoice's line items paired onto the local
+    /// split by `LineMatcher` (PJ.302 - by amount, then title, never by
+    /// position), and the header's total/currency/date. A cloud line with no
+    /// partner is a blank to fill (a new line); a paired line whose title,
+    /// category or cost differs is a disagreement to offer; a paired line that
+    /// agrees is no offer; a local line with no partner is left alone. The
+    /// total offer carries the arithmetic gate's flag.
     private static func serviceOffers(_ recognition: ServiceRecognition, _ entry: ServiceRecord) -> [FieldOffer] {
         var out: [FieldOffer] = []
         if let offer = dateOffer(current: entry.date, read: recognition.date?.value) { out.append(offer) }
         if let offer = offer(.vendor, current: blankToNil(entry.vendor), read: recognition.vendor?.value) {
             out.append(offer)
         }
-        for (index, line) in recognition.lineItems.enumerated() {
-            if index < entry.items.count {
-                let current = entry.items[index]
+        for match in LineMatcher.match(cloud: recognition.lineItems, local: entry.items) {
+            let line = recognition.lineItems[match.cloudIndex]
+            if let localIndex = match.localIndex {
+                let current = entry.items[localIndex]
                 if current.title != line.title || current.category != line.category || current.cost != line.cost {
-                    out.append(FieldOffer(field: .lineItem(index), disposition: .differs))
+                    out.append(FieldOffer(field: .lineItem(match.cloudIndex), disposition: .differs,
+                                          pairedLocalIndex: localIndex))
                 }
             } else {
-                out.append(FieldOffer(field: .lineItem(index), disposition: .fillsBlank))
+                out.append(FieldOffer(field: .lineItem(match.cloudIndex), disposition: .fillsBlank))
             }
         }
         if let money = entry.money {
-            if let offer = offer(.total, current: money.amount, read: recognition.total?.value) { out.append(offer) }
+            if let read = recognition.total?.value, read != money.amount {
+                out.append(FieldOffer(field: .total, disposition: .differs, attention: recognition.doesNotAddUp))
+            }
             if let offer = offer(.currency, current: money.currency, read: recognition.currency?.value) { out.append(offer) }
         }
         return out
@@ -341,13 +359,17 @@ public enum GatewayInboxPolicy {
             result.vendor = vendor
             changed = true
         }
-        for (index, line) in recognition.lineItems.enumerated() where fields.contains(.lineItem(index)) {
-            if index < result.items.count {
-                var item = result.items[index]
+        // The same deterministic pairing the offers were built from, so a
+        // ticked line lands on the local line it was shown against (PJ.302).
+        for match in LineMatcher.match(cloud: recognition.lineItems, local: entry.items)
+        where fields.contains(.lineItem(match.cloudIndex)) {
+            let line = recognition.lineItems[match.cloudIndex]
+            if let localIndex = match.localIndex {
+                var item = result.items[localIndex]
                 item.title = line.title
                 item.category = line.category
                 item.cost = line.cost
-                result.items[index] = item
+                result.items[localIndex] = item
             } else {
                 result.items.append(ServiceItem(title: line.title, category: line.category, cost: line.cost))
             }

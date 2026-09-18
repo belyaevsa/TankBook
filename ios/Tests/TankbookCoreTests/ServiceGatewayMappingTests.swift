@@ -41,14 +41,83 @@ import Testing
         #expect(reading.recognition.date?.value == reading.prefill.date)
     }
 
-    @Test func aCloudAnswerNeverCarriesLineItems() {
-        // The line items are the local deterministic split's (docs/JOURNEYS.md
-        // J7). The invoice prompt is header-only, but a model may still return
-        // extra fields; the mapping has no channel for them and always produces
-        // an empty list, so a cloud answer can never replace the split.
+    @Test func aHeaderOnlyAnswerCarriesNoLineItems() {
+        // The single-image invoice reading is header-only (docs/API.md): no
+        // `lineItem[n]` fields arrive, so the recognition offers no lines and
+        // the local split stands alone.
         let reading = ServiceRecognitionBuilder.reading(fromGateway: answer(
             vendor: "Bosch Service", total: Decimal(string: "148.00")!))
         #expect(reading.recognition.lineItems.isEmpty)
+        #expect(!reading.recognition.doesNotAddUp)
+    }
+
+    /// PJ.302: the multi-page answer's `lineItem[n].*` fields decode into
+    /// indexed lines, each member with its own confidence; the category maps
+    /// onto the device's codes and an unknown one is dropped from its line
+    /// (the line survives as `.other("")`); a line with no title is not
+    /// offered; the cost takes the reading's currency.
+    @Test func lineItemsDecodeWithAConfidenceEachAndDropAnUnknownCategory() throws {
+        let json = """
+        {"fields":{
+          "total":{"value":312.4,"confidence":0.95},
+          "currency":{"value":"EUR","confidence":0.9},
+          "lineItem[1].title":{"value":"Labour","confidence":0.85},
+          "lineItem[1].amount":{"value":287.5,"confidence":0.8},
+          "lineItem[1].category":{"value":"labour","confidence":0.7},
+          "lineItem[0].title":{"value":"Oil filter","confidence":0.9},
+          "lineItem[0].amount":{"value":"24.90","confidence":0.9},
+          "lineItem[0].category":{"value":"spaceship","confidence":0.6},
+          "lineItem[2].amount":{"value":5.0,"confidence":0.5}
+        },"pipeline":"cloud-fallback v1"}
+        """
+        let extraction = try GatewayExtraction.decode(Data(json.utf8))
+
+        #expect(extraction.lineItems.map(\.index) == [0, 1, 2], "gathered by index, in order")
+        #expect(extraction.lineItems[0].title?.value == "Oil filter")
+        #expect(extraction.lineItems[0].amount?.value == Decimal(string: "24.90"))
+        #expect(extraction.lineItems[0].amount?.confidence == 0.9)
+        #expect(extraction.lineItems[0].category == nil, "an unknown category is dropped, never guessed")
+        #expect(extraction.lineItems[1].category?.value == .repair)
+
+        let reading = ServiceRecognitionBuilder.reading(fromGateway: extraction)
+        #expect(reading.recognition.lineItems.count == 2, "a line with no title names nothing and is not offered")
+        #expect(reading.recognition.lineItems[0] == ServiceRecognition.LineItem(
+            title: "Oil filter", category: .other(""),
+            cost: Money(amount: Decimal(string: "24.90")!, currency: .eur, homeCurrency: .eur)))
+        #expect(reading.recognition.lineItems[1].category == .repair)
+        #expect(reading.recognition.doesNotAddUp,
+                "24.90 + 287.50 = 312.40 exactly; the title-less third line's 5.0 breaks the sum past 0.5%")
+    }
+
+    @Test func theArithmeticGateFlagsAShortReadingAndPassesAnExactOne() throws {
+        let short = """
+        {"fields":{"total":{"value":100.0,"confidence":0.9},
+          "lineItem[0].title":{"value":"A","confidence":0.9},"lineItem[0].amount":{"value":40.0,"confidence":0.9},
+          "lineItem[1].title":{"value":"B","confidence":0.9},"lineItem[1].amount":{"value":50.0,"confidence":0.9}
+        },"pipeline":"p"}
+        """
+        #expect(ServiceRecognitionBuilder.reading(fromGateway: try GatewayExtraction.decode(Data(short.utf8)))
+            .recognition.doesNotAddUp)
+
+        let exact = """
+        {"fields":{"total":{"value":90.0,"confidence":0.9},
+          "lineItem[0].title":{"value":"A","confidence":0.9},"lineItem[0].amount":{"value":40.0,"confidence":0.9},
+          "lineItem[1].title":{"value":"B","confidence":0.9},"lineItem[1].amount":{"value":50.0,"confidence":0.9}
+        },"pipeline":"p"}
+        """
+        #expect(!ServiceRecognitionBuilder.reading(fromGateway: try GatewayExtraction.decode(Data(exact.utf8)))
+            .recognition.doesNotAddUp)
+    }
+
+    @Test func aLineWithNoCurrencyAnywhereHasNoCost() throws {
+        let json = """
+        {"fields":{"lineItem[0].title":{"value":"A","confidence":0.9},
+          "lineItem[0].amount":{"value":40.0,"confidence":0.9}},"pipeline":"p"}
+        """
+        let extraction = try GatewayExtraction.decode(Data(json.utf8))
+        #expect(ServiceRecognitionBuilder.reading(fromGateway: extraction).recognition.lineItems[0].cost == nil)
+        #expect(ServiceRecognitionBuilder.reading(fromGateway: extraction, homeCurrency: .eur)
+            .recognition.lineItems[0].cost?.currency == .eur, "the car's home currency is the fallback")
     }
 
     @Test func anUnknownCurrencyStringIsDroppedNeverGuessed() throws {

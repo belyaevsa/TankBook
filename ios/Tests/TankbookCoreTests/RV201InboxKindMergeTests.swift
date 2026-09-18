@@ -232,16 +232,83 @@ struct RV201InboxKindMergeTests {
                                         entry: .service(service)) == nil)
     }
 
-    @Test("a ticked service line item replaces only that line")
-    func serviceLineItemMergeIsPerLine() {
+    @Test("a ticked cloud line with no partner is appended; the local line stays (PJ.302)")
+    func serviceLineItemMergeAppendsANewLine() {
         let original = Self.savedService()
+        // "Brake pads 120" pairs with nothing on a split holding "Oil change
+        // 80" - by amount or title - so it is a NEW line, never a replacement
+        // of the line that happened to sit at the same index.
         let recognition = Self.serviceRecognition()
         let merged = GatewayInboxPolicy.merged(entry: .service(original),
                                                recognition: recognition,
                                                taking: [.lineItem(0)])
         guard case .service(let result) = merged else { return }
-        #expect(result.items.first?.title == "Brake pads")
+        #expect(result.items.map(\.title) == ["Oil change", "Brake pads"])
         #expect(result.vendor == original.vendor, "an unticked vendor is untouched")
+    }
+
+    /// PJ.302: the offers pair by amount and title, never by index. Two local
+    /// lines, two cloud lines in the OTHER order with one changed title: the
+    /// changed line is offered against ITS partner, the unchanged one is not
+    /// offered at all. A by-position policy would offer both as differing.
+    @Test("reordered cloud lines are offered against their partners, not their positions")
+    func reorderedLinesPairByAmount() {
+        let now = Date()
+        let saved = ServiceRecord(
+            id: UUID(), createdAt: now, updatedAt: now, deletedAt: nil,
+            vehicleId: UUID(), date: Self.entryDate, odometer: 120_000,
+            money: Money(amount: Decimal(string: "200.00")!, currency: .eur, homeCurrency: .eur),
+            note: nil, attachments: [], provenance: .manual, conflict: .none,
+            purchaseGroupId: nil, vendor: "Garage",
+            items: [
+                ServiceItem(title: "Oil change", category: .oil,
+                            cost: Money(amount: Decimal(string: "80.00")!, currency: .eur, homeCurrency: .eur)),
+                ServiceItem(title: "Brake pads", category: .brakes,
+                            cost: Money(amount: Decimal(string: "120.00")!, currency: .eur, homeCurrency: .eur))
+            ],
+            usedParts: [], tireSetId: nil)
+        let recognition = InboxRecognition.service(ServiceRecognition(
+            total: .init(value: Decimal(string: "200.00")!, confidence: 0.9),
+            currency: .init(value: .eur, confidence: 0.9),
+            lineItems: [
+                .init(title: "Brake pads front axle", category: .brakes,
+                      cost: Money(amount: Decimal(string: "120.00")!, currency: .eur, homeCurrency: .eur)),
+                .init(title: "Oil change", category: .oil,
+                      cost: Money(amount: Decimal(string: "80.00")!, currency: .eur, homeCurrency: .eur))
+            ]))
+
+        let offers = GatewayInboxPolicy.offers(recognition: recognition, entry: .service(saved))
+        let lineOffers = offers.filter { if case .lineItem = $0.field { return true } else { return false } }
+        #expect(lineOffers.count == 1, "only the retitled line is a decision")
+        #expect(lineOffers.first?.field == .lineItem(0))
+        #expect(lineOffers.first?.pairedLocalIndex == 1, "cloud line 0 pairs with local line 1 by amount")
+
+        // Taking it retitles the PARTNER (local 1), and nothing else moves.
+        let merged = GatewayInboxPolicy.merged(entry: .service(saved), recognition: recognition, taking: [.lineItem(0)])
+        guard case .service(let result) = merged else { return }
+        #expect(result.items.map(\.title) == ["Oil change", "Brake pads front axle"])
+
+        // Nothing ticked is the entry, byte-identical.
+        #expect(GatewayInboxPolicy.merged(entry: .service(saved), recognition: recognition, taking: [])
+            == .service(saved))
+    }
+
+    @Test("the total offer carries the arithmetic gate's flag")
+    func totalOfferCarriesTheGate() {
+        let saved = Self.savedService()
+        let flagged = InboxRecognition.service(ServiceRecognition(
+            total: .init(value: Decimal(string: "250.00")!, confidence: 0.9),
+            currency: .init(value: .eur, confidence: 0.9),
+            doesNotAddUp: true))
+        let offers = GatewayInboxPolicy.offers(recognition: flagged, entry: .service(saved))
+        let total = offers.first { $0.field == .total }
+        #expect(total?.attention == true)
+
+        let clean = InboxRecognition.service(ServiceRecognition(
+            total: .init(value: Decimal(string: "250.00")!, confidence: 0.9),
+            currency: .init(value: .eur, confidence: 0.9)))
+        let cleanOffers = GatewayInboxPolicy.offers(recognition: clean, entry: .service(saved))
+        #expect(cleanOffers.first { $0.field == .total }?.attention == false)
     }
 
     // MARK: - Durability: an item persisted before RV.201 still loads

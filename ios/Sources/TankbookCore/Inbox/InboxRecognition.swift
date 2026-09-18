@@ -45,17 +45,41 @@ public struct ServiceRecognition: Sendable, Equatable, Codable {
     public var currency: GatewayFieldValue<CurrencyCode>?
     public var date: GatewayFieldValue<Date>?
     public var lineItems: [LineItem]
+    /// The arithmetic gate (PJ.302): a reading whose lines do not sum to its
+    /// header total within CHECK 3's tolerance. The total is still offered, and
+    /// the lines are still offered, but the offer carries the flag so the user
+    /// is told to check the lines rather than trust the sum. `false` when the
+    /// reading has no lines, no total, or the two agree.
+    public var doesNotAddUp: Bool
 
     public init(vendor: GatewayFieldValue<String>? = nil,
                 total: GatewayFieldValue<Decimal>? = nil,
                 currency: GatewayFieldValue<CurrencyCode>? = nil,
                 date: GatewayFieldValue<Date>? = nil,
-                lineItems: [LineItem] = []) {
+                lineItems: [LineItem] = [],
+                doesNotAddUp: Bool = false) {
         self.vendor = vendor
         self.total = total
         self.currency = currency
         self.date = date
         self.lineItems = lineItems
+        self.doesNotAddUp = doesNotAddUp
+    }
+
+    // `doesNotAddUp` joined the persisted shape after inbox items already
+    // existed on devices; a stored item without it decodes as `false`.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        vendor = try container.decodeIfPresent(GatewayFieldValue<String>.self, forKey: .vendor)
+        total = try container.decodeIfPresent(GatewayFieldValue<Decimal>.self, forKey: .total)
+        currency = try container.decodeIfPresent(GatewayFieldValue<CurrencyCode>.self, forKey: .currency)
+        date = try container.decodeIfPresent(GatewayFieldValue<Date>.self, forKey: .date)
+        lineItems = try container.decodeIfPresent([LineItem].self, forKey: .lineItems) ?? []
+        doesNotAddUp = try container.decodeIfPresent(Bool.self, forKey: .doesNotAddUp) ?? false
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case vendor, total, currency, date, lineItems, doesNotAddUp
     }
 
     /// One invoice line the splitter resolved. `category` rides along because

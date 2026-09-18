@@ -217,6 +217,49 @@ struct GatewayExtractClientTests {
                 "an oversized envelope must never reach the transport")
     }
 
+    // MARK: - PJ.302: the multi-page invoice envelope
+
+    @Test("an invoice with further pages travels as `images`, every page in order; a one-page invoice as `image`")
+    func multiPageInvoiceTravelsAsImages() async throws {
+        let body = Data(#"{"fields":{},"pipeline":"p"}"#.utf8)
+        let stub = StubTransport(status: 200, body: body, retryAfter: nil)
+        let client = Self.makeClient(stub)
+
+        let request = GatewayExtractRequest(kind: "invoice", imageJPEG: Data("page-1".utf8),
+                                            pages: [Data("page-2".utf8), Data("page-3".utf8)])
+        _ = try await client.extract(request)
+        let sent = try #require(stub.recorded.request)
+        let sentBody = try #require(sent.body)
+        let object = try #require(JSONValue.parse(sentBody).objectValue)
+        #expect(object["image"] == nil, "the multi-page shape never also sends `image`")
+        #expect(object["images"]?.arrayValue?.compactMap(\.stringValue)
+            == ["page-1", "page-2", "page-3"].map { Data($0.utf8).base64EncodedString() })
+
+        let single = GatewayExtractRequest(kind: "invoice", imageJPEG: Data("only".utf8))
+        _ = try await client.extract(single)
+        let singleBody = try #require(stub.recorded.request?.body)
+        let sentSingle = try #require(JSONValue.parse(singleBody).objectValue)
+        #expect(sentSingle["images"] == nil)
+        #expect(sentSingle["image"]?.stringValue == Data("only".utf8).base64EncodedString())
+    }
+
+    @Test("a page list over the served cap is refused locally, never uploaded")
+    func overThePageCapIsRefusedLocally() async throws {
+        let body = Data(#"{"fields":{},"pipeline":"p"}"#.utf8)
+        let stub = StubTransport(status: 200, body: body, retryAfter: nil)
+        let client = RemoteGatewayExtractTransport(
+            director: ConfigTransportDirector(baseURL: { URL(string: "https://api.tankbook.live")! }, report: { _ in }),
+            transport: stub,
+            tokenProvider: StaticTokenProvider(),
+            maxInvoicePages: 3)
+        let request = GatewayExtractRequest(kind: "invoice", imageJPEG: Data("1".utf8),
+                                            pages: [Data("2".utf8), Data("3".utf8), Data("4".utf8)])
+        await #expect(throws: GatewayExtractError.tooManyPages(cap: 3)) {
+            _ = try await client.extract(request)
+        }
+        #expect(stub.recorded.request == nil)
+    }
+
     // MARK: - The one silent retry (PR.7, docs/API.md -> "Retries are the
     // device's business, not the user's: one silent retry at most").
 

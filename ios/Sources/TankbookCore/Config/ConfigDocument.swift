@@ -26,6 +26,9 @@ public struct ConfigDocument: Sendable, Equatable {
     public let minSchemaVersion: Int
     public let referencePacks: ReferencePacks
     public let maintenance: MaintenanceNotice?
+    /// The extract limits the server echoes; nil when the document predates
+    /// the key (the compiled default applies).
+    public let extract: ExtractLimits?
     public let appUpdate: AppUpdateNotice?
     public let rolloutSalt: String
     public let flags: [String: FeatureFlag]
@@ -100,6 +103,20 @@ public struct ConfigDocument: Sendable, Equatable {
         }
     }
 
+    /// The gateway's extract limits the document echoes (docs/API.md
+    /// "multi-page invoices"): the page cap the camera stops at. Optional -
+    /// a document without the key means the compiled default applies
+    /// (`ExtractLimits.defaultMaxInvoicePages`), which is the same number.
+    public struct ExtractLimits: Sendable, Equatable, Decodable {
+        public static let defaultMaxInvoicePages = 6
+
+        public let maxInvoicePages: Int
+
+        public init(maxInvoicePages: Int) {
+            self.maxInvoicePages = maxInvoicePages
+        }
+    }
+
     public struct FeatureFlag: Sendable, Equatable, Decodable {
         public let enabled: Bool
         public let rolloutPercent: Int
@@ -135,6 +152,7 @@ public struct ConfigDocument: Sendable, Equatable {
             minSchemaVersion: decoded.minSchemaVersion,
             referencePacks: decoded.referencePacks,
             maintenance: decoded.maintenance,
+            extract: decoded.extract,
             appUpdate: decoded.appUpdate,
             rolloutSalt: decoded.rolloutSalt,
             flags: decoded.flags ?? [:]
@@ -156,6 +174,7 @@ public struct ConfigDocument: Sendable, Equatable {
         let minSchemaVersion: Int
         let referencePacks: ReferencePacks
         let maintenance: MaintenanceNotice?
+        let extract: ExtractLimits?
         let appUpdate: AppUpdateNotice?
         let rolloutSalt: String
         let flags: [String: FeatureFlag]?
@@ -174,6 +193,9 @@ public struct ConfigDocument: Sendable, Equatable {
             referencePacks = try container.decode(ReferencePacks.self, forKey: .referencePacks)
             rolloutSalt = try container.decode(String.self, forKey: .rolloutSalt)
             flags = try? container.decodeIfPresent([String: FeatureFlag].self, forKey: .flags)
+            // An unparseable cap degrades to nil (the compiled default), never
+            // a rejected document.
+            extract = try? container.decodeIfPresent(ExtractLimits.self, forKey: .extract)
 
             if let notice = try? container.decodeIfPresent(MaintenanceFields.self, forKey: .maintenance) {
                 // An out-of-enum severity degrades to `.info` rather than
@@ -206,7 +228,7 @@ public struct ConfigDocument: Sendable, Equatable {
         enum CodingKeys: String, CodingKey {
             case version, issuedAt, notAfter, apiBaseUrl, tier2OnDeviceLLM, tier3CloudFallback
             case llmQuota, ocrConfidenceThreshold, minSchemaVersion, referencePacks
-            case maintenance, appUpdate, rolloutSalt, flags
+            case maintenance, extract, appUpdate, rolloutSalt, flags
         }
     }
 

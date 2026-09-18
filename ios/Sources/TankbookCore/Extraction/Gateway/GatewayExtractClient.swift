@@ -45,14 +45,19 @@ public enum GatewayArming {
 public struct RemoteGatewayExtractTransport: GatewayExtractTransport {
     private let client: TankbookHTTPClient
     private let director: ConfigTransportDirector
+    /// The invoice page cap the request is refused over (the served
+    /// `extract.maxInvoicePages`, else the compiled default).
+    private let maxInvoicePages: Int
 
     public init(director: ConfigTransportDirector,
                 transport: any TankbookHTTPTransport,
                 tokenProvider: any AuthorizationTokenProvider,
-                refresher: (any SessionRefreshing)? = nil) {
+                refresher: (any SessionRefreshing)? = nil,
+                maxInvoicePages: Int = ConfigDocument.ExtractLimits.defaultMaxInvoicePages) {
         self.client = TankbookHTTPClient(transport: transport, tokenProvider: tokenProvider,
                                          refresher: refresher)
         self.director = director
+        self.maxInvoicePages = maxInvoicePages
     }
 
     public func extract(_ request: GatewayExtractRequest) async throws -> GatewayExtraction {
@@ -142,12 +147,16 @@ public struct RemoteGatewayExtractTransport: GatewayExtractTransport {
     // MARK: - Encoding
 
     private func encode(_ request: GatewayExtractRequest) throws -> Data {
-        let base64 = request.imageJPEG.base64EncodedString()
-        // The 4 MB cap is on the base64 image (docs/API.md). The rendition is
+        // The 4 MB cap is on each base64 page (docs/API.md). The rendition is
         // tuned far below it, so tripping it is a bug - refuse locally rather
-        // than let the server answer 413.
-        if base64.count > GatewayRendition.envelopeCapBytes {
+        // than let the server answer 413. The page cap is the served one
+        // (`extract.maxInvoicePages`); the camera stops there first.
+        let pages = request.allPages.map { $0.base64EncodedString() }
+        if pages.contains(where: { $0.count > GatewayRendition.envelopeCapBytes }) {
             throw GatewayExtractError.envelopeTooLarge
+        }
+        if request.isMultiPage, pages.count > maxInvoicePages {
+            throw GatewayExtractError.tooManyPages(cap: maxInvoicePages)
         }
 
         var hintsObject: [String: JSONValue] = [:]
@@ -157,10 +166,12 @@ public struct RemoteGatewayExtractTransport: GatewayExtractTransport {
             hintsObject["vehicleFuelKinds"] = .array(request.hints.vehicleFuelKinds.map(JSONValue.string))
         }
 
-        var object: [String: JSONValue] = [
-            "kind": .string(request.kind),
-            "image": .string(base64)
-        ]
+        var object: [String: JSONValue] = ["kind": .string(request.kind)]
+        if request.isMultiPage {
+            object["images"] = .array(pages.map(JSONValue.string))
+        } else {
+            object["image"] = .string(pages[0])
+        }
         if let captureId = request.captureId { object["captureId"] = .string(captureId) }
         if !hintsObject.isEmpty { object["hints"] = .object(hintsObject) }
         return try JSONValue.object(object).jsonData()
