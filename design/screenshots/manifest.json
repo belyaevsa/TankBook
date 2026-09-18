@@ -895,6 +895,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "PJ.15-after-save-insight": {
+      "commit": "5e9e17ab",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.15-after-save-insight-ru": {
+      "commit": "5e9e17ab",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "PJ.17b-empty-scan-caption": {
       "commit": "8d4d01e",
       "device": "iPhone 17",

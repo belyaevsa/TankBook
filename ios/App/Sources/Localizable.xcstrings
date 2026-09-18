@@ -4394,6 +4394,40 @@
         }
       }
     },
+    "%1$@ %2$@ – best this year": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$@ – best this year"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$@ – лучший результат в этом году"
+          }
+        }
+      }
+    },
+    "%1$@ %2$@ – this tank": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$@ – this tank"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ %2$@ – за этот бак"
+          }
+        }
+      }
+    },
     "Consumption updated: %1$@ → %2$@ %3$@": {
       "extractionState": "manual",
       "localizations": {

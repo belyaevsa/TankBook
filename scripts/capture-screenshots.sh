@@ -800,6 +800,12 @@ capture RV.235-service-fix-clear-ru ru -seedEditEntryServiceConflict -presentScr
 capture RV.149-receipt-not-saved    en -seedHomeFullHistory -screenshotReceiptNotSavedToast -freezeToasts
 capture RV.149-receipt-not-saved-ru ru -seedHomeFullHistory -screenshotReceiptNotSavedToast -freezeToasts
 
+# PJ.15: the after-save one-liner (J3 → Done, "the insight one-liner is the
+# habit hook") through the real toast host and the real copy builder, held on
+# screen by `-freezeToasts`. RU is where the phrase runs longest.
+capture PJ.15-after-save-insight    en -seedHomeFullHistory -screenshotAfterSaveInsight -freezeToasts
+capture PJ.15-after-save-insight-ru ru -seedHomeFullHistory -screenshotAfterSaveInsight -freezeToasts
+
 # RV.204 (2026-09-11): the SAME failure toast now fires on Edit entry for EVERY
 # entry kind - the fill-up edit, a service and an expense alike degrade, so the
 # save the user asked for is never lost to a storage failure (the old fill-up

@@ -77,6 +77,10 @@ public struct HomeStats: Equatable, Sendable {
     /// Best (lowest) per100 among segments closing in the calendar year of
     /// `asOf` - the artboard's "Best this year".
     public let bestThisYear: Double?
+    /// The closed segments the headline, trend and best-this-year are built
+    /// from (fuel or EV, whichever the car runs on), so a caller asking "which
+    /// segment did this fill close?" reads the same population the figures do.
+    public let segments: [Segment]
     /// The car's current odometer: the latest entry odometer, else the vehicle's
     /// `initialOdometer` (real baseline data, never fabricated).
     public let odometer: Int?
@@ -143,6 +147,7 @@ public struct HomeStats: Equatable, Sendable {
         self.lastUnitPrice = Self.lastUnitPrice(entries: countingEntries,
                                                  vehicleHome: vehicle.homeCurrency)
         self.bestThisYear = Self.bestThisYear(segments: segments, asOf: asOf, calendar: calendar)
+        self.segments = segments
 
         self.odometer = countingEntries.compactMap(\.odometer).max() ?? vehicle.initialOdometer
         self.updatedAt = countingEntries.compactMap(\.date).max()

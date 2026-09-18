@@ -27,6 +27,16 @@ struct ReceiptPhotoSaveReportGuardTests {
             .appendingPathComponent("App/Sources", isDirectory: true)
     }
 
+    /// Every `<prefix>*.swift` in `folder`, concatenated - a view split into
+    /// `Name.swift` and `Name+Part.swift` is one source for the scan.
+    private static func sourceFamily(of folder: String, prefix: String) throws -> String {
+        let directory = appSources.appendingPathComponent(folder, isDirectory: true)
+        let files = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+            .filter { $0.lastPathComponent.hasPrefix(prefix) && $0.pathExtension == "swift" }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+        return try files.map { try String(contentsOf: $0, encoding: .utf8) }.joined(separator: "\n")
+    }
+
     private static func source(of relative: String) throws -> String {
         try String(contentsOf: appSources.appendingPathComponent(relative),
                    encoding: .utf8)
@@ -52,7 +62,9 @@ struct ReceiptPhotoSaveReportGuardTests {
         // fires ONCE per save, from the ONE write outcome - a call inside the
         // grouped save's per-expense loop would shout once per row, so the
         // count is part of the contract.
-        let view = try Self.source(of: "ConfirmManual/ManualFillUpView.swift")
+        // The view's save path spans its file family (`ManualFillUpView.swift`
+        // and its `+` extensions), so the count runs over all of them.
+        let view = try Self.sourceFamily(of: "ConfirmManual", prefix: "ManualFillUpView")
         let reportCalls = view.components(separatedBy: "reportLostReceiptPhoto(").count - 1
         #expect(reportCalls == 1,
                 "the fill-up save must call the report exactly once, not per row: \(reportCalls)")

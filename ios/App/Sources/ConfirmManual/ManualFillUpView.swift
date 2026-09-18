@@ -26,7 +26,7 @@ struct ManualFillUpView: View {
     @Environment(AppCarSelection.self) private var carSelection
     @Environment(ReminderNotificationCoordinator.self) private var notificationCoordinator
     @Environment(AppConfigService.self) private var config
-    @Environment(AppToastCenter.self) private var toastCenter
+    @Environment(AppToastCenter.self) var toastCenter
     @Environment(AppInbox.self) private var inbox
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
 
@@ -607,14 +607,8 @@ private extension ManualFillUpView {
                                                           crossCheck: toSave.crossCheck,
                                                           durationMs: prefill?.pipelineDurationMs ?? 0))
             }
-            // A new entry was written with no delta toast - tell Home to
-            // reload anyway (docs/ERRORS.md -> Edit entry, row 4; hard rule 2),
-            // exactly as Edit entry, Vehicle detail and Recently deleted do on
-            // their saves. Without this, Home keeps showing the pre-save state
-            // after the sheet dismisses (a `.sheet` never re-triggers the
-            // presenter's `.task` on iOS 26).
-            toastCenter.noteEntryChanged()
-            reportLostReceiptPhoto(receiptWrite, toastCenter: toastCenter)
+            postAfterSaveNotices(saved: toSave, vehicle: vehicle, repository: repository,
+                                 receiptWrite: receiptWrite)
             // P6.3 (F4, amended RV.38): a saved entry is corrected by its owner
             // alone - a late answer becomes an inbox suggestion keyed to this
             // entry, never a silent rewrite (hard rule 13).
