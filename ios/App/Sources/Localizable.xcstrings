@@ -4394,6 +4394,40 @@
         }
       }
     },
+    "%@%% higher than the previous 3 months": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@%% higher than the previous 3 months"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "на %@%% больше, чем за предыдущие 3 месяца"
+          }
+        }
+      }
+    },
+    "%@%% lower than the previous 3 months": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@%% lower than the previous 3 months"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "на %@%% меньше, чем за предыдущие 3 месяца"
+          }
+        }
+      }
+    },
     "%1$@ %2$@ – best this year": {
       "extractionState": "manual",
       "localizations": {

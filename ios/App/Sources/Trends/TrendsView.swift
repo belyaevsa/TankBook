@@ -141,7 +141,9 @@ struct TrendsView: View {
                          caption: L10n.honestSpanLabel(headline.label),
                          series: stats.consumptionSeries.map { .some($0.value) },
                          seriesColor: Self.consumptionColor(stats.vehicle),
-                         trend: stats.consumptionTrend)
+                         trend: stats.consumptionTrend,
+                         delta: TrendsFormat.headlineDelta(stats.headlineChange),
+                         deltaSpoken: TrendsFormat.headlineDeltaSpoken(stats.headlineChange))
             }
             if let costPerKm = stats.home.costPerKm, let spanMonths = stats.costPerKmSpanMonths {
                 StatTile(title: ManualFillUpUnitCopy.costPerDistanceLabel(for: stats.vehicle.units.distance),

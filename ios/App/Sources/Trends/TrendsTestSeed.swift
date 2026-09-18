@@ -26,6 +26,7 @@ enum TrendsTestSeed {
 
         let hasTrendsOnlyState = arguments.contains("-seedHomeFirstEstimate")
             || arguments.contains("-seedHomeExtendedWindow")
+            || arguments.contains("-seedHomeTwoWindows")
         guard hasTrendsOnlyState else { return }
         guard let repository = try? AppStore.repository() else { return }
         // Idempotent, exactly like HomeTestSeed: a seed that has already run
@@ -36,6 +37,29 @@ enum TrendsTestSeed {
             seedFirstEstimate(repository)
         } else if arguments.contains("-seedHomeExtendedWindow") {
             seedExtendedWindow(repository)
+        } else if arguments.contains("-seedHomeTwoWindows") {
+            seedTwoWindows(repository)
+        }
+    }
+
+    /// Two full 90-day windows, three segments each (PJ.30): the older three
+    /// at 7.5 L/100 km, the newer three at 6.0 - the hero tile's arrow reads
+    /// "▼20%". The full-history seed has one segment in its previous window
+    /// and so shows no arrow; this is the smallest history that shows one.
+    private static func seedTwoWindows(_ repository: TankbookRepository) {
+        let vehicle = HomeTestSeed.makeVehicle()
+        try? repository.upsertVehicle(vehicle)
+        // Eight full tanks 25 days apart, 600 km each: the fills at 150/125/100
+        // days close the previous window's three segments (45 L each = 7.5),
+        // the fills at 75/50/25/0 the current window's four (36 L each = 6.0).
+        let litresByFill: [Double] = [42.0, 45.0, 45.0, 45.0, 36.0, 36.0, 36.0, 36.0]
+        for (index, litres) in litresByFill.enumerated() {
+            let daysAgo = 175 - index * 25
+            let spec = HomeTestSeed.FillSpec(
+                daysAgo: daysAgo, odometer: 118_000 + index * 600, litres: litres,
+                amount: ManualFillUpFormat.decimal(Decimal(litres) * Decimal(string: "1.676")!, fractionDigits: 2),
+                price: "1.676", stationID: nil)
+            try? repository.upsertFillUp(HomeTestSeed.makeFill(vehicleID: vehicle.id, spec))
         }
     }
 

@@ -1065,6 +1065,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "PJ.30-trends-hero-arrow": {
+      "commit": "1ea1b806",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.30-trends-hero-arrow-ru": {
+      "commit": "1ea1b806",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "PJ.33-import-guide": {
       "commit": "e8cf18f1",
       "device": "iPhone 17",

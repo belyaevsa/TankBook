@@ -310,6 +310,11 @@ capture P1.9-tank-level-ru         ru -seedTankLevel -presentScreen tankLevel
 capture P1.10-trends               en -seedHomeFullHistory -selectTrendsTab
 capture P1.10-trends-ru            ru -seedHomeFullHistory -selectTrendsTab
 capture P1.10-trends-first-estimate en -seedHomeFirstEstimate -selectTrendsTab
+# PJ.30: the hero tile's window-over-window arrow (J8) on the two-windows seed
+# - the smallest history that has a previous window to compare against. RU is
+# where the tile's eyebrow and caption run longest beside the arrow.
+capture PJ.30-trends-hero-arrow     en -seedHomeTwoWindows -selectTrendsTab
+capture PJ.30-trends-hero-arrow-ru  ru -seedHomeTwoWindows -selectTrendsTab
 capture P1.11-car-switcher         en -seedHomeCarSwitcher -presentScreen carSwitcher
 capture P1.11-car-switcher-ru      ru -seedHomeCarSwitcher -presentScreen carSwitcher
 capture P1.12-vehicle-detail       en -seedHomeCarSwitcher -presentScreen vehicleDetail

@@ -65,6 +65,11 @@ public struct TrendsStats: Equatable, Sendable {
     /// derived from the series itself - never stored (hard rule 2). `nil`
     /// below two points or on a flat series.
     public let consumptionTrend: TrendDirection?
+    /// The headline against the previous window of the same length - the hero
+    /// tile's arrow (docs/JOURNEYS.md J8). `nil` whenever either window does
+    /// not stand on its own segments, or the move is noise; the tile then
+    /// shows no arrow rather than a fabricated one.
+    public let headlineChange: HeadlineChange?
     /// All-in cost/km per calendar month (Σ homeAmount / odometer span within
     /// the month), one slot per month that has both activity and a km span. A
     /// month without a km span is omitted, never drawn as zero; a month whose
@@ -125,6 +130,7 @@ public struct TrendsStats: Equatable, Sendable {
             .sorted { $0.closes < $1.closes }
             .map { TrendPoint(date: $0.closes, value: $0.per100) }
         self.consumptionTrend = TrendDirection.lowerIsBetter(consumptionSeries.map(\.value))
+        self.headlineChange = ConsumptionEngine.headlineChange(segments: segments, asOf: asOf)
 
         self.costSeries = Self.monthlyCostSeries(entries: countingEntries, calendar: calendar, asOf: asOf,
                                                  vehicleHome: vehicle.homeCurrency)

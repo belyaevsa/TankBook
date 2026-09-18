@@ -32,6 +32,12 @@ struct StatTile: View {
     /// the metric is lower-is-better and the series supports one. `nil` (the
     /// common case) is silently omitted from the label - never "steady".
     var trend: TrendDirection?
+    /// The window-over-window change beside the figure ("▼20%"), when the
+    /// caller's derivation produced one (design/screens/TrendsB: the price
+    /// tile's "▲3%"). Its own element for VoiceOver, read as `deltaSpoken`.
+    var delta: String?
+    /// The spoken form of `delta` ("20% lower than the previous 3 months").
+    var deltaSpoken: String?
 
     /// The figure's VoiceOver label: value + unit + trend, in that order
     /// (docs/DESIGN.md -> Accessibility floor: a bare number read aloud is
@@ -75,6 +81,13 @@ struct StatTile: View {
                         .foregroundStyle(Theme.Palette.inkSoft)
                         .lineLimit(1)
                         .accessibilityHidden(true)
+                }
+                if let delta {
+                    Text(delta)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                        .lineLimit(1)
+                        .accessibilityLabel(deltaSpoken ?? delta)
                 }
             }
             if series.compactMap({ $0 }).count >= 2 {

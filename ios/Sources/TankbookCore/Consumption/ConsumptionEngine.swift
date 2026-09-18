@@ -392,3 +392,41 @@ public enum ConsumptionEngine {
         EntryOrder.ascending(a, b)
     }
 }
+
+// MARK: - Headline change (window over window)
+
+/// How the headline moved against the window before it (docs/JOURNEYS.md J8:
+/// "hero consumption metric with trend arrow"). Both figures are the engine's
+/// distance-weighted values over full windows; `percent` is the change of the
+/// current against the previous, and `direction` its meaning for a
+/// lower-is-better metric.
+public struct HeadlineChange: Equatable, Sendable {
+    public let direction: TrendDirection
+    /// The unsigned size of the change, in percent of the previous window's value.
+    public let percent: Double
+}
+
+extension ConsumptionEngine {
+    /// The current window's headline against the window of the same length
+    /// immediately before it. `nil` unless BOTH windows satisfy the floor on
+    /// their own segments (an extended window or a first estimate is not a
+    /// window and is never compared), and `nil` for a move under the
+    /// `TrendDirection` noise threshold - an arrow is never invented.
+    public static func headlineChange(segments: [Segment], asOf: Date,
+                                      windowDays: Int = 90, floor: Int = 3) -> HeadlineChange? {
+        let windowStart = asOf.addingTimeInterval(-Double(windowDays) * 86400)
+        let inWindow = segments.filter { $0.closes >= windowStart && $0.closes <= asOf }
+        guard inWindow.count >= floor,
+              let current = headline(segments: inWindow, asOf: asOf,
+                                     windowDays: windowDays, floor: floor) else { return nil }
+        let previousStart = windowStart.addingTimeInterval(-Double(windowDays) * 86400)
+        let inPrevious = segments.filter { $0.closes >= previousStart && $0.closes < windowStart }
+        guard inPrevious.count >= floor,
+              let previous = headline(segments: inPrevious, asOf: windowStart,
+                                      windowDays: windowDays, floor: floor) else { return nil }
+        guard let direction = TrendDirection.lowerIsBetter([previous.value, current.value]),
+              previous.value > 0 else { return nil }
+        let percent = abs(current.value - previous.value) / previous.value * 100
+        return HeadlineChange(direction: direction, percent: percent)
+    }
+}

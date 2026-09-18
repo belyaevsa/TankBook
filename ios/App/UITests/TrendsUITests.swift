@@ -73,6 +73,41 @@ final class TrendsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["last 3 months"].waitForExistence(timeout: 5))
     }
 
+    // MARK: - The hero arrow (PJ.30)
+
+    /// Two full 90-day windows, the newer one 20% better: the consumption
+    /// tile carries "▼20%" beside its figure - the window-over-window change
+    /// from the engine, never a last-two-fills guess. The element is found by
+    /// its spoken label: the tile's own identifier propagates to every child,
+    /// so a child identifier cannot be queried (the suite's captions are
+    /// queried by label for the same reason).
+    private static let heroArrowLabel = "20% lower than the previous 3 months"
+
+    func testTwoFullWindowsShowTheHeroArrow() {
+        let app = launch(args: ["-seedHomeTwoWindows"])
+
+        XCTAssertTrue(anyElement(app, "trendsConsumptionTile").waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts[Self.heroArrowLabel].waitForExistence(timeout: 5),
+                      "the hero arrow did not render")
+    }
+
+    /// A first estimate has no previous window to compare against: no arrow,
+    /// rather than one invented from a single segment. The full-history seed
+    /// likewise shows none - its previous window holds one segment.
+    func testFirstEstimateAndThinHistoryShowNoArrow() {
+        let arrow = NSPredicate(format: "label CONTAINS 'than the previous 3 months'")
+        let first = launch(args: ["-seedHomeFirstEstimate"])
+        XCTAssertTrue(anyElement(first, "trendsConsumptionTile").waitForExistence(timeout: 10))
+        XCTAssertFalse(first.staticTexts.matching(arrow).firstMatch.exists,
+                       "a first estimate must not carry an arrow")
+        first.terminate()
+
+        let full = launch(args: ["-seedHomeFullHistory"])
+        XCTAssertTrue(anyElement(full, "trendsConsumptionTile").waitForExistence(timeout: 10))
+        XCTAssertFalse(full.staticTexts.matching(arrow).firstMatch.exists,
+                       "one segment in the previous window is not a window - no arrow")
+    }
+
     // MARK: - The excluded footnote (real count, routes to the flagged entry)
 
     func testExcludedFootnoteShowsRealCountAndRoutesToTheFlaggedEntry() {
