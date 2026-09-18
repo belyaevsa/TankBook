@@ -593,7 +593,8 @@ between the wired and unwired sets without this doc moving with it.
 **What the OS already does, and what it does not.** iOS disables Background App Refresh in Low
 Power Mode and deprioritises discretionary `URLSession` work, so the app must neither duplicate
 that nor rely on it: the gap the app closes is **foreground opportunistic** work – the sync it
-starts on launch, the prefetch it starts on a WiFi change, the refresh it starts on a timer.
+starts on launch, the photo prefetch it starts after a pull or a restore (PJ.35), the refresh it
+starts on a timer.
 
 **Resume on the state change, not on the next launch.** `NSProcessInfoPowerStateDidChange` is the
 trigger; a policy that only re-checks at launch leaves a device that left Low Power Mode hours ago

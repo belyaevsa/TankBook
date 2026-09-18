@@ -542,7 +542,7 @@ deleted.
 ### J8 · The monthly glance
 **Status: implemented 2026-09-11** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J8-2026-09-11c)
 **Trigger:** idle curiosity, end of month, or the "August: €212 on the Volvo" notification (opt-in).
-**Journey:** open Trends → hero consumption metric with trend arrow *(PJ.30, 2026-09-18: the arrow is the current 90-day window against the one before it - "▼20%" - and is absent, never invented, when either window does not stand on its own segments)* → monthly spend bars → price-per-liter line per station brand ("Shell costs you 4% more than Neste") *(PJ.31, 2026-09-18: a card under the tiles, one line per brand over the last year, the sentence from the engine's means - absent below two brands with two fills each)*. Feeling sought: *control*, not accounting homework. → Every chart answers a sentence-shaped question; no chart junk. Exit within 60 seconds, satisfied.
+**Journey:** open Trends → hero consumption metric with trend arrow *(PJ.30, 2026-09-18: the arrow is the current 90-day window against the one before it - "▼20%" - and is absent, never invented, when either window does not stand on its own segments)* → monthly spend bars → price-per-liter line per station brand ("Shell costs you 4% more than Neste") *(PJ.31, 2026-09-18: a card under the tiles, one line per brand over the last year, the sentence from the engine's means - absent below two brands with two fills each; "brand" is the station's own name until `RV.115` lands the brand vocabulary)*. Feeling sought: *control*, not accounting homework. → Every chart answers a sentence-shaped question; no chart junk. Exit within 60 seconds, satisfied.
 
 **Success metric:** ≥40% of MAU open Trends monthly; session length short (it's a glance, not a report).
 

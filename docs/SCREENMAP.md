@@ -154,6 +154,7 @@ flowchart TD
     Settings -->|account card, signed in| AccountDevices
     Settings -->|Language| LanguagePicker[Language picker (sheet)]
     Settings -->|Import| ImportWizard
+    ShareSheet["System share sheet / Open in (a CSV from another app)"] -->|PJ.21| ImportWizard
     Settings -->|Restore from backup| RestoreFromBackup
     Settings -->|"2 entries need a look"| Log
     Settings -->|Recently deleted| RecentlyDeleted
