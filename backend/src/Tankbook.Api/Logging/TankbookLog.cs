@@ -189,7 +189,13 @@ public static class TankbookLog
             ("AccountId", accountId),
             ("Deleted", deleted));
 
-    /// <summary>The two fields count the period's metered requests USED before and after the call - a usage counter going up, never a remaining quota (RV.60). Counts are Safe (hard rule 12).</summary>
+    /// <summary>
+    /// The two usage fields count the period's metered requests USED before and
+    /// after the call - a usage counter going up, never a remaining quota
+    /// (RV.60). PageCount is the pages sent, LineCount the line-item fields the
+    /// answer carried (a multi-page invoice, docs/API.md). Counts are Safe
+    /// (hard rule 12).
+    /// </summary>
     public static void LlmExtract(
         ILogger logger,
         LogLevel level,
@@ -198,14 +204,18 @@ public static class TankbookLog
         long requestsUsedAfter,
         string model,
         TimeSpan duration,
-        string outcome)
+        string outcome,
+        int pageCount = 1,
+        int lineCount = 0)
         => Emit(logger, level, "llm.extract",
             ("Kind", kind),
             ("RequestsUsedBefore", requestsUsedBefore),
             ("RequestsUsedAfter", requestsUsedAfter),
             ("Model", model),
             ("DurationMs", duration.TotalMilliseconds),
-            ("Outcome", outcome));
+            ("Outcome", outcome),
+            ("PageCount", pageCount),
+            ("LineCount", lineCount));
 
     /// <summary>
     /// Model resolution fell back to a compiled default (migration 014,

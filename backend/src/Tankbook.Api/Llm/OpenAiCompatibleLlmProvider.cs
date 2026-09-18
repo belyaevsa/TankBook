@@ -8,7 +8,7 @@ namespace Tankbook.Api.Llm;
 /// <summary>
 /// The real cloud-vision provider (docs/EXTRACTION.md "The P4.12 measurement").
 /// Talks the OpenAI-compatible chat-completions wire shape to the configured
-/// <see cref="LlmGatewayOptions.BaseUrl"/>, sending the image inline as a base64
+/// <see cref="LlmGatewayOptions.BaseUrl"/>, sending each page inline as a base64
 /// data URL and asking for one JSON object: a <c>fields</c> array of
 /// <c>{ name, value, confidence }</c> entries plus the standard <c>usage</c>
 /// token counts. The vendor is configuration (base URL, key, model id) - nothing
@@ -38,12 +38,12 @@ public sealed class OpenAiCompatibleLlmProvider : ILlmProvider
     }
 
     public async Task<LlmExtraction> ExtractAsync(
-        string kind,
-        byte[] imageBytes,
+        ExtractDocument extract,
         ExtractHints hints,
         LlmModelChoice model,
         CancellationToken cancellationToken)
     {
+        var kind = extract.Kind;
         if (string.IsNullOrWhiteSpace(_options.BaseUrl) ||
             string.IsNullOrWhiteSpace(_options.ApiKey))
         {
@@ -63,30 +63,26 @@ public sealed class OpenAiCompatibleLlmProvider : ILlmProvider
         // extend this, but the seam - the dictionary flag through the choice
         // into the extraction's ThinkingBody - is the part the ledger depends
         // on, and that part is provider-agnostic.
+        // The pages are the user message's image parts, in order, after the one
+        // text part - one call carries the whole document.
+        var pageCount = extract.Pages.Count;
+        var userContent = new List<object>
+        {
+            new { type = "text", text = LlmPrompts.UserMessage(kind, pageCount) },
+        };
+        foreach (var page in extract.Pages)
+        {
+            userContent.Add(new { type = "image_url", image_url = new { url = DataUrl(page) } });
+        }
+
         var requestBody = JsonSerializer.Serialize(new
         {
             model = modelId,
             reasoning = model.SupportsThinking ? new { enabled = true } : null,
             messages = new object[]
             {
-                new { role = "system", content = LlmPrompts.SystemPrompt(kind, hints) },
-                new
-                {
-                    role = "user",
-                    content = new object[]
-                    {
-                        new
-                        {
-                            type = "text",
-                            text = LlmPrompts.UserMessage(kind),
-                        },
-                        new
-                        {
-                            type = "image_url",
-                            image_url = new { url = DataUrl(imageBytes) },
-                        },
-                    },
-                },
+                new { role = "system", content = LlmPrompts.SystemPrompt(kind, hints, extract.LineItems, pageCount) },
+                new { role = "user", content = userContent },
             },
         });
 

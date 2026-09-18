@@ -38,6 +38,28 @@ public class LlmPromptsTests
         Assert.DoesNotContain("unitPrice", prompt, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// PJ.301: the multi-page shape asks the invoice for its line items as
+    /// indexed fields beside the header, and names the pages as one document
+    /// in order; the single-image shape is byte-for-byte the header-only prompt
+    /// an older client relies on.
+    /// </summary>
+    [Fact]
+    public void MultiPageInvoicePromptAsksForIndexedLineItems_AndSingleImageStaysHeaderOnly()
+    {
+        var hints = new ExtractHints(null, null, null);
+        var multi = LlmPrompts.SystemPrompt("invoice", hints, lineItems: true, pageCount: 2);
+        Assert.Contains("lineItem[n].title", multi, StringComparison.Ordinal);
+        Assert.Contains("lineItem[n].amount", multi, StringComparison.Ordinal);
+        Assert.Contains("lineItem[n].category", multi, StringComparison.Ordinal);
+        Assert.Contains("2 images that are the pages, in order", multi, StringComparison.Ordinal);
+        Assert.Contains("2 pages", LlmPrompts.UserMessage("invoice", pageCount: 2), StringComparison.Ordinal);
+
+        var single = LlmPrompts.SystemPrompt("invoice", hints);
+        Assert.DoesNotContain("lineItem", single, StringComparison.Ordinal);
+        Assert.Equal(single, LlmPrompts.SystemPrompt("invoice", hints, lineItems: false, pageCount: 1));
+    }
+
     [Fact]
     public void FuelPromptKeepsThePumpCardVocabulary()
     {

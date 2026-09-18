@@ -41,12 +41,14 @@ public sealed class LlmLedgerPendingRepository
                     (id, account_id, device_id, kind, model_id, vendor, outcome, category,
                      prompt_tokens, completion_tokens, thinking_enabled,
                      input_price_per_token, output_price_per_token, cost, currency,
-                     prompt_sha256, prompt_body, response_body, thinking_body, duration_ms)
+                     prompt_sha256, prompt_body, response_body, thinking_body, duration_ms,
+                     prompt_page_sha256s)
                 VALUES
                     (@Id, @AccountId, @DeviceId, @Kind, @ModelId, @Vendor, @Outcome, @Category,
                      @PromptTokens, @CompletionTokens, @ThinkingEnabled,
                      @InputPricePerToken, @OutputPricePerToken, @Cost, @Currency,
-                     @PromptSha256, @PromptBody, @ResponseBody, @ThinkingBody, @DurationMs)
+                     @PromptSha256, @PromptBody, @ResponseBody, @ThinkingBody, @DurationMs,
+                     @PromptPageSha256s)
                 """,
                 call,
                 cancellationToken: cancellationToken));
@@ -103,12 +105,14 @@ public sealed class LlmLedgerPendingRepository
                     (id, account_id, device_id, kind, model_id, vendor, outcome, category,
                      prompt_tokens, completion_tokens, thinking_enabled,
                      input_price_per_token, output_price_per_token, cost, currency,
-                     prompt_sha256, prompt_body, response_body, thinking_body, duration_ms)
+                     prompt_sha256, prompt_body, response_body, thinking_body, duration_ms,
+                     prompt_page_sha256s)
                 SELECT
                     id, account_id, device_id, kind, model_id, vendor, outcome, category,
                     prompt_tokens, completion_tokens, thinking_enabled,
                     input_price_per_token, output_price_per_token, cost, currency,
-                    prompt_sha256, prompt_body, response_body, thinking_body, duration_ms
+                    prompt_sha256, prompt_body, response_body, thinking_body, duration_ms,
+                    prompt_page_sha256s
                 FROM llm_ledger_pending
                 WHERE id = @Id
                 ON CONFLICT (id) DO NOTHING

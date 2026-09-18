@@ -29,6 +29,9 @@ public sealed class RecordingLlmProvider : ILlmProvider
 
     public IReadOnlyList<string> Kinds { get; private set; } = [];
 
+    /// <summary>Every document handed over: the pages and whether line items were asked for (PJ.301).</summary>
+    public IReadOnlyList<ExtractDocument> Documents { get; private set; } = [];
+
     public void SetHandler(Func<string, byte[], ExtractHints, LlmModelChoice, LlmExtraction> handler) => _handler = handler;
 
     public void SetFailure() => _handler = static (_, _, _, _) => throw new InvalidOperationException("provider down");
@@ -42,16 +45,18 @@ public sealed class RecordingLlmProvider : ILlmProvider
     public void SetTimeout() => _handler = static (_, _, _, _) => throw new TaskCanceledException("the provider call timed out");
 
     public Task<LlmExtraction> ExtractAsync(
-        string kind,
-        byte[] imageBytes,
+        ExtractDocument document,
         ExtractHints hints,
         LlmModelChoice model,
         CancellationToken cancellationToken)
     {
         CallCount++;
-        Calls = Calls.Append(imageBytes).ToList();
+        // `Calls` keeps the first page so the single-image assertions read as
+        // before; `Documents` carries every page.
+        Calls = Calls.Append(document.Pages[0]).ToList();
         ModelChoices = ModelChoices.Append(model).ToList();
-        Kinds = Kinds.Append(kind).ToList();
-        return Task.FromResult(_handler(kind, imageBytes, hints, model));
+        Kinds = Kinds.Append(document.Kind).ToList();
+        Documents = Documents.Append(document).ToList();
+        return Task.FromResult(_handler(document.Kind, document.Pages[0], hints, model));
     }
 }

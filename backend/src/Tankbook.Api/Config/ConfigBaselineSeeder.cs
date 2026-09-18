@@ -2,6 +2,7 @@ using System.Data;
 using System.Globalization;
 using Dapper;
 using Microsoft.Extensions.Logging;
+using Tankbook.Api.Llm;
 using Tankbook.Api.Logging;
 
 namespace Tankbook.Api.Config;
@@ -131,6 +132,7 @@ public static class ConfigBaselineSeeder
             "\"ocrConfidenceThreshold\":0.75," +
             "\"minSchemaVersion\":1," +
             "\"referencePacks\":{\"rates\":1,\"catalog\":1}," +
+            $"\"extract\":{{\"maxInvoicePages\":{ExtractLimits.MaxInvoicePages}}}," +
             $"\"rolloutSalt\":\"{BaselineRolloutSalt}\"" +
             "}";
     }

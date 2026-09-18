@@ -62,8 +62,8 @@ public sealed class LlmCallPurgeService
                 .ToHashSet(StringComparer.Ordinal);
 
             var renditions = due
-                .Where(row => row.PromptSha256 is not null && !liveShas.Contains(row.PromptSha256))
-                .Select(row => (AccountId: row.AccountId, Sha256: row.PromptSha256!))
+                .SelectMany(row => row.AllSha256s.Select(sha => (AccountId: row.AccountId, Sha256: sha)))
+                .Where(rendition => !liveShas.Contains(rendition.Sha256))
                 .Distinct()
                 .ToList();
 

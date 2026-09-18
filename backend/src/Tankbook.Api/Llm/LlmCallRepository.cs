@@ -32,10 +32,35 @@ public sealed record LlmCallInsert(
     string? PromptBody,
     string? ResponseBody,
     string? ThinkingBody,
-    long DurationMs);
+    long DurationMs,
+    string[]? PromptPageSha256s = null);
 
-/// <summary>A ledger row whose content is due for the retention purge (its account, id and sha256).</summary>
-public sealed record LlmCallPurgeRow(Guid AccountId, Guid Id, string? PromptSha256);
+/// <summary>A ledger row whose content is due for the retention purge (its account, id and the renditions it references).</summary>
+public sealed record LlmCallPurgeRow(Guid AccountId, Guid Id, string? PromptSha256, string[]? PromptPageSha256s)
+{
+    /// <summary>The single-rendition shape (every row before migration 024).</summary>
+    public LlmCallPurgeRow(Guid accountId, Guid id, string? promptSha256)
+        : this(accountId, id, promptSha256, null)
+    {
+    }
+
+    /// <summary>Every rendition the row references: the first page and the further pages of a multi-page call.</summary>
+    public IEnumerable<string> AllSha256s
+    {
+        get
+        {
+            if (PromptSha256 is not null)
+            {
+                yield return PromptSha256;
+            }
+
+            foreach (var sha in PromptPageSha256s ?? [])
+            {
+                yield return sha;
+            }
+        }
+    }
+}
 
 /// <summary>
 /// Database access for the LLM call ledger (migration 015, docs/SECURITY.md
@@ -63,12 +88,14 @@ public sealed class LlmCallRepository
                     (id, account_id, device_id, kind, model_id, vendor, outcome, category,
                      prompt_tokens, completion_tokens, thinking_enabled,
                      input_price_per_token, output_price_per_token, cost, currency,
-                     prompt_sha256, prompt_body, response_body, thinking_body, duration_ms)
+                     prompt_sha256, prompt_body, response_body, thinking_body, duration_ms,
+                     prompt_page_sha256s)
                 VALUES
                     (@Id, @AccountId, @DeviceId, @Kind, @ModelId, @Vendor, @Outcome, @Category,
                      @PromptTokens, @CompletionTokens, @ThinkingEnabled,
                      @InputPricePerToken, @OutputPricePerToken, @Cost, @Currency,
-                     @PromptSha256, @PromptBody, @ResponseBody, @ThinkingBody, @DurationMs)
+                     @PromptSha256, @PromptBody, @ResponseBody, @ThinkingBody, @DurationMs,
+                     @PromptPageSha256s)
                 """,
                 call,
                 cancellationToken: cancellationToken));
@@ -92,17 +119,21 @@ public sealed class LlmCallRepository
         var opened = await OpenIfNeededAsync();
         try
         {
-            var rows = await _db.QueryAsync<LlmCallPurgeRow>(new CommandDefinition(
+            // Materialised through a property-bound row: Dapper cannot match a
+            // text[] column onto a record constructor's string[] parameter.
+            var rows = await _db.QueryAsync<PurgeRowDto>(new CommandDefinition(
                 """
-                SELECT account_id AS AccountId, id AS Id, prompt_sha256 AS PromptSha256
+                SELECT account_id AS AccountId, id AS Id, prompt_sha256 AS PromptSha256,
+                       prompt_page_sha256s AS PromptPageSha256s
                 FROM llm_calls
                 WHERE created_at <= @Cutoff
                   AND (prompt_body IS NOT NULL OR response_body IS NOT NULL
-                       OR thinking_body IS NOT NULL OR prompt_sha256 IS NOT NULL)
+                       OR thinking_body IS NOT NULL OR prompt_sha256 IS NOT NULL
+                       OR prompt_page_sha256s IS NOT NULL)
                 """,
                 new { Cutoff = cutoff },
                 cancellationToken: cancellationToken));
-            return rows.ToList();
+            return rows.Select(r => new LlmCallPurgeRow(r.AccountId, r.Id, r.PromptSha256, r.PromptPageSha256s)).ToList();
         }
         finally
         {
@@ -150,9 +181,13 @@ public sealed class LlmCallRepository
         {
             var rows = await _db.QueryAsync<string>(new CommandDefinition(
                 """
-                SELECT DISTINCT prompt_sha256
-                FROM llm_calls
-                WHERE account_id = @AccountId AND prompt_sha256 IS NOT NULL
+                SELECT DISTINCT sha256 FROM (
+                    SELECT prompt_sha256 AS sha256 FROM llm_calls
+                    WHERE account_id = @AccountId AND prompt_sha256 IS NOT NULL
+                    UNION ALL
+                    SELECT unnest(prompt_page_sha256s) FROM llm_calls
+                    WHERE account_id = @AccountId AND prompt_page_sha256s IS NOT NULL
+                ) AS renditions
                 """,
                 new { AccountId = accountId },
                 cancellationToken: cancellationToken));
@@ -181,9 +216,13 @@ public sealed class LlmCallRepository
         {
             var rows = await _db.QueryAsync<string>(new CommandDefinition(
                 """
-                SELECT DISTINCT prompt_sha256
-                FROM llm_calls
-                WHERE prompt_sha256 IS NOT NULL AND created_at > @Cutoff
+                SELECT DISTINCT sha256 FROM (
+                    SELECT prompt_sha256 AS sha256 FROM llm_calls
+                    WHERE prompt_sha256 IS NOT NULL AND created_at > @Cutoff
+                    UNION ALL
+                    SELECT unnest(prompt_page_sha256s) FROM llm_calls
+                    WHERE prompt_page_sha256s IS NOT NULL AND created_at > @Cutoff
+                ) AS renditions
                 """,
                 new { Cutoff = cutoff },
                 cancellationToken: cancellationToken));
@@ -232,4 +271,13 @@ public sealed class LlmCallRepository
         await ((DbConnection)_db).OpenAsync();
         return true;
     }
+}
+
+/// <summary>Dapper's materialisation shape for the purge enumeration (see ListDueAsync).</summary>
+internal sealed class PurgeRowDto
+{
+    public Guid AccountId { get; set; }
+    public Guid Id { get; set; }
+    public string? PromptSha256 { get; set; }
+    public string[]? PromptPageSha256s { get; set; }
 }

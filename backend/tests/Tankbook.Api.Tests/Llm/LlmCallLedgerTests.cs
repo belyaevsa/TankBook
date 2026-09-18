@@ -377,6 +377,50 @@ public class LlmCallLedgerTests : IClassFixture<PostgresFixture>
         Assert.False(storage.ByteObjects.ContainsKey(LlmCallKeys.PromptKey(accountId, old.PromptSha256!)));
     }
 
+    // ---- PJ.301: a multi-page call's renditions are purged with the row -----
+
+    /// <summary>
+    /// A two-page invoice writes two content-addressed renditions - the first
+    /// in prompt_sha256, the second in prompt_page_sha256s - and the retention
+    /// purge deletes BOTH when the row ages out. A purge that only read
+    /// prompt_sha256 would leave the second page in storage for ever.
+    /// </summary>
+    [SkippableFact]
+    public async Task RetentionPurge_DeletesEveryPageOfAMultiPageCall()
+    {
+        var signer = new TestIdTokenSigner();
+        var provider = new RecordingLlmProvider();
+        var storage = new RecordingBlobStorage();
+        await using var app = await StartAsync(signer, provider, storage: storage);
+        await SeedModelAsync(app, "test-model", "test-vendor", InputPrice, OutputPrice);
+        await app.Db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('invoice', 'test-model') ON CONFLICT (kind) DO UPDATE SET model_id = EXCLUDED.model_id");
+
+        var (token, accountId, _) = await CreateSessionAsync(app, signer, "ledger-pages", "ledger-pages@example.com");
+        await app.SetTierAsync(accountId, "pro");
+
+        using (var request = new HttpRequestMessage(HttpMethod.Post, "/v1/extract"))
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            request.Content = JsonContent.Create(new { kind = "invoice", images = new[] { Image("page-one"), Image("page-two") } });
+            var response = await app.Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        var first = await app.ScalarAsync<string>("SELECT prompt_sha256 FROM llm_calls WHERE account_id = @p", new { p = accountId });
+        var pages = await app.ScalarAsync<string[]>("SELECT prompt_page_sha256s FROM llm_calls WHERE account_id = @p", new { p = accountId });
+        var second = Assert.Single(pages);
+        Assert.True(storage.ByteObjects.ContainsKey(LlmCallKeys.PromptKey(accountId, first)));
+        Assert.True(storage.ByteObjects.ContainsKey(LlmCallKeys.PromptKey(accountId, second)));
+
+        await app.Db.ExecuteAsync("UPDATE llm_calls SET created_at = @aged WHERE account_id = @p", new { aged = Now.AddDays(-31), p = accountId });
+        using var scope = app.Services.CreateScope();
+        var purge = scope.ServiceProvider.GetRequiredService<LlmCallPurgeService>();
+        Assert.Equal(1, await purge.PurgeDueAsync(CancellationToken.None));
+
+        Assert.False(storage.ByteObjects.ContainsKey(LlmCallKeys.PromptKey(accountId, first)));
+        Assert.False(storage.ByteObjects.ContainsKey(LlmCallKeys.PromptKey(accountId, second)));
+    }
+
     // ---- 6. RV.53: the audit write never fails a paid answer ----------------
 
     /// The headline defect: the ledger's rendition blob write sat on /extract's

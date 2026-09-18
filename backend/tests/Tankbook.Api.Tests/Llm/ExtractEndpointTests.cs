@@ -403,7 +403,175 @@ public class ExtractEndpointTests : IClassFixture<PostgresFixture>
         Assert.Equal(1, provider.CallCount);
     }
 
+    // ---- PJ.301 multi-page invoices ------------------------------------------
+
+    /// <summary>
+    /// A two-page invoice whose line items are read across the pages and
+    /// whose total sits on the last page: both pages reach the provider in
+    /// order as ONE document asked for its line items, the answer's line items
+    /// come back as indexed fields with a confidence each, and the ledger row
+    /// references every page by its own sha256. A one-page fixture would prove
+    /// nothing about paging (the row's vacuous trap), so this one has two.
+    /// </summary>
+    [SkippableFact]
+    public async Task Extract_MultiPageInvoice_RoundTripsLineItemsAndReferencesEveryPage()
+    {
+        var signer = new TestIdTokenSigner();
+        var provider = new RecordingLlmProvider();
+        provider.SetHandler((_, _, _, _) => new LlmExtraction(
+            new Dictionary<string, LlmField>(StringComparer.Ordinal)
+            {
+                ["vendor"] = new LlmField("Garage", 0.9),
+                ["total"] = new LlmField(312.40, 0.95),
+                ["lineItem[0].title"] = new LlmField("Oil filter", 0.9),
+                ["lineItem[0].amount"] = new LlmField(24.90, 0.9),
+                ["lineItem[0].category"] = new LlmField("parts", 0.7),
+                ["lineItem[1].title"] = new LlmField("Labour", 0.85),
+                ["lineItem[1].amount"] = new LlmField(287.50, 0.85),
+            },
+            "test-model", 30, 12));
+        var storage = new RecordingBlobStorage(new MutableTimeProvider(Now));
+        await using var app = await StartAsync(signer, provider, storage: storage);
+        var (token, account, _) = await CreateSessionAsync(app, signer, "pages", "pages@example.com");
+        await app.SetTierAsync(account, "pro");
+
+        var page1 = "invoice page one"u8.ToArray();
+        var page2 = "invoice page two, with the total"u8.ToArray();
+        var response = await ExtractPagesAsync(app.Client, token, "invoice", [Convert.ToBase64String(page1), Convert.ToBase64String(page2)]);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        // One provider call carrying both pages in order, asked for line items.
+        var document = Assert.Single(provider.Documents);
+        Assert.Equal(2, document.Pages.Count);
+        Assert.Equal(page1, document.Pages[0]);
+        Assert.Equal(page2, document.Pages[1]);
+        Assert.True(document.LineItems);
+
+        // The line items ride the response as indexed fields, confidence each.
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var fields = doc.RootElement.GetProperty("fields");
+        Assert.Equal("Oil filter", fields.GetProperty("lineItem[0].title").GetProperty("value").GetString());
+        Assert.Equal(287.50, fields.GetProperty("lineItem[1].amount").GetProperty("value").GetDouble());
+        Assert.Equal(0.85, fields.GetProperty("lineItem[1].amount").GetProperty("confidence").GetDouble());
+
+        // Both renditions are in blob storage and both are referenced by the row.
+        var sha1 = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(page1)).ToLowerInvariant();
+        var sha2 = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(page2)).ToLowerInvariant();
+        Assert.True(storage.ByteObjects.ContainsKey(LlmCallKeys.PromptKey(account, sha1)));
+        Assert.True(storage.ByteObjects.ContainsKey(LlmCallKeys.PromptKey(account, sha2)));
+        Assert.Equal(sha1, await app.ScalarAsync<string>("SELECT prompt_sha256 FROM llm_calls"));
+        Assert.Equal(new[] { sha2 }, await app.ScalarAsync<string[]>("SELECT prompt_page_sha256s FROM llm_calls"));
+    }
+
+    /// <summary>The multi-page shape is the invoice's alone, and it is bounded: any other kind, an empty list, or too many pages is a 400 that never reaches the provider.</summary>
+    [SkippableFact]
+    public async Task Extract_ImagesOnOtherKinds_EmptyList_OrOverTheCap_Are400_BeforeTheProvider()
+    {
+        var signer = new TestIdTokenSigner();
+        var provider = new RecordingLlmProvider();
+        await using var app = await StartAsync(signer, provider);
+        var (token, account, _) = await CreateSessionAsync(app, signer, "pages400", "pages400@example.com");
+        await app.SetTierAsync(account, "pro");
+
+        var onReceipt = await ExtractPagesAsync(app.Client, token, "receipt", [SmallImage(), SmallImage()]);
+        Assert.Equal(HttpStatusCode.BadRequest, onReceipt.StatusCode);
+
+        var empty = await ExtractPagesAsync(app.Client, token, "invoice", []);
+        Assert.Equal(HttpStatusCode.BadRequest, empty.StatusCode);
+
+        var overCap = await ExtractPagesAsync(
+            app.Client, token, "invoice",
+            Enumerable.Repeat(SmallImage(), ExtractLimits.MaxInvoicePages + 1).ToList());
+        Assert.Equal(HttpStatusCode.BadRequest, overCap.StatusCode);
+
+        Assert.Equal(0, provider.CallCount);
+        Assert.Equal(0, await app.CountAsync("llm_usage"));
+
+        // Exactly the cap is accepted.
+        var atCap = await ExtractPagesAsync(
+            app.Client, token, "invoice",
+            Enumerable.Repeat(SmallImage(), ExtractLimits.MaxInvoicePages).ToList());
+        Assert.Equal(HttpStatusCode.OK, atCap.StatusCode);
+        Assert.Equal(ExtractLimits.MaxInvoicePages, provider.Documents.Single().Pages.Count);
+    }
+
+    /// <summary>One oversize page among the pages is a 413 before the provider is called, exactly as a single oversize image is.</summary>
+    [SkippableFact]
+    public async Task Extract_OversizePageAmongPages_Is413BeforeTheProvider()
+    {
+        var signer = new TestIdTokenSigner();
+        var provider = new RecordingLlmProvider();
+        await using var app = await StartAsync(signer, provider);
+        var (token, account, _) = await CreateSessionAsync(app, signer, "pages413", "pages413@example.com");
+        await app.SetTierAsync(account, "pro");
+
+        var response = await ExtractPagesAsync(app.Client, token, "invoice", [SmallImage(), new string('A', MaxImageBytes + 1)]);
+
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
+        Assert.Equal(0, provider.CallCount);
+        Assert.Equal(0, await app.CountAsync("llm_usage"));
+    }
+
+    /// <summary>An invoice an older client sends as `image` keeps the header-only reading: one page, line items not asked for.</summary>
+    [SkippableFact]
+    public async Task Extract_InvoiceAsSingleImage_StaysHeaderOnly()
+    {
+        var signer = new TestIdTokenSigner();
+        var provider = new RecordingLlmProvider();
+        await using var app = await StartAsync(signer, provider);
+        var (token, account, _) = await CreateSessionAsync(app, signer, "single", "single@example.com");
+        await app.SetTierAsync(account, "pro");
+
+        var response = await ExtractAsync(app.Client, token, "invoice", SmallImage(), null);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var document = Assert.Single(provider.Documents);
+        Assert.Single(document.Pages);
+        Assert.False(document.LineItems);
+    }
+
+    /// <summary>The log line for a multi-page call carries the page count and the line count - shape only, never a title or an amount.</summary>
+    [SkippableFact]
+    public async Task Extract_MultiPageLog_CarriesPageAndLineCounts_NeverALine()
+    {
+        var signer = new TestIdTokenSigner();
+        var provider = new RecordingLlmProvider();
+        const string sentinelTitle = "SENTINEL-TITLE-9f3a";
+        provider.SetHandler((_, _, _, _) => new LlmExtraction(
+            new Dictionary<string, LlmField>(StringComparer.Ordinal)
+            {
+                ["total"] = new LlmField(99.0, 0.9),
+                ["lineItem[0].title"] = new LlmField(sentinelTitle, 0.9),
+                ["lineItem[0].amount"] = new LlmField(99.0, 0.9),
+            },
+            "test-model", 1, 1));
+        var writer = new InMemoryLogWriter([]);
+        await using var app = await StartAsync(signer, provider, writer);
+        var (token, account, _) = await CreateSessionAsync(app, signer, "pagelog", "pagelog@example.com");
+        await app.SetTierAsync(account, "pro");
+
+        var response = await ExtractPagesAsync(app.Client, token, "invoice", [SmallImage(), SmallImage()]);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var extract = Assert.Single(writer.JsonLines().ToList(), l => l.Prop("event") == "llm.extract" && l.Prop("outcome") == "ok");
+        Assert.Equal("2", extract.Prop("pageCount"));
+        Assert.Equal("2", extract.Prop("lineCount"));
+        Assert.DoesNotContain(sentinelTitle, string.Join('\n', writer.Lines), StringComparison.Ordinal);
+    }
+
     // ---- helpers -------------------------------------------------------------
+
+    private static async Task<HttpResponseMessage> ExtractPagesAsync(
+        HttpClient client,
+        string token,
+        string kind,
+        IReadOnlyList<string> images)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/v1/extract");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Content = JsonContent.Create(new { kind, images });
+        return await client.SendAsync(request);
+    }
 
     private static string SmallImage() => Convert.ToBase64String("receipt"u8.ToArray());
 

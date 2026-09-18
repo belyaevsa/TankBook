@@ -16,6 +16,10 @@ public enum ExtractStatus
     ImageMissing,
     ImageInvalid,
     ImageTooLarge,
+    /// <summary>`images` on a kind that is not the multi-page one, or an empty list (docs/API.md "multi-page invoices").</summary>
+    ImagesNotAllowed,
+    /// <summary>More pages than <see cref="ExtractLimits.MaxInvoicePages"/>.</summary>
+    TooManyPages,
     TierLacksQuota,
     QuotaSpent,
     ProviderFailed,
@@ -116,7 +120,7 @@ public sealed class LlmService
         _time = time;
     }
 
-    public async Task<ExtractOutcome> ExtractAsync(
+    public Task<ExtractOutcome> ExtractAsync(
         Guid accountId,
         Guid deviceId,
         string kind,
@@ -124,30 +128,60 @@ public sealed class LlmService
         ExtractHints hints,
         string? captureId,
         CancellationToken cancellationToken)
+        => ExtractAsync(accountId, deviceId, kind, imageBase64, imagesBase64: null, hints, captureId, cancellationToken);
+
+    public async Task<ExtractOutcome> ExtractAsync(
+        Guid accountId,
+        Guid deviceId,
+        string kind,
+        string? imageBase64,
+        IReadOnlyList<string>? imagesBase64,
+        ExtractHints hints,
+        string? captureId,
+        CancellationToken cancellationToken)
     {
-        // Envelope first, before any paid call. The 4 MB cap is on the base64
-        // body (docs/API.md); checking it here, before decode, means an oversize
-        // image never reaches the provider.
-        if (string.IsNullOrWhiteSpace(imageBase64))
+        // Envelope first, before any paid call. The per-page cap is on the
+        // base64 body (docs/API.md); checking it here, before decode, means an
+        // oversize page never reaches the provider. `images` is the multi-page
+        // shape and is legal for the invoice kind alone; `image` stays the
+        // single-page shape for every kind, including an invoice an older
+        // client sends (header-only reading).
+        var multiPage = imagesBase64 is not null;
+        var pagesBase64 = multiPage ? imagesBase64! : [imageBase64 ?? string.Empty];
+        if (multiPage && (kind != ExtractLimits.MultiPageKind || pagesBase64.Count == 0))
         {
-            return new ExtractOutcome(ExtractStatus.ImageMissing, null);
+            return new ExtractOutcome(ExtractStatus.ImagesNotAllowed, null);
         }
 
-        if (Encoding.UTF8.GetByteCount(imageBase64) > _options.MaxImageBytes)
+        if (pagesBase64.Count > ExtractLimits.MaxInvoicePages)
         {
-            return new ExtractOutcome(ExtractStatus.ImageTooLarge, null);
+            return new ExtractOutcome(ExtractStatus.TooManyPages, null);
         }
 
-        byte[] imageBytes;
-        try
+        var pages = new List<byte[]>(pagesBase64.Count);
+        foreach (var pageBase64 in pagesBase64)
         {
-            imageBytes = Convert.FromBase64String(imageBase64);
-        }
-        catch (FormatException)
-        {
-            return new ExtractOutcome(ExtractStatus.ImageInvalid, null);
+            if (string.IsNullOrWhiteSpace(pageBase64))
+            {
+                return new ExtractOutcome(ExtractStatus.ImageMissing, null);
+            }
+
+            if (Encoding.UTF8.GetByteCount(pageBase64) > _options.MaxImageBytes)
+            {
+                return new ExtractOutcome(ExtractStatus.ImageTooLarge, null);
+            }
+
+            try
+            {
+                pages.Add(Convert.FromBase64String(pageBase64));
+            }
+            catch (FormatException)
+            {
+                return new ExtractOutcome(ExtractStatus.ImageInvalid, null);
+            }
         }
 
+        var document = new ExtractDocument(kind, pages, LineItems: multiPage);
         var stopwatch = Stopwatch.StartNew();
 
         // Everything from the model resolution down runs against a server-side
@@ -201,18 +235,18 @@ public sealed class LlmService
         LlmExtraction extraction;
         try
         {
-            extraction = await _provider.ExtractAsync(kind, imageBytes, hints, model, serverToken);
+            extraction = await _provider.ExtractAsync(document, hints, model, serverToken);
         }
         catch (OperationCanceledException)
         {
-            await RecordCallAsync(accountId, deviceId, kind, model, extraction: null, imageBytes, OutcomeProviderTimeout, CategoryError, stopwatch.Elapsed, serverToken);
-            TankbookLog.LlmExtract(_logger, LogLevel.Error, kind, usedBefore, usedBefore, string.Empty, stopwatch.Elapsed, "provider_timeout");
+            await RecordCallAsync(accountId, deviceId, kind, model, extraction: null, pages, OutcomeProviderTimeout, CategoryError, stopwatch.Elapsed, serverToken);
+            TankbookLog.LlmExtract(_logger, LogLevel.Error, kind, usedBefore, usedBefore, string.Empty, stopwatch.Elapsed, "provider_timeout", pages.Count);
             return new ExtractOutcome(ExtractStatus.ProviderFailed, null);
         }
         catch
         {
-            await RecordCallAsync(accountId, deviceId, kind, model, extraction: null, imageBytes, OutcomeProviderFailed, CategoryError, stopwatch.Elapsed, serverToken);
-            TankbookLog.LlmExtract(_logger, LogLevel.Error, kind, usedBefore, usedBefore, string.Empty, stopwatch.Elapsed, "provider_failed");
+            await RecordCallAsync(accountId, deviceId, kind, model, extraction: null, pages, OutcomeProviderFailed, CategoryError, stopwatch.Elapsed, serverToken);
+            TankbookLog.LlmExtract(_logger, LogLevel.Error, kind, usedBefore, usedBefore, string.Empty, stopwatch.Elapsed, "provider_failed", pages.Count);
             return new ExtractOutcome(ExtractStatus.ProviderFailed, null);
         }
 
@@ -223,13 +257,15 @@ public sealed class LlmService
         // Postgres write and stays on the path; the record that follows is the
         // audit, written so it can no longer fail this request (RV.53).
         var usedAfter = await _repository.IncrementUsageAsync(accountId, period, extraction.TotalTokens, serverToken);
-        await RecordCallAsync(accountId, deviceId, kind, model, extraction, imageBytes, OutcomeOk, CategorySuccess, stopwatch.Elapsed, serverToken);
+        await RecordCallAsync(accountId, deviceId, kind, model, extraction, pages, OutcomeOk, CategorySuccess, stopwatch.Elapsed, serverToken);
 
         var fields = extraction.Fields.ToDictionary(
             pair => pair.Key,
             pair => new ExtractFieldResponse(pair.Value.Value, pair.Value.Confidence),
             StringComparer.Ordinal);
         var response = new ExtractResponse(fields, Pipeline);
+        // Shape only: how many line-item fields came back, never one of them.
+        var lineCount = fields.Keys.Count(name => name.StartsWith(LlmPrompts.LineItemPrefix, StringComparison.Ordinal));
 
         // Delivery decision (RV.44). The answer is ready; if the client is gone
         // (the request was aborted), hand it to the outbox instead of a void.
@@ -237,7 +273,7 @@ public sealed class LlmService
         {
             var payload = BuildOutboxPayload(captureId, response);
             await _outbox.EnqueueAsync(accountId, deviceId, payload, serverToken);
-            TankbookLog.LlmExtract(_logger, LogLevel.Information, kind, usedBefore, usedAfter.Requests, extraction.Model, stopwatch.Elapsed, OutcomeOutboxed);
+            TankbookLog.LlmExtract(_logger, LogLevel.Information, kind, usedBefore, usedAfter.Requests, extraction.Model, stopwatch.Elapsed, OutcomeOutboxed, pages.Count, lineCount);
             return new ExtractOutcome(ExtractStatus.DeliveredViaOutbox, null);
         }
 
@@ -249,7 +285,9 @@ public sealed class LlmService
             usedAfter.Requests,
             extraction.Model,
             stopwatch.Elapsed,
-            "ok");
+            "ok",
+            pages.Count,
+            lineCount);
 
         return new ExtractOutcome(ExtractStatus.Ok, response);
     }
@@ -303,32 +341,40 @@ public sealed class LlmService
         string kind,
         LlmModelChoice model,
         LlmExtraction? extraction,
-        byte[] imageBytes,
+        IReadOnlyList<byte[]> pages,
         string outcome,
         string category,
         TimeSpan duration,
         CancellationToken cancellationToken)
     {
-        var sha256 = Convert.ToHexString(SHA256.HashData(imageBytes)).ToLowerInvariant();
-        var key = LlmCallKeys.PromptKey(accountId, sha256);
+        // Every page is its own content-addressed rendition; the row's
+        // prompt_sha256 is the first page (the single-image shape unchanged)
+        // and the further pages ride prompt_page_sha256s (migration 024). Each
+        // is best-effort: a page whose put fails is simply not referenced.
+        var storedShas = new List<string>(pages.Count);
+        foreach (var page in pages)
+        {
+            var sha256 = Convert.ToHexString(SHA256.HashData(page)).ToLowerInvariant();
+            try
+            {
+                await _storage.PutObjectAsync(LlmCallKeys.PromptKey(accountId, sha256), page, "image/jpeg", cancellationToken);
+                storedShas.Add(sha256);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                // Shape only - account id and an outcome code, never the image
+                // (hard rule 12). The row below still records the call; only the
+                // rendition is lost, and the device still holds the original.
+                TankbookLog.LlmCallRenditionFailed(_logger, accountId, outcome);
+            }
+        }
 
-        string? storedSha = null;
-        try
-        {
-            await _storage.PutObjectAsync(key, imageBytes, "image/jpeg", cancellationToken);
-            storedSha = sha256;
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception)
-        {
-            // Shape only - account id and an outcome code, never the image
-            // (hard rule 12). The row below still records the call; only the
-            // rendition is lost, and the device still holds the original.
-            TankbookLog.LlmCallRenditionFailed(_logger, accountId, outcome);
-        }
+        var storedSha = storedShas.Count > 0 ? storedShas[0] : null;
+        var storedPageShas = storedShas.Count > 1 ? storedShas.Skip(1).ToArray() : null;
 
         long promptTokens = extraction?.PromptTokens ?? 0;
         long completionTokens = extraction?.CompletionTokens ?? 0;
@@ -354,7 +400,8 @@ public sealed class LlmService
             PromptBody: null,
             ResponseBody: extraction?.ResponseBody,
             ThinkingBody: extraction?.ThinkingBody,
-            DurationMs: (long)duration.TotalMilliseconds);
+            DurationMs: (long)duration.TotalMilliseconds,
+            PromptPageSha256s: storedPageShas);
 
         try
         {

@@ -16,8 +16,8 @@ public sealed class LlmGatewayOptions
 {
     public const string SectionName = "LlmGateway";
 
-    /// <summary>Cap on the base64 image body, docs/API.md "POST /extract": 4 MB.</summary>
-    public long MaxImageBytes { get; set; } = 4L * 1024 * 1024;
+    /// <summary>Cap on one base64 image (a page), docs/API.md "POST /extract": <see cref="ExtractLimits.MaxImageBytes"/>.</summary>
+    public long MaxImageBytes { get; set; } = ExtractLimits.MaxImageBytes;
 
     /// <summary>
     /// The per-day allowance the config document advertises as

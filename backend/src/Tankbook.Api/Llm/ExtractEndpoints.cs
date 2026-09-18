@@ -42,7 +42,7 @@ public static class ExtractEndpoints
         }
 
         var hints = request.Hints ?? new ExtractHints(null, null, null);
-        var outcome = await service.ExtractAsync(identity.Value.AccountId, identity.Value.DeviceId, request.Kind!, request.Image, hints, request.CaptureId, cancellationToken);
+        var outcome = await service.ExtractAsync(identity.Value.AccountId, identity.Value.DeviceId, request.Kind!, request.Image, request.Images, hints, request.CaptureId, cancellationToken);
         return outcome.Status switch
         {
             ExtractStatus.Ok => Results.Ok(outcome.Response),
@@ -64,7 +64,17 @@ public static class ExtractEndpoints
                 StatusCodes.Status413PayloadTooLarge,
                 TankbookErrorCodes.PayloadTooLarge,
                 "Payload too large.",
-                "The base64 image may be at most 4 MB."),
+                "Each base64 image may be at most 4 MB."),
+            ExtractStatus.ImagesNotAllowed => Problem(
+                StatusCodes.Status400BadRequest,
+                TankbookErrorCodes.PayloadInvalid,
+                "Invalid images.",
+                "images is accepted for kind invoice only and must list at least one page; other kinds send image."),
+            ExtractStatus.TooManyPages => Problem(
+                StatusCodes.Status400BadRequest,
+                TankbookErrorCodes.PayloadInvalid,
+                "Too many pages.",
+                $"images may list at most {ExtractLimits.MaxInvoicePages} pages."),
             ExtractStatus.TierLacksQuota => Problem(
                 StatusCodes.Status402PaymentRequired,
                 TankbookErrorCodes.TierRefused,

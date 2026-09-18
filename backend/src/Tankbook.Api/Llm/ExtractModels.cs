@@ -7,7 +7,18 @@ namespace Tankbook.Api.Llm;
 /// reads its meaning, only echoes it so the device can match the answer to the
 /// entry it belongs to.
 /// </summary>
-public sealed record ExtractRequest(string? Kind, string? Image, ExtractHints? Hints, string? CaptureId);
+/// <remarks>
+/// <c>Images</c> is the multi-page shape for <c>kind: "invoice"</c> (docs/API.md
+/// "multi-page invoices"): every page of one invoice, in order, in one call.
+/// <c>Image</c> stays valid for every kind, and an invoice sent as <c>image</c>
+/// keeps the header-only reading an older client expects.
+/// </remarks>
+public sealed record ExtractRequest(
+    string? Kind,
+    string? Image,
+    ExtractHints? Hints,
+    string? CaptureId,
+    IReadOnlyList<string>? Images = null);
 
 /// <summary>The document kinds the gateway accepts (docs/API.md). Anything else is a 400.</summary>
 public static class ExtractKinds

@@ -563,21 +563,23 @@ line items are the device's deterministic split (JOURNEYS J7), and `expense` ask
 `total, date, currency, vendor, category` and never a fuel field. The server still reads no meaning –
 it forwards a field NAME list (hard rule 9).
 
-**[v1.1] Planned (product owner, 2026-09-15, [PJ.301]): multi-page invoices.** `kind: "invoice"`
-gains `images: [<base64 ≤ 4 MB each>...]` as an alternative to `image` - **all pages of one
-invoice in one call**, because line items span pages and the total sits on the last. Additive:
-`image` stays valid for every kind, and `invoice` with `image` keeps today's header-only reading;
-`images` on any other kind is a `400` (`payload_invalid`), as is an empty list or more than
-`ExtractLimits.maxInvoicePages` pages (a compiled constant on the gateway, echoed to the device
-by remote config so the camera can stop at the cap). The envelope cap for `/extract` becomes
-`maxInvoicePages × 4 MB + envelope`, enforced before the provider is called (`413`). The
-`invoice` prompt then asks for the header **and** `lineItems: [{ title, category?, amount }]`,
-and the response carries them as `fields` per line (`lineItem[n].title` etc.) with a confidence
-each. The server still reads no meaning: the category vocabulary is a field-name list the device
-maps to its own codes and drops when unknown, as `expense.category` already does. The ledger
-row references every page by `sha256`; the blob per page is best-effort like the single
-rendition. Shape-only logging gains `pageCount` and `lineCount`. Until the row ships this
-paragraph is the plan and the contract above is the deployed truth.
+**Multi-page invoices (PJ.301, shipped 2026-09-18; decided 2026-09-15, product owner).** `kind:
+"invoice"` accepts `images: [<base64 ≤ 4 MB each>...]` as an alternative to `image` - **all pages
+of one invoice in one call**, because line items span pages and the total sits on the last.
+Additive: `image` stays valid for every kind, and an invoice sent as `image` keeps the header-only
+reading an older client expects. `images` on any other kind is a `400` (`payload_invalid`), as is
+an empty list or more than `ExtractLimits.maxInvoicePages` pages (6 - a compiled constant on the
+gateway, echoed to the device in the config document as `extract.maxInvoicePages` so the camera
+can stop at the cap; exactly the cap is accepted). Each page is capped at 4 MB and the endpoint's
+body cap is `maxInvoicePages × 4 MB + 2 MB`, both enforced before the provider is called (`413`).
+The `invoice` prompt then asks for the header **and** the line items, which come back as indexed
+fields with a confidence each - `lineItem[n].title`, `lineItem[n].amount` and, when the model
+can tell, `lineItem[n].category`, n from 0 in printed order across the pages. The server still
+reads no meaning: the category is free text the device maps to its own codes and drops when
+unknown, as `expense.category` already is. The ledger row references every page by `sha256`
+(`prompt_sha256` for the first page, `prompt_page_sha256s` for the rest, migration 024), each
+page a best-effort blob like the single rendition, and both purges delete every page. Shape-only
+logging gains `pageCount` and `lineCount`.
 
 **The model is data, not compiled config (amended 2026-09-03, RV.34).** Which model serves which
 kind, and what that model costs, live in two tables written by direct DB write (no admin

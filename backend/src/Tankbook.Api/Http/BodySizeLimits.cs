@@ -1,3 +1,4 @@
+using Tankbook.Api.Llm;
 using Tankbook.Api.Sync;
 
 namespace Tankbook.Api.Http;
@@ -22,10 +23,14 @@ public static class BodySizeLimits
         SyncService.MaxChangesPerBatch * (PayloadValidator.MaxPayloadBytes + 1024) + 1024 * 1024;
 
     /// <summary>
-    /// The base64 image body is capped at 4 MB by LlmGatewayOptions.MaxImageBytes;
-    /// 6 MB gives the { kind, image, hints } envelope comfortable headroom.
+    /// Each base64 page is capped at <see cref="ExtractLimits.MaxImageBytes"/> and a
+    /// multi-page invoice carries at most <see cref="ExtractLimits.MaxInvoicePages"/>
+    /// of them (docs/API.md "multi-page invoices"); 2 MB gives the
+    /// { kind, images, hints } envelope comfortable headroom. References the
+    /// same constants the validator enforces, so the cap cannot drift below
+    /// what a legitimate client may legally send.
     /// </summary>
-    public const long ExtractBytes = 6L * 1024 * 1024;
+    public const long ExtractBytes = ExtractLimits.MaxInvoicePages * ExtractLimits.MaxImageBytes + 2L * 1024 * 1024;
 
     /// <summary>
     /// docs/API.md: import file &lt;= 8 MB, plus the multipart wrapper (boundary
