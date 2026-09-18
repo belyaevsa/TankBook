@@ -7,8 +7,12 @@ import TankbookCore
 /// "Log the cost?" prompt with **Type amount** and **Skip – just mark done**,
 /// the next-cycle line when recurrence is set, and the secondary actions.
 ///
-/// Two doors (hard rule 15): Type amount opens the entry pre-filled; Skip
-/// declines the cost log - `.done(nil)`, completion never forces bookkeeping.
+/// Three doors (hard rule 15): Scan invoice opens the service entry pre-filled
+/// with its document camera on top, Type amount opens it pre-filled for typing
+/// - peers, side by side - and Skip declines the cost log (`.done(nil)`,
+/// completion never forces bookkeeping). An expense-kind reminder has the
+/// typing door only: its receipt capture runs through the Capture screen,
+/// which has no reminder hand-off yet (`docs/TASKS.md` RV.298).
 /// The next occurrence, when recurrence is set, is anchored at the COMPLETION
 /// date/odometer (never the original due - no drift), so the line previews what
 /// `ReminderLifecycle.complete` will persist.
@@ -122,24 +126,14 @@ struct ReminderCompleteSheet: View {
             // ("... the category, title and t...", "... категорией, н..."). It
             // is the sentence that explains what the button will do, so a
             // truncated version is worse than none - it stops mid-promise.
-            Text("Creates an entry pre-filled with the category, title and today's odometer – type a total and save.")
+            Text(costDoorsDescription)
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 3)
 
-            Button(action: typeAmount) {
-                Text("Type amount")
-                    .font(.body.weight(.bold))
-                    .foregroundStyle(Theme.Palette.midnight)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 13)
-                    .background(Theme.Palette.taillight)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 12)
-            .accessibilityIdentifier("reminderCompleteTypeAmount")
+            costDoors
+                .padding(.top, 12)
 
             Button(action: skip) {
                 Text("Skip – just mark done")
@@ -160,6 +154,67 @@ struct ReminderCompleteSheet: View {
                 .stroke(Theme.Palette.hairline, lineWidth: 1)
         )
         .padding(.top, 18)
+    }
+
+    private var costDoorsDescription: LocalizedStringKey {
+        entryKind.isService
+            ? "Creates a service entry pre-filled with today's date and odometer – scan the invoice or type a total."
+            : "Creates an entry pre-filled with the category, title and today's odometer – type a total and save."
+    }
+
+    /// The two entry doors side by side for a service reminder (the artboard's
+    /// row), the typing door alone for an expense one.
+    @ViewBuilder
+    private var costDoors: some View {
+        if entryKind.isService {
+            HStack(spacing: 8) {
+                Button(action: scanInvoice) {
+                    HStack(spacing: 7) {
+                        Image(systemName: "camera")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Scan invoice")
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Theme.Palette.midnight)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(Theme.Palette.taillight)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("reminderCompleteScanInvoice")
+
+                Button(action: typeAmount) {
+                    Text("Type amount")
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.ink)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 13)
+                        .background(Theme.Palette.dash)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12)
+                            .stroke(Theme.Palette.hairline, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("reminderCompleteTypeAmount")
+            }
+        } else {
+            Button(action: typeAmount) {
+                Text("Type amount")
+                    .font(.body.weight(.bold))
+                    .foregroundStyle(Theme.Palette.midnight)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(Theme.Palette.taillight)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("reminderCompleteTypeAmount")
+        }
     }
 
     private func nextCycleCard(_ next: Reminder) -> some View {
@@ -247,11 +302,20 @@ struct ReminderCompleteSheet: View {
     // MARK: - Actions
 
     private func typeAmount() {
+        openEntry(openScanner: false)
+    }
+
+    private func scanInvoice() {
+        openEntry(openScanner: true)
+    }
+
+    private func openEntry(openScanner: Bool) {
         completionSession.pending = ReminderCompletionSession.Pending(
             reminder: reminder,
             vehicleId: reminder.vehicleId,
             completionDate: completionDate,
-            completionOdometer: currentOdometer)
+            completionOdometer: currentOdometer,
+            openScanner: openScanner)
         switch entryKind {
         case .expense: entrySheet = .expenseEntry
         case .service: entrySheet = .serviceEntry

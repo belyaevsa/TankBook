@@ -517,6 +517,11 @@ capture P3.4-reminder-form-ru     ru -seedReminders -seedReminderForm -presentSc
 # auto-opens the sheet over the seeded oil change - simctl cannot tap.
 capture P3.5-reminder-complete           en -seedReminderComplete -presentScreen reminders -presentReminderComplete
 capture P3.5-reminder-complete-ru        ru -seedReminderComplete -presentScreen reminders -presentReminderComplete
+# PJ.24: the same sheet with its two entry doors side by side - "Scan invoice"
+# and "Type amount" as peers (hard rule 15). RU is where "Сканировать счёт"
+# and the two-line description test the row's width.
+capture PJ.24-reminder-complete-doors    en -seedReminderComplete -presentScreen reminders -presentReminderComplete
+capture PJ.24-reminder-complete-doors-ru ru -seedReminderComplete -presentScreen reminders -presentReminderComplete
 capture P3.5-reminder-complete-prefill    en -seedReminderCompletionPrefill -presentScreen serviceEntry
 capture P3.5-reminder-complete-prefill-ru ru -seedReminderCompletionPrefill -presentScreen serviceEntry
 

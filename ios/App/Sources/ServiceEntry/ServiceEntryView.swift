@@ -1,4 +1,5 @@
 import SwiftUI
+import VisionKit
 import UIKit
 import TankbookCore
 
@@ -415,6 +416,10 @@ struct ServiceEntryView: View {
                                                   category: category)],
                     odometer: pending.completionOdometer.map(OdometerFormat.grouped) ?? "",
                     date: pending.completionDate))
+                // The "Scan invoice" door: the document camera opens over the
+                // pre-filled entry; a device without one (the simulator) lands
+                // on the pre-filled entry, the typing door's result.
+                showDocumentCamera = pending.openScanner && VNDocumentCameraViewController.isSupported
             } else if let prefill = invoiceSession.pendingPrefill {
                 apply(prefill)
                 invoiceSession.pendingPrefill = nil

@@ -995,6 +995,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "PJ.24-reminder-complete-doors": {
+      "commit": "add52ca5",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.24-reminder-complete-doors-ru": {
+      "commit": "add52ca5",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "PJ.25-parts-shelf": {
       "commit": "8d6324e",
       "device": "iPhone 17",

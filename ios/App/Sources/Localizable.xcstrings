@@ -4734,6 +4734,23 @@
         }
       }
     },
+    "Creates a service entry pre-filled with today's date and odometer – scan the invoice or type a total.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Creates a service entry pre-filled with today's date and odometer – scan the invoice or type a total."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Создаёт запись о сервисе с сегодняшней датой и пробегом – отсканируйте счёт или введите сумму."
+          }
+        }
+      }
+    },
     "Creates an entry pre-filled with the category, title and today's odometer – type a total and save.": {
       "extractionState": "manual",
       "localizations": {
@@ -11203,7 +11220,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Сканировать счёт"
+            "value": "Скан счёта"
           }
         }
       }

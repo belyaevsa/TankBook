@@ -18,6 +18,13 @@ public enum ReminderCompletion {
     public enum EntryKind: Equatable, Sendable {
         case service(ServiceCategory)
         case expense(ExpenseCategory)
+
+        /// Whether the completion lands in the service entry - the one with
+        /// an invoice scanner of its own (docs/JOURNEYS.md J7c → Complete).
+        public var isService: Bool {
+            if case .service = self { return true }
+            return false
+        }
     }
 
     /// The pre-fill defaults an entry screen starts from. Every field is a

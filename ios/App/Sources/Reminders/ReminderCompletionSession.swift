@@ -22,6 +22,9 @@ final class ReminderCompletionSession {
         var vehicleId: UUID
         var completionDate: Date
         var completionOdometer: Int?
+        /// The "Scan invoice" door (PJ.24): the entry opens its document
+        /// camera on top of the pre-fill, where the device has one.
+        var openScanner = false
     }
 
     var pending: Pending?

@@ -250,6 +250,55 @@ final class RemindersUITests: XCTestCase {
         XCTAssertTrue(odometer.isEnabled, "the pre-filled odometer must stay editable")
     }
 
+    // MARK: - PJ.24 the scan door (hard rule 15: two doors, side by side)
+
+    /// A service reminder's completion offers "Scan invoice" beside "Type
+    /// amount" as peers, and the scan door lands in the same pre-filled
+    /// ServiceEntry. On the simulator the document camera is unsupported, so
+    /// the entry opens without it - the pre-fill is what this test can see.
+    func testScanInvoiceDoorLandsInTheEntryWithThePrefill() {
+        let app = launch(["-seedReminderComplete"])
+
+        let complete = app.buttons["reminderCompleteButton"].firstMatch
+        XCTAssertTrue(complete.waitForExistence(timeout: 10))
+        complete.tap()
+
+        let scan = app.buttons["reminderCompleteScanInvoice"]
+        XCTAssertTrue(scan.waitForExistence(timeout: 5), "the scan door must be offered on a service reminder")
+        XCTAssertTrue(app.buttons["reminderCompleteTypeAmount"].exists, "the typing door stays beside it")
+        scan.tap()
+
+        let itemTitle = app.textFields["serviceEntryItemTitle"].firstMatch
+        XCTAssertTrue(itemTitle.waitForExistence(timeout: 5))
+        XCTAssertEqual(itemTitle.value as? String, "Oil change",
+                       "the scan door carries the same pre-fill as the typing door")
+        let odometer = app.textFields["serviceEntryOdometerField"]
+        XCTAssertTrue(odometer.exists)
+        XCTAssertTrue((odometer.value as? String)?.contains("119") == true,
+                      "the current odometer arrives pre-filled; was \(String(describing: odometer.value))")
+    }
+
+    func testScanInvoiceDoorRendersInRussian() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-presentScreen", "reminders", "-seedReminderComplete",
+                               "-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU"]
+        app.launch()
+
+        let complete = app.buttons["reminderCompleteButton"].firstMatch
+        XCTAssertTrue(complete.waitForExistence(timeout: 10))
+        complete.tap()
+
+        XCTAssertTrue(app.buttons["Скан счёта"].waitForExistence(timeout: 5),
+                      "the RU scan door must render its full label")
+        XCTAssertTrue(app.buttons["Ввести сумму"].exists)
+
+        app.terminate()
+        let reset = XCUIApplication()
+        reset.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        reset.launch()
+        reset.terminate()
+    }
+
     // MARK: - PJ.7 the delete alert states the 30-day truth
 
     /// Deleting a reminder tombstones it (`softDeleteReminder`) - the 30-day
