@@ -1030,6 +1030,10 @@ capture RV.122-home-reminder-chips-ru ru -seedSettingsSignedIn -seedHomeReminder
 # 90 days · 5 full tanks" - and its RU plurals.
 capture RV.118-home-provenance    en -seedSettingsSignedIn -seedHomeFullHistory
 capture RV.118-home-provenance-ru ru -seedSettingsSignedIn -seedHomeFullHistory
+# RV.119: the Log's month divider with its glance - "800 km · 6.7 L/100km ·
+# 0.19 €/km" and "25% lower than <month>" under last month's spend.
+capture RV.119-log-month-glance    en -seedSettingsSignedIn -seedHomeMonthGlance
+capture RV.119-log-month-glance-ru ru -seedSettingsSignedIn -seedHomeMonthGlance
 
 # PJ.5: the notification deep link - a tapped reminder opens Reminders with
 # the completion sheet for the REMINDER the identifier named (the fixed

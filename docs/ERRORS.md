@@ -128,6 +128,19 @@ time DO resolve: they sit inside the rolling 400-day pack window, so a later lau
 footnote's "Check for rates") re-fetches the pack and the S8 backfill fills them - measured by
 RV.106's L4 reproduction.
 
+**The divider carries the month, not just its spend (RV.119, 2026-09-19).** Under the spend line,
+what the month's rows add up to: "800 km · 6.7 L/100km · 0.19 €/km" (the distance between the
+month's first and last odometers, the consumption of the segments that closed in it, the
+`.complete` spend over that distance) and, on its own line, the month against the one before -
+"25% lower than August" / "12% higher than August" (amber when higher: attention, never an
+error). **Each figure is absent when the month cannot yield it** - one odometer reading spans
+nothing, no closing segment means no consumption, a `.partial`/`.pending`/`.mixed` total means no
+cost per km - and **the comparison most of all**: it needs both months `.complete` in one
+currency, both with at least two fills, the earlier one above zero, and the month over (the month
+in progress is never compared - its total is not final). A preview cut of a month (Home's recent
+rows) shows no glance, so a partial month is never summed into one. Per-row consumption (RV.142)
+already sits on the fill that closes a segment and is omitted where a fill cannot yield one.
+
 **A month total is stated in the currency its rows were recorded in, and a mixed month lists
 per-currency subtotals (RV.145, decided 2026-09-08).** A history can legitimately hold rows
 homed in two currencies (docs/SCHEMA.md -> Money: re-homing touches only rate-pending rows, so

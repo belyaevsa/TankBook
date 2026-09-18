@@ -739,6 +739,16 @@ PROVENANCE (RV.118, 2026-09-19) what the headline is MADE OF, beside it on Home 
              the car has, never a computed average. No fills: no line. EV cars: no line (the
              segments are charge sessions, not fills). HeadlineProvenance.derive, read off the
              engine's Headline - a coverage counted beside the figure, not a second computation.
+MONTH      (RV.119, 2026-09-19) the Log divider's glance, MonthGlance.derive over the counting
+GLANCE     entries and the engine's segments, per whole calendar month:
+             distanceKm = max − min odometer of the month's rows (≥ 2 readings, else absent)
+             per100     = Σ litres / Σ km × 100 over the segments CLOSING in the month (else absent)
+             costPerKm  = the .complete spend / distanceKm (else absent - never a partial ratio)
+             spendDelta = (spend − previous month's spend) / previous × 100, rounded, ONLY when
+                          both months are .complete in one currency, both hold ≥ 2 fills, the
+                          previous spend > 0 and the month is over (the month in progress is
+                          never compared). A gap month means no comparison.
+           Attached only to a section holding the whole month; a preview cut carries none.
 LIFETIME   Σ liters / Σ km over all conflict-free segments – secondary stat.
 ANOMALY    rolling (trailing 90 days) vs the SEASONALLY-ALIGNED baseline: the same-length window
            one year (365 days) earlier, drawn from the trailing 12 months – NOT month-over-month

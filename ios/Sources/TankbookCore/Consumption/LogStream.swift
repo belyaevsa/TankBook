@@ -49,6 +49,11 @@ public struct LogStream: Equatable, Sendable {
         /// figures span home currencies is `.mixed` and prints no bare number.
         public let total: MonthTotal
         public let rows: [Row]
+        /// RV.119: distance, consumption, cost per km and the month-over-month
+        /// spend delta - each absent when the month cannot yield it honestly.
+        /// Attached only to a section holding the WHOLE month's rows (a preview
+        /// cut never sums part of a month into a glance).
+        public let glance: MonthGlance?
     }
 
     /// The month divider's spend figure, stated exactly as honestly as the
@@ -290,7 +295,7 @@ public struct LogStream: Equatable, Sendable {
 
     public init(vehicle: Vehicle, entries: [any Entry], calendar: Calendar = .current,
                 duplicateResolutions: Set<DuplicateDetector.PairKey> = [],
-                stations: [Station] = []) {
+                stations: [Station] = [], asOf: Date = Date()) {
         self.calendar = calendar
         self.homeCurrency = vehicle.homeCurrency
 
@@ -324,10 +329,9 @@ public struct LogStream: Equatable, Sendable {
         // Derived: consumption -> SEGMENT).
         let countingFills = sorted.compactMap { $0 as? FillUp }
             .filter { !excludedIDs.contains($0.id) }
+        let segments = ConsumptionEngine.recompute(fills: countingFills, tankCapacityL: vehicle.tankCapacityL)
         let per100ByClosingFillID = Dictionary(
-            uniqueKeysWithValues: ConsumptionEngine.recompute(
-                fills: countingFills, tankCapacityL: vehicle.tankCapacityL)
-                .map { ($0.closingFillID, $0.per100) })
+            uniqueKeysWithValues: segments.map { ($0.closingFillID, $0.per100) })
         let logEntryByID = Dictionary(
             sorted.map { ($0.id, LogEntry(vehicle: vehicle, entry: $0, stations: stations,
                                           closingPer100: per100ByClosingFillID[$0.id])) },
@@ -373,8 +377,12 @@ public struct LogStream: Equatable, Sendable {
                                         closingPer100: per100ByClosingFillID[entry.id])))
         }
 
-        self.sections = Self.buildSections(rows: rows, calendar: calendar,
-                                           homeCurrency: vehicle.homeCurrency)
+        // RV.119: each whole month's glance, from the counting entries and the
+        // engine's segments (a preview cut carries none).
+        self.sections = Self.attachingGlances(
+            to: Self.buildSections(rows: rows, calendar: calendar, homeCurrency: vehicle.homeCurrency),
+            entries: sorted.filter { !excludedIDs.contains($0.id) },
+            segments: segments, asOf: asOf, calendar: calendar)
     }
 
     /// A purchase group's display figure (RV.166): the members' money pairs
@@ -564,7 +572,7 @@ public struct LogStream: Equatable, Sendable {
                 accumulator.add(group.counted.money)
             }
         }
-        return Section(monthStart: monthStart, total: accumulator.monthTotal, rows: rows)
+        return Section(monthStart: monthStart, total: accumulator.monthTotal, rows: rows, glance: nil)
     }
 
     private static func monthStart(of date: Date, calendar: Calendar) -> Date {

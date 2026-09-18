@@ -570,6 +570,11 @@ counted inside it. A car with fills but no closed segment reads "Not enough data
 1 full tank" - the count it has, never an average. It is the difference between a number and a
 claim: a low figure over three fills reads as what it is.
 
+**The Log's month divider carries the month (RV.119, 2026-09-19).** Under each whole month's spend:
+"800 km · 6.7 L/100km · 0.19 €/km", and "25% lower than August" when the comparison is honest -
+both months complete in one currency, two fills each, the month over. An incomparable month says
+nothing rather than something false; the month in progress is never compared.
+
 **Success metric:** ≥40% of MAU open Trends monthly; session length short (it's a glance, not a report).
 
 ### J8b · Look at the receipt again (RV.9, RV.17, RV.37, RV.202)

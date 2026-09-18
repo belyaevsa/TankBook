@@ -105,21 +105,28 @@ extension HomeRecentEntries {
     /// per-currency breakdown rather than a bare cross-currency sum (RV.145).
     func monthDivider(_ section: LogStream.Section) -> some View {
         let monthName = HomeFormat.monthHeading(section.monthStart)
-        return HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(monthName)
-                .font(.caption)
-                .textCase(.uppercase)
-                .tracking(1.2)
-                .foregroundStyle(Theme.Palette.inkSoft)
-            Spacer(minLength: 8)
-            dividerFigure(section.total)
+        return VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(monthName)
+                    .font(.caption)
+                    .textCase(.uppercase)
+                    .tracking(1.2)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                Spacer(minLength: 8)
+                dividerFigure(section.total)
+            }
+            .padding(.horizontal, 2)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(String(format: L10n.localize("%@ · %@"),
+                                       monthName, dividerText(section.total)))
+            .accessibilityIdentifier("logMonthDivider")
+            // RV.119: the month's distance, consumption, cost per km and its
+            // delta against the month before - only what it can honestly say.
+            if let glance = section.glance, !glance.isEmpty {
+                HomeMonthGlanceLines(glance: glance, vehicle: vehicle)
+            }
         }
-        .padding(.horizontal, 2)
         .padding(.top, 4)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(String(format: L10n.localize("%@ · %@"),
-                                   monthName, dividerText(section.total)))
-        .accessibilityIdentifier("logMonthDivider")
     }
 
     /// The divider's trailing figure slot. `.complete` is the number alone;

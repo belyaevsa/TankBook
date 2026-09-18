@@ -1585,6 +1585,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },
+    "RV.119-log-month-glance": {
+      "commit": "3d195736",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.119-log-month-glance-ru": {
+      "commit": "3d195736",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "RV.121-home-anomaly": {
       "commit": "c160cf2",
       "device": "iPhone 17",
