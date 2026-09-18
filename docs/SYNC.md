@@ -181,8 +181,16 @@ row revoked; ordinary sign-out is the milder control that sits between "keep syn
     re-triggers the trigger; a write that lands in that brief in-flight window
     is not lost - it stays dirty and goes with the next trigger (S7).
   - **Push notification nudge** (silent APNs "there's news" – no content in the
-    push): **[v1.x], NOT wired** – designed in NOTIFICATIONS.md, no call site
-    exists, and the source-scan guard does not expect one.
+    push): **device side wired (PR.20, 2026-09-19)** – `AppDelegate` hands a
+    `content-available` push to `AppPush.handleSilentPush`, which runs
+    `runOpportunisticSync` and answers `.newData`; the token registers through
+    `PUT /account/devices/{id}/push-token` after sign-in (NOTIFICATIONS.md). The
+    backend's sending side is not built, so no nudge arrives yet; foreground
+    polling remains the always-there path.
+  - **Low Data Mode (PR.20)**: `LocalFileBlobPushGate` defers a photo upload on
+    a constrained path (`AppPathMonitor.isConstrained`) - the record stays dirty
+    and the entry syncs text-first exactly as it does offline (S7); the blob
+    follows on the next unconstrained cycle.
 
 **Push batches are bounded by records AND by encoded bytes (RV.97, 2026-09-06).** One push request is a batch of dirty changes, capped two ways at once (`SyncEngine`):
 

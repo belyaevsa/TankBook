@@ -259,6 +259,9 @@ final class SignInFlow {
             let identity = try await idTokenProvider.signIn(provider: provider)
             let session = try await authService.signIn(identity: identity)
             try sessionStore.save(session)
+            // PR.20: the token row is per account-device - a new session
+            // registers this device for the silent nudge.
+            AppPush.shared.signedIn()
             signedInAccountId = session.accountId
             signedInEmail = session.email
             signedInProvider = provider

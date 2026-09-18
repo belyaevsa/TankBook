@@ -316,7 +316,7 @@ struct AppRootView: View {
         .environment(inbox)
         .task {
             pathMonitor.start()
-            BlobPrefetchService.shared.attach(pathMonitor)
+            AppLaunchWiring.attach(pathMonitor: pathMonitor, sync: sync)
             runPurgeIfNeeded()
             #if DEBUG
             DebugLaunchHooks.run(toastCenter: toastCenter)

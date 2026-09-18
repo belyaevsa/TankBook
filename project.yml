@@ -43,6 +43,13 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         ITSAppUsesNonExemptEncryption: false
+        # PR.20: the silent sync nudge (docs/NOTIFICATIONS.md - `content-available`,
+        # no alert, no sound, never a user-visible push). The mode lets a nudge
+        # wake the app for one opportunistic sync cycle; foreground polling is
+        # the always-there fallback, so this is an optimisation, never a
+        # dependency.
+        UIBackgroundModes:
+          - remote-notification
         # PJ.21: share-to-Tankbook (docs/JOURNEYS.md J2 "shares the file to
         # Tankbook"). A CSV or plain-text export shared from Files, Mail or the
         # other app's share sheet opens Tankbook with the file, and the root
@@ -89,6 +96,14 @@ targets:
         # else catches it.
         com.apple.developer.applesignin:
           - Default
+        # PR.20: APNs for the silent sync nudge. Must match the Push
+        # Notifications capability on the App ID in the developer portal
+        # (docs/STORE.md); without it `registerForRemoteNotifications` fails at
+        # runtime with a "no valid aps-environment" error and the device simply
+        # keeps polling - the failure is logged as a warning, never shown.
+        # Xcode's automatic signing rewrites this to `production` in a store
+        # build.
+        aps-environment: development
     settings:
       base:
         SWIFT_VERSION: "6.0"

@@ -124,6 +124,20 @@ public struct AccountClient: Sendable {
         _ = try await send(TankbookHTTPRequest(url: url, method: "DELETE"))
     }
 
+    /// `PUT /account/devices/{id}/push-token` (docs/API.md "Account & devices",
+    /// docs/NOTIFICATIONS.md): registers this device's APNs token so the server
+    /// can send the silent sync nudge; a nil token clears the row and the device
+    /// falls back to foreground polling. Nudges are an optimisation, never a
+    /// dependency - a failure here changes nothing the user can see.
+    public func setPushToken(deviceID: UUID, apnsToken: String?) async throws {
+        let url = endpoint("account/devices/\(deviceID.uuidString.lowercased())/push-token")
+        let body = try JSONSerialization.data(withJSONObject: ["apnsToken": apnsToken as Any])
+        var request = TankbookHTTPRequest(url: url, method: "PUT")
+        request.body = body
+        request.headers["Content-Type"] = "application/json"
+        _ = try await send(request)
+    }
+
     // MARK: - Plumbing
 
     /// All account endpoints live under `/v1` (docs/API.md -> "Account &

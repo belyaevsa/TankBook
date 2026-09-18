@@ -97,6 +97,14 @@ struct SignInSyncStubTransport: TankbookHTTPTransport {
             }
             return Self.json(["results": results])
         }
+        if path.hasSuffix("/push-token"), request.method == "PUT" {
+            // PR.20: the push-token PUT is acknowledged, and counted for the
+            // L4 that observes it (`-seedPushToken`).
+            UserDefaults.standard.set(
+                UserDefaults.standard.integer(forKey: Self.pushTokenPutCountKey) + 1,
+                forKey: Self.pushTokenPutCountKey)
+            return TankbookHTTPResponse(status: 204)
+        }
         if path.hasPrefix("/v1/account/devices") {
             let deviceID = (try? KeychainSessionStore().load())?.deviceId ?? UUID().uuidString
             return Self.json(["devices": [[
@@ -109,6 +117,8 @@ struct SignInSyncStubTransport: TankbookHTTPTransport {
         }
         return TankbookHTTPResponse(status: 404)
     }
+
+    static let pushTokenPutCountKey = "debug.pushTokenPutCount"
 
     private static func json(_ object: [String: Any]) -> TankbookHTTPResponse {
         let data = try? JSONSerialization.data(withJSONObject: object)

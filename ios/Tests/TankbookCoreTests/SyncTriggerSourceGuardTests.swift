@@ -75,17 +75,29 @@ struct SyncTriggerSourceGuardTests {
                 "the debounce must live in SyncWriteScheduler (core)")
     }
 
-    /// The nudge stays documented as unwired. This is the deliberate inverse of
-    /// the wired checks: deleting the clause (or silently relisting the nudge as
-    /// wired without a call site) fails here.
-    @Test func thePushNudgeStaysDocumentedAsUnwired() throws {
+    /// PR.20: the nudge is wired on the device, and the doc says so with the
+    /// call sites the guard can check - a silent push reaches
+    /// `AppPush.handleSilentPush`, which runs the ONE opportunistic cycle
+    /// (never a second engine). The backend's sending side is the part the doc
+    /// still names as not built.
+    @Test func thePushNudgeIsWiredThroughTheOneOpportunisticCycle() throws {
         let bullet = try triggerBullet(in: syncDoc())
         #expect(bullet.contains("Push notification nudge"),
-                "the nudge trigger must stay documented (NOTIFICATIONS.md plans it for v1.x)")
-        #expect(bullet.contains("NOT wired"),
-                "the doc must mark the nudge as not wired - the guard requires call sites only for wired triggers")
-        #expect(bullet.contains("[v1.x]"),
-                "the nudge must be marked v1.x - it is planned, not built")
+                "the nudge trigger must stay documented")
+        #expect(bullet.contains("device side wired"),
+                "the doc must say the device side is wired, with the backend's sending side named as not built")
+        #expect(bullet.contains("sending side is not built"))
+
+        let delegate = try appSource("Push/AppDelegate.swift")
+        #expect(delegate.contains("didReceiveRemoteNotification"),
+                "the APNs callback must exist on the app delegate")
+        #expect(delegate.contains("AppPush.shared.handleSilentPush()"),
+                "the callback must hand the push to AppPush")
+        let push = try appSource("Push/AppPush.swift")
+        #expect(push.contains("await onNudge()"), "a nudge runs the installed cycle")
+        let wiring = try appSource("Navigation/AppLaunchWiring.swift")
+        #expect(wiring.contains("AppPush.shared.onNudge = { await sync.runOpportunisticSync() }"),
+                "the installed cycle must be the one opportunistic sync - never a second engine")
     }
 
     // MARK: - Source/doc resolution

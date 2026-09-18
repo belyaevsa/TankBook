@@ -38,13 +38,22 @@ public protocol BlobPushGate: Sendable {
 public struct LocalFileBlobPushGate: BlobPushGate, Sendable {
     public let uploader: BlobUploader
     public let source: any BlobSource
+    /// PR.20: whether the current path is constrained (Low Data Mode). A
+    /// photo upload spends nothing on a constrained path - the record stays
+    /// dirty and the entry syncs text-first, exactly as it does offline (S7);
+    /// the blob goes up on the next cycle over an unconstrained path. The
+    /// default is "not constrained" so a caller with no monitor still uploads.
+    public let isNetworkConstrained: @Sendable () -> Bool
 
-    public init(uploader: BlobUploader, source: any BlobSource) {
+    public init(uploader: BlobUploader, source: any BlobSource,
+                isNetworkConstrained: @escaping @Sendable () -> Bool = { false }) {
         self.uploader = uploader
         self.source = source
+        self.isNetworkConstrained = isNetworkConstrained
     }
 
     public func ensureBlobCommitted(for attachment: Attachment) async -> BlobCommitOutcome {
+        guard !isNetworkConstrained() else { return .deferred }
         guard let data = try? source.renditionData(for: attachment), !data.isEmpty else {
             return .deferred
         }

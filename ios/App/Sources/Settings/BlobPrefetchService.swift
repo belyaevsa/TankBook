@@ -75,6 +75,7 @@ extension View {
     func blobPrefetchLandedMarker() -> some View {
         #if DEBUG
         return overlay(alignment: .topLeading) { BlobPrefetchLandedMarker() }
+            .overlay(alignment: .topTrailing) { PushTokenRegisteredMarker() }
         #else
         return self
         #endif

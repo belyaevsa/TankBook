@@ -17,6 +17,20 @@ The drain is launch/foreground only for now: the silent-APNs wake (mechanism 2) 
 
 Device tokens register via `PUT /account/devices/{id}/push-token` (API.md); token invalidation (APNs feedback) just clears the row – the device falls back to polling.
 
+**The device side shipped (PR.20, 2026-09-19).** `AppDelegate` (the `@UIApplicationDelegateAdaptor`) is
+the APNs seam: the token, a registration failure, a silent push. `AppPush` registers only when a session
+exists (a silent push needs no permission and a guest has no account row), sends the token once per
+(token, account) pair (`PushTokenRegistration.shouldSend`, the pair remembered only after the server
+acknowledged it - so a relaunch sends nothing, a rotation or a new sign-in sends again, and a sign-out
+forgets the acknowledgement), and on a silent push runs the same opportunistic cycle a foreground runs
+(`AppSync.runOpportunisticSync`), answering `.newData`. `UIBackgroundModes: remote-notification` and the
+`aps-environment` entitlement ride `project.yml`; **the Push Notifications capability must be enabled on
+the App ID** (`docs/STORE.md`) or registration fails at runtime - logged as `push.register`
+`registration_failed`, never shown, and the device keeps polling. Every failure here is a warning
+(hard rule 1: nudges are an optimisation). Log lines: `push.token` (acknowledged), `push.nudge`
+(a wake), shape only. The **backend's sending side** - deciding when to nudge and the ~1/15 min
+throttle - is not built; until it is, the registered tokens are stored and unused.
+
 ## Scenario catalog
 
 | Scenario | Mechanism | Timing & tone | Tap lands on | User control (Preferences) |

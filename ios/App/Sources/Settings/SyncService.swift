@@ -6,6 +6,14 @@ import TankbookCore
 /// transport live here, nothing else constructs a second `SyncEngine`).
 @MainActor
 enum SyncService {
+    /// The app's path monitor, wired by the root; nil (never constrained)
+    /// until then.
+    nonisolated(unsafe) private static var pathMonitor: AppPathMonitor?
+
+    static func attach(_ monitor: AppPathMonitor) {
+        pathMonitor = monitor
+    }
+
     static func makeCoordinator(repository: TankbookRepository,
                                 sessionStore: any SessionStore,
                                 accountId: String,
@@ -32,11 +40,15 @@ enum SyncService {
         // P4.6: the blob gate hooks attachments into the push loop - a live
         // attachment record uploads its rendition (begin -> PUT -> commit)
         // before it pushes, and defers otherwise (docs/SYNC.md, upload step 5).
+        // PR.20: a constrained path (Low Data Mode) defers the upload; the
+        // entry still syncs text-first and the blob follows on an
+        // unconstrained cycle.
         let blobGate = LocalFileBlobPushGate(
             uploader: BlobUploader(transport: RemoteBlobTransport(
                 director: director, transport: makeAppTransport(), tokenProvider: tokenProvider,
                 refresher: refresher)),
-            source: FileBackedBlobSource(directory: (try? VehiclePhotoStore.attachmentsDirectory()) ?? FileManager.default.temporaryDirectory)
+            source: FileBackedBlobSource(directory: (try? VehiclePhotoStore.attachmentsDirectory()) ?? FileManager.default.temporaryDirectory),
+            isNetworkConstrained: { pathMonitor?.isConstrained ?? false }
         )
         let engine = SyncEngine(
             repository: repository,
