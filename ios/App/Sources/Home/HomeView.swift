@@ -282,6 +282,9 @@ struct HomeView: View {
         HomeHeadlineBlock(stats: stats, vehicle: stats.vehicle,
                           onTypeIt: { presentSheet(.confirmManual) })
         HomeVitalsRow(stats: stats, vehicle: stats.vehicle)
+        if let pattern = stats.fillPattern {
+            HomeFillPatternCard(pattern: pattern, vehicle: stats.vehicle)
+        }
         if let anomaly {
             let cost = anomalyCost(anomaly)
             AnomalyInsightCard(anomaly: anomaly,

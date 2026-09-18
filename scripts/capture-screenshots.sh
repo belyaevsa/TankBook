@@ -1034,6 +1034,10 @@ capture RV.118-home-provenance-ru ru -seedSettingsSignedIn -seedHomeFullHistory
 # 0.19 €/km" and "25% lower than <month>" under last month's spend.
 capture RV.119-log-month-glance    en -seedSettingsSignedIn -seedHomeMonthGlance
 capture RV.119-log-month-glance-ru ru -seedSettingsSignedIn -seedHomeMonthGlance
+# RV.120: the fill pattern card - spacing, frequency, range on a corroborated
+# tank, the month's pace - under the vitals.
+capture RV.120-home-fill-pattern    en -seedSettingsSignedIn -seedHomeFillPattern
+capture RV.120-home-fill-pattern-ru ru -seedSettingsSignedIn -seedHomeFillPattern
 
 # PJ.5: the notification deep link - a tapped reminder opens Reminders with
 # the completion sheet for the REMINDER the identifier named (the fixed

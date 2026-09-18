@@ -90,6 +90,9 @@ struct TrendsView: View {
     private func fullLayout(_ stats: TrendsStats) -> some View {
         if stats.home.hasEntries {
             tileGrid(stats)
+            if let pattern = stats.home.fillPattern {
+                HomeFillPatternCard(pattern: pattern, vehicle: stats.vehicle)
+            }
             if !stats.brandPrices.isEmpty {
                 TrendsBrandPricesCard(stats: stats)
             }

@@ -575,6 +575,13 @@ claim: a low figure over three fills reads as what it is.
 both months complete in one currency, two fills each, the month over. An incomparable month says
 nothing rather than something false; the month in progress is never compared.
 
+**The fill pattern (RV.120, 2026-09-19).** The card under Home's vitals and Trends' tiles answers the
+two questions a driver at a pump has - how far this tank goes, what this month will cost - beside
+how far and how often they fill. All four are local arithmetic over the headline's own window, gated
+the same way the headline is (nothing under the floor), and each is absent rather than guessed: the
+range only on a tank capacity the user's own fills corroborated, the forecast only from day 7 with
+two fills and an exact total, and always labelled as a pace, never a bill.
+
 **Success metric:** ≥40% of MAU open Trends monthly; session length short (it's a glance, not a report).
 
 ### J8b · Look at the receipt again (RV.9, RV.17, RV.37, RV.202)

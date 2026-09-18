@@ -1,11 +1,11 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-18 (19:45; the 1.1 tranche section below is the newest). **v1.0 build 1344 was REJECTED by App Review (guideline 4.0, "hard to
+*Updated 2026-09-19 (02:15; "The second 1.1 tranche" below is the newest). **v1.0 build 1344 was REJECTED by App Review (guideline 4.0, "hard to
 read type"); the fix is on `main` (`RV.293`, `2055a926`) and build 1368 is being uploaded.** This is
 a **fresh machine** (macOS 27.0, Xcode 27.0, iOS 27.0 simulator) set up today. Measured on the tree
 as left: **iOS 2077 + 45 tests / 253 suites** (56 s), app-target bundle **276**, **backend 469 / 469
 - 0 skipped, the first time the Postgres-backed half ran locally** (Docker works here), lint 0
-errors / 668 warnings from the repo ROOT, Release build 0. **118 open rows, 425 closed** (nineteen
+errors / 670 warnings from the repo ROOT, Release build 0. **126 open rows, 425 closed** (twenty-nine
 ticked rows sit in `TASKS.md` awaiting the sweep). Nothing is running; the queue is empty. Read
 this, then `CLAUDE.md`, then `docs/DEVELOPMENT-TIMELINE.md`, then `docs/TASKS.md`'s index.*
 
@@ -84,6 +84,37 @@ Three things the tranche taught, worth keeping:
   diagnostics from simulator: timed out after 600 s"); a passing run returns at once. Read the
   `Executed N tests` line as soon as it prints and kill the process.
 
+## The second 1.1 tranche (2026-09-18/19, overnight): eight rows shipped by the orchestrator, one commit each
+
+`PJ.301` multi-page `/extract` (`4d2f4012`) · `PJ.302` line match-and-merge (`f1fd58c5`) · `PJ.303`
+the offers on the form and in the inbox (`758fe592`) · `RV.115` + `RV.180` the station brand
+vocabulary (`366d53e3`) · `PR.20` APNs registration + Low Data Mode uploads (`7d36649c`) · `RV.122`
+reminder chips on Home (`881733a5`) · `RV.118` the headline's provenance (`3d195736`) · `RV.119` the
+month divider's glance (`d8e8666f`) · `RV.120` the fill pattern card (this commit). Each has its L1
+and L4, EN + RU screenshots opened, `gate.sh` green (`RELEASE=1` where a DEBUG seam moved), the
+docs reconciled in the same commit. Filed on the way: `RV.300` (three timing-flaky tests under
+full-suite load: `SyncWriteTriggerTests` x3, `ExtractEndpointTests` x2 - all pass alone), `PR.30`
+(the backend's nudge SENDER - PR.20 registers tokens and handles a silent push, nothing sends one
+yet). Backend: migration **025** (station brands, 126 rows) and `GET /reference/station-brands`;
+480 backend tests. iOS as left: **2141 + 45 tests / 265 suites**, app-target **278**, lint 0 / 670.
+
+**Six lessons this tranche paid for.** (1) A container `accessibilityIdentifier` swallows its
+children's ids - put the id on the eyebrow or query by label (`PJ.30`, `RV.120`). (2) The simulator
+Keychain and UserDefaults outlive `-homeResetDatabase`: a screenshot pose's `-seedSettingsSignedIn`
+armed the gateway for a guest-path test two suites later; guest tests launch with
+`-clearSessionAtLaunch`, inbox tests with `-inboxReset`. (3) A lazy `List` puts nothing off-screen
+in the accessibility tree - pick through the search field (`RV.115`). (4) A tap on a button under
+the pinned save bar lands on the bar and SAVES the form (`PJ.303`'s `tapClearOfSaveBar`). (5) The
+tab bar keeps the other tabs' copies of a shared card in the hierarchy - `.firstMatch` (`RV.120`).
+(6) `SchemaFieldWriterGuardTests` parses `Entity.field` tokens out of SCHEMA.md prose and struct
+bodies alike: name an accessor in prose, not as `Station.displayTitle`, and put computed properties
+in an extension (`RV.180`).
+
+**One release-blocking owner step from `PR.20`:** `project.yml` now carries `aps-environment` and
+`UIBackgroundModes: remote-notification`. **Enable Push Notifications on the App ID** in the
+developer portal before the next store build, or automatic signing refuses the archive. Build 1368
+(already uploaded) is unaffected.
+
 ## What to do next
 
 1. **Owner: finish the resubmission.** Wait for build 1368 to process, swap it onto version 1.0
@@ -95,7 +126,11 @@ Three things the tranche taught, worth keeping:
    enforced nowhere and `RV.295` moves up.
 3. **`gh auth login`** on this machine; the ASC exports into `~/.zshrc` (team id, key id, issuer id,
    key path) so `release.sh` runs without a hand-typed environment.
-4. Unchanged from 09-15: deploy the backend so migration 023 runs; `RV.283` decision; `RV.203`,
+4. **The journeys walk is due again** - 9 rows since the 2026-09-18 walk (`dc76405d`), and `J8`
+   is back to unreviewed (`RV.118`) - and the ticked rows now number twenty-nine: sweep them to
+   `TASKS-DONE.md`. Enable Push Notifications on the App ID (above). Next 1.1 candidates the owner
+   has not ranked: `PR.30`, `RV.296`, `RV.300`, `RV.297`–`RV.299`.
+5. Unchanged from 09-15: deploy the backend so migrations 023–025 run; `RV.283` decision; `RV.203`,
    `RV.262`, then `RV.242`, `RV.210`, `RV.129`, `RV.109`; sweep the thirteen ticked rows to
    `TASKS-DONE.md`; the journeys walk is at **11 rows since 2026-09-13** - it is due.
 

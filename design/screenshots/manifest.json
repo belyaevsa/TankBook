@@ -1595,6 +1595,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },
+    "RV.120-home-fill-pattern": {
+      "commit": "d8e8666f",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.120-home-fill-pattern-ru": {
+      "commit": "d8e8666f",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "RV.121-home-anomaly": {
       "commit": "c160cf2",
       "device": "iPhone 17",

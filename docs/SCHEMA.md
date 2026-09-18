@@ -749,6 +749,19 @@ GLANCE     entries and the engine's segments, per whole calendar month:
                           previous spend > 0 and the month is over (the month in progress is
                           never compared). A gap month means no comparison.
            Attached only to a section holding the whole month; a preview cut carries none.
+FILL       (RV.120, 2026-09-19) FillPattern.derive, nil under the floor (no headline) - that is the
+PATTERN    car whose numbers are noise. Over the headline's own span plus the fill that opened it:
+             kmBetweenFills   = mean positive odometer delta between consecutive fills (≥ 2, else absent)
+             daysBetweenFills = span / (fills − 1)                                    (≥ 2, else absent)
+             rangeLeftKm      = capacity / headline.per100 × 100 − (odometer − last full fill's),
+                                ONLY when the capacity is CORROBORATED by the user's own fills: some
+                                full fill ≥ 80% of it and none > 105% of it (hard rule 13 - a catalog
+                                figure nobody ever filled that far is a guess, and a range on a guess
+                                is confidently wrong); absent otherwise, or when nothing is left.
+             monthForecast    = the month's .complete spend so far / dayOfMonth × daysInMonth, rounded -
+                                a PREDICTION, labelled "≈ … on pace"; absent before day 7, below two
+                                money-bearing fills this month, or when the total is not exact.
+           The card names the tank the range was built on and omits any figure it cannot derive.
 LIFETIME   Σ liters / Σ km over all conflict-free segments – secondary stat.
 ANOMALY    rolling (trailing 90 days) vs the SEASONALLY-ALIGNED baseline: the same-length window
            one year (365 days) earlier, drawn from the trailing 12 months – NOT month-over-month

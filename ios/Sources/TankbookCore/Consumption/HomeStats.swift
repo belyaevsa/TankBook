@@ -116,6 +116,10 @@ public struct HomeStats: Equatable, Sendable {
     /// how many were full tanks - or "not enough data yet" with the count the
     /// car has. Nil with no fills. Read off the engine's own headline.
     public let provenance: HeadlineProvenance?
+    /// RV.120: how far between fills, how often, how far the tank goes and
+    /// what the month will cost - nil under the floor, each figure absent
+    /// when it cannot be derived honestly.
+    public let fillPattern: FillPattern?
 
     public init(vehicle: Vehicle, entries: [any Entry],
                 asOf: Date = Date(), calendar: Calendar = .current,
@@ -175,6 +179,11 @@ public struct HomeStats: Equatable, Sendable {
         self.hasEntries = !entries.isEmpty
         self.provenance = usesEV ? nil
             : HeadlineProvenance.derive(headline: headline, countingFills: countingFills, asOf: asOf)
+        self.fillPattern = usesEV ? nil
+            : FillPattern.derive(FillPattern.Inputs(headline: headline, countingFills: countingFills,
+                                                    currentOdometer: odometer, tankCapacityL: vehicle.tankCapacityL,
+                                                    monthSpend: monthSpend),
+                                 asOf: asOf, calendar: calendar)
     }
 
     // MARK: - Private derivation (all on top of the engine)
