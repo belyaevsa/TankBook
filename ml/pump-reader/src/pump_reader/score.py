@@ -100,6 +100,43 @@ def _quad_size(quad: np.ndarray) -> tuple[float, float]:
     return float(width), float(height)
 
 
+def slice_cells_from_boxes(
+    img: Image.Image, quad: np.ndarray, cell_boxes: list[dict]
+) -> list[Image.Image]:
+    """Slice a window from PU.4's slicer rects (normalised [0,1] over the strip).
+
+    The strip is warped exactly as ``slice_cells`` warps it, then each cell is
+    cropped from its normalised rect and resized to the classifier's 32x48 cell.
+    This is the ``--boxes`` path: the slicer's real pitch cells replace the
+    equal-width fallback, so the score measures the classifier rather than the
+    naive slicer.
+    """
+    width, height = _quad_size(quad)
+    aspect = width / height if height > 0 else 1.0
+    sw = max(1, int(round(CELL_H * aspect)))
+    sh = CELL_H
+
+    dst = np.array([[0, 0], [sw, 0], [sw, sh], [0, sh]], dtype=np.float64)
+    hmat = homography_from_corners(dst, quad)
+    coeffs = [
+        hmat[0, 0], hmat[0, 1], hmat[0, 2],
+        hmat[1, 0], hmat[1, 1], hmat[1, 2],
+        hmat[2, 0], hmat[2, 1],
+    ]
+    strip = img.transform(
+        (sw, sh), Image.Transform.PERSPECTIVE, data=coeffs, resample=Image.BILINEAR, fillcolor=0
+    )
+
+    cells: list[Image.Image] = []
+    for box in cell_boxes:
+        x0 = max(0, min(sw - 1, int(round(box["x0"] * sw))))
+        x1 = max(x0 + 1, min(sw, int(round(box["x1"] * sw))))
+        y0 = max(0, min(sh - 1, int(round(box["y0"] * sh))))
+        y1 = max(y0 + 1, min(sh, int(round(box["y1"] * sh))))
+        cells.append(strip.crop((x0, y0, x1, y1)).resize((CELL_W, CELL_H), Image.BILINEAR))
+    return cells
+
+
 def slice_cells(
     img: Image.Image, quad: np.ndarray, n_cells: int
 ) -> tuple[list[Image.Image], list[tuple[float, float]]]:
@@ -192,6 +229,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--windows", type=Path, required=True)
     parser.add_argument("--fixtures", type=Path, required=True)
     parser.add_argument("--dump", type=Path, default=None)
+    parser.add_argument("--boxes", type=Path, default=None,
+                        help="PU.4 slices.json: slice from the slicer's cell rects")
     args = parser.parse_args(argv)
 
     state = torch.load(args.model, map_location="cpu")
@@ -204,6 +243,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     windows = json.loads(args.windows.read_text(encoding="utf-8"))
+    boxes = None
+    if args.boxes is not None and args.boxes.exists():
+        boxes = json.loads(args.boxes.read_text(encoding="utf-8"))
 
     per_make: dict[str, dict[str, int]] = {}
     seg_correct = np.zeros(8, dtype=np.int64)
@@ -225,7 +267,7 @@ def main(argv: list[str] | None = None) -> int:
         if rot:
             img = img.rotate(-rot, expand=True)
         make = make_of(filename)
-        for win in ann.get("windows", []):
+        for wi, win in enumerate(ann.get("windows", [])):
             text = win.get("text", "")
             if not text:
                 skipped_empty += 1
@@ -236,7 +278,15 @@ def main(argv: list[str] | None = None) -> int:
             n = len(cells_truth)
             if n == 0:
                 continue
-            cells, _ = slice_cells(img, quad, n)
+            cell_boxes = None
+            if boxes is not None:
+                fixture_boxes = boxes.get(filename, [])
+                if wi < len(fixture_boxes) and fixture_boxes[wi] is not None:
+                    cell_boxes = fixture_boxes[wi].get("cells")
+            if cell_boxes:
+                cells = slice_cells_from_boxes(img, quad, cell_boxes)
+            else:
+                cells, _ = slice_cells(img, quad, n)
             pred_bits, _ = classify_cells(model, cells)
 
             truth_bits = [c.bits for c in cells_truth]
