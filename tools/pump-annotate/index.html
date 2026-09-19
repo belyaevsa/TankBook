@@ -30,7 +30,9 @@
 </head>
 <body>
 <aside>
-  <input id="filter" placeholder="filter…" style="width:100%">
+  <div class="row"><input id="filter" placeholder="filter…" style="flex:1">
+    <select id="state"><option value="all">all</option><option value="todo">todo</option><option value="done">done</option></select></div>
+  <div class="row dim" id="counts"></div>
   <div id="list"></div>
 </aside>
 <main><canvas id="c"></canvas></main>
@@ -59,7 +61,7 @@ const FIELDS = ['total','liters','unitPrice','board'];
 const COLORS = {total:'#ff5a5f', liters:'#4cc3ff', unitPrice:'#ffc857', board:'#9b8cff'};
 const $ = s => document.querySelector(s);
 const canvas = $('#c'), ctx = canvas.getContext('2d');
-let fixtures = [], name = null, entry = null, row = null, img = null, dirty = false;
+let fixtures = [], current = null, entry = null, row = null, img = null, dirty = false;
 let sel = -1, zoom = 1, drag = null;
 
 // ---- data ----
@@ -68,15 +70,20 @@ async function loadList() {
   renderList();
 }
 function renderList() {
-  const f = $('#filter').value.toLowerCase();
-  $('#list').innerHTML = fixtures.filter(x => x.name.toLowerCase().includes(f)).map(x =>
-    `<div data-n="${x.name}" class="${x.name===name?'sel':''} ${x.windows?'':'todo'}" title="${x.name}">${x.name.replace(/\.(jpe?g|heic|png)$/i,'')}<span class="n">${x.windows||'·'}</span></div>`).join('');
-  document.querySelectorAll('#list div').forEach(d => d.onclick = () => open(d.dataset.n));
+  const f = $('#filter').value.toLowerCase(), st = $('#state').value;
+  const done = fixtures.filter(x => x.windows).length;
+  $('#counts').textContent = `${done} done · ${fixtures.length - done} todo`;
+  const shown = fixtures.filter(x => x.name.toLowerCase().includes(f) && (st === 'all' || (st === 'done') === !!x.windows));
+  $('#list').innerHTML = shown.map(x =>
+    `<div data-n="${x.name}" class="${x.name===current?'sel':''} ${x.windows?'':'todo'}" title="${x.name}">${x.name.replace(/\.(jpe?g|heic|png)$/i,'')}<span class="n">${x.windows||'·'}</span></div>`).join('');
+  document.querySelectorAll('#list div').forEach(d => d.onclick = () => openFixture(d.dataset.n));
 }
-async function open(n) {
+async function openFixture(n) {
   if (dirty && !confirm('Discard unsaved changes?')) return;
-  name = n; sel = -1; dirty = false;
-  const r = await (await fetch('/api/entry/' + encodeURIComponent(n))).json();
+  current = n; sel = -1; dirty = false;
+  let r;
+  try { r = await (await fetch('/api/entry/' + encodeURIComponent(n))).json(); }
+  catch (err) { setMsg('load failed: ' + err); return; }
   entry = r.entry; row = r.row;
   entry.windows = entry.windows || [];
   $('#name').textContent = n;
@@ -100,10 +107,10 @@ function collect() {
   return entry;
 }
 async function save() {
-  if (!name) return;
-  const r = await (await fetch('/api/entry/' + encodeURIComponent(name), {method:'PUT', body: JSON.stringify(collect())})).json();
+  if (!current) return;
+  const r = await (await fetch('/api/entry/' + encodeURIComponent(current), {method:'PUT', body: JSON.stringify(collect())})).json();
   entry = r.entry; entry.windows = entry.windows || []; dirty = false; setMsg('saved');
-  const fx = fixtures.find(x => x.name === name); if (fx) { fx.windows = entry.windows.length; fx.annotated = true; }
+  const fx = fixtures.find(x => x.name === current); if (fx) { fx.windows = entry.windows.length; fx.annotated = true; }
   renderList(); renderWins(); draw();
 }
 async function check() {
@@ -224,7 +231,7 @@ $('#zoom').oninput = e => { zoom = +e.target.value; draw(); };
 $('#rot').onchange = () => { touch(); fit(); draw(); };
 $('#add').onclick = () => addWindow();
 $('#save').onclick = save; $('#check').onclick = check;
-$('#filter').oninput = renderList;
+$('#filter').oninput = renderList; $('#state').onchange = renderList;
 document.querySelectorAll('[data-nod],[data-dis]').forEach(i => i.oninput = touch);
 document.addEventListener('keydown', e => {
   const typing = ['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName);
@@ -233,12 +240,13 @@ document.addEventListener('keydown', e => {
   if ((e.key === 'Backspace' || e.key === 'Delete') && sel >= 0) { e.preventDefault(); removeWindow(sel); }
   if ('1234'.includes(e.key) && sel >= 0) { entry.windows[sel].field = FIELDS[+e.key - 1]; touch(); renderWins(); draw(); }
   if (e.key === 'j' || e.key === 'k') {
-    const i = fixtures.findIndex(x => x.name === name); const n = fixtures[i + (e.key === 'j' ? 1 : -1)];
-    if (n) open(n.name);
+    const names = [...document.querySelectorAll('#list div')].map(d => d.dataset.n);
+    const i = names.indexOf(current); const n = names[i + (e.key === 'j' ? 1 : -1)];
+    if (n) openFixture(n);
   }
 });
 window.onbeforeunload = () => dirty ? 'unsaved' : undefined;
-loadList().then(() => { const h = decodeURIComponent(location.hash.slice(1)); if (h) open(h); });
+loadList().then(() => { const h = decodeURIComponent(location.hash.slice(1)); if (h) openFixture(h); });
 </script>
 </body>
 </html>
