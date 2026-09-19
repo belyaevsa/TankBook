@@ -1040,3 +1040,9 @@ RUB, cash, dated 2013-06-07 - a photo pasted by the product owner from the web, 
 price (1576.96 / 49.59 = 31.80 is an inference; the cell is blank), so four cells. Station
 asserted as `rosneft`: the brand appears only in the hotline line, the header is the legal
 entity - a miss here is the extractor's to earn. Receipt cells: 355 → 359.
+
+`receipt-077` (same day): TotalEnergies, Kalken (Belgium, E17), `KLANTENBON`, Excel Diesel
+22.10 l at 1.810 €/l, TOTAAL 40.00 - a card receipt photographed on a bed, third-party. All
+five cells; the paper prints the unit price with a **three-decimal Euro and a `/l` suffix**, and
+the labels (`Volume` / `Prijs` / `TOTAAL`) sit one line ABOVE their values - a layout the parser
+has not seen. Station `total|totalenergies`. Receipt cells: 359 → 364.

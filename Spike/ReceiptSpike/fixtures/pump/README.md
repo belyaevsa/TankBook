@@ -1078,3 +1078,24 @@ stock photo that became `pump-145`.
 | 147 | Wayne, EE | 66.17 / 44.29 / 1.494 | `EUR` / `LIITRIT` / `EUR/1L`, square 1080 px |
 
 21 windows (567). Pump cells asserted: 390 → 410.
+
+## Added 2026-09-19 (nine third-party stills: the Gilbarco Veeder-Root keypad head)
+
+`pump-148` – `pump-156`, **third-party** (pasted by the product owner). Four are a head type the
+corpus did not have: the Gilbarco Veeder-Root panel with a keypad, the price ladder as a column
+of small cells at the LEFT of the display (not a row under it), and the transaction price in its
+own cell under `ЦЕНА/ЛИТР`. Every arithmetic closes.
+
+| id | head / place | shows | note |
+|---|---|---|---|
+| 148 | Wayne, RU | 1634.66 / 24.46 / 66.83 | 95; 540 px |
+| 149 | Wayne, Circle K EE | 97.16 / 76.38 / 1.272 | D miles; portrait, the label column cut by the right edge |
+| 150 | Wayne, Finland | 23.55 / 16.20 / 1.454 | `EUROA` / `LITRAA` / `€/litra`; the photographer's reflection over both rows (`partial`, confirmed by the arithmetic); four grades incl. `SMART DI` and `MPO` 0.982 |
+| 151 | Gilbarco, Circle K EE | 0093,29 / 0045,64 / 2,044 | zero-padded both rows, comma; the price ladder is a column at the left; a graphic overlay (a quote mark) pasted on the photo |
+| 152 | Wayne, RU | 305.88 / 6.73 / 45.45 | a blue-on-white LCD, square |
+| 153 | Gilbarco Veeder-Root, RU | 3114,11 / 46,97 / 66,30 | keypad head, three-cell ladder at the left, one of them the transaction price; 1280x576 at night |
+| 154 | Gilbarco Veeder-Root, RU | 1494,70 / 30,02 / 49,79 | keypad head, ladder unlit |
+| 155 | Gilbarco Veeder-Root, RU | 3055,11 / 60,01 / 50,91 | keypad head, four-cell ladder, the price coincides with the second |
+| 156 | Gilbarco Veeder-Root, RU | 934,05 / 23,95 / 39,00 | keypad head, backlit cells at night, three-cell ladder |
+
+43 windows (610). Pump cells asserted: 410 → 437.
