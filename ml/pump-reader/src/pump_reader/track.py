@@ -16,8 +16,10 @@ Output per record, beside the frames ``pump_reader.frames`` extracted:
 * ``frames/<stem>/sheet.jpg`` - a contact sheet with the quads drawn, for
   the eye check that is the only human step here.
 
-Only records paired to a **train** still are tracked (decision 9): a
-heldout still's frames are the same fill and must never train.
+Every paired record is tracked, heldout stills' included, so the annotator
+can show any record; the output carries the still's ``split`` and the glyph
+extractor takes only ``train`` (decision 9): a heldout still's frames are
+the same fill and must never train.
 """
 
 from __future__ import annotations
@@ -49,13 +51,13 @@ except Exception:  # pragma: no cover
     pass
 
 
-def paired_records() -> list[tuple[str, str]]:
-    """(movie stem, still filename) for every Live record paired to a train still."""
+def paired_records() -> list[tuple[str, str, str]]:
+    """(movie stem, still filename, split) for every Live record paired to a pump still."""
     with sqlite3.connect(DB) as con:
         rows = con.execute(
-            "select m.name, m.paired_fixture from media m join fixtures f on f.name = m.paired_fixture "
-            "where m.kind = 'live' and f.kind = 'pump' and f.split = 'train' order by m.name").fetchall()
-    return [(Path(name).stem, still) for name, still in rows]
+            "select m.name, m.paired_fixture, f.split from media m join fixtures f on f.name = m.paired_fixture "
+            "where m.kind = 'live' and f.kind = 'pump' order by m.name").fetchall()
+    return [(Path(name).stem, still, split) for name, still, split in rows]
 
 
 def load_windows() -> dict:
@@ -134,7 +136,7 @@ def plausible(mapped: np.ndarray, orig: np.ndarray, frame_size: tuple[int, int],
     return cv2.isContourConvex(mapped.astype(np.float32))
 
 
-def track_record(stem: str, still: str, ann: dict, min_inliers: int) -> dict | None:
+def track_record(stem: str, still: str, split: str, ann: dict, min_inliers: int) -> dict | None:
     folder = FRAMES / stem
     frames = sorted(folder.glob("*.jpg"))
     if not frames:
@@ -145,7 +147,7 @@ def track_record(stem: str, still: str, ann: dict, min_inliers: int) -> dict | N
     still_gray, (sw, sh) = oriented_gray(PUMP / still)
     quads_px = [np.array(w["quad"], dtype=np.float64) * [sw, sh] for w in entry["windows"]]
     reg = Registrar(still_gray, quads_px)
-    out: dict = {"_still": still, "_movie": stem, "frames": {}}
+    out: dict = {"_still": still, "_movie": stem, "_split": split, "frames": {}}
     kept = dropped = 0
     for frame in frames:
         gray = cv2.imread(str(frame), cv2.IMREAD_GRAYSCALE)
@@ -208,19 +210,19 @@ def main(argv: list[str] | None = None) -> int:
     if args.only:
         records = [r for r in records if r[0] in args.only]
     summary = []
-    for stem, still in records:
-        result = track_record(stem, still, ann, args.min_inliers)
+    for stem, still, split in records:
+        result = track_record(stem, still, split, ann, args.min_inliers)
         if result is None:
             print(f"{stem}: no frames or no annotation for {still[:12]}")
             continue
-        summary.append((stem, result["_kept"], result["_dropped"]))
-        print(f"{stem} <- {still[:12]}: {result['_kept']} kept, {result['_dropped']} dropped")
-    kept = sum(k for _, k, _ in summary)
-    dropped = sum(d for _, _, d in summary)
+        summary.append((stem, split, result["_kept"], result["_dropped"]))
+        print(f"{stem} <- {still[:12]} [{split}]: {result['_kept']} kept, {result['_dropped']} dropped")
+    kept = sum(k for _, _, k, _ in summary)
+    dropped = sum(d for _, _, _, d in summary)
     print(f"{len(summary)} records: {kept} frames tracked, {dropped} dropped")
     with (FRAMES / "tracking.csv").open("w") as f:
         w = csv.writer(f)
-        w.writerow(["movie", "kept", "dropped"])
+        w.writerow(["movie", "split", "kept", "dropped"])
         w.writerows(summary)
     return 0
 

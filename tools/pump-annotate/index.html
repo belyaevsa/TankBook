@@ -134,7 +134,7 @@ async function loadRecords(n) {
 function currentRecord() { return records[+$('#rec').value || 0]; }
 function showRecordInfo() {
   const r = currentRecord(); if (!r) return;
-  $('#recinfo').textContent = `${r.tracked.length} tracked of ${r.extracted} frames` + (r.extracted ? '' : ' – run pump_reader.frames / track');
+  $('#recinfo').textContent = `${r.tracked.length} tracked of ${r.extracted} frames` + (r.extracted ? (r.tracked.length ? '' : ' – not tracked: run pump_reader.track') : ' – run pump_reader.frames / track');
   $('#frameSlider').max = Math.max(0, r.tracked.length - 1);
 }
 async function enterFrames() {

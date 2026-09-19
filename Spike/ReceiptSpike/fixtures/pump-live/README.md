@@ -214,9 +214,11 @@ homography, never chained frame to frame - maps the still's quads through it and
 whose registration is weak (< 30 inliers) or whose quads leave the image or change area
 implausibly. It writes `frames/<stem>/windows.json` (the corpus shape, keyed by frame, with the
 still's `field` / `text` / `legibility`) and `frames/<stem>/sheet.jpg` with the quads drawn -
-the one human step is a glance at the sheet. **Only records paired to a train still are
-tracked** (decision 9); the 22 heldout records are the same fills as heldout stills and never
-train. First run: **46 records, 1 906 frames kept, 302 dropped** (the drops are the far, blurred
-opening frames of the zoom-in records and `live-6227`, the plain video whose framing never
-matches its still). Every kept frame carries the still's text as its label - the raw material
-of `pump_reader.realglyphs`.
+the one human step is a glance at the sheet, or the annotator's Frames view. Every paired
+record is tracked so the annotator can show any of them; the output carries the still's
+`split`, and **only train records feed the glyph extractor** (decision 9) - a heldout still's
+frames are the same fill and never train. Run of 2026-09-20: **63 records, 2 766 frames kept,
+506 dropped** (the drops are the far, blurred opening frames of the zoom-in records and
+`live-6227`, the plain video whose framing never matches its still); 46 of the records, 1 906
+frames, are train. Every kept frame carries the still's text as its label - the raw material of
+`pump_reader.realglyphs`.
