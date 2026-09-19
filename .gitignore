@@ -103,3 +103,4 @@ diagnostics/receipt-field-report.txt
 diagnostics/receipt-ocr-lines.txt
 diagnostics/pump-ocr-dump.txt
 
+Spike/ReceiptSpike/fixtures/pump-live/frames/
