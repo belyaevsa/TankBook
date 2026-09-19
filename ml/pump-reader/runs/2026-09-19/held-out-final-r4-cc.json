@@ -1,0 +1,71 @@
+{
+ "fixtures": 115,
+ "windows_scored": 205,
+ "skipped_empty": 23,
+ "per_segment_accuracy": {
+  "a": 0.8638,
+  "b": 0.9474,
+  "c": 0.9721,
+  "d": 0.8514,
+  "e": 0.8772,
+  "f": 0.8545,
+  "g": 0.9009,
+  "dp": 0.7802
+ },
+ "per_segment_mean": 0.8809,
+ "per_glyph_accuracy": 0.5645,
+ "per_digit_accuracy": 0.7317,
+ "per_window_digits_accuracy": 0.3024,
+ "per_window_accuracy": 0.0098,
+ "dp_auc": 0.5708,
+ "per_make": {
+  "circlek": {
+   "windows": 11,
+   "correct": 0
+  },
+  "dresser": {
+   "windows": 39,
+   "correct": 1
+  },
+  "gilbarco": {
+   "windows": 82,
+   "correct": 1
+  },
+  "gpn": {
+   "windows": 3,
+   "correct": 0
+  },
+  "kz": {
+   "windows": 6,
+   "correct": 0
+  },
+  "lukoil": {
+   "windows": 5,
+   "correct": 0
+  },
+  "rn": {
+   "windows": 4,
+   "correct": 0
+  },
+  "scheidt": {
+   "windows": 12,
+   "correct": 0
+  },
+  "tokheim": {
+   "windows": 14,
+   "correct": 0
+  },
+  "topaz": {
+   "windows": 2,
+   "correct": 0
+  },
+  "unknown": {
+   "windows": 2,
+   "correct": 0
+  },
+  "wayne": {
+   "windows": 25,
+   "correct": 0
+  }
+ }
+}

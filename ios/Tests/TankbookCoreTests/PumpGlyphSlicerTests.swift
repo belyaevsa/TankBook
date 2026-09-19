@@ -14,6 +14,16 @@ struct SynthBox {
     let y: Double
     let w: Double
     let h: Double
+    /// A separator drawn in its own narrow cell (some makes). The slicer's
+    /// contract attaches a decimal mark to the glyph it follows, so such a box
+    /// is not a cell the slicer is expected to emit.
+    let isDecimalOnly: Bool
+}
+
+extension SynthRow {
+    /// The boxes the slicer is expected to produce: one per glyph cell, a
+    /// separator-only box folded into the glyph before it.
+    var glyphBoxes: [SynthBox] { boxes.filter { !$0.isDecimalOnly } }
 }
 
 struct SynthRow {
@@ -39,22 +49,35 @@ struct PumpGlyphSlicerTests {
     )
     func slicesSyntheticRowToItsBoxes() throws {
         let loaded = try #require(Self.synth)
-        // A perspective-free row is a straight strip; its boxes are axis-aligned.
-        let row = try #require(loaded.rows.first(where: { Self.isPerspectiveFree($0) }))
-        let image = try #require(PumpReaderTestSupport.loadRGB(url: loaded.imagesDir.appendingPathComponent(row.file)))
-        let gray = image.grayscale()
-        let cells = PumpGlyphSlicer.slice(gray)
-
-        #expect(cells.count == row.boxes.count,
-                "sliced \(cells.count) cells, the oracle has \(row.boxes.count) boxes")
-
-        for (index, cell) in cells.enumerated() {
-            guard index < row.boxes.count else { break }
-            let box = row.boxes[index]
-            let centre = cell.rect.midX
-            #expect(centre >= CGFloat(box.x) && centre <= CGFloat(box.x + box.w),
-                    "cell \(index) centre \(centre) outside box [\(box.x), \(box.x + box.w)]")
+        // Perspective-free rows are straight strips with axis-aligned boxes.
+        let rows = loaded.rows.filter { Self.isPerspectiveFree($0) }
+        #expect(rows.count >= 5, "only \(rows.count) perspective-free rows - a thin oracle")
+        var agreed = 0
+        var centresInside = 0
+        var centresTotal = 0
+        for row in rows {
+            let image = try #require(PumpReaderTestSupport.loadRGB(url: loaded.imagesDir.appendingPathComponent(row.file)))
+            let cells = PumpGlyphSlicer.slice(image.grayscale())
+            let boxes = row.glyphBoxes
+            if cells.count == boxes.count {
+                agreed += 1
+                for (cell, box) in zip(cells, boxes) {
+                    centresTotal += 1
+                    let centre = cell.rect.midX
+                    if centre >= CGFloat(box.x) && centre <= CGFloat(box.x + box.w) { centresInside += 1 }
+                }
+            } else {
+                print("PU.4 synthetic miscount: \(row.text) sliced \(cells.count), oracle \(boxes.count)")
+            }
         }
+        // Oracle: the renderer's own boxes. Rendered rows carry the same glare
+        // and reflection the corpus does, so a row that washes out is a real
+        // miss, not an oracle defect; the floor is the share that must agree.
+        let agreement = Double(agreed) / Double(max(rows.count, 1))
+        print("PU.4 synthetic count agreement \(agreed)/\(rows.count)")
+        #expect(agreement >= 0.8, "count agreement \(agreement) on \(rows.count) synthetic rows")
+        #expect(centresTotal > 0 && centresInside == centresTotal,
+                "\(centresTotal - centresInside) cell centres outside their box")
     }
 
     @Test("an LCD and an LED strip of the same string slice to the same count")
@@ -77,8 +100,8 @@ struct PumpGlyphSlicerTests {
         let faint = Self.collapseContrast(gray, remaining: 0.15)
 
         let cells = PumpGlyphSlicer.slice(faint)
-        #expect(cells.count == row.boxes.count,
-                "faint display sliced \(cells.count) cells, the oracle has \(row.boxes.count) boxes")
+        #expect(cells.count == row.glyphBoxes.count,
+                "faint display sliced \(cells.count) cells, the oracle has \(row.glyphBoxes.count) glyph boxes")
 
     }
 
@@ -129,7 +152,7 @@ struct PumpGlyphSlicerTests {
         process.executableURL = python
         process.arguments = [
             "-m", "pump_reader.render",
-            "--count", "1", "--seed", "3", "--rows",
+            "--count", "300", "--seed", "3", "--rows",
             "--out", out.path,
         ]
         process.currentDirectoryURL = PumpReaderTestSupport.repoRoot
@@ -159,7 +182,8 @@ struct PumpGlyphSlicerTests {
                       let y = (box["y"] as? NSNumber)?.doubleValue,
                       let w = (box["w"] as? NSNumber)?.doubleValue,
                       let h = (box["h"] as? NSNumber)?.doubleValue else { return nil }
-                return SynthBox(x: x, y: y, w: w, h: h)
+                return SynthBox(x: x, y: y, w: w, h: h,
+                                isDecimalOnly: (box["class"] as? String) == "dp-only")
             }
             guard boxes.count == boxesRaw.count else { return nil }
             return SynthRow(file: file, text: text, boxes: boxes)

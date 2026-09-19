@@ -26,12 +26,12 @@ struct PumpReaderHarnessTests {
     // MARK: - Ratchet constants
 
     // Measured 2026-09-19 (PU.8, then the grid anchored on the first occupied
-    // cell): 259/433 windows agree on glyph count, up from PU.4's 173/433. The 0.80 target in the brief is the ceiling this ratchet
+    // cell, then interior blank cells kept): 273/433 windows agree on glyph count. The 0.80 target in the brief is the ceiling this ratchet
     // grows toward. The dp is absorbed into the host glyph on most makes - the
     // local-contrast normalisation and the Otsu threshold absorb a few more than
     // PU.4's fixed-fraction pass - so the column-projection slicer cannot see it;
     // that gap is the classifier's dp bit, and PU.6 owns closing it.
-    private static let countAgreementFloor = 0.59
+    private static let countAgreementFloor = 0.63
     private static let dpAgreementFloor = 0.0
     private static let locatorMedianIoUFloor = 0.0
 

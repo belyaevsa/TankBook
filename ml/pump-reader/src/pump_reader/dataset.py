@@ -393,10 +393,9 @@ class SyntheticDataset:
         contrast_prob: float = 0.0,
         framing: str = "slicer",
     ) -> None:
-        # Neighbour spill and contrast collapse are both real on the corpus and
-        # both LOWER the held-out score when trained on (REPORT.md, the PU.7
-        # ablation), so the shipped recipe leaves them off; the knobs stay so
-        # the ablation can be re-run when the slicer or the profiles change.
+        # Both knobs were ablated against the held-out corpus (REPORT.md): with
+        # cells framed like the slicer's, contrast collapse HELPS and is on in
+        # `train.py`'s defaults; neighbour spill still hurts and stays off.
         # ``framing`` picks the cell renderer: "slicer" cuts the cell as the
         # slicer hands it over (PU.9), "glyph" keeps the lone-glyph renderer
         # with its crop jitter, so the ablation can re-run the old framing.

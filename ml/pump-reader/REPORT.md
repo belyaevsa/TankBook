@@ -337,6 +337,36 @@ per-window near zero - the most, though `pump-009`'s comma still reads wrong
 (`050,95` -> `05095`) and `pump-004` stays washed out. Committed metrics:
 `runs/2026-09-19/metrics-pu1718.json`.
 
+### Round 4 (orchestrator, 2026-09-19): the end solution validated
+
+Three changes on top of PU.17/18, each measured:
+
+- **Contrast collapse re-ablated under the calibrated framing** - it HELPS now
+  (digit-only 0.717 → 0.753 on the 192 count-correct transaction windows), the
+  reversal PU.12 predicted; on by default in `train.py`.
+- **The slicer keeps interior blank cells**: the anchored grid collapsed an
+  empty grid position between two digits (a wide gap, a separator in its own
+  cell) and shifted every later cell onto the wrong glyph. Corpus count
+  agreement **259 → 273 of 433 (0.63)**; ratchet raised. The synthetic slicer
+  test now scores all perspective-free rendered rows (12/14) instead of one.
+- **`PumpSegmentsModel.swift`**: the Core ML wrapper and the constrained
+  decoder in Swift, validated by `PumpSegmentsModelTests` - the exported model
+  driven through a `CVPixelBuffer` reads 246/247 Python-rendered cells right
+  and agrees with the Python model on 100 % of them.
+
+Final numbers, transaction fields, the shipped model on the final slicer's
+cells (the count-correct set grew to 205 windows, so the per-window number is
+not comparable with round 3's 192):
+
+| | per-glyph | digit only | windows, every digit right | dp bit |
+|---|---|---|---|---|
+| all 320 | 0.455 | **0.591** | 0.206 | 0.755 |
+| count-correct 205 | 0.565 | **0.732** | 0.302 | 0.780 |
+
+The day in one line, digit-only on count-correct windows: 0.123 (PU.3) →
+0.215 (PU.9) → 0.400 (PU.10) → 0.666 (PU.16) → 0.698 (transaction only) →
+0.717 (PU.17/18) → **0.753 / 0.732** (round 4, on 192 / 205 windows).
+
 ## Named mutation: drop the dp bit
 
 In `dataset.py`, the target's dp bit was dropped (7 bits, dp slot padded with a

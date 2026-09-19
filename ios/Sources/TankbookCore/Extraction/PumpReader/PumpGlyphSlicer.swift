@@ -283,19 +283,25 @@ enum PumpGlyphSlicer {
 
         let decimalCells = Set(decimalRuns.map { cellIndex($0.start) })
 
+        // Every grid position from the first leading blank to the last occupied
+        // cell is a cell: an empty position between two digits (a wide gap, a
+        // separator drawn in its own narrow cell) is a blank cell, never a
+        // collapsed one - collapsing it would shift every later cell's rect
+        // onto the wrong glyph.
+        let occupiedSet = Set(occupied)
+        let last = occupied.last!
         var cells: [GlyphCell] = []
-        let total = leadingBlanks + occupied.count
-        for k in 0..<total {
+        for index in (first - leadingBlanks)...last {
+            let k = index - (first - leadingBlanks)
             let rect = CGRect(
                 x: CGFloat(gridOrigin + Double(k) * pitch),
                 y: CGFloat(context.bandTop),
                 width: CGFloat(context.pitch),
                 height: CGFloat(context.bandHeight))
-            let isDigit = k >= leadingBlanks
-            let occupiedIndex = isDigit ? occupied[k - leadingBlanks] : 0
+            let isDigit = occupiedSet.contains(index)
             cells.append(GlyphCell(
                 rect: rect,
-                hasDecimalPoint: isDigit && decimalCells.contains(occupiedIndex),
+                hasDecimalPoint: isDigit && decimalCells.contains(index),
                 isBlank: !isDigit))
         }
         return Pass(cells: cells, digitRuns: digitRuns, count: cells.count)

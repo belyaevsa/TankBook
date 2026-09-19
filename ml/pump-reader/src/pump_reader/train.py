@@ -80,7 +80,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--train-size", type=int, default=60_000)
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--spill-prob", type=float, default=0.0)
-    parser.add_argument("--contrast-prob", type=float, default=0.0)
+    parser.add_argument("--contrast-prob", type=float, default=0.15)
     parser.add_argument("--framing", type=str, default="slicer", choices=["slicer", "glyph"])
     args = parser.parse_args(argv)
 
