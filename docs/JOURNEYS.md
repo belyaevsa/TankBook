@@ -816,11 +816,12 @@ fact where a blank is an honest absence.
 is a review list that failed to explain itself.
 
 ### F7 · Restore fails or comes back empty (J11's nightmare)
-**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F7-2026-09-12c)
+*(Status cleared 2026-09-19: PJ.39 added the interrupted-pull promise below; the 2026-09-12c review predates it.)*
 **Trigger:** new phone, sign-in works, but the backup is missing, corrupt, or the backend is down. The category's fatal moment – this journey gets engineered redundancy, not just good copy.
 
 - Restore sources, tried in order and shown honestly: sync pull from zero (the normal path – `SYNC.md`) → a server backup snapshot → "import a file you exported yourself." **RV.260 (2026-09-12): the third source is a Tankbook backup restored locally** – the per-car archive `ExportBuilder` writes, read back by "Restore from backup" through `VehicleArchiveReader`, with no account and no network (hard rule 1). A full-account export is refused locally with its named next step; it is the sync path's input. The third-party import wizard (My Fuel Manager / Drivvo) is a door BESIDE the backup one, not the fallback itself – it cannot read a Tankbook archive.
 - If the backend is down: say exactly that ("sync service unreachable – you can import an export file, or your data will arrive as soon as it's back"), never a generic "something went wrong."
+- If the connection drops mid-pull (PJ.39): say that too ("connection dropped – restore continues when you're back online"), show what landed so far in numbers, and offer both next steps - open the partial garage, which keeps filling from the persisted cursor once online, or retry now. The user's own connection is never answered with the server-down copy and its "import a file" door.
 - If truly nothing is found: the app says so *before* the user logs anything new (an empty garage with "expecting your data? →" recovery entry point), because the worst sequence is: user re-adds car manually, backup later reappears, and now there's a merge problem. **This includes after a provider switch (RV.259):** when the wrong-provider question sends the user to the other provider and that account is *also* empty, "truly nothing found" is now the truth and the flow lands on this recovery screen (import a file / Start fresh) - it never re-asks the reverse question, which would loop Apple ↔ Google with no in-flow exit.
 - Post-restore: show the same verification stats as J2 (entries, date range, last odometer) so trust is re-established with numbers, not a checkmark.
 

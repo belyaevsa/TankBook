@@ -24,6 +24,7 @@ enum SignInTestSeed {
         case restore
         case restoreEmpty
         case restoreUnreachable
+        case restoreInterrupted
     }
 
     static func scenario(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> Scenario {
@@ -32,6 +33,7 @@ enum SignInTestSeed {
         // prefix of "-signInRestoreEmpty"/"-signInRestoreUnreachable".
         if arguments.contains("-signInRestoreEmpty") { return .restoreEmpty }
         if arguments.contains("-signInRestoreUnreachable") { return .restoreUnreachable }
+        if arguments.contains("-signInRestoreInterrupted") { return .restoreInterrupted }
         if arguments.contains("-signInRestore") { return .restore }
         return .none
     }
@@ -134,6 +136,8 @@ enum SignInTestSeed {
             outcome = .empty
         case .restoreUnreachable:
             outcome = .unreachable
+        case .restoreInterrupted:
+            outcome = .interrupted(nil)
         case .stubAuth where ProcessInfo.processInfo.arguments.contains("-signInStubRestored"):
             // PJ.35: the real flow through the stubs lands on a restored
             // account, so the post-restore photo prefetch runs for real

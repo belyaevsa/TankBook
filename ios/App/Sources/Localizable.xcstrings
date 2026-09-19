@@ -4891,6 +4891,74 @@
         }
       }
     },
+    "Connection dropped – restore continues when you're back online.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connection dropped – restore continues when you're back online."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Связь прервалась – восстановление продолжится, когда вы снова будете в сети."
+          }
+        }
+      }
+    },
+    "Restored so far": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restored so far"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Восстановлено пока"
+          }
+        }
+      }
+    },
+    "Open my garage (partial, keeps filling)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open my garage (partial, keeps filling)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открыть гараж (частично, продолжает заполняться)"
+          }
+        }
+      }
+    },
+    "Retry now": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry now"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повторить сейчас"
+          }
+        }
+      }
+    },
     "Currency": {
       "extractionState": "manual",
       "localizations": {

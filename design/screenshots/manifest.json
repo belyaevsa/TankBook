@@ -1185,6 +1185,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "PJ.39-restore-interrupted": {
+      "commit": "2704e983",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.39-restore-interrupted-ru": {
+      "commit": "2704e983",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "PJ.3b-welcome": {
       "commit": "5aa51854",
       "device": "iPhone 17",

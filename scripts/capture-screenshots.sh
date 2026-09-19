@@ -627,6 +627,10 @@ capture P4.7-restore-empty        en -presentScreen signIn -signInRestoreEmpty
 capture P4.7-restore-empty-ru     ru -presentScreen signIn -signInRestoreEmpty
 capture P4.7-restore-unreachable  en -presentScreen signIn -signInRestoreUnreachable
 capture P4.7-restore-unreachable-ru ru -presentScreen signIn -signInRestoreUnreachable
+# PJ.39: the pull dropped mid-restore - what landed, open the partial garage,
+# retry now.
+capture PJ.39-restore-interrupted    en -presentScreen signIn -signInRestoreInterrupted
+capture PJ.39-restore-interrupted-ru ru -presentScreen signIn -signInRestoreInterrupted
 
 # RV.261: the last-odometer recency is the v1 half of J11's provenance clause;
 # the source device ("from your Android phone") is [v2] and does not render.
