@@ -94,9 +94,30 @@ def render_row(
     overrides: dict[str, float] | None = None,
 ) -> tuple[Image.Image, list[GlyphBox]]:
     """Render ``text`` as a number row; returns (image, boxes) with true boxes."""
-    res = profile.resolve(rng)
     cells = parse_row(text, profile.dp_own_cell)
-    advances = [_cell_advance(lbl.bits == 0x80, res.pitch) for lbl in cells]
+    return render_row_of_labels(cells, profile, rng, augment=augment, overrides=overrides)
+
+
+def render_row_of_labels(
+    cells: list[SegmentLabel],
+    profile: MakeProfile,
+    rng: np.random.Generator,
+    *,
+    augment: bool = True,
+    overrides: dict[str, float] | None = None,
+    advances: list[float] | None = None,
+) -> tuple[Image.Image, list[GlyphBox]]:
+    """Render a list of glyph cells as one row; returns (image, true boxes).
+
+    ``advances``, when given, overrides the per-cell advance (normally the
+    profile's pitch). The spill renderer passes a tightened advance so each
+    neighbour overlaps the centre cell and its edge bleeds into the centre box -
+    the way a real slicer's overlapping cells carry the neighbour's edge (PU.7,
+    gap 2 "neighbour spill").
+    """
+    res = profile.resolve(rng)
+    if advances is None:
+        advances = [_cell_advance(lbl.bits == 0x80, res.pitch) for lbl in cells]
     total_w = int(sum(advances) + 2 * _ROW_MARGIN_X)
     total_h = CELL_H + 2 * _ROW_MARGIN_Y
 

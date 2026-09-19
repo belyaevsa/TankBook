@@ -21,6 +21,8 @@ DEFAULT_PROBS: dict[str, float] = {
     "blur": 0.6,
     "glare": 0.5,
     "canopy": 0.4,
+    "reflection": 0.4,
+    "contrast_collapse": 0.15,
     "noise_exposure": 0.7,
     "occlusion": 0.3,
 }
@@ -153,6 +155,42 @@ def apply_canopy(img: np.ndarray, rng: np.random.Generator) -> np.ndarray:
     return img
 
 
+def apply_reflection(img: np.ndarray, rng: np.random.Generator) -> np.ndarray:
+    """A broad, soft reflection blob over up to half the cell (gap 3).
+
+    Lower frequency than ``apply_glare``: one large gaussian with a wide blur and
+    moderate strength, so the reflection-heavy Scheidt heads on the held-out sheet
+    are represented without a specular hotspot.
+    """
+    h, w = img.shape[:2]
+    mask = Image.new("L", (w, h), 0)
+    d = ImageDraw.Draw(mask)
+    cx = float(rng.uniform(0.1, 0.9)) * w
+    cy = float(rng.uniform(0.1, 0.9)) * h
+    rx = float(rng.uniform(0.2, 0.5)) * w
+    ry = float(rng.uniform(0.2, 0.5)) * h
+    d.ellipse([cx - rx, cy - ry, cx + rx, cy + ry], fill=255)
+    mask = mask.filter(ImageFilter.GaussianBlur(float(rng.uniform(8, 16))))
+    strength = float(rng.uniform(0.15, 0.4))
+    m = (np.asarray(mask, dtype=np.float32) / 255.0)[..., None]
+    return img + m * (255.0 - img) * strength
+
+
+def apply_contrast_collapse(
+    img: np.ndarray, profile: MakeProfile, rng: np.random.Generator
+) -> np.ndarray:
+    """Collapse the on/ground contrast toward the ground colour (gap 3).
+
+    Every pixel moves toward the profile's ground colour until the on/ground
+    difference is ``target`` (10-25%) of the original. The faint boards on the
+    held-out sheet (pump-004, pump-062) sit at 10-20% contrast, while the
+    renderer never drew below ~50%; this is what closes that gap.
+    """
+    ground = np.asarray(profile.ground_color.midpoint(), dtype=np.float32)
+    target = float(rng.uniform(0.10, 0.25))
+    return img + (ground - img) * (1.0 - target)
+
+
 def apply_noise_exposure(img: np.ndarray, rng: np.random.Generator) -> np.ndarray:
     if rng.random() < 0.7:
         img = img + rng.normal(0.0, float(rng.uniform(2, 10)), img.shape).astype(np.float32)
@@ -210,6 +248,10 @@ def augment(
         img = apply_glare(img, rng)
     if rng.random() < prob("canopy"):
         img = apply_canopy(img, rng)
+    if rng.random() < prob("reflection"):
+        img = apply_reflection(img, rng)
+    if rng.random() < prob("contrast_collapse"):
+        img = apply_contrast_collapse(img, profile, rng)
     if rng.random() < prob("noise_exposure"):
         img = apply_noise_exposure(img, rng)
     if rng.random() < prob("occlusion"):

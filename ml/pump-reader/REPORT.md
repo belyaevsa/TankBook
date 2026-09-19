@@ -1,3 +1,82 @@
+# PU.7 - make the renders look like the corpus, then retrain
+
+Four render changes close the four gaps the PU.4 cell sheet showed, then a
+6000-step retrain of `SegmentNet` (same recipe as PU.3) and re-scoring against
+PU.4's slices. `SegmentNet` is untouched, so the before/after isolates the data.
+
+## Changes
+
+| gap | file | change |
+|---|---|---|
+| 1 bolder segments | `profiles.py` | gilbarco `segment_ratio` (6.5, 8.5) -> (3.5, 6.0); dresser stays 8.0-10.0 as the thin profile |
+| 2 neighbour spill | `dataset.py` | `SPILL_PROB` 0.4; `render_cell` draws a neighbour on each side (advance `CELL_W - (MARGIN + 2)`) and crops the centre cell via `render_row_of_labels` |
+| 3 faint / low-contrast | `augment.py` | `apply_contrast_collapse` (15% of samples to 10-25% of the original on/ground difference) + `apply_reflection` (broad soft blob) |
+| 4 italic slant | `profiles.py` | gilbarco/wayne `slant_deg` -> (6.0, 12.0); `_hseg`/`_vseg` already had chamfered ends, no change |
+
+## Training
+
+`python -m pump_reader.train --steps 6000 --seed 0 --out .out/train-2026-09-19-pu7b`
+
+- Wall time **234.5 s**. Final validation: **per-segment 0.9259**, per-digit
+  0.6298 (down from PU.3's 0.9689 / 0.8062 - the harder data is harder to fit).
+- Committed metrics: `runs/2026-09-19/metrics-pu7.json` (kept alongside PU.3's
+  `metrics.json`; a second run on the same date must not clobber it).
+
+## Export
+
+64 KB `.mlpackage` to `ios/App/Resources/PumpSegments.mlpackage`, same size as
+PU.3's.
+
+## Held-out score
+
+Scored with `--boxes ../../ios/.build/pump-reader-out/slices.json` (all windows,
+then the count-correct subset with the new `--only-count-correct` flag). The
+concurrent PU.4 agent regenerated `slices.json` mid-run, so the count-correct
+subset is now **245** windows, not PU.4's 173; the before is re-measured on the
+same regenerated file.
+
+| model | all windows (433) per-glyph | count-correct (245) per-glyph |
+|---|---|---|
+| before (PU.3) | 0.1012 | 0.1278 |
+| after (PU.7, all four gaps) | 0.0688 | 0.0864 |
+
+**The four changes together moved held-out down, not up.** An ablation isolates
+why (6000 steps, count-correct subset, same slices):
+
+| config | count-correct per-glyph |
+|---|---|
+| bold only | 0.1737 |
+| bold + slant | 0.1701 |
+| slant only | 0.1530 |
+| all four | 0.0864 |
+
+Bold and slant each improve held-out (0.128 -> ~0.17); neighbour spill and
+contrast collapse - both real on the corpus, where 74% of count-correct cells
+carry margin ink - drag it back down to 0.086. The spill/contrast code and tests
+are in place, but they do not currently help, and the synthetic >= 0.95 gate is
+only met without them (bold+slant 0.964 vs all-four 0.926).
+
+## Tests
+
+18 passed. New: `test_dataset_spill.py` (spill puts neighbour ink in the left
+margin at `SPILL_PROB`; centre label unchanged) and `test_contrast.py` (collapse
+lands <= 25% of original contrast). Named mutation: `SPILL_PROB -> 0` sends
+`test_dataset_spill` red.
+
+## Found and not fixed
+
+- **Spill and contrast collapse hurt held-out.** Implemented and tested per the
+  brief, but the before/after is a regression and the ablation says bold + slant
+  alone reach 0.170. This contradicts the brief's diagnosis (gaps 2 and 3) and
+  needs a product-owner decision before the final config is picked.
+- **`slices.json` is a moving target.** The concurrent PU.4 agent regenerated it
+  mid-run (173 -> 245 count-correct windows), so the brief's "0.175 on 173"
+  reference no longer reproduces and the before had to be re-measured.
+- **`score.py` printed `missing fixture _about`** to stdout for the `_about`
+  metadata key (it is not a fixture); fixed by skipping that key.
+
+---
+
 # PU.3 - the segment classifier
 
 Training, export and held-out scoring of `SegmentNet`, a small CNN that reads a
@@ -73,6 +152,32 @@ glyphs are noticeably **bolder** (thicker segments relative to the cell) than
 the `gilbarco` profile draws, and real cells carry the neighbouring glyph's
 edge at both sides - the crop jitter should include horizontal spill from a
 neighbour, not only a shift of the glyph itself.
+
+### The shipped recipe (orchestrator, 2026-09-19, after PU.7 and PU.8)
+
+The ablation above decided the recipe: **bold + slant on, neighbour spill and
+contrast collapse off** (`train.py --spill-prob 0 --contrast-prob 0`, the
+defaults; `runs/2026-09-19/metrics-pu7-final.json`, synthetic validation
+per-segment 0.965 / per-digit 0.781). Exported to `PumpSegments.mlpackage`.
+
+Scored on PU.8's slices, first with PU.8's grid (245 count-correct windows),
+then after the grid was anchored on the first occupied cell (259 count-correct,
+`held-out-cells-final.png`):
+
+| slices | model | all 433 per-glyph | count-correct per-glyph |
+|---|---|---|---|
+| PU.8 grid (245 cc) | PU.3 | 0.1012 | 0.1278 |
+| PU.8 grid (245 cc) | shipped | 0.1253 | **0.1701** |
+| anchored grid (259 cc) | PU.3 | 0.0830 | 0.0975 |
+| anchored grid (259 cc) | shipped | 0.0910 | 0.1052 |
+
+The anchored grid is right by inspection (the sheet) and wins 14 windows on
+count, yet the classifier reads it WORSE - a framing change alone moves the
+number by a third. That is the finding for the next row: the model is
+sensitive to how a cell is framed (the slicer's cells are full-height and
+tight on the pitch; PU.1's renders carry a margin), and the dataset has to be
+built from the slicer's own framing. `pump-004`, `pump-009`, `pump-013`,
+`pump-015` all still read wrong.
 
 ## Named mutation: drop the dp bit
 

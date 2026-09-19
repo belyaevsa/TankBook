@@ -28,8 +28,10 @@ import dataclasses
 import numpy as np
 from PIL import Image
 
-from .glyph import CELL_H, CELL_W, BLANK, DP_ONLY, SegmentLabel, render_glyph
+from . import augment as _augment
+from .glyph import CELL_H, CELL_W, MARGIN, BLANK, DP_ONLY, SegmentLabel, render_glyph
 from .profiles import PROFILES, MakeProfile
+from .row import render_row_of_labels
 
 # LCD-heavy technology prior: LCD is the common pump panel, LED and VFD the less
 # common. A uniform prior would over-represent VFD far beyond its corpus share.
@@ -42,6 +44,17 @@ BLANK_PRIOR: float = 0.08
 DP_ONLY_PRIOR: float = 0.08
 
 _MIN_VISIBLE_FRAC: float = 0.7
+
+# gap 2 (neighbour spill): a real slicer's cells overlap, so a cell carries the
+# edge of the glyph either side, which PU.3's lone-glyph crop jitter never did.
+# SPILL_PROB is the fraction of samples rendered with a random neighbour on each
+# side; SPILL_OVERLAP_PX is how far each neighbour overlaps the centre cell. The
+# centre glyph and the neighbour are each inset by MARGIN, so an overlap of
+# MARGIN + 2 lands only a 2px sliver of the neighbour's edge in the centre cell's
+# outer margin columns - the thin edge a real slice carries, not a full segment.
+SPILL_PROB: float = 0.4
+SPILL_OVERLAP_PX: int = MARGIN + 2
+_SPILL_ADVANCE: float = CELL_W - SPILL_OVERLAP_PX
 
 
 def _sample_technology(rng: np.random.Generator) -> str:
@@ -103,6 +116,63 @@ def _sample_dataset_label(rng: np.random.Generator) -> SegmentLabel:
     return SegmentLabel.from_digit(digit, dp=bool(rng.integers(0, 2)))
 
 
+def _sample_neighbour_label(rng: np.random.Generator) -> SegmentLabel:
+    """A random digit neighbour (never blank or dp-only, so it always has edge ink)."""
+    digit = str(int(rng.integers(0, 10)))
+    return SegmentLabel.from_digit(digit, dp=bool(rng.integers(0, 2)))
+
+
+def _spill_crop(
+    label: SegmentLabel, profile: MakeProfile, rng: np.random.Generator
+) -> Image.Image:
+    """Draw the target with a neighbour on each side and crop the centre cell.
+
+    The neighbours are drawn at a tightened advance (``_SPILL_ADVANCE``) so each
+    overlaps the centre cell by ``SPILL_OVERLAP_PX``; the centre cell then carries
+    a neighbour's edge in its outer margin columns the way a real slice does. No
+    augmentation here, so the crop is clean for measurement.
+    """
+    left = _sample_neighbour_label(rng)
+    right = _sample_neighbour_label(rng)
+    advances = [_SPILL_ADVANCE, _SPILL_ADVANCE, _SPILL_ADVANCE]
+    row, boxes = render_row_of_labels(
+        [left, label, right], profile, rng, augment=False, advances=advances
+    )
+    b = boxes[1]
+    crop = row.crop((int(b.x), int(b.y), int(b.x + b.w), int(b.y + b.h)))
+    return crop.resize((CELL_W, CELL_H), Image.BILINEAR)
+
+
+def render_cell(
+    label: SegmentLabel,
+    profile: MakeProfile,
+    rng: np.random.Generator,
+    *,
+    augment: bool = True,
+    spill_prob: float | None = None,
+    overrides: dict[str, float] | None = None,
+) -> Image.Image:
+    """Render one glyph cell, with neighbour spill (gap 2) at ``spill_prob``.
+
+    This is the renderer ``SyntheticDataset`` drives. With probability
+    ``spill_prob`` (default ``SPILL_PROB``) the target is drawn with a neighbour
+    on each side so the centre cell carries their edge; otherwise the target is
+    drawn alone. ``augment`` runs the full augmentation pipeline (the dataset
+    path keeps it on; tests turn it off for clean measurement).
+    """
+    p = SPILL_PROB if spill_prob is None else spill_prob
+    if rng.random() < p:
+        crop = _spill_crop(label, profile, rng)
+        if augment:
+            arr, _ = _augment.augment(
+                np.asarray(crop, dtype=np.uint8), profile, rng, ghost_mask=None,
+                overrides=overrides,
+            )
+            return Image.fromarray(arr, "RGB")
+        return crop
+    return render_glyph(label, profile, rng, augment=augment, overrides=overrides)
+
+
 def _clamp_shift(dx: float, size: float, canvas: float, min_frac: float) -> float:
     """Clamp a paste offset so at least ``min_frac`` of the pasted image stays visible."""
     min_dx = min_frac * size - size
@@ -147,10 +217,22 @@ class SyntheticDataset:
     """
 
     def __init__(
-        self, seed: int, length: int, *, cache: bool = True
+        self,
+        seed: int,
+        length: int,
+        *,
+        cache: bool = True,
+        spill_prob: float = 0.0,
+        contrast_prob: float = 0.0,
     ) -> None:
+        # Neighbour spill and contrast collapse are both real on the corpus and
+        # both LOWER the held-out score when trained on (REPORT.md, the PU.7
+        # ablation), so the shipped recipe leaves them off; the knobs stay so
+        # the ablation can be re-run when the slicer or the profiles change.
         self.seed = seed
         self.length = length
+        self.spill_prob = spill_prob
+        self.overrides = {"contrast_collapse": contrast_prob}
         self._cache: list[tuple[np.ndarray, np.ndarray] | None] = (
             [None] * length if cache else []
         )
@@ -175,7 +257,10 @@ class SyntheticDataset:
         tech = _sample_technology(rng)
         label = _sample_dataset_label(rng)
         profile = with_technology(PROFILES[make], tech, rng)
-        img = render_glyph(label, profile, rng, augment=True)
+        img = render_cell(
+            label, profile, rng, augment=True,
+            spill_prob=self.spill_prob, overrides=self.overrides,
+        )
         ground = img.getpixel((0, 0))
         img = _jitter(img, rng, ground)
         arr = np.asarray(img, dtype=np.uint8).transpose(2, 0, 1)  # CHW uint8

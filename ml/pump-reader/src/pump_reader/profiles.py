@@ -119,12 +119,15 @@ _AMBER = ColorRange((230, 150, 20), (250, 190, 60))
 PROFILES: dict[str, MakeProfile] = {
     "gilbarco": MakeProfile(
         # Guess: the corpus's Gilbarco fixtures are pale LCD panels with faint
-        # ghost segments; near-vertical (little slant) and moderately tight pitch.
+        # ghost segments. The 6.5-8.5 ratio drew the segments too thin - the
+        # held-out cell sheet (PU.7, gap 1 "bolder segments") shows real LCD
+        # segments nearer 3-5, so the ratio drops to 3.5-6.0. The slant widens
+        # to 6-12 deg for the same reason (gap 4 "italic slant").
         name="gilbarco",
         technology="lcd",
-        segment_ratio=(6.5, 8.5),
+        segment_ratio=(3.5, 6.0),
         segment_gap=(0.045, 0.075),
-        slant_deg=(0.0, 3.0),
+        slant_deg=(6.0, 12.0),
         pitch=(1.25, 1.45),
         dp_diameter=(0.10, 0.15),
         dp_offset=(0.10, 0.18),
@@ -136,12 +139,15 @@ PROFILES: dict[str, MakeProfile] = {
     ),
     "wayne": MakeProfile(
         # Guess: Wayne (incl. Dresser Wayne) panels are lit red LED segments on a
-        # dark ground with a soft bloom and a mild slant.
+        # dark ground with a soft bloom. The slant widens to 6-12 deg to match
+        # the italic Gilbarco/Wayne heads on the held-out cell sheet (PU.7,
+        # gap 4 "italic slant"); the segments stay on the thin side so the
+        # classifier still sees thin glyphs alongside the bolder gilbarco.
         name="wayne",
         technology="led",
         segment_ratio=(7.5, 9.5),
         segment_gap=(0.03, 0.06),
-        slant_deg=(2.0, 5.0),
+        slant_deg=(6.0, 12.0),
         pitch=(1.2, 1.4),
         dp_diameter=(0.09, 0.13),
         dp_offset=(0.08, 0.15),
@@ -153,7 +159,9 @@ PROFILES: dict[str, MakeProfile] = {
     ),
     "dresser": MakeProfile(
         # Guess: standalone Dresser heads are lit green LED segments, slightly
-        # thinner and wider-pitched than Wayne, near-vertical.
+        # thinner and wider-pitched than Wayne, near-vertical. Kept deliberately
+        # thin (8.0-10.0) so the classifier keeps seeing thin glyphs after
+        # gilbarco went bold (PU.7, gap 1 "bolder segments").
         name="dresser",
         technology="led",
         segment_ratio=(8.0, 10.0),

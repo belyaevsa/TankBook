@@ -79,6 +79,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--lr", type=float, default=3e-3)
     parser.add_argument("--train-size", type=int, default=60_000)
     parser.add_argument("--smoke", action="store_true")
+    parser.add_argument("--spill-prob", type=float, default=0.0)
+    parser.add_argument("--contrast-prob", type=float, default=0.0)
     args = parser.parse_args(argv)
 
     smoke = args.smoke
@@ -90,8 +92,11 @@ def main(argv: list[str] | None = None) -> int:
     rng = np.random.default_rng(args.seed)
     torch.manual_seed(args.seed)
 
-    train_ds = SyntheticDataset(seed=args.seed, length=args.train_size, cache=True)
-    val_ds = SyntheticDataset(seed=args.seed + VAL_SEED_OFFSET, length=val_size, cache=True)
+    recipe = {"spill_prob": args.spill_prob, "contrast_prob": args.contrast_prob}
+    train_ds = SyntheticDataset(seed=args.seed, length=args.train_size, cache=True, **recipe)
+    val_ds = SyntheticDataset(
+        seed=args.seed + VAL_SEED_OFFSET, length=val_size, cache=True, **recipe
+    )
     train_loader = DataLoader(
         train_ds, batch_size=args.batch_size, shuffle=True, collate_fn=_collate, num_workers=0
     )
@@ -148,7 +153,7 @@ def main(argv: list[str] | None = None) -> int:
         args.out / "segmentnet.pt",
     )
     metrics = {
-        "steps": steps,
+        "steps": steps, "spill_prob": args.spill_prob, "contrast_prob": args.contrast_prob,
         "seed": args.seed,
         "wall_seconds": round(wall, 1),
         "train_size": args.train_size,

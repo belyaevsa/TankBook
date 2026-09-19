@@ -19,6 +19,8 @@ _OVERIDES = {
     "blur": 0.0,
     "glare": 0.0,
     "canopy": 0.0,
+    "reflection": 0.0,
+    "contrast_collapse": 0.0,
     "noise_exposure": 0.0,
     "occlusion": 0.0,
 }

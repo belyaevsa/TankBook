@@ -231,6 +231,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dump", type=Path, default=None)
     parser.add_argument("--boxes", type=Path, default=None,
                         help="PU.4 slices.json: slice from the slicer's cell rects")
+    parser.add_argument("--only-count-correct", action="store_true",
+                        help="score only windows whose slicer cell count matches the annotation")
     args = parser.parse_args(argv)
 
     state = torch.load(args.model, map_location="cpu")
@@ -257,6 +259,8 @@ def main(argv: list[str] | None = None) -> int:
     skipped_empty = 0
 
     for filename, ann in windows.items():
+        if filename == "_about":
+            continue
         path = args.fixtures / filename
         if not path.exists():
             print(f"missing fixture {filename}")
@@ -283,6 +287,8 @@ def main(argv: list[str] | None = None) -> int:
                 fixture_boxes = boxes.get(filename, [])
                 if wi < len(fixture_boxes) and fixture_boxes[wi] is not None:
                     cell_boxes = fixture_boxes[wi].get("cells")
+            if args.only_count_correct and (cell_boxes is None or len(cell_boxes) != n):
+                continue
             if cell_boxes:
                 cells = slice_cells_from_boxes(img, quad, cell_boxes)
             else:
