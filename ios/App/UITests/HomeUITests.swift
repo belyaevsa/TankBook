@@ -321,18 +321,10 @@ final class HomeUITests: XCTestCase {
         String(format: "%02d", Calendar.current.component(.year, from: date) % 100)
     }
 
-    // MARK: - Sync-shaped presentation states (fixtures until P4)
+    // MARK: - The S7 toast (a fixture until P4.7)
 
-    func testSyncShapedPresentationStatesAreReachable() {
-        let app = launch(args: ["-seedHomeEmptyVehicle",
-                                "-forceArchivedReturned",
-                                "-forceSyncToast"])
-
-        // S5: archived car returned via sync, with its next steps.
-        XCTAssertTrue(app.buttons["homeDeleteAgainButton"].exists)
-        XCTAssertTrue(app.buttons["homeKeepButton"].exists)
-
-        // S7: post-outage sync toast.
+    func testTheSyncToastIsReachable() {
+        let app = launch(args: ["-seedHomeEmptyVehicle", "-forceSyncToast"])
         XCTAssertTrue(app.staticTexts["Synced. 2 entries need a look"].waitForExistence(timeout: 5))
     }
 
@@ -417,6 +409,10 @@ final class HomeUITests: XCTestCase {
         let merge = app.buttons["homeMergeButton"]
         let keepBoth = app.buttons["homeKeepBothButton"]
         XCTAssertTrue(merge.exists)
+        // The card's actions sit under the fold on a 6.1" device once the
+        // headline provenance and the tiles are above it; reachable means
+        // "after the scroll a user would do", never "without scrolling".
+        if !merge.isHittable { app.scrollViews.firstMatch.swipeUp() }
         XCTAssertTrue(merge.isHittable)
         XCTAssertTrue(keepBoth.exists)
         XCTAssertTrue(keepBoth.isHittable)

@@ -862,7 +862,7 @@ is a review list that failed to explain itself.
 **Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F10-2026-09-12)
 **Trigger:** two devices (or two drivers) changed the same data while apart – possibly during a server outage, so conflicts arrive in a batch when sync recovers. Full scenario matrix: `SYNC.md` S1–S9.
 
-- **Never modal, never at sync time.** Conflicts materialize as badges where the data lives: amber timeline flags on entries (S3), a "possible duplicate" combined card (S2), a quiet Garage notice when an archived vehicle returns with new entries (S5). A batch after an outage gets one summary toast – "Synced. 2 entries need a look" – that filters the Log to flagged items.
+- **Never modal, never at sync time.** Conflicts materialize as badges where the data lives: amber timeline flags on entries (S3), a "possible duplicate" combined card (S2), a quiet Garage notice when an archived vehicle returns with new entries (S5; real since 2026-09-19 - the resurrect writes a device-local notice, Home and the Garage render it with a working *Delete again* and *Keep*). A batch after an outage gets one summary toast – "Synced. 2 entries need a look" – that filters the Log to flagged items.
 - **Nothing is lost silently:** overwritten edits and deleted entries sit in a 30-day local undo log ("Recently deleted" / "restore my version" from the entry's edit screen).
 - **Stats stay honest during limbo:** an unresolved duplicate counts once, not twice; a flagged timeline entry is excluded from consumption with the Trends footnote.
 - **Server down = non-event** (extends F3): a passive "Waiting to sync · N changes" row in Settings is the only surface; no screen in the app is sync-gated.

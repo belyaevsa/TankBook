@@ -1225,6 +1225,26 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "PJ.40-garage-returned": {
+      "commit": "8d862720",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.40-garage-returned-ru": {
+      "commit": "8d862720",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.40-home-returned": {
+      "commit": "8d862720",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.40-home-returned-ru": {
+      "commit": "8d862720",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "PJ.45-pace-limit": {
       "commit": "dff5366",
       "device": "iPhone 17",

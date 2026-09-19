@@ -42,6 +42,7 @@ enum HomeTestSeed {
     private static func seedAction(for arguments: [String]) -> ((TankbookRepository) -> Void)? {
         let actions: [(argument: String, seed: (TankbookRepository) -> Void)] = [
             ("-seedHomeEmptyVehicle", seedEmptyVehicle),
+            ("-seedHomeArchivedReturned", VehicleReturnTestSeed.seed),
             ("-seedHomeRV99LongName", seedRV99LongName),
             ("-seedHomeDeleteLastCar", seedDeleteLastCar),
             ("-seedHomeSingleFill", seedSingleFill),

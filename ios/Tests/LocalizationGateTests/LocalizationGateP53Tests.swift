@@ -181,7 +181,8 @@ struct LocalizationGateP53Tests {
         import SwiftUI
         struct InterpolatedView: View {
             let name: String
-            var body: some View { Text("\\(name) came back with 1 new entry – stays archived.") }
+            let count: Int
+            var body: some View { Text("\\(name) came back with \\(count) new entries – stays archived.") }
         }
         """.write(to: file, atomically: true, encoding: .utf8)
 
@@ -409,10 +410,14 @@ struct LocalizationGateP53Tests {
             let key: String
             let slot: String
             let expectedRU: String
+            var pluralForm: String?
         }
         let reshaped: [ReshapedKey] = [
-            ReshapedKey(key: "%@ came back with 1 new entry – stays archived.",
-                        slot: "%@", expectedRU: "«%@» вернулся с 1 новой записью – остаётся в архиве."),
+            // The S5 card's key is plural on the count (PJ.40); every RU form
+            // shares the quoted-name shape, so the `one` form stands for it.
+            ReshapedKey(key: "%@ came back with %lld new entries – stays archived.",
+                        slot: "%@", expectedRU: "«%@» вернулся с %lld новой записью – остаётся в архиве.",
+                        pluralForm: "one"),
             ReshapedKey(key: "Install %1$@ from %2$@?",
                         slot: "%1$@", expectedRU: "Установить «%1$@» от %2$@?"),
             ReshapedKey(key: "Nothing is stored under this %1$@. Last time, did you sign in with %2$@?",
@@ -434,7 +439,9 @@ struct LocalizationGateP53Tests {
         let prepositionPattern = #"\b(?:с|на|в|от|до|у|под|за|для|про|о)\s+"#
 
         for item in reshaped {
-            guard let russian = catalogue.value(for: item.key, language: "ru") else {
+            let russian = item.pluralForm.map { catalogue.pluralForms(for: item.key, language: "ru")[$0] }
+                ?? catalogue.value(for: item.key, language: "ru")
+            guard let russian else {
                 Issue.record("\(item.key) has no RU value")
                 continue
             }

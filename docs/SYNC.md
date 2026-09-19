@@ -433,7 +433,7 @@ iPad deletes a mistaken entry; iPhone, offline, edits the same entry's price.
 Device A deletes the sold Volvo entirely; device B, offline, logs one last fill-up to it.
 - **Prevention first:** in UI, "delete vehicle" is really *archive* (J13); hard delete demands typed confirmation and cascades tombstones over its entries.
 - **Transport:** B's new fill-up references a tombstoned vehicle → the vehicle resurrects as **archived**, entry attached.
-- **Screens:** quiet notice card in the Garage: "Volvo V60 came back from another device with 1 new entry – it stays archived. Delete again?" One tap re-deletes; nothing is lost silently.
+- **Screens:** quiet notice card in the Garage and on Home: "Volvo V60 came back with 1 new entry – stays archived." with *Delete again* and *Keep* on it. One tap re-deletes (the car and its rows go back to the tombstone, dirty, and sit in Recently deleted for the undo window); *Keep* leaves the archived car with its entries. Either answer consumes the notice on both surfaces. The card reads a **device-local** row the resurrect writes (`vehicleReturn`, SCHEMA.md -> The S5 return notice) - N arriving entries are one card with a count - and it is written only on the device that deleted the car; the other devices pull an archived car with entries and see no card. Nothing is lost silently.
 
 ### S5a · The LAST car deleted - does the empty garage survive a pull? (RV.100, answered 2026-09-07; fixed by RV.101, 2026-09-07)
 

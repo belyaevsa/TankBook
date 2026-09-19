@@ -709,6 +709,17 @@ syncPayloadMemory (id text pk, payload text not null)
 
 `id` is the synced record's id (UUIDs are globally unique, so the key carries no entityType). Written on every successful push or pull; read when a dirty `Vehicle` is diffed. **This table is why the merge survives a relaunch**: the in-memory alternative dies with the process, and the first sync after a relaunch then claims *every* field changed – a stale device can revert another device's newer edit (hard rule 13). It lives in the same protected database as the records it remembers.
 
+### The S5 return notice (the "came back - delete again?" card's row)
+
+When an entry pulled from another device references a car **this device** deleted, the car resurrects as archived (SYNC.md S5) and the resurrect writes one notice for it. The card on Home and in the Garage reads that row - it is the only way the app knows a car came back rather than was simply archived - and the row is consumed by the user's answer. **Device-local** (deliberately NOT a synced table, like the sync cursor): the question belongs to the device that deleted the car, and the other devices see an archived car with entries, which is not a conflict for them.
+
+```sql
+vehicleReturn (vehicleId text pk references vehicle on delete cascade,
+               entryCount integer not null, returnedAt real not null)
+```
+
+One row per car, never one per entry: the first arriving entry resurrects the car and opens the notice at `entryCount = 1`, each later entry for a car whose notice is still open adds one (the card says "came back with 3 new entries"). A car with no open notice that is already live never gains one - the resurrect is a no-op for it. **Delete again** tombstones the car and its rows exactly as the user's original delete did (`softDeleteVehicle`: dirty, so the second tombstone pushes; the rows sit in Recently deleted for the undo window) and deletes the row; **Keep** deletes only the row. A hard-purged car takes its notice with it through the FK.
+
 ## Derived: consumption
 
 Never stored. Recomputed for a vehicle whenever any FillUp in range changes.

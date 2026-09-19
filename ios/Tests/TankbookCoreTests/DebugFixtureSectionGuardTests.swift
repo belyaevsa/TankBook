@@ -122,9 +122,10 @@ struct DebugFixtureSectionGuardTests {
 
     // MARK: - L1: a fixture boolean banner is not this shape
 
-    /// A fixture boolean hiding a card of static copy (the S5 archived-returned
-    /// banner, PJ.40) is a different decision, tracked separately. The scanner's
-    /// narrowness is deliberate and pinned here rather than left implicit.
+    /// A fixture boolean hiding a card of static copy (the shape the S5
+    /// archived-returned banner had before it read real notices) is a different
+    /// decision from a fixture-backed collection. The scanner's narrowness is
+    /// deliberate and pinned here rather than left implicit.
     @Test func aFixtureBooleanBannerIsNotASection() {
         let source = #"""
             struct HomeBanners: View {

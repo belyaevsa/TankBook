@@ -1048,6 +1048,12 @@ capture RV.119-log-month-glance-ru ru -seedSettingsSignedIn -seedHomeMonthGlance
 # tank, the month's pace - under the vitals.
 capture RV.120-home-fill-pattern    en -seedSettingsSignedIn -seedHomeFillPattern
 capture RV.120-home-fill-pattern-ru ru -seedSettingsSignedIn -seedHomeFillPattern
+# PJ.40: the S5 "came back - delete again?" card, real data through the sync
+# resurrect, on Home and in the Garage.
+capture PJ.40-home-returned      en -seedSettingsSignedIn -seedHomeArchivedReturned
+capture PJ.40-home-returned-ru   ru -seedSettingsSignedIn -seedHomeArchivedReturned
+capture PJ.40-garage-returned    en -seedSettingsSignedIn -seedHomeArchivedReturned -selectGarageTab
+capture PJ.40-garage-returned-ru ru -seedSettingsSignedIn -seedHomeArchivedReturned -selectGarageTab
 
 # PJ.5: the notification deep link - a tapped reminder opens Reminders with
 # the completion sheet for the REMINDER the identifier named (the fixed

@@ -460,6 +460,9 @@ private func decodeFillUp(_ payload: JSONValue) throws -> FillUp {
     #expect(vehicle?.deletedAt == nil, "the vehicle resurrects")
     #expect(vehicle?.archived == true, "...but as ARCHIVED, never active")
     #expect(try repo.liveFillUps(forVehicle: vehicleId).count == 1, "the entry is attached")
+    // The Garage's "came back - delete again?" card reads this row; a resurrect
+    // that left none would be a car returning silently (hard rule 8).
+    #expect(try repo.vehicleReturnNotices().map(\.entryCount) == [1], "the return notice is written")
 }
 
 // MARK: - S5a (RV.101)

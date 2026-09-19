@@ -802,19 +802,55 @@
         }
       }
     },
-    "%@ came back with 1 new entry – stays archived.": {
+    "%@ came back with %lld new entries – stays archived.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ came back with 1 new entry – stays archived."
+          "variations": {
+            "plural": {
+            "one": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "%@ came back with %lld new entry – stays archived."
+              }
+            },
+            "other": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "%@ came back with %lld new entries – stays archived."
+              }
+            }
+            }
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "«%@» вернулся с 1 новой записью – остаётся в архиве."
+          "variations": {
+            "plural": {
+            "few": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "«%@» вернулся с %lld новыми записями – остаётся в архиве."
+              }
+            },
+            "many": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "«%@» вернулся с %lld новыми записями – остаётся в архиве."
+              }
+            },
+            "one": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "«%@» вернулся с %lld новой записью – остаётся в архиве."
+              }
+            },
+            "other": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "«%@» вернулся с %lld новыми записями – остаётся в архиве."
+              }
+            }
+            }
           }
         }
       }

@@ -1,22 +1,21 @@
 import SwiftUI
 import TankbookCore
-import UIKit
 
-// MARK: - Banners (S5 / reminder)
+// MARK: - Banners (S5 / reminders)
 
-/// The error/warning surfaces that can sit above Home content. S5 is a sync
-/// fixture until P4.7; the reminder strip is REAL data (PJ.4, RV.122) - it
-/// derives from the active reminders (`ReminderChips.items`, hard rule 2's
-/// spirit), so a production build reaches it with no launch argument. Each
-/// names its next step (docs/ERRORS.md -> Home).
+/// The warning surfaces that can sit above Home content, each REAL data and
+/// each naming its next step (docs/ERRORS.md -> Home): the S5 "came back"
+/// cards read the return notices the sync resurrect wrote, and the reminder
+/// strip derives from the active reminders (`ReminderChips.items`, hard rule
+/// 2's spirit) - a production build reaches both with no launch argument.
 ///
-/// The S2 possible-duplicate card is NOT here anymore: since P1.8 it is real
-/// data - the combined card lives in the log stream (LogStream's `.duplicate`
-/// row), because a duplicate is now detected from the entries themselves rather
-/// than presented as a fixture.
+/// The S2 possible-duplicate card is NOT here: since P1.8 the combined card
+/// lives in the log stream (LogStream's `.duplicate` row), because a duplicate
+/// is detected from the entries themselves.
 struct HomeBanners: View {
-    let presentables: HomePresentables
-    let vehicleName: String
+    /// S5: the cars this device deleted that came back archived with entries
+    /// from another device, oldest first. Empty hides the cards.
+    var returnNotices: [VehicleReturnNoticeItem] = []
     /// RV.122: the due reminders as chips, derived at read time
     /// (`ReminderChips.items`); empty hides the strip entirely - presence IS
     /// the derivation, never a flag. This replaced PJ.4's single banner: a
@@ -25,38 +24,11 @@ struct HomeBanners: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            if presentables.archivedReturned {
-                archivedReturnedCard
+            ForEach(returnNotices) { item in
+                VehicleReturnNoticeCard(item: item)
             }
             HomeReminderChips(items: reminderChips)
         }
-    }
-
-    private var archivedReturnedCard: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "archivebox")
-                .font(.caption)
-                .foregroundStyle(Theme.Palette.inkSoft)
-            VStack(alignment: .leading, spacing: 8) {
-                Text("\(vehicleName) came back with 1 new entry – stays archived.")
-                    .font(.caption)
-                    .foregroundStyle(Theme.Palette.inkSoft)
-                HStack(spacing: 14) {
-                    Button("Delete again") {}
-                        .buttonStyle(.plain)
-                        .foregroundStyle(Theme.Palette.action)
-                        .accessibilityIdentifier("homeDeleteAgainButton")
-                    Button("Keep") {}
-                        .buttonStyle(.plain)
-                        .foregroundStyle(Theme.Palette.action)
-                        .accessibilityIdentifier("homeKeepButton")
-                }
-                .font(.caption.weight(.semibold))
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(14)
-        .formCard()
     }
 }
 

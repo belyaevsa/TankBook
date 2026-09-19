@@ -1,56 +1,6 @@
 import Foundation
 import GRDB
 
-/// Canonical table names. `TankbookCore` is the only writer of these tables;
-/// the names are shared by migrations, record types and the repository so they
-/// can never drift apart. Table/column naming follows docs/SCHEMA.md verbatim
-/// (camelCase in SQLite is fine - it is not a PostgreSQL schema).
-public enum TankbookSchema {
-    public static let vehicle = "vehicle"
-    public static let fillUp = "fillUp"
-    public static let chargeSession = "chargeSession"
-    public static let serviceRecord = "serviceRecord"
-    public static let serviceItem = "serviceItem"
-    public static let expense = "expense"
-    public static let reminder = "reminder"
-    public static let station = "station"
-    public static let tariff = "tariff"
-    public static let tireSet = "tireSet"
-    public static let attachment = "attachment"
-    public static let preferences = "preferences"
-    public static let exchangeRate = "exchangeRate"
-    /// Device-local record of S2 duplicate resolutions ("keep both") - NOT in
-    /// `syncedTables`: it is derived-state bookkeeping, like the sync cursor.
-    public static let duplicateResolution = "duplicateResolution"
-    /// Device-local undo log of versions a sync merge overwrote (docs/SYNC.md
-    /// S1/S4: "the losing version is kept in a local 30-day undo log"). NOT in
-    /// `syncedTables` - it is bookkeeping, like the sync cursor.
-    public static let syncOverwrite = "syncOverwrite"
-    /// Device-local memory of each record's last-synced payload (docs/SYNC.md
-    /// S9: the `Vehicle` field-level merge diffs against it). NOT in
-    /// `syncedTables` - it is bookkeeping, like the sync cursor, never synced.
-    public static let syncPayloadMemory = "syncPayloadMemory"
-
-    /// Every synced entity table (has the envelope + syncState bookkeeping).
-    /// The reference data (exchangeRate) is deliberately NOT here.
-    public static let syncedTables: [String] = [
-        vehicle, fillUp, chargeSession, serviceRecord, expense,
-        reminder, station, tariff, tireSet, attachment, preferences,
-    ]
-
-    /// Entry tables: carry the EntryCommon envelope plus a vehicle FK.
-    public static let entryTables: [String] = [
-        fillUp, chargeSession, serviceRecord, expense,
-    ]
-
-    /// Money columns are flattened per docs/SCHEMA.md (Money). Unprefixed on
-    /// entry tables (`amount`, `currency`, ...); prefixed and capitalized on
-    /// the serviceItem child table (`costAmount`, `costCurrency`, ...).
-    public static func moneyColumn(_ prefix: String, _ base: String) -> String {
-        prefix.isEmpty ? base : prefix + base.prefix(1).uppercased() + base.dropFirst()
-    }
-}
-
 /// Storage conventions (documented once, here):
 ///
 /// - **Decimal is stored as TEXT.** GRDB's built-in `Decimal` conformance
@@ -149,6 +99,18 @@ public enum TankbookMigrations {
                 try db.alter(table: TankbookSchema.expense) { table in
                     table.drop(column: "recurrence")
                 }
+            }
+        }
+        migrator.registerMigration("v11") { db in
+            // S5: the resurrect-as-archived event, kept until the user answers
+            // "Delete again" or "Keep" (docs/SCHEMA.md -> The S5 return notice).
+            // Keyed by the vehicle so N arriving entries are one notice with a
+            // count; the FK cascade drops it with a hard-purged car.
+            try db.create(table: TankbookSchema.vehicleReturn) { table in
+                table.column("vehicleId", .text).primaryKey()
+                    .references(TankbookSchema.vehicle, onDelete: .cascade)
+                table.column("entryCount", .integer).notNull()
+                table.column("returnedAt", .double).notNull()
             }
         }
         return migrator

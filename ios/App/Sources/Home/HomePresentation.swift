@@ -23,16 +23,12 @@ import Foundation
 /// derives it from the live reminders at read time, so a Release build reaches the Reminders
 /// screen with no launch argument (the reason `-forceReminderDue` existed).
 struct HomePresentables {
-    /// Archived car returned via sync (S5): "…came back with 1 new entry – stays archived."
-    var archivedReturned = false
     /// Post-outage sync batch (S7): "Synced. 2 entries need a look".
     var syncToast = false
 
     static func fromLaunchArguments(
         _ arguments: [String] = ProcessInfo.processInfo.arguments
     ) -> HomePresentables {
-        HomePresentables(
-            archivedReturned: arguments.contains("-forceArchivedReturned"),
-            syncToast: arguments.contains("-forceSyncToast"))
+        HomePresentables(syncToast: arguments.contains("-forceSyncToast"))
     }
 }

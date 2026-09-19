@@ -9,10 +9,10 @@ import UIKit
 /// (the D4 hint), and the full state.
 ///
 /// All figures come from `HomeStats`, which derives them from the Consumption
-/// engine - Home does no arithmetic of its own (hard rule 2). The sync-shaped
-/// states (S2/S5/S7, reminder banner) are presentation fixtures driven by
-/// launch arguments until P4 (HomePresentables); the guest chrome is REAL data
-/// since PJ.3 - it renders whenever there is no session (docs/SYNC.md).
+/// engine - Home does no arithmetic of its own (hard rule 2). The S2, S5 and
+/// reminder surfaces are real data; the S7 sync toast is still a presentation
+/// fixture driven by a launch argument (HomePresentables); the guest chrome
+/// renders whenever there is no session (docs/SYNC.md).
 struct HomeView: View {
     let presentSheet: (SheetRoute) -> Void
     /// Pushes a route onto the Log tab's own `NavigationStack` path. J9's act
@@ -35,6 +35,7 @@ struct HomeView: View {
     @State private var photoData: Data?
     @State private var didSeed = false
     @State private var presentables = HomePresentables.fromLaunchArguments()
+    @State private var returnNotices: [VehicleReturnNoticeItem] = []
     @State private var resolvedDuplicateKeys: Set<DuplicateDetector.PairKey> = []
     /// RV.284: the entry rows in the `rejected` sync state (the server refused
     /// them structurally). Loaded with the entries; a member's card carries the
@@ -264,9 +265,7 @@ struct HomeView: View {
 
     @ViewBuilder
     private func fullLayout(_ stats: HomeStats) -> some View {
-        HomeBanners(presentables: presentables,
-                    vehicleName: stats.vehicle.name,
-                    reminderChips: reminderChips)
+        HomeBanners(returnNotices: returnNotices, reminderChips: reminderChips)
         // RV.76: the calm door to Reminders, present whether or not anything is
         // due. It sits directly under the urgent banner area - "the row, with
         // its count, beside the banner" (design/screens/RemindersEntry.dc.html)
@@ -532,6 +531,7 @@ struct HomeView: View {
                 return
             }
             self.vehicle = selected
+            returnNotices = try VehicleReturnNotices.items(repository: repository)
             entries = try repository.liveEntries(forVehicle: selected.id)
             stations = try repository.liveStations()
             reminders = try repository.liveReminders(forVehicle: selected.id)
