@@ -2,7 +2,7 @@
 
 Each one exists because something went wrong once. They are not advice.
 
-**Where you may write.** `/Users/sbelyaev/repos/fuel-counter-ios` only. Write code first, explore
+**Where you may write.** `__REPO_ROOT__` only (the checkout you were launched in - a worktree is its own root). Write code first, explore
 second. **Do not commit; never tick `docs/TASKS.md`** - the orchestrator verifies, ticks and commits.
 **Never move, rename or delete a file you did not create.**
 

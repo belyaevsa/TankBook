@@ -1,0 +1,538 @@
+{
+  "steps": 6000,
+  "spill_prob": 0.0,
+  "contrast_prob": 0.0,
+  "framing": "slicer",
+  "seed": 0,
+  "wall_seconds": 248.3,
+  "train_size": 60000,
+  "val_size": 5000,
+  "initial_val_loss": 0.713327,
+  "initial_val_per_segment_accuracy": 0.498025,
+  "initial_val_per_digit_accuracy": 0.0038,
+  "final_val_loss": 0.046987,
+  "final_val_per_segment_accuracy": 0.983725,
+  "final_val_per_digit_accuracy": 0.8894,
+  "final_val_per_bit_accuracy": {
+    "a": 0.9904,
+    "b": 0.9546,
+    "c": 0.9836,
+    "d": 0.998,
+    "e": 0.9954,
+    "f": 0.9952,
+    "g": 0.9966,
+    "dp": 0.956
+  },
+  "history": [
+    {
+      "step": 200,
+      "loss": 0.3172525269031525,
+      "per_segment_accuracy": 0.8511,
+      "per_digit_accuracy": 0.312,
+      "per_bit_accuracy": {
+        "a": 0.893,
+        "b": 0.7746,
+        "c": 0.8562,
+        "d": 0.9802,
+        "e": 0.8532,
+        "f": 0.8846,
+        "g": 0.9056,
+        "dp": 0.6614
+      },
+      "samples": 5000
+    },
+    {
+      "step": 400,
+      "loss": 0.231160884809494,
+      "per_segment_accuracy": 0.9075,
+      "per_digit_accuracy": 0.5108,
+      "per_bit_accuracy": {
+        "a": 0.9616,
+        "b": 0.8024,
+        "c": 0.8828,
+        "d": 0.9912,
+        "e": 0.9222,
+        "f": 0.9446,
+        "g": 0.9718,
+        "dp": 0.7834
+      },
+      "samples": 5000
+    },
+    {
+      "step": 600,
+      "loss": 0.17680075540542603,
+      "per_segment_accuracy": 0.931675,
+      "per_digit_accuracy": 0.6034,
+      "per_bit_accuracy": {
+        "a": 0.9684,
+        "b": 0.8332,
+        "c": 0.9168,
+        "d": 0.992,
+        "e": 0.9658,
+        "f": 0.9728,
+        "g": 0.9812,
+        "dp": 0.8232
+      },
+      "samples": 5000
+    },
+    {
+      "step": 800,
+      "loss": 0.14074254012107848,
+      "per_segment_accuracy": 0.951925,
+      "per_digit_accuracy": 0.705,
+      "per_bit_accuracy": {
+        "a": 0.9724,
+        "b": 0.8806,
+        "c": 0.9478,
+        "d": 0.9918,
+        "e": 0.982,
+        "f": 0.983,
+        "g": 0.9832,
+        "dp": 0.8746
+      },
+      "samples": 5000
+    },
+    {
+      "step": 1000,
+      "loss": 0.11760989499092102,
+      "per_segment_accuracy": 0.9591750000000001,
+      "per_digit_accuracy": 0.7434,
+      "per_bit_accuracy": {
+        "a": 0.9784,
+        "b": 0.8966,
+        "c": 0.9518,
+        "d": 0.994,
+        "e": 0.9856,
+        "f": 0.9888,
+        "g": 0.988,
+        "dp": 0.8902
+      },
+      "samples": 5000
+    },
+    {
+      "step": 1200,
+      "loss": 0.10134636759757995,
+      "per_segment_accuracy": 0.9644999999999999,
+      "per_digit_accuracy": 0.7784,
+      "per_bit_accuracy": {
+        "a": 0.9818,
+        "b": 0.9134,
+        "c": 0.9574,
+        "d": 0.9954,
+        "e": 0.9888,
+        "f": 0.9882,
+        "g": 0.9896,
+        "dp": 0.9014
+      },
+      "samples": 5000
+    },
+    {
+      "step": 1400,
+      "loss": 0.09515661730766296,
+      "per_segment_accuracy": 0.9665,
+      "per_digit_accuracy": 0.7886,
+      "per_bit_accuracy": {
+        "a": 0.9814,
+        "b": 0.917,
+        "c": 0.9572,
+        "d": 0.9942,
+        "e": 0.9906,
+        "f": 0.9876,
+        "g": 0.9898,
+        "dp": 0.9142
+      },
+      "samples": 5000
+    },
+    {
+      "step": 1600,
+      "loss": 0.0864768627166748,
+      "per_segment_accuracy": 0.969825,
+      "per_digit_accuracy": 0.8046,
+      "per_bit_accuracy": {
+        "a": 0.9796,
+        "b": 0.9262,
+        "c": 0.9676,
+        "d": 0.9946,
+        "e": 0.99,
+        "f": 0.9922,
+        "g": 0.99,
+        "dp": 0.9184
+      },
+      "samples": 5000
+    },
+    {
+      "step": 1800,
+      "loss": 0.07819221897125245,
+      "per_segment_accuracy": 0.9740500000000001,
+      "per_digit_accuracy": 0.8246,
+      "per_bit_accuracy": {
+        "a": 0.9834,
+        "b": 0.9336,
+        "c": 0.9754,
+        "d": 0.9962,
+        "e": 0.9916,
+        "f": 0.9922,
+        "g": 0.9914,
+        "dp": 0.9286
+      },
+      "samples": 5000
+    },
+    {
+      "step": 2000,
+      "loss": 0.07451034231185913,
+      "per_segment_accuracy": 0.974825,
+      "per_digit_accuracy": 0.8332,
+      "per_bit_accuracy": {
+        "a": 0.9856,
+        "b": 0.9344,
+        "c": 0.9742,
+        "d": 0.9964,
+        "e": 0.992,
+        "f": 0.9892,
+        "g": 0.996,
+        "dp": 0.9308
+      },
+      "samples": 5000
+    },
+    {
+      "step": 2200,
+      "loss": 0.07034412870407104,
+      "per_segment_accuracy": 0.9762,
+      "per_digit_accuracy": 0.8416,
+      "per_bit_accuracy": {
+        "a": 0.9862,
+        "b": 0.9428,
+        "c": 0.9746,
+        "d": 0.9968,
+        "e": 0.9918,
+        "f": 0.991,
+        "g": 0.9934,
+        "dp": 0.933
+      },
+      "samples": 5000
+    },
+    {
+      "step": 2400,
+      "loss": 0.06690949869155884,
+      "per_segment_accuracy": 0.9775750000000001,
+      "per_digit_accuracy": 0.8526,
+      "per_bit_accuracy": {
+        "a": 0.9864,
+        "b": 0.9428,
+        "c": 0.9742,
+        "d": 0.997,
+        "e": 0.9936,
+        "f": 0.992,
+        "g": 0.9942,
+        "dp": 0.9404
+      },
+      "samples": 5000
+    },
+    {
+      "step": 2600,
+      "loss": 0.0622138831615448,
+      "per_segment_accuracy": 0.9785,
+      "per_digit_accuracy": 0.8566,
+      "per_bit_accuracy": {
+        "a": 0.9866,
+        "b": 0.9424,
+        "c": 0.9754,
+        "d": 0.9964,
+        "e": 0.994,
+        "f": 0.992,
+        "g": 0.995,
+        "dp": 0.9462
+      },
+      "samples": 5000
+    },
+    {
+      "step": 2800,
+      "loss": 0.05958555314540863,
+      "per_segment_accuracy": 0.979575,
+      "per_digit_accuracy": 0.864,
+      "per_bit_accuracy": {
+        "a": 0.9888,
+        "b": 0.9476,
+        "c": 0.979,
+        "d": 0.9972,
+        "e": 0.9934,
+        "f": 0.9924,
+        "g": 0.9956,
+        "dp": 0.9426
+      },
+      "samples": 5000
+    },
+    {
+      "step": 3000,
+      "loss": 0.058156891798973084,
+      "per_segment_accuracy": 0.979975,
+      "per_digit_accuracy": 0.8676,
+      "per_bit_accuracy": {
+        "a": 0.9866,
+        "b": 0.948,
+        "c": 0.9788,
+        "d": 0.9976,
+        "e": 0.9932,
+        "f": 0.9938,
+        "g": 0.9946,
+        "dp": 0.9472
+      },
+      "samples": 5000
+    },
+    {
+      "step": 3200,
+      "loss": 0.05607696943283081,
+      "per_segment_accuracy": 0.9806,
+      "per_digit_accuracy": 0.87,
+      "per_bit_accuracy": {
+        "a": 0.9876,
+        "b": 0.9474,
+        "c": 0.9804,
+        "d": 0.998,
+        "e": 0.9942,
+        "f": 0.9936,
+        "g": 0.9958,
+        "dp": 0.9478
+      },
+      "samples": 5000
+    },
+    {
+      "step": 3400,
+      "loss": 0.055275143241882325,
+      "per_segment_accuracy": 0.9807999999999999,
+      "per_digit_accuracy": 0.8706,
+      "per_bit_accuracy": {
+        "a": 0.9894,
+        "b": 0.952,
+        "c": 0.9794,
+        "d": 0.9972,
+        "e": 0.9936,
+        "f": 0.9944,
+        "g": 0.9952,
+        "dp": 0.9452
+      },
+      "samples": 5000
+    },
+    {
+      "step": 3600,
+      "loss": 0.053941698360443116,
+      "per_segment_accuracy": 0.98135,
+      "per_digit_accuracy": 0.8714,
+      "per_bit_accuracy": {
+        "a": 0.988,
+        "b": 0.9528,
+        "c": 0.9816,
+        "d": 0.997,
+        "e": 0.9944,
+        "f": 0.9938,
+        "g": 0.9948,
+        "dp": 0.9484
+      },
+      "samples": 5000
+    },
+    {
+      "step": 3800,
+      "loss": 0.05326505188941955,
+      "per_segment_accuracy": 0.9814750000000001,
+      "per_digit_accuracy": 0.8746,
+      "per_bit_accuracy": {
+        "a": 0.9866,
+        "b": 0.9502,
+        "c": 0.982,
+        "d": 0.9968,
+        "e": 0.9954,
+        "f": 0.9942,
+        "g": 0.995,
+        "dp": 0.9516
+      },
+      "samples": 5000
+    },
+    {
+      "step": 4000,
+      "loss": 0.0526956291437149,
+      "per_segment_accuracy": 0.981975,
+      "per_digit_accuracy": 0.8776,
+      "per_bit_accuracy": {
+        "a": 0.988,
+        "b": 0.951,
+        "c": 0.9788,
+        "d": 0.9982,
+        "e": 0.996,
+        "f": 0.9934,
+        "g": 0.9958,
+        "dp": 0.9546
+      },
+      "samples": 5000
+    },
+    {
+      "step": 4200,
+      "loss": 0.05119911603927612,
+      "per_segment_accuracy": 0.98255,
+      "per_digit_accuracy": 0.8808,
+      "per_bit_accuracy": {
+        "a": 0.9884,
+        "b": 0.9522,
+        "c": 0.9822,
+        "d": 0.9978,
+        "e": 0.9956,
+        "f": 0.9956,
+        "g": 0.9952,
+        "dp": 0.9534
+      },
+      "samples": 5000
+    },
+    {
+      "step": 4400,
+      "loss": 0.04992847714424133,
+      "per_segment_accuracy": 0.9821,
+      "per_digit_accuracy": 0.8778,
+      "per_bit_accuracy": {
+        "a": 0.9888,
+        "b": 0.9518,
+        "c": 0.9824,
+        "d": 0.9976,
+        "e": 0.995,
+        "f": 0.994,
+        "g": 0.996,
+        "dp": 0.9512
+      },
+      "samples": 5000
+    },
+    {
+      "step": 4600,
+      "loss": 0.0487617612361908,
+      "per_segment_accuracy": 0.98315,
+      "per_digit_accuracy": 0.8852,
+      "per_bit_accuracy": {
+        "a": 0.9898,
+        "b": 0.9542,
+        "c": 0.9838,
+        "d": 0.9978,
+        "e": 0.9954,
+        "f": 0.9944,
+        "g": 0.9966,
+        "dp": 0.9532
+      },
+      "samples": 5000
+    },
+    {
+      "step": 4800,
+      "loss": 0.04871948308944702,
+      "per_segment_accuracy": 0.9831000000000001,
+      "per_digit_accuracy": 0.8846,
+      "per_bit_accuracy": {
+        "a": 0.99,
+        "b": 0.9552,
+        "c": 0.9826,
+        "d": 0.9982,
+        "e": 0.9956,
+        "f": 0.995,
+        "g": 0.9966,
+        "dp": 0.9516
+      },
+      "samples": 5000
+    },
+    {
+      "step": 5000,
+      "loss": 0.04774713077545166,
+      "per_segment_accuracy": 0.983175,
+      "per_digit_accuracy": 0.8848,
+      "per_bit_accuracy": {
+        "a": 0.9892,
+        "b": 0.9534,
+        "c": 0.983,
+        "d": 0.9976,
+        "e": 0.9956,
+        "f": 0.9948,
+        "g": 0.9964,
+        "dp": 0.9554
+      },
+      "samples": 5000
+    },
+    {
+      "step": 5200,
+      "loss": 0.047932087707519534,
+      "per_segment_accuracy": 0.9832,
+      "per_digit_accuracy": 0.8848,
+      "per_bit_accuracy": {
+        "a": 0.9898,
+        "b": 0.9542,
+        "c": 0.983,
+        "d": 0.9982,
+        "e": 0.9954,
+        "f": 0.9948,
+        "g": 0.9972,
+        "dp": 0.953
+      },
+      "samples": 5000
+    },
+    {
+      "step": 5400,
+      "loss": 0.047193047189712525,
+      "per_segment_accuracy": 0.9836499999999999,
+      "per_digit_accuracy": 0.888,
+      "per_bit_accuracy": {
+        "a": 0.9898,
+        "b": 0.955,
+        "c": 0.9834,
+        "d": 0.998,
+        "e": 0.995,
+        "f": 0.9952,
+        "g": 0.9964,
+        "dp": 0.9564
+      },
+      "samples": 5000
+    },
+    {
+      "step": 5600,
+      "loss": 0.047103964853286745,
+      "per_segment_accuracy": 0.983625,
+      "per_digit_accuracy": 0.8888,
+      "per_bit_accuracy": {
+        "a": 0.9902,
+        "b": 0.9546,
+        "c": 0.9826,
+        "d": 0.998,
+        "e": 0.9954,
+        "f": 0.9952,
+        "g": 0.9966,
+        "dp": 0.9564
+      },
+      "samples": 5000
+    },
+    {
+      "step": 5800,
+      "loss": 0.04701653928756714,
+      "per_segment_accuracy": 0.9837750000000001,
+      "per_digit_accuracy": 0.8894,
+      "per_bit_accuracy": {
+        "a": 0.9902,
+        "b": 0.9546,
+        "c": 0.9838,
+        "d": 0.9978,
+        "e": 0.9954,
+        "f": 0.9952,
+        "g": 0.9968,
+        "dp": 0.9564
+      },
+      "samples": 5000
+    },
+    {
+      "step": 6000,
+      "loss": 0.0469866219997406,
+      "per_segment_accuracy": 0.983725,
+      "per_digit_accuracy": 0.8894,
+      "per_bit_accuracy": {
+        "a": 0.9904,
+        "b": 0.9546,
+        "c": 0.9836,
+        "d": 0.998,
+        "e": 0.9954,
+        "f": 0.9952,
+        "g": 0.9966,
+        "dp": 0.956
+      },
+      "samples": 5000
+    }
+  ]
+}

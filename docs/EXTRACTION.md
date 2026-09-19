@@ -783,8 +783,8 @@ and it clears the exact obstacles that block the receipt case:
 
 - **The data problem disappears.** Seven-segment glyphs are *synthesizable*. Render unlimited
   digits with controlled glare, blur, perspective, LCD ghosting and the reflection of a
-  forecourt canopy. The 17 real pump photos then stay a genuine **held-out** test set precisely
-  because nothing was trained on them.
+  forecourt canopy. The real pump photos (114 as of 2026-09-18, 17 when this was written) then
+  stay a genuine **held-out** test set precisely because nothing was trained on them.
 - **It is tiny.** A few-hundred-KB CNN via Core ML: milliseconds, offline, no gateway, no
   per-request cost, no image leaving the device - and it works in Russia and Europe, which is
   what killed the Foundation Models path.
@@ -808,8 +808,74 @@ measurable gate.
    where the rules parser scores **1/46**, and it still produced **five** confident swaps and a
    decimal shift that pass the cross-check - so the gateway cross-checks and suggests, it never
    trusts.
-4. **Only then**, and only if pump capture still matters after step 3, build the narrow
-   seven-segment Core ML reader on synthetic data, validated against the 17 held-out photos.
+4. **Now due (product owner, 2026-09-18).** Steps 1–3 are done and pump capture still matters -
+   it is the one capture mode nobody else ships (`docs/VISION.md`) and it is still off. Build the
+   narrow seven-segment Core ML reader on synthetic data, validated against the **114** held-out
+   photos. The design is "The pump reader" below; the rows are `docs/TASKS.md` → PU.
+
+### The pump reader (decided 2026-09-18, product owner)
+
+**Own library, not OCR alone.** Vision reads a seven-segment display as text and that is the wrong
+abstraction: it has no notion of segment topology, so it returns a `4` for a `9` with one dim
+segment at confidence 1.00 (`pump-004`), and it drops the decimal point the display renders as a
+separate dot, which makes a factor-of-ten volume invisible to the cross-check. The reader is built
+on the structure OCR ignores:
+
+1. **Panel locator** - find the display and its number windows: high-contrast rectangular regions
+   with a horizontal row structure. Classical CV (`vImage` / Core Image) first; a detector only if
+   the corpus proves it necessary.
+2. **Digit slicer** - seven-segment glyphs sit on a fixed pitch. Column projection splits a window
+   into glyph cells; no character segmentation model.
+3. **Segment classifier (Core ML)** - per glyph, **8 sigmoid outputs**: segments a–g and the
+   decimal point. The digit is a lookup over the segment pattern, never a 10-class label. This is
+   what makes the output compose with digit repair: a `9` whose segment `e` is uncertain is a `4`
+   *candidate* with a known posterior, not a confident wrong digit, and P2.13's fixed confusion
+   table becomes an ordering by posterior.
+4. **Row assignment and decimal recovery** - rows go to total / volume / price by layout and
+   `ExtractionCrossCheck`; the decimal point is recovered as the one placement that satisfies
+   `volume × price = total` over the candidate set. Not unique → `nil`, never a guess.
+5. **Output** - suggestions with per-field posteriors into the `.pump` source. Hard rules 13 and
+   15 unchanged; a confident wrong value is worse than a `nil`.
+
+**Training data is synthetic, and the corpus is never trained on.** A renderer draws glyphs from
+per-make profiles (segment geometry, slant, pitch, LCD/LED/VFD look) for the makes the corpus holds
+and augments with glare, blur, perspective, ghosting, canopy reflection and sensor noise. Every real
+fixture stays held-out; the number-window annotations (`fixtures/pump/windows.json`, PU.2) are the
+glyph-level test set and the locator's oracle. The gate is the existing `PumpPhotoGate` - precision
+on committed cells ≥ 0.99, coverage against the 0.60 floor - scored by the same scorer, so the
+reader lands on the same ratchet as the rules parser (53/320 as of this writing).
+
+**Decisions (product owner, 2026-09-19).** (1) **The ship gate scores total, volume and
+price only** - the grade-price board cells are annotated (`field: board`) and reported on
+request, never in the headline; a board is a different display family (distance shot, often
+dot-matrix) and no journey promises reading it. (2) **Capture is a Live Photo**: the product
+owner shares HEIC files with the Live record, so the reader may assume several frames of the
+panel at inference and fuse per cell (glare and reflections move, digits do not); the corpus
+intake keeps the Live record. (3) **Synthetic geometry may be calibrated on the corpus's
+aggregate shape statistics** (cell aspect, phase, digit mix, comma rate - from `slices.json`
+rects and `windows.json` strings), never on pixels or per-fixture labels; the gate stays on all
+114. (4) The locator question - whether a tap-to-frame crop is an acceptable v1 - is open. (5)
+The shoot list stands: Scheidt +20, Tokheim +15, Lukoil/Adast +10, night +25, rain +15, KZT +10,
+full-resolution originals, and a display-glass make per fixture.
+
+**Decisions (product owner, 2026-09-19, second round).** (6) **The truth for a fill is the
+receipt; the pump reading stands only when no receipt was provided.** For the gate that means
+`expected.csv` (the receipt's values) stays the oracle - a display that rounds a total
+(`pump-003` shows `20886.3`, the receipt says 20886.25) is not "read right" when the reader
+commits the display value; the reader is expected to abstain on a truncated total and let the
+arithmetic derive it from volume × price, which reproduces the receipt exactly. (7) **While the
+gate is off, the app recognises what it can and says so**: a frame classified as a pump display
+runs the reader, the Confirm pre-fill carries the reading with an alpha notice ("pump displays
+are read in alpha - check every field"), typing stays the peer door, and no pump photo is parsed
+as a receipt in silence. (8) **The locator is automatic** - a tap-to-frame crop is not the v1
+answer; PU.24 builds the locator, Vision region proposals first.
+
+**Where it lives.** Training, rendering, export and scoring are Python under `ml/pump-reader/`
+(PyTorch → coremltools), outside every gate except their own `pytest`; the exported `.mlpackage` is
+an app resource and the locator, slicer, decoder and Core ML wrapper are Swift in
+`TankbookCore/Extraction/PumpReader/`, on the ordinary iOS gate. A trained reader is the second
+non-rule producer of a field after the cloud model, and the same sentence governs both: it
+suggests, it never trusts.
 
 ### The constraint no model changes
 

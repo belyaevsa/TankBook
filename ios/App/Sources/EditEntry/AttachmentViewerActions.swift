@@ -106,14 +106,16 @@ extension AttachmentViewerView {
         replaceProcessing = true
         Task {
             let prefill = await CapturePipeline.process(
-                image, source: .receipt,
+                image,
                 bandProvider: AppFuelPriceBand.provider(vehicleId: entry.vehicleId))
             let extraction = prefill.extraction ?? FuelExtraction()
             do {
                 let repository = try AppStore.repository()
                 let newAttachment = try ReceiptAttachmentWriter.write(
                     id: UUID.v7(), image: image,
-                    ocrLines: prefill.ocrLines, extraction: extraction)
+                    ocrLines: prefill.ocrLines, extraction: extraction,
+                    pipeline: prefill.provenance == .pumpPhoto
+                        ? ScannedSavePlanner.pumpReaderPipeline : ScannedSavePlanner.onDevicePipeline)
                 try repository.replaceAttachment(oldID: effectiveAttachmentID,
                                                  with: newAttachment, in: entry)
                 currentID = newAttachment.id

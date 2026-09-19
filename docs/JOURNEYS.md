@@ -130,6 +130,20 @@ user mid-restore.
 
 Same shape as J3, with the deltas: camera pointed at the pump display before hanging up the nozzle (→ prompt tip on first use: "no receipt? Shoot the pump"); OCR reads the three numbers, arithmetic triple-match assigns them (⚠ glare/LED segments – the spike's ~95% gate applies before this ships); station name auto-suggested from location + favorites. This journey is **unowned by any competitor** – it must feel as reliable as J3 or not exist.
 
+**The reader, and what the shipped build does with a pump photo (PU.29, decisions 7 and 8,
+2026-09-19).** A frame is a pump display when the reader itself vouches for two or more large rows
+of seven-segment digits and the frame is not a receipt's worth of text lines - by structure,
+never by strings; the same classification runs on a first capture, an attach, a re-attach and a
+replace. A display runs the pump reader (`docs/EXTRACTION.md` → "The pump reader": locate, slice,
+classify, `volume × price = total` as the only judge) and arrives at Confirm as `.pumpPhoto` with
+the fields the law committed pre-filled and the rest empty; **while the build is below the pump
+gate the sheet says so** - *"Read from the pump display – this is in alpha. Check every field
+before saving."* - and typing stays the peer door (hard rule 15). A pump photo never runs the
+receipt parser in silence. The photo's kind is recorded on the attachment (`pipeline:
+"pump-reader v1"`), the entry carries `.pumpPhoto`, and the gateway is asked with `kind: "pump"`
+so the backend ledger records it. The locator is automatic (decision 8); a tap-to-frame crop is
+not the v1 answer.
+
 **One chain, one station (RV.115 + RV.180, shipped 2026-09-18).** A station has a **brand** (the
 chain) and a **name** (the site's full printed line). The brand is matched once, when the station is
 minted - from a typed name, a scanned station line or an imported column - against the station brand

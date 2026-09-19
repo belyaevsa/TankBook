@@ -1,0 +1,655 @@
+{
+  "fixtures": 115,
+  "windows_scored": 192,
+  "skipped_empty": 23,
+  "per_segment_accuracy": {
+    "a": 0.8352,
+    "b": 0.9555,
+    "c": 0.971,
+    "d": 0.8085,
+    "e": 0.8664,
+    "f": 0.8263,
+    "g": 0.8675,
+    "dp": 0.7929
+  },
+  "per_segment_mean": 0.8654,
+  "per_glyph_accuracy": 0.5579,
+  "per_digit_accuracy": 0.7171,
+  "per_window_digits_accuracy": 0.3698,
+  "per_window_accuracy": 0.0365,
+  "dp_auc": 0.548,
+  "per_make": {
+    "circlek": {
+      "windows": 10,
+      "correct": 0
+    },
+    "dresser": {
+      "windows": 36,
+      "correct": 1
+    },
+    "gilbarco": {
+      "windows": 74,
+      "correct": 5
+    },
+    "gpn": {
+      "windows": 3,
+      "correct": 0
+    },
+    "kz": {
+      "windows": 6,
+      "correct": 0
+    },
+    "lukoil": {
+      "windows": 5,
+      "correct": 0
+    },
+    "rn": {
+      "windows": 4,
+      "correct": 0
+    },
+    "scheidt": {
+      "windows": 12,
+      "correct": 0
+    },
+    "tokheim": {
+      "windows": 14,
+      "correct": 1
+    },
+    "topaz": {
+      "windows": 2,
+      "correct": 0
+    },
+    "unknown": {
+      "windows": 2,
+      "correct": 0
+    },
+    "wayne": {
+      "windows": 24,
+      "correct": 0
+    }
+  },
+  "by_name": {
+    "pump-001": {
+      "field": "unitPrice",
+      "truth": "1.869",
+      "read": "1.864",
+      "correct": false
+    },
+    "pump-002-lukoil-spb-ru": {
+      "field": "liters",
+      "truth": "43.61",
+      "read": "4361",
+      "correct": false
+    },
+    "pump-003-kz-95-kzt": {
+      "field": "unitPrice",
+      "truth": "245.0",
+      "read": "1111",
+      "correct": false
+    },
+    "pump-004-kz-95-kzt-tokheim": {
+      "field": "total",
+      "truth": "3008",
+      "read": "7006",
+      "correct": false
+    },
+    "pump-005-dresser-wayne-four-prices-ru": {
+      "field": "unitPrice",
+      "truth": "52.56",
+      "read": "3256",
+      "correct": false
+    },
+    "pump-006-kz-adast-92-kzt": {
+      "field": "unitPrice",
+      "truth": "244",
+      "read": "144",
+      "correct": false
+    },
+    "pump-007-lukoil-spb-comma-decimals-ru": {
+      "field": "unitPrice",
+      "truth": "76,24",
+      "read": "7624",
+      "correct": false
+    },
+    "pump-008-topaz-video-overlay-92-ru": {
+      "field": "liters",
+      "truth": "20.00",
+      "read": "1111",
+      "correct": false
+    },
+    "pump-009-gilbarco-zero-padded-ru": {
+      "field": "unitPrice",
+      "truth": "050,95",
+      "read": "05095",
+      "correct": false
+    },
+    "pump-010-scheidt-preset-amount-ru": {
+      "field": "unitPrice",
+      "truth": "75.95",
+      "read": "7595",
+      "correct": false
+    },
+    "pump-013-dresser-wayne-ee-four-prices": {
+      "field": "unitPrice",
+      "truth": "1.779",
+      "read": "1.774",
+      "correct": false
+    },
+    "pump-014-dresser-wayne-ee-glare-partial": {
+      "field": "liters",
+      "truth": "3.92",
+      "read": "311",
+      "correct": false
+    },
+    "pump-015-dresser-wayne-ee-diesel": {
+      "field": "liters",
+      "truth": "15.89",
+      "read": "1561",
+      "correct": false
+    },
+    "pump-016-wayne-ee-idle-zero": {
+      "field": "liters",
+      "truth": "0.00",
+      "read": "300",
+      "correct": false
+    },
+    "pump-018-gilbarco-tatneft-tver-98-ru": {
+      "field": "unitPrice",
+      "truth": "99,99",
+      "read": "9999",
+      "correct": false
+    },
+    "pump-024-wayne-neste-ee-three-grade-prices": {
+      "field": "unitPrice",
+      "truth": "1.789",
+      "read": "1.704",
+      "correct": false
+    },
+    "pump-025-wayne-neste-ee-glare-obscured-total": {
+      "field": "unitPrice",
+      "truth": "1.789",
+      "read": "1789",
+      "correct": false
+    },
+    "pump-026-gilbarco-circlek-ee-comma-decimal": {
+      "field": "unitPrice",
+      "truth": "1924",
+      "read": "1111",
+      "correct": false
+    },
+    "pump-027-gilbarco-circlek-ee-comma-glare": {
+      "field": "unitPrice",
+      "truth": "1,859",
+      "read": "1859",
+      "correct": false
+    },
+    "pump-028-gilbarco-circlek-ee-comma-decimal-b": {
+      "field": "unitPrice",
+      "truth": "1,924",
+      "read": "1924",
+      "correct": false
+    },
+    "pump-029-dresser-wayne-gpn-okulovka-ru-glare-total": {
+      "field": "unitPrice",
+      "truth": "71.18",
+      "read": "7118",
+      "correct": false
+    },
+    "pump-030-tokheim-zolotaya-seredina-tver-ru-comma": {
+      "field": "unitPrice",
+      "truth": "68,44",
+      "read": "6844",
+      "correct": false
+    },
+    "pump-031-gilbarco-circlek-ee-discount-mismatch": {
+      "field": "unitPrice",
+      "truth": "1,939",
+      "read": "1939",
+      "correct": false
+    },
+    "pump-032-gilbarco-circlek-ee-clean": {
+      "field": "total",
+      "truth": "0020,02",
+      "read": "111002",
+      "correct": false
+    },
+    "pump-033-dresser-wayne-circlek-ee-fourprice-95": {
+      "field": "unitPrice",
+      "truth": "1.759",
+      "read": "1773",
+      "correct": false
+    },
+    "pump-034-dresser-wayne-circlek-tallinn-ee-db0-pair": {
+      "field": "total",
+      "truth": "160.53",
+      "read": "16051",
+      "correct": false
+    },
+    "pump-035-dresser-wayne-circlek-ee-rain-pump8": {
+      "field": "liters",
+      "truth": "44.96",
+      "read": "4456",
+      "correct": false
+    },
+    "pump-036-dresser-wayne-circlek-ee-pump4-95": {
+      "field": "total",
+      "truth": "22.39",
+      "read": "1231",
+      "correct": false
+    },
+    "pump-037-dresser-wayne-circlek-ee-pump3-diesel": {
+      "field": "unitPrice",
+      "truth": "1.834",
+      "read": "1834",
+      "correct": false
+    },
+    "pump-038-dresser-wayne-circlek-ee-reflection-95": {
+      "field": "unitPrice",
+      "truth": "1.759",
+      "read": "1799",
+      "correct": false
+    },
+    "pump-039-gilbarco-circlek-ee-1839-clean": {
+      "field": "unitPrice",
+      "truth": "1,839",
+      "read": "1839",
+      "correct": false
+    },
+    "pump-040-gilbarco-circlek-ee-pump4-wide": {
+      "field": "liters",
+      "truth": "0008,07",
+      "read": "701111",
+      "correct": false
+    },
+    "pump-041-dresser-wayne-circlek-ee-glare-total": {
+      "field": "unitPrice",
+      "truth": "1.784",
+      "read": "1704",
+      "correct": false
+    },
+    "pump-042-dresser-wayne-circlek-ee-preset-20eur": {
+      "field": "liters",
+      "truth": "11.34",
+      "read": "7111",
+      "correct": false
+    },
+    "pump-043-dresser-wayne-circlek-ee-pump8-95": {
+      "field": "unitPrice",
+      "truth": "1.784",
+      "read": "1721",
+      "correct": false
+    },
+    "pump-044-rn-tver-chkalovskaya-95-comma-truncated-price-ru": {
+      "field": "unitPrice",
+      "truth": "68,3",
+      "read": "683",
+      "correct": false
+    },
+    "pump-045-gilbarco-circlek-ee-1799-zeropad": {
+      "field": "unitPrice",
+      "truth": "1,799",
+      "read": "1799",
+      "correct": false
+    },
+    "pump-046-gilbarco-circlek-ee-pump7-95-badge": {
+      "field": "unitPrice",
+      "truth": "1,759",
+      "read": "1.759",
+      "correct": true
+    },
+    "pump-047-gilbarco-circlek-ee-pump8-outdoor": {
+      "field": "liters",
+      "truth": "0033,16",
+      "read": "703711",
+      "correct": false
+    },
+    "pump-048-gilbarco-circlek-ee-1889-near-preset": {
+      "field": "unitPrice",
+      "truth": "1,889",
+      "read": "1111",
+      "correct": false
+    },
+    "pump-049-gilbarco-circlek-ee-faint-lcd-small-fill": {
+      "field": "unitPrice",
+      "truth": "1,889",
+      "read": "1111",
+      "correct": false
+    },
+    "pump-050-gilbarco-circlek-ee-1929": {
+      "field": "unitPrice",
+      "truth": "1,929",
+      "read": "1111",
+      "correct": false
+    },
+    "pump-053-wayne-circlek-ee-pump1-glare-total-digit": {
+      "field": "liters",
+      "truth": "38.88",
+      "read": "3111",
+      "correct": false
+    },
+    "pump-054-wayne-circlek-jarvevana-pump7-diesel-flare": {
+      "field": "liters",
+      "truth": "26.94",
+      "read": "1511",
+      "correct": false
+    },
+    "pump-055-wayne-circlek-ee-liitrid-variant": {
+      "field": "liters",
+      "truth": "56.05",
+      "read": "3111",
+      "correct": false
+    },
+    "pump-056-wayne-circlek-ee-preset-72eur": {
+      "field": "liters",
+      "truth": "38.32",
+      "read": "1111",
+      "correct": false
+    },
+    "pump-057-gilbarco-circlek-sikupilli-pump5-db0-pair": {
+      "field": "unitPrice",
+      "truth": "1,799",
+      "read": "1.799",
+      "correct": true
+    },
+    "pump-058-gilbarco-circlek-ee-dirty-lcd-1969": {
+      "field": "unitPrice",
+      "truth": "1,969",
+      "read": "7513",
+      "correct": false
+    },
+    "pump-059-gilbarco-circlek-ee-pump3-1899": {
+      "field": "liters",
+      "truth": "0054,23",
+      "read": "105423",
+      "correct": false
+    },
+    "pump-060-gilbarco-circlek-ee-1894": {
+      "field": "unitPrice",
+      "truth": "1,894",
+      "read": "1.894",
+      "correct": true
+    },
+    "pump-061-wayne-circlek-ee-discount-below-board": {
+      "field": "liters",
+      "truth": "33.84",
+      "read": "7791",
+      "correct": false
+    },
+    "pump-062-wayne-circlek-ee-pump8-1894": {
+      "field": "unitPrice",
+      "truth": "1.894",
+      "read": "1894",
+      "correct": false
+    },
+    "pump-063-wayne-circlek-ee-insect-on-price-display": {
+      "field": "unitPrice",
+      "truth": "1.834",
+      "read": "16.3.4",
+      "correct": false
+    },
+    "pump-065-tokheim-gazpromneft-edrovo-truncated-total-pair-ru": {
+      "field": "unitPrice",
+      "truth": "71,05",
+      "read": "7105",
+      "correct": false
+    },
+    "pump-066-rn-tver-budovo-95-exact-total-pair-ru": {
+      "field": "unitPrice",
+      "truth": "69,50",
+      "read": "6950",
+      "correct": false
+    },
+    "pump-067-circlek-jarvevana-95miles-4837l-glare-pair-ee": {
+      "field": "unitPrice",
+      "truth": "2.059",
+      "read": "7111",
+      "correct": false
+    },
+    "pump-068-circlek-jarvevana-dmiles-7070l-pair-ee": {
+      "field": "unitPrice",
+      "truth": "2.099",
+      "read": "2093",
+      "correct": false
+    },
+    "pump-069-circlek-gilbarco-2914l-rotated90-ee": {
+      "field": "unitPrice",
+      "truth": "2,059",
+      "read": "2059",
+      "correct": false
+    },
+    "pump-070-circlek-gilbarco-3494l-ee": {
+      "field": "liters",
+      "truth": "0034,94",
+      "read": "703494",
+      "correct": false
+    },
+    "pump-071-circlek-gilbarco-1898l-midsegment-ee": {
+      "field": "unitPrice",
+      "truth": "2,109",
+      "read": "7104",
+      "correct": false
+    },
+    "pump-073-wayne-gazpromneft-tver-truncated-total-pair-ru": {
+      "field": "unitPrice",
+      "truth": "70.31",
+      "read": "7031",
+      "correct": false
+    },
+    "pump-074-gpn-tver-95-ru": {
+      "field": "unitPrice",
+      "truth": "68,44",
+      "read": "6844",
+      "correct": false
+    },
+    "pump-075-gilbarco-circlek-ee-95": {
+      "field": "unitPrice",
+      "truth": "1,934",
+      "read": "7934",
+      "correct": false
+    },
+    "pump-076-gilbarco-circlek-ee-preset-150": {
+      "field": "unitPrice",
+      "truth": "1,934",
+      "read": "1.934",
+      "correct": true
+    },
+    "pump-077-gilbarco-ee-2054": {
+      "field": "unitPrice",
+      "truth": "2,054",
+      "read": "3054",
+      "correct": false
+    },
+    "pump-078-gilbarco-circlek-peetri-pump7-3143l-ee": {
+      "field": "unitPrice",
+      "truth": "1,909",
+      "read": "1.909",
+      "correct": true
+    },
+    "pump-079-gilbarco-circlek-peetri-6900l-ee": {
+      "field": "unitPrice",
+      "truth": "1,969",
+      "read": "1969",
+      "correct": false
+    },
+    "pump-080-gilbarco-circlek-peetri-1039l-ee": {
+      "field": "unitPrice",
+      "truth": "1,939",
+      "read": "1939",
+      "correct": false
+    },
+    "pump-081-gilbarco-circlek-peetri-pump3-2496l-ee": {
+      "field": "unitPrice",
+      "truth": "1,969",
+      "read": "1.96.9",
+      "correct": false
+    },
+    "pump-082-gilbarco-circlek-peetri-1315l-ee": {
+      "field": "unitPrice",
+      "truth": "1,909",
+      "read": "1909",
+      "correct": false
+    },
+    "pump-083-tokheim-gazpromneft-azs12089-truncated-total-pair-ru": {
+      "field": "unitPrice",
+      "truth": "68,44",
+      "read": "6844",
+      "correct": false
+    },
+    "pump-084-dresser-wayne-gpn-okulovka-exact-total-pair-ru": {
+      "field": "unitPrice",
+      "truth": "71.18",
+      "read": "7118",
+      "correct": false
+    },
+    "pump-086-tokheim-rn-tver-chkalovskaya-1000l-pair-ru": {
+      "field": "liters",
+      "truth": "10,00",
+      "read": "5000",
+      "correct": false
+    },
+    "pump-087-scheidt-bachmann-rn-3000l-6830-reflection-a-ru": {
+      "field": "unitPrice",
+      "truth": "68.30",
+      "read": "6830",
+      "correct": false
+    },
+    "pump-090-scheidt-bachmann-rn-3000l-6830-reflection-c-ru": {
+      "field": "total",
+      "truth": "2049.0",
+      "read": "11117",
+      "correct": false
+    },
+    "pump-091-scheidt-bachmann-rn-2000l-7135-labels-cropped-ru": {
+      "field": "total",
+      "truth": "1427.0",
+      "read": "179.21",
+      "correct": false
+    },
+    "pump-092-scheidt-bachmann-rn-3000l-6385-ru": {
+      "field": "total",
+      "truth": "1915.5",
+      "read": "11319",
+      "correct": false
+    },
+    "pump-093-scheidt-bachmann-rn-2000l-6385-faded-ru": {
+      "field": "total",
+      "truth": "1277.0",
+      "read": "11111",
+      "correct": false
+    },
+    "pump-094-gilbarco-circlek-ee-4325l-1944": {
+      "field": "unitPrice",
+      "truth": "1,944",
+      "read": "1111",
+      "correct": false
+    },
+    "pump-095-gilbarco-circlek-peetri-pump5-2307l-pair-ee": {
+      "field": "unitPrice",
+      "truth": "1,944",
+      "read": "1111",
+      "correct": false
+    },
+    "pump-096-tokheim-rn-tver-tc252-2000l-pair-ru": {
+      "field": "unitPrice",
+      "truth": "71,30",
+      "read": "7130",
+      "correct": false
+    },
+    "pump-097-dresser-wayne-circlek-ee-2285l-1899": {
+      "field": "unitPrice",
+      "truth": "1.899",
+      "read": "1.899",
+      "correct": true
+    },
+    "pump-098-dresser-wayne-circlek-ee-969l-2039": {
+      "field": "unitPrice",
+      "truth": "2.039",
+      "read": "2034",
+      "correct": false
+    },
+    "pump-099-dresser-wayne-circlek-ee-pump1-1064l-1899": {
+      "field": "unitPrice",
+      "truth": "1.899",
+      "read": "8941",
+      "correct": false
+    },
+    "pump-100-dresser-wayne-circlek-jarvevana-pump4-6404l-2024-pair-ee": {
+      "field": "unitPrice",
+      "truth": "2.024",
+      "read": "2024",
+      "correct": false
+    },
+    "pump-101-gilbarco-circlek-ee-1765l-2034-closeup": {
+      "field": "liters",
+      "truth": "0017,65",
+      "read": "701065",
+      "correct": false
+    },
+    "pump-102-gilbarco-circlek-ee-1022l-1954": {
+      "field": "unitPrice",
+      "truth": "1,954",
+      "read": "1711",
+      "correct": false
+    },
+    "pump-103-gilbarco-circlek-ee-4858l-1954": {
+      "field": "liters",
+      "truth": "0048,58",
+      "read": "104858",
+      "correct": false
+    },
+    "pump-104-gilbarco-circlek-sikupilli-pump1-2650l-price-washed-pair-ee": {
+      "field": "liters",
+      "truth": "0026,50",
+      "read": "101111",
+      "correct": false
+    },
+    "pump-106-wayne-gazpromneft-gdrive95-5100l-7031-truncated-total-ru": {
+      "field": "unitPrice",
+      "truth": "70.31",
+      "read": "7031",
+      "correct": false
+    },
+    "pump-107-scheidt-bachmann-rn-tver-azk15-3000l-6830-night-zero-padded-pair-ru": {
+      "field": "unitPrice",
+      "truth": "068.30",
+      "read": "16830",
+      "correct": false
+    },
+    "pump-108-scheidt-bachmann-rn-3249l-6830-reflection-ru": {
+      "field": "unitPrice",
+      "truth": "068.30",
+      "read": "0.6830",
+      "correct": false
+    },
+    "pump-109-tokheim-gazpromneft-edrovo-4800l-7105-pair-ru": {
+      "field": "unitPrice",
+      "truth": "71,05",
+      "read": "71.05",
+      "correct": true
+    },
+    "pump-110-wayne-gazpromneft-gdrive95-4200l-7031-truncated-total-pair-ru": {
+      "field": "unitPrice",
+      "truth": "70.31",
+      "read": "7031",
+      "correct": false
+    },
+    "pump-111-gilbarco-circlek-ee-5046l-1999": {
+      "field": "liters",
+      "truth": "0050,46",
+      "read": "105046",
+      "correct": false
+    },
+    "pump-112-gilbarco-circlek-ee-461l-2199": {
+      "field": "liters",
+      "truth": "0004,61",
+      "read": "700461",
+      "correct": false
+    },
+    "pump-114-gilbarco-circlek-ee-6987l-2074-price-glare": {
+      "field": "unitPrice",
+      "truth": "2,074",
+      "read": "7771",
+      "correct": false
+    }
+  }
+}

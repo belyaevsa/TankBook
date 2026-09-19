@@ -10628,6 +10628,23 @@
         }
       }
     },
+    "Read from the pump display – this is in alpha. Check every field before saving.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read from the pump display – this is in alpha. Check every field before saving."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Прочитано с табло колонки – это альфа-версия. Проверьте каждое поле перед сохранением."
+          }
+        }
+      }
+    },
     "Recognition is in alpha testing – it can't get every field right yet. Your captures improve it, so keep them coming and bear with mistakes.": {
       "extractionState": "manual",
       "localizations": {

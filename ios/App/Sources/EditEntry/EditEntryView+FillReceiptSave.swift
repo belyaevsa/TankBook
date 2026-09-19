@@ -44,10 +44,13 @@ extension EditEntryView {
                 qrAnchor: nil,
                 declaredProvenance: .manual,
                 hasPhoto: true,
-                saved: saved)
-            let source = ConfirmPrefill(extraction: heldPhoto.extraction,
+                saved: saved,
+                pipeline: heldPhoto.isPumpDisplay
+                    ? ScannedSavePlanner.pumpReaderPipeline : ScannedSavePlanner.onDevicePipeline)
+            var source = ConfirmPrefill(extraction: heldPhoto.extraction,
                                         ocrLines: heldPhoto.ocrLines,
                                         sourceImage: heldPhoto.image)
+            if heldPhoto.isPumpDisplay { source.provenance = .pumpPhoto }
             outcome = attemptReceiptPhotoWrite(scanned: plan, source: source,
                                                repository: repository)
             target.attachments = updated.attachments + outcome.sharedIDs

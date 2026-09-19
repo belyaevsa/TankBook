@@ -116,11 +116,13 @@ final class CaptureUITests: XCTestCase {
                       "Type it must present the manual form")
     }
 
-    // MARK: - P2.7 pump photo, flag off
+    // MARK: - P2.7 / PU.29 pump photo, below the gate
 
-    /// The flag-off pump path is the ordinary manual door: no pre-fill, no
-    /// failure message (hard rule 15) - the feature is simply not offered.
-    func testPumpCaptureWithFlagOffOpensEmptyManualFormAndSavesWithNoError() {
+    /// Below the pump-photo gate the reading is still offered - a head start
+    /// the user edits (hard rules 13 and 15) - and the sheet says so with the
+    /// alpha notice (decision 7, docs/EXTRACTION.md). No failure message; the
+    /// form is savable, so it is never a dead end.
+    func testPumpCaptureBelowTheGatePrefillsWithTheAlphaNotice() {
         let app = launch(args: ["-homeResetDatabase", "-seedVehicleForUITests",
                                 "-presentScreen", "capture", "-cameraStatus", "authorized",
                                 "-seedPumpCapture"])
@@ -132,26 +134,17 @@ final class CaptureUITests: XCTestCase {
 
         let total = app.textFields["manualFillUpTotalField"]
         XCTAssertTrue(total.waitForExistence(timeout: 5))
-        // Pre-filled with nothing: a flag-off pump capture injects no value and
-        // no error - the form is the ordinary empty one.
-        XCTAssertTrue((total.value as? String)?.isEmpty ?? true,
-                      "flag-off pump capture must pre-fill nothing")
-        XCTAssertNotEqual(total.value as? String ?? "", "0")
-
-        // The standard empty-form hint is the only guidance shown, so the pump
-        // path carries no "not supported" / failure message.
-        XCTAssertTrue(app.staticTexts["Enter total and liters to save"].exists,
-                      "the ordinary empty-form hint must be the only guidance")
+        // The seeded reading (pump-007's triple) pre-fills the form.
+        XCTAssertFalse((total.value as? String)?.isEmpty ?? true,
+                       "a below-the-gate pump capture pre-fills the reading")
+        // And the sheet frames it as alpha.
+        XCTAssertTrue(app.otherElements["confirmPumpAlphaNotice"].waitForExistence(timeout: 5)
+                        || app.staticTexts["confirmPumpAlphaNotice"].exists,
+                      "the alpha notice must accompany a below-the-gate pump reading")
 
         // Savable, so it is never a dead end.
-        //
-        // Each field is scrolled clear before it is tapped: the numbers card
-        // sits below Date/Odometer/Fuel, so the keyboard raised by TOTAL can
-        // cover LITERS, and a covered tap misses silently (typeText then fails
-        // with a focus error that reads like a broken field).
-        focusNumberField(app, "manualFillUpTotalField").typeText("71.02")
-        focusNumberField(app, "manualFillUpLitersField").typeText("42.30")
         let save = app.buttons["manualFillUpSaveButton"]
+        XCTAssertTrue(save.waitForExistence(timeout: 5))
         XCTAssertTrue(save.isEnabled)
         save.tap()
         XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5),

@@ -21,32 +21,99 @@ enum CapturePipeline {
     /// `CGImage`, or OCR that resolves nothing, produces an all-nil extraction -
     /// which the Confirm sheet renders as the ordinary empty manual form, never
     /// an error and never a dead end (hard rule 15).
+    /// The classifier the pump reader runs on; loaded once from the bundle's
+    /// compiled model, nil when the resource is missing (every frame then
+    /// classifies as a receipt, as before PU.29).
+    nonisolated(unsafe) static var pumpReader: PumpReaderHandle? = PumpDisplayCapture.makeReader(
+        modelURL: Bundle.main.url(forResource: "PumpSegments", withExtension: "mlmodelc"))
+
+    /// The whole path: image in, a `ConfirmPrefill` out. With `source` nil the
+    /// frame is CLASSIFIED first - a pump display (the reader vouches for rows
+    /// of seven-segment digits) runs the pump reader and arrives at Confirm as
+    /// `.pumpPhoto` with the alpha notice; anything else runs the receipt path.
+    /// The same classification runs whether the photo is a first capture or a
+    /// later attach / re-attach / replace (PU.29). A `UIImage` with no
+    /// `CGImage`, or OCR that resolves nothing, produces an all-nil extraction -
+    /// which the Confirm sheet renders as the ordinary empty manual form, never
+    /// an error and never a dead end (hard rule 15).
     @MainActor
-    static func process(_ image: UIImage, source: ExtractionSource,
+    static func process(_ image: UIImage, source: ExtractionSource? = nil,
                         bandProvider: (any FuelPriceBandProvider)? = nil) async -> ConfirmPrefill {
         // OB.2: the recognition duration rides the prefill so the
         // `capture.pipeline` line emitted at the confirm commit can carry it.
         // The duration covers OCR + QR + assembly, not the user's editing time.
         let startedAt = Date()
-        let assembly: CaptureAssembly
-        let lines: [OCRLine]
+        var assembly: CaptureAssembly
+        var lines: [OCRLine] = []
+        var resolvedSource = source ?? .receipt
+        var pumpReading: PumpDisplayCapture.Reading?
         // Both halves are load-bearing: RV.49's orientation (an in-app photo
         // reaches Vision sideways without it) and RV.48's band provider (the
         // resolution ladder's steps 3 and 4 are dead without it).
         if let cgImage = image.cgImage {
             let box = CGImageBox(image: cgImage, orientation: cgImagePropertyOrientation(of: image))
-            (assembly, lines) = await recognize(box: box, source: source, bandProvider: bandProvider)
+            if source == nil || source == .pump, let reader = pumpReader,
+               let upright = uprightCGImage(of: image) {
+                pumpReading = await readPumpDisplay(UprightBox(image: upright), reader: reader,
+                                                    bandProvider: bandProvider)
+                if pumpReading != nil { resolvedSource = .pump }
+            }
+            (assembly, lines) = await recognize(box: box, source: resolvedSource, bandProvider: bandProvider)
+            if let pumpReading {
+                // The reader's committed fields win over the rules arm's; an
+                // abstained field falls through to what the rules read, and
+                // the crops point at the display windows.
+                assembly.extraction.liters = pumpReading.extraction.liters ?? assembly.extraction.liters
+                assembly.extraction.unitPrice = pumpReading.extraction.unitPrice ?? assembly.extraction.unitPrice
+                assembly.extraction.total = pumpReading.extraction.total ?? assembly.extraction.total
+                if pumpReading.extraction.crossCheck == .lock { assembly.extraction.crossCheck = .lock }
+                assembly.cropRects.merge(pumpReading.cropRects.mapValues(flippedToVision)) { _, pump in pump }
+            }
         } else {
             assembly = CaptureAssembly(extraction: FuelExtraction(), qrAnchor: nil, cropRects: [:])
-            lines = []
         }
-        return ConfirmPrefill(
+        var prefill = ConfirmPrefill(
             extraction: assembly.extraction,
             crops: cropEvidence(assembly.cropRects, image: image),
             qrAnchor: assembly.qrAnchor,
             ocrLines: lines,
             sourceImage: image,
             pipelineDurationMs: Int(Date().timeIntervalSince(startedAt) * 1000))
+        if resolvedSource == .pump {
+            prefill.provenance = .pumpPhoto
+            prefill.pumpAlpha = PumpPhotoCapture.outcome(
+                pumpPhotoEnabled: PumpPhotoGate.allowsPumpPhoto, extraction: assembly.extraction).alpha
+        }
+        return prefill
+    }
+
+    /// The pump reader, off the main actor: the locator, the classifier and
+    /// the law are CPU-bound. `nil` when the frame is not a display.
+    private static func readPumpDisplay(_ box: UprightBox, reader: PumpReaderHandle,
+                                        bandProvider: (any FuelPriceBandProvider)?) async -> PumpDisplayCapture.Reading? {
+        await Task.detached(priority: .userInitiated) {
+            let currency: CurrencyCode? = Locale.current.currency.flatMap { CurrencyCode(rawValue: $0.identifier) }
+            return PumpDisplayCapture.read(
+                image: box.image, reader: reader, currency: currency,
+                priceBand: bandProvider?.currencyBand(currency: currency))
+        }.value
+    }
+
+    /// The photo with its orientation baked in, which the pump reader's
+    /// geometry needs (it takes no orientation of its own).
+    private static func uprightCGImage(of image: UIImage) -> CGImage? {
+        if image.imageOrientation == .up { return image.cgImage }
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: image.size, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: image.size))
+        }.cgImage
+    }
+
+    /// The reader's rects are top-left-origin; the assembler's are Vision's
+    /// bottom-left, which `pixelRect` below expects.
+    private static func flippedToVision(_ rect: CGRect) -> CGRect {
+        CGRect(x: rect.minX, y: 1 - rect.maxY, width: rect.width, height: rect.height)
     }
 
     // MARK: - Off-main work
@@ -114,6 +181,10 @@ enum CaptureQRDetector {
 /// for an image created exclusively for OCR and handed across to a detached
 /// task - the same pattern `PhotoPickerView.PickedImage` uses. The orientation
 /// travels with the pixels because a `CGImage` alone carries none (RV.49).
+private struct UprightBox: @unchecked Sendable {
+    let image: CGImage
+}
+
 private struct CGImageBox: @unchecked Sendable {
     let image: CGImage
     let orientation: CGImagePropertyOrientation

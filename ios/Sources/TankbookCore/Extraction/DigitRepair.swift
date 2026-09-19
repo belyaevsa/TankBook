@@ -58,6 +58,12 @@ public enum DigitRepair {
     /// The seven-segment confusion table (docs/EXTRACTION.md). Undirected: glare
     /// can fill OR drop the distinguishing segment, so a `4` can be read as a
     /// `9` and a `9` as a `4`.
+    /// The partners of one digit in the confusion table - the substitutions
+    /// the pump reader's repair tier may try on a single cell.
+    public static func confusablePartners(of digit: Int) -> [Int] {
+        (confusable[Character(String(digit))] ?? []).map { Int(String($0))! }
+    }
+
     private static let confusable: [Character: [Character]] = [
         "1": ["7"], "7": ["1"],
         "3": ["9"],

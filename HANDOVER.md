@@ -8,6 +8,82 @@ works here), lint 0 errors / 670 warnings from the repo ROOT, Release build 0. *
 Nothing is running; the queue is empty. Read this, then `CLAUDE.md`, then
 `docs/DEVELOPMENT-TIMELINE.md`, then `docs/TASKS.md`'s index.*
 
+## The pump-reader tranche (branch `pump-reader`, worktree `../fuel-counter-ios-pump-reader`, 2026-09-18/19)
+
+**Product owner, 2026-09-18:** *"we need to develop our own library to recognize pump photos. Not
+rely on OCR solely"* - and *"worth to build it in a worktree"*. The design is `docs/EXTRACTION.md`
+→ "The pump reader"; the rows are `docs/TASKS.md` → PU; the ledger entry is in
+`DEVELOPMENT-TIMELINE.md`. Nine rows in a day, every number below reproduced in the orchestrator's
+own hands. **Not merged to `main`.** Measured on this branch: package **2125 + 45 tests / 261
+suites**, `ml/pump-reader` **20 pytest**, lint 0 errors from the root (the training venv is now
+in `excluded:`), `scripts/pump-windows-check.py --check` 0.
+
+| Row | What | Number |
+|---|---|---|
+| PU.1 | synthetic seven-segment renderer, 5 make profiles | 9 tests; the agent's colour-driven profile test was blind to a geometry clone, a mask-based one was added |
+| PU.2 | 114 fixtures × number windows, hand-annotated by the orchestrator | 456 windows; 3 declared exceptions (`pump-031` display 32,58 vs CSV's receipt 32.50; `pump-072` price not on the board; `pump-067` partial) |
+| PU.3 | `SegmentNet`, 8 sigmoid segment outputs, 64 KB Core ML | synthetic 0.97 seg / 0.81 digit; **first held-out 0.123 per-glyph** - the naive slicer, not the model |
+| PU.4 | Swift slicer + first-cut locator | count agreement 0.40; locator median IoU 0.008 (only `pump-078` at 0.61) |
+| PU.7 | render realism, ablated | bold + slant help, spill + contrast HURT (both are real on the corpus); shipped bold + slant |
+| PU.8 | slicer robustness | count agreement **0.598** (259/433); seams load-bearing on the corpus (259 vs 187 off) |
+| PU.9 | train on the slicer's own framing | held-out per-glyph **0.215** on count-correct, 0.177 on all 433; dp bit 0.74 |
+| PU.10 | training material reviewed against the real cells (ghost, pitch-wide cells, 6 LCD palettes, augmentation tamed) | per-glyph **0.400** |
+| PU.11-15 | five read-only reviews on `qwen3.8-max --variant high` (`agents/reviews/`): implementation, data, annotations, decode design, lifecycle | the findings below |
+| PU.16 | decode to valid seven-segment patterns (review F1) | digit-only 0.532 → **0.666**, no retraining |
+| PU.17/18 | the comma drawn where displays draw it; cells calibrated on aggregate corpus geometry; one strip resolution | 0.698 → 0.717 (transaction fields) |
+| PU.27 | contrast collapse on under the calibrated framing; interior blank cells kept; `PumpSegmentsModel.swift` validated against the Python model (246/247, 100 % agreement) | 0.732 |
+| PU.28 | oracle second pass (3 strings), rotation the consumers never applied | count agreement **282/433**, digit-only **0.609 all / 0.728 count-correct** |
+| PU.21 | the decode law in Swift (`PumpReadingLaw`): beam, conventions, exact tier, windows in nats, preset and truncated tiers, boards tried as the price | annotated strings: **294/320 committed at 0.997**; one misread per fixture: 3.9 % wrong |
+| PU.22 | the reader on real cells (`PumpReader`, `PumpReaderPipelineTests`, the gate-mirror) | **39 committed at 0.949, 12/114 photos every field right** (3/114 before the law) |
+| PU.20 | abstention frontier: five-crop TTA, label smoothing | 0.99 precision holds to **25 %** coverage (was 13 %) |
+| PU.23 | row assignment from geometry | 451/456 |
+| PU.24 (partial) | the automatic locator: Vision boxes ranked by the reader | median IoU **0.008 → 0.62**; live path (no annotation) **1/114** photos |
+| PU.29 | the classification stage and the alpha notice in the app | `.pump` reachable from every capture/attach/replace path; kind on attachment, entry and gateway |
+
+**The five lessons of this tranche**
+
+1. **Look at the cell sheet before believing a pump-reader number.** Every step's headline
+   number was explained by a picture (`ml/pump-reader/runs/2026-09-19/held-out-cells*.png`), and
+   twice the picture contradicted the brief's diagnosis (PU.7's spill/contrast; PU.8's synthetic
+   mutation that could not separate an adaptive threshold from a relative one).
+2. **A framing change alone moved the same model from 0.170 to 0.105.** The classifier is only
+   as good as the agreement between how training cells and real cells are cut; PU.9 closed it by
+   cutting training cells the way the slicer does, and doubled the number.
+3. **Agents cannot annotate and cannot see their cells.** PU.2 was orchestrator work by
+   necessity; so was every sheet.
+4. **Two agents in one checkout with disjoint scopes worked** (PU.7 in `ml/`, PU.8 in `ios/`) -
+   until one changed a renderer the other's test replayed. Name the shared seam in both briefs.
+5. **The corpus has cells that score the wrong artefact**: `pump-031`'s `expected.csv` total is
+   the receipt's, not the display's. PU.6 decides.
+
+**Decisions the product owner made 2026-09-19:** the gate scores total/volume/price only (boards
+out); capture is a Live Photo (16 captures in `Spike/ReceiptSpike/fixtures/pump-live/`, 13 paired
+with still fixtures, 2 new fills); synthetic geometry may be calibrated on the corpus's aggregate
+statistics; the locator question is open; the shoot list stands.
+
+**The lifecycle review's headline (PU.15), verified by grep:** no production code ever sets
+`ExtractionSource.pump` - all five capture call sites hardcode `.receipt` and the gateway is always
+called with `kind: "receipt"`. Every pump rule, the gate, `DigitRepair` and the ratchet guard a door
+nobody walks through, while a user's real pump photo runs the receipt parser ungated. Rows to file
+once the owner says what the off-gate behaviour should be (review G1-G3).
+
+**Where it stands at the end of 2026-09-19 (all in the orchestrator's own hands - the owner asked
+for no more dispatches on this tranche):** on the annotated windows the reader commits 39 of 320
+cells at 0.949 and reads 12 of 114 photos completely; on a raw photo (locator included) 1 of 114.
+The gate is 0.99 / 0.60. The three levers, in order: the locator's verifier still passes labels
+and banners so row assignment rarely gets a clean column (PU.24's next round); the slicer
+miscounts 35 % of windows (PU.8 leftovers, faint Wayne LCD and glare splits); the dp bit (0.78).
+PU.19 (fusion over the 77 Live records) is filed and unstarted. The `pump-reader` branch is
+**not merged**; the 235 MB of Live movies in `pump-live/` need a decision (git or an external
+fixture store) before it is.
+
+**What is still not there, in order:** (a) per-glyph 0.215 on count-correct windows is far from
+the gate - the next levers are the weakest segments d/g (~0.58) and the per-make gap (Scheidt
+0.30, Lukoil 0.10 count agreement); (b) the locator is a stub - the reader today needs the
+window handed to it; (c) PU.5 (row assignment, decimal recovery, `PumpPhotoGate`) is not
+started and should not start until (a) is above ~0.8 per-glyph on clean windows; (d) the dp is
+the classifier's job now (slicer floor 0.0). PU.6 writes the verdict either way.
+
 ## Where the work stands (2026-09-18, early afternoon)
 
 **The rejection.** App Review's screenshot was the Sign in sheet on an **iPad in

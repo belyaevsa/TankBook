@@ -292,6 +292,21 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 - **The "send us this case" path is deliberately not wired into the notice.** Rule 5 forbids an action bar on a non-error, and the one place feedback lives already exists: About & feedback (`POST /feedback`, `docs/API.md`), reachable from Settings. The notice's ask is to keep captures coming - a scan that goes wrong is a case for that screen, exactly as the import wizard's "send us the file" routes there (line below).
 - It must never steer a user toward typing instead of capturing (hard rule 15): scanning and typing are peers, and the whole point of the disclosure is to keep captures flowing, not to retire them.
 
+#### The pump-display alpha notice (PU.29, decision 7)
+
+A frame the reader classified as a pump display arrives at Confirm with its reading pre-filled
+and, while the build is below `PumpPhotoGate`, this notice under the fuel card:
+
+> "Read from the pump display – this is in alpha. Check every field before saving."
+
+- **It is a `warn`, not a disclosure**: amber with the words carrying the meaning (rule 5), because
+  the values on the sheet came from a reader whose measured precision is below the gate and the
+  user is about to save them. The next step is in the sentence (rule 7).
+- It never blocks the save and never dims or clears a field; every value is a default input the
+  user edits (hard rule 13). No action bar - the action is the form itself.
+- It shows once per sheet, above the currency row, and disappears the day the gate clears
+  (`PumpPhotoCapture.outcome(...).alpha`), with no code change on the sheet.
+
 ### Confirm (all variants: standard / foreign / mixed / manual)
 | Condition | Shows | Next step |
 |---|---|---|

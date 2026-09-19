@@ -9,6 +9,9 @@ excluded:
   # tripped line-length and trailing-whitespace as errors - failing CI over code
   # nobody wrote and nobody can fix.
   - "**/.build"
+  # The pump-reader training venv (gitignored) vendors coremltools, which ships
+  # Swift sources of its own; lint covers our code, not a pip package's.
+  - ml/pump-reader/.venv
   # P0.2: the generated token file is the single sanctioned source of hex values
   # (the no_literal_hex_colors rule guards hand-written UI code, not the token source).
   - ios/Sources/TankbookCore/Design/Theme.generated.swift

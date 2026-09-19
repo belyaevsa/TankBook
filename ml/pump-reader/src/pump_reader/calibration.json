@@ -1,0 +1,129 @@
+{
+  "_about": "Aggregate corpus geometry and label statistics for the synthetic renderer, measured over transaction windows only (total/liters/unitPrice) from slices.json cell rects crossed with windows.json quads and strings. Never pixels, never per-fixture labels (product owner, 2026-09-19).",
+  "sources": {
+    "slices": "../../ios/.build/pump-reader-out/slices.json",
+    "windows": "../../Spike/ReceiptSpike/fixtures/pump/windows.json"
+  },
+  "strip_height": 96,
+  "body_ratio": 0.55,
+  "counts": {
+    "windows": 320,
+    "cells": 1269,
+    "per_field": {
+      "total": {
+        "windows": 109,
+        "cells": 454
+      },
+      "liters": {
+        "windows": 114,
+        "cells": 475
+      },
+      "unitPrice": {
+        "windows": 97,
+        "cells": 340
+      }
+    }
+  },
+  "aspect": {
+    "p5": 0.44061773951072875,
+    "p25": 0.5694444444444455,
+    "p50": 0.8750000000000004,
+    "p75": 1.0692163363919098,
+    "p95": 1.37001723578047,
+    "count": 1269
+  },
+  "phase": {
+    "right_margin_frac": {
+      "p5": 0.0,
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p95": 0.0,
+      "count": 1269
+    },
+    "left_margin_frac": {
+      "p5": 0.0,
+      "p25": 0.03414634146341644,
+      "p50": 0.37142857142857166,
+      "p75": 0.48560456730769275,
+      "p95": 0.5978797777175353,
+      "count": 1269
+    }
+  },
+  "digit_frequency": {
+    "total": {
+      "0": 180,
+      "1": 67,
+      "2": 60,
+      "3": 41,
+      "4": 44,
+      "5": 44,
+      "6": 21,
+      "7": 27,
+      "8": 35,
+      "9": 53
+    },
+    "liters": {
+      "0": 204,
+      "1": 49,
+      "2": 49,
+      "3": 40,
+      "4": 44,
+      "5": 45,
+      "6": 32,
+      "7": 23,
+      "8": 32,
+      "9": 23
+    },
+    "unitPrice": {
+      "0": 32,
+      "1": 70,
+      "2": 20,
+      "3": 27,
+      "4": 37,
+      "5": 28,
+      "6": 19,
+      "7": 31,
+      "8": 40,
+      "9": 82
+    }
+  },
+  "leading_zero_run_length": {
+    "total": {
+      "p5": 0.0,
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 2.0,
+      "p95": 2.0,
+      "count": 109
+    },
+    "liters": {
+      "p5": 0.0,
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 2.0,
+      "p95": 2.3499999999999943,
+      "count": 114
+    },
+    "unitPrice": {
+      "p5": 0.0,
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p95": 0.0,
+      "count": 97
+    }
+  },
+  "dp_rate": {
+    "total": 0.1871,
+    "liters": 0.2107,
+    "unitPrice": 0.228,
+    "all": 0.2061
+  },
+  "dp_comma_rate": {
+    "total": 0.5234,
+    "liters": 0.4912,
+    "unitPrice": 0.5455,
+    "all": 0.5178
+  }
+}
