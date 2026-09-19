@@ -17080,5 +17080,1579 @@
     ]
    }
   ]
+ },
+ "pump-190-tokheim-tenge-fog-third-party-kz.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "7200,7",
+    "quad": [
+     [
+      0.44,
+      0.27
+     ],
+     [
+      0.6,
+      0.27
+     ],
+     [
+      0.6,
+      0.335
+     ],
+     [
+      0.44,
+      0.335
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "49,66",
+    "quad": [
+     [
+      0.46,
+      0.34
+     ],
+     [
+      0.6,
+      0.34
+     ],
+     [
+      0.6,
+      0.415
+     ],
+     [
+      0.46,
+      0.415
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "145,0",
+    "quad": [
+     [
+      0.53,
+      0.47
+     ],
+     [
+      0.61,
+      0.47
+     ],
+     [
+      0.61,
+      0.525
+     ],
+     [
+      0.53,
+      0.525
+     ]
+    ]
+   }
+  ],
+  "csvDisagrees": {
+   "total": "the display shows 7200,7 (one decimal); 49.66 x 145.0 = 7200.70 - asserted as shown"
+  }
+ },
+ "pump-191-tokheim-preset-500-rub-one-decimal-third-party-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "500,0",
+    "quad": [
+     [
+      0.45,
+      0.225
+     ],
+     [
+      0.67,
+      0.225
+     ],
+     [
+      0.67,
+      0.31
+     ],
+     [
+      0.45,
+      0.31
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "10,00",
+    "quad": [
+     [
+      0.49,
+      0.315
+     ],
+     [
+      0.67,
+      0.315
+     ],
+     [
+      0.67,
+      0.41
+     ],
+     [
+      0.49,
+      0.41
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "50,00",
+    "quad": [
+     [
+      0.545,
+      0.46
+     ],
+     [
+      0.67,
+      0.46
+     ],
+     [
+      0.67,
+      0.53
+     ],
+     [
+      0.545,
+      0.53
+     ]
+    ]
+   }
+  ]
+ },
+ "pump-192-tokheim-3602-one-decimal-reflection-third-party-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "3602,0",
+    "quad": [
+     [
+      0.435,
+      0.32
+     ],
+     [
+      0.665,
+      0.32
+     ],
+     [
+      0.665,
+      0.4
+     ],
+     [
+      0.435,
+      0.4
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "63,65",
+    "quad": [
+     [
+      0.48,
+      0.41
+     ],
+     [
+      0.665,
+      0.41
+     ],
+     [
+      0.665,
+      0.49
+     ],
+     [
+      0.48,
+      0.49
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "56,59",
+    "quad": [
+     [
+      0.575,
+      0.56
+     ],
+     [
+      0.68,
+      0.56
+     ],
+     [
+      0.68,
+      0.62
+     ],
+     [
+      0.575,
+      0.62
+     ]
+    ]
+   }
+  ],
+  "csvDisagrees": {
+   "total": "the display shows 3602,0 (one decimal); 63.65 x 56.59 = 3601.95 rounds to it - asserted as shown, like every one-decimal Tokheim total"
+  }
+ },
+ "pump-193-tokheim-3686-one-decimal-reflection-third-party-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "3686,8",
+    "quad": [
+     [
+      0.475,
+      0.36
+     ],
+     [
+      0.7,
+      0.36
+     ],
+     [
+      0.7,
+      0.44
+     ],
+     [
+      0.475,
+      0.44
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "65,15",
+    "quad": [
+     [
+      0.52,
+      0.44
+     ],
+     [
+      0.7,
+      0.44
+     ],
+     [
+      0.7,
+      0.53
+     ],
+     [
+      0.52,
+      0.53
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "56,59",
+    "quad": [
+     [
+      0.615,
+      0.6
+     ],
+     [
+      0.715,
+      0.6
+     ],
+     [
+      0.715,
+      0.65
+     ],
+     [
+      0.615,
+      0.65
+     ]
+    ]
+   }
+  ],
+  "csvDisagrees": {
+   "total": "the display shows 3686,8 (one decimal); 65.15 x 56.59 = 3686.84 - asserted as shown"
+  }
+ },
+ "pump-194-tokheim-4968-dusk-third-party-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "4968,21",
+    "quad": [
+     [
+      0.505,
+      0.325
+     ],
+     [
+      0.745,
+      0.325
+     ],
+     [
+      0.745,
+      0.395
+     ],
+     [
+      0.505,
+      0.395
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "96,47",
+    "quad": [
+     [
+      0.58,
+      0.4
+     ],
+     [
+      0.745,
+      0.4
+     ],
+     [
+      0.745,
+      0.475
+     ],
+     [
+      0.58,
+      0.475
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "51,50",
+    "quad": [
+     [
+      0.655,
+      0.52
+     ],
+     [
+      0.745,
+      0.52
+     ],
+     [
+      0.745,
+      0.565
+     ],
+     [
+      0.655,
+      0.565
+     ]
+    ]
+   }
+  ]
+ },
+ "pump-195-tokheim-lukoil-night-481-third-party-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "481,01",
+    "quad": [
+     [
+      0.375,
+      0.2
+     ],
+     [
+      0.66,
+      0.2
+     ],
+     [
+      0.66,
+      0.265
+     ],
+     [
+      0.375,
+      0.265
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "10,63",
+    "quad": [
+     [
+      0.455,
+      0.265
+     ],
+     [
+      0.66,
+      0.265
+     ],
+     [
+      0.66,
+      0.33
+     ],
+     [
+      0.455,
+      0.33
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "45,25",
+    "quad": [
+     [
+      0.545,
+      0.365
+     ],
+     [
+      0.66,
+      0.365
+     ],
+     [
+      0.66,
+      0.41
+     ],
+     [
+      0.545,
+      0.41
+     ]
+    ]
+   }
+  ]
+ },
+ "pump-196-tokheim-lukoil-snow-night-1895-third-party-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "1895,04",
+    "quad": [
+     [
+      0.42,
+      0.395
+     ],
+     [
+      0.655,
+      0.395
+     ],
+     [
+      0.655,
+      0.44
+     ],
+     [
+      0.42,
+      0.44
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "49,35",
+    "quad": [
+     [
+      0.5,
+      0.44
+     ],
+     [
+      0.655,
+      0.44
+     ],
+     [
+      0.655,
+      0.49
+     ],
+     [
+      0.5,
+      0.49
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "38,40",
+    "quad": [
+     [
+      0.57,
+      0.525
+     ],
+     [
+      0.655,
+      0.525
+     ],
+     [
+      0.655,
+      0.555
+     ],
+     [
+      0.57,
+      0.555
+     ]
+    ]
+   }
+  ]
+ },
+ "pump-197-tokheim-amber-backlight-lamp-glare-third-party-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "3631,4",
+    "quad": [
+     [
+      0.36,
+      0.245
+     ],
+     [
+      0.62,
+      0.245
+     ],
+     [
+      0.62,
+      0.3
+     ],
+     [
+      0.36,
+      0.3
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "57,55",
+    "quad": [
+     [
+      0.41,
+      0.3
+     ],
+     [
+      0.62,
+      0.3
+     ],
+     [
+      0.62,
+      0.355
+     ],
+     [
+      0.41,
+      0.355
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "63,10",
+    "quad": [
+     [
+      0.51,
+      0.385
+     ],
+     [
+      0.62,
+      0.385
+     ],
+     [
+      0.62,
+      0.42
+     ],
+     [
+      0.51,
+      0.42
+     ]
+    ]
+   }
+  ],
+  "csvDisagrees": {
+   "total": "the display shows 3631,4 (one decimal); 57.55 x 63.10 = 3631.41 - asserted as shown"
+  }
+ },
+ "pump-198-tokheim-lukoil-426-reflection-third-party-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "426,43",
+    "quad": [
+     [
+      0.42,
+      0.335
+     ],
+     [
+      0.665,
+      0.335
+     ],
+     [
+      0.665,
+      0.375
+     ],
+     [
+      0.42,
+      0.375
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "7,15",
+    "quad": [
+     [
+      0.5,
+      0.38
+     ],
+     [
+      0.665,
+      0.38
+     ],
+     [
+      0.665,
+      0.42
+     ],
+     [
+      0.5,
+      0.42
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "59,64",
+    "quad": [
+     [
+      0.555,
+      0.475
+     ],
+     [
+      0.66,
+      0.475
+     ],
+     [
+      0.66,
+      0.51
+     ],
+     [
+      0.555,
+      0.51
+     ]
+    ]
+   }
+  ]
+ },
+ "pump-199-tokheim-1630-large-cells-third-party-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "1630,88",
+    "quad": [
+     [
+      0.29,
+      0.33
+     ],
+     [
+      0.62,
+      0.33
+     ],
+     [
+      0.62,
+      0.41
+     ],
+     [
+      0.29,
+      0.41
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "30,09",
+    "quad": [
+     [
+      0.39,
+      0.405
+     ],
+     [
+      0.62,
+      0.405
+     ],
+     [
+      0.62,
+      0.475
+     ],
+     [
+      0.39,
+      0.475
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "54,20",
+    "quad": [
+     [
+      0.47,
+      0.51
+     ],
+     [
+      0.615,
+      0.51
+     ],
+     [
+      0.615,
+      0.56
+     ],
+     [
+      0.47,
+      0.56
+     ]
+    ]
+   }
+  ]
+ },
+ "pump-200-tokheim-preset-990-litres-cash-litres-keypad-third-party-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "5232,15",
+    "quad": [
+     [
+      0.3,
+      0.315
+     ],
+     [
+      0.615,
+      0.315
+     ],
+     [
+      0.615,
+      0.415
+     ],
+     [
+      0.3,
+      0.415
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "990,00",
+    "quad": [
+     [
+      0.33,
+      0.415
+     ],
+     [
+      0.615,
+      0.415
+     ],
+     [
+      0.615,
+      0.505
+     ],
+     [
+      0.33,
+      0.505
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "52,85",
+    "quad": [
+     [
+      0.475,
+      0.535
+     ],
+     [
+      0.615,
+      0.535
+     ],
+     [
+      0.615,
+      0.605
+     ],
+     [
+      0.475,
+      0.605
+     ]
+    ]
+   }
+  ],
+  "csvDisagrees": {
+   "liters": "the display shows 990,00 but 5232.15 / 52.85 = 99.00 - a lit leading segment or a display artefact makes 99.00 read as 990.00; the CSV asserts 99.00 and the window text what is shown"
+  }
+ },
+ "pump-201-tokheim-belarus-night-third-party-by.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "64,92",
+    "quad": [
+     [
+      0.395,
+      0.27
+     ],
+     [
+      0.65,
+      0.27
+     ],
+     [
+      0.65,
+      0.35
+     ],
+     [
+      0.395,
+      0.35
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "24,97",
+    "quad": [
+     [
+      0.445,
+      0.35
+     ],
+     [
+      0.65,
+      0.35
+     ],
+     [
+      0.65,
+      0.43
+     ],
+     [
+      0.445,
+      0.43
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "2,60",
+    "quad": [
+     [
+      0.555,
+      0.485
+     ],
+     [
+      0.65,
+      0.485
+     ],
+     [
+      0.65,
+      0.53
+     ],
+     [
+      0.555,
+      0.53
+     ]
+    ]
+   }
+  ]
+ },
+ "pump-202-tokheim-preset-1000-rub-one-decimal-night-third-party-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "1000,2",
+    "quad": [
+     [
+      0.375,
+      0.21
+     ],
+     [
+      0.55,
+      0.21
+     ],
+     [
+      0.55,
+      0.29
+     ],
+     [
+      0.375,
+      0.29
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "25,70",
+    "quad": [
+     [
+      0.415,
+      0.29
+     ],
+     [
+      0.55,
+      0.29
+     ],
+     [
+      0.55,
+      0.37
+     ],
+     [
+      0.415,
+      0.37
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "38,92",
+    "quad": [
+     [
+      0.465,
+      0.435
+     ],
+     [
+      0.545,
+      0.435
+     ],
+     [
+      0.545,
+      0.485
+     ],
+     [
+      0.465,
+      0.485
+     ]
+    ]
+   }
+  ],
+  "csvDisagrees": {
+   "total": "the display shows 1000,2 (one decimal); 25.70 x 38.92 = 1000.24 - asserted as shown"
+  }
+ },
+ "pump-203-unknown-three-rows-photographer-reflection-third-party-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "960.78",
+    "quad": [
+     [
+      0.23,
+      0.385
+     ],
+     [
+      0.585,
+      0.385
+     ],
+     [
+      0.585,
+      0.44
+     ],
+     [
+      0.23,
+      0.44
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "44.75",
+    "quad": [
+     [
+      0.35,
+      0.475
+     ],
+     [
+      0.585,
+      0.475
+     ],
+     [
+      0.585,
+      0.525
+     ],
+     [
+      0.35,
+      0.525
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "21.47",
+    "quad": [
+     [
+      0.38,
+      0.56
+     ],
+     [
+      0.585,
+      0.56
+     ],
+     [
+      0.585,
+      0.61
+     ],
+     [
+      0.38,
+      0.61
+     ]
+    ]
+   }
+  ]
+ },
+ "pump-204-tokheim-bashneft-small-display-third-party-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "1625,49",
+    "quad": [
+     [
+      0.33,
+      0.34
+     ],
+     [
+      0.565,
+      0.34
+     ],
+     [
+      0.565,
+      0.37
+     ],
+     [
+      0.33,
+      0.37
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "24,76",
+    "quad": [
+     [
+      0.41,
+      0.375
+     ],
+     [
+      0.565,
+      0.375
+     ],
+     [
+      0.565,
+      0.41
+     ],
+     [
+      0.41,
+      0.41
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "65,65",
+    "quad": [
+     [
+      0.47,
+      0.45
+     ],
+     [
+      0.565,
+      0.45
+     ],
+     [
+      0.565,
+      0.475
+     ],
+     [
+      0.47,
+      0.475
+     ]
+    ]
+   }
+  ]
+ },
+ "pump-205-tokheim-364-tilted-third-party-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "364,45",
+    "quad": [
+     [
+      0.35,
+      0.35
+     ],
+     [
+      0.675,
+      0.35
+     ],
+     [
+      0.675,
+      0.43
+     ],
+     [
+      0.35,
+      0.43
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "7,94",
+    "quad": [
+     [
+      0.5,
+      0.42
+     ],
+     [
+      0.675,
+      0.42
+     ],
+     [
+      0.675,
+      0.495
+     ],
+     [
+      0.5,
+      0.495
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "45,90",
+    "quad": [
+     [
+      0.54,
+      0.525
+     ],
+     [
+      0.69,
+      0.525
+     ],
+     [
+      0.69,
+      0.585
+     ],
+     [
+      0.54,
+      0.585
+     ]
+    ]
+   }
+  ]
+ },
+ "pump-206-tokheim-1499-one-decimal-blur-third-party-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "1499,9",
+    "quad": [
+     [
+      0.29,
+      0.19
+     ],
+     [
+      0.67,
+      0.19
+     ],
+     [
+      0.67,
+      0.29
+     ],
+     [
+      0.29,
+      0.29
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "40,87",
+    "quad": [
+     [
+      0.37,
+      0.285
+     ],
+     [
+      0.67,
+      0.285
+     ],
+     [
+      0.67,
+      0.365
+     ],
+     [
+      0.37,
+      0.365
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "36,7",
+    "quad": [
+     [
+      0.49,
+      0.455
+     ],
+     [
+      0.66,
+      0.455
+     ],
+     [
+      0.66,
+      0.535
+     ],
+     [
+      0.49,
+      0.535
+     ]
+    ],
+    "legibility": "partial"
+   }
+  ],
+  "csvDisagrees": {
+   "total": "the display shows 1499,9 (one decimal) and the price cell 36,7 (one decimal, the last cell dark); 40.87 x 36.7 = 1499.93 - both asserted as shown"
+  }
+ },
+ "pump-207-dresser-wayne-summa-1136-third-party-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "1136.43",
+    "quad": [
+     [
+      0.19,
+      0.31
+     ],
+     [
+      0.66,
+      0.31
+     ],
+     [
+      0.66,
+      0.44
+     ],
+     [
+      0.19,
+      0.44
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "31.55",
+    "quad": [
+     [
+      0.44,
+      0.47
+     ],
+     [
+      0.67,
+      0.47
+     ],
+     [
+      0.67,
+      0.565
+     ],
+     [
+      0.44,
+      0.565
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "36.02",
+    "quad": [
+     [
+      0.42,
+      0.71
+     ],
+     [
+      0.6,
+      0.71
+     ],
+     [
+      0.6,
+      0.79
+     ],
+     [
+      0.42,
+      0.79
+     ]
+    ]
+   }
+  ]
+ },
+ "pump-208-gilbarco-veeder-root-night-rain-price-dim-third-party-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "4816,61",
+    "quad": [
+     [
+      0.31,
+      0.195
+     ],
+     [
+      0.5,
+      0.195
+     ],
+     [
+      0.5,
+      0.24
+     ],
+     [
+      0.31,
+      0.24
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "97,07",
+    "quad": [
+     [
+      0.375,
+      0.245
+     ],
+     [
+      0.475,
+      0.245
+     ],
+     [
+      0.475,
+      0.275
+     ],
+     [
+      0.375,
+      0.275
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "49,63",
+    "quad": [
+     [
+      0.355,
+      0.34
+     ],
+     [
+      0.43,
+      0.34
+     ],
+     [
+      0.43,
+      0.365
+     ],
+     [
+      0.355,
+      0.365
+     ]
+    ],
+    "legibility": "partial"
+   }
+  ],
+  "csvDisagrees": {
+   "unitPrice": "the price cell is dim and blurred; it reads 49,63 and 4816.61 / 97.07 = 49.62 - one of the two is off by a cent, the cell is unasserted"
+  }
+ },
+ "pump-209-wayne-pesos-three-decimal-litres-third-party-ph.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "3450.08",
+    "quad": [
+     [
+      0.42,
+      0.145
+     ],
+     [
+      0.565,
+      0.145
+     ],
+     [
+      0.565,
+      0.235
+     ],
+     [
+      0.42,
+      0.235
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "46.749",
+    "quad": [
+     [
+      0.415,
+      0.31
+     ],
+     [
+      0.56,
+      0.31
+     ],
+     [
+      0.56,
+      0.395
+     ],
+     [
+      0.415,
+      0.395
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "73.80",
+    "quad": [
+     [
+      0.49,
+      0.475
+     ],
+     [
+      0.55,
+      0.475
+     ],
+     [
+      0.55,
+      0.53
+     ],
+     [
+      0.49,
+      0.53
+     ]
+    ],
+    "legibility": "partial"
+   }
+  ],
+  "csvDisagrees": {
+   "total": "46.749 x 73.80 = 3450.08 exactly - the corpus first three-decimal liters cell; asserted as shown"
+  }
+ },
+ "pump-210-wayne-pignone-gazpromneft-summa-1610-third-party-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "1610.82",
+    "quad": [
+     [
+      0.43,
+      0.335
+     ],
+     [
+      0.695,
+      0.335
+     ],
+     [
+      0.695,
+      0.42
+     ],
+     [
+      0.43,
+      0.42
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "31.40",
+    "quad": [
+     [
+      0.5,
+      0.52
+     ],
+     [
+      0.69,
+      0.52
+     ],
+     [
+      0.69,
+      0.6
+     ],
+     [
+      0.5,
+      0.6
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "51.30",
+    "quad": [
+     [
+      0.505,
+      0.68
+     ],
+     [
+      0.605,
+      0.68
+     ],
+     [
+      0.605,
+      0.725
+     ],
+     [
+      0.505,
+      0.725
+     ]
+    ]
+   }
+  ]
+ },
+ "pump-211-wayne-reais-three-grades-600px-third-party-br.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "29,73",
+    "quad": [
+     [
+      0.465,
+      0.385
+     ],
+     [
+      0.6,
+      0.385
+     ],
+     [
+      0.6,
+      0.415
+     ],
+     [
+      0.465,
+      0.415
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "text": "7,63",
+    "quad": [
+     [
+      0.48,
+      0.435
+     ],
+     [
+      0.6,
+      0.435
+     ],
+     [
+      0.6,
+      0.465
+     ],
+     [
+      0.48,
+      0.465
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "text": "3,897",
+    "quad": [
+     [
+      0.49,
+      0.487
+     ],
+     [
+      0.55,
+      0.487
+     ],
+     [
+      0.55,
+      0.515
+     ],
+     [
+      0.49,
+      0.515
+     ]
+    ],
+    "legibility": "partial"
+   }
+  ],
+  "csvDisagrees": {
+   "total": "7.63 x 3.897 = 29.73 - the price cell is 8 px tall at 600 px and read from the arithmetic as much as from the pixels"
+  }
  }
 }

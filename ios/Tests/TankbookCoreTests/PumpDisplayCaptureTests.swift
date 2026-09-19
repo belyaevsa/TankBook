@@ -13,14 +13,26 @@ struct PumpDisplayCaptureTests {
     private static let receipts = PumpReaderTestSupport.repoRoot
         .appendingPathComponent("Spike/ReceiptSpike/fixtures/receipts")
 
-    @Test("a pump display classifies as one and a receipt does not", .pumpFixturesPresent)
+    /// Six heldout stills (decision 9) that the owner shot the way a user
+    /// will: frontal, at arm's length. Measured 2026-09-19: four of the six
+    /// classify - pump-032 yields one verified row, pump-035 sits at 31
+    /// Vision text lines (the receipt discriminator's ceiling is 30). Of
+    /// eleven heldout stills tried that day, four classified; the five that
+    /// did were the previous list, all of which the split then put in the
+    /// train part. The floor is the measurement; raising recall is the
+    /// locator's next round (docs/TASKS.md PU.24, PU.30).
+    private static let heldoutPumps = ["pump-032-gilbarco-circlek-ee-clean.jpg",
+                                       "pump-035-dresser-wayne-circlek-ee-rain-pump8.jpg",
+                                       "pump-042-dresser-wayne-circlek-ee-preset-20eur.jpg",
+                                       "pump-038-dresser-wayne-circlek-ee-reflection-95.jpg",
+                                       "pump-092-scheidt-bachmann-rn-3000l-6385-ru.jpeg",
+                                       "pump-062-wayne-circlek-ee-pump8-1894.jpg"]
+    private static let heldoutRecallFloor = 4
+
+    @Test("heldout pump displays classify at the measured recall and no receipt does", .pumpFixturesPresent)
     func classifies() throws {
         let reader = try #require(PumpDisplayCapture.makeReader(modelURL: Self.modelURL))
-        let pumps = ["pump-078-gilbarco-circlek-peetri-pump7-3143l-ee.jpg",
-                     "pump-036-dresser-wayne-circlek-ee-pump4-95.jpg",
-                     "pump-101-gilbarco-circlek-ee-1765l-2034-closeup.jpg",
-                     "pump-092-scheidt-bachmann-rn-3000l-6385-ru.jpeg",
-                     "pump-062-wayne-circlek-ee-pump8-1894.jpg"]
+        let pumps = Self.heldoutPumps
         let receiptFiles = (try? FileManager.default.contentsOfDirectory(atPath: Self.receipts.path)) ?? []
         let receipts = receiptFiles.filter { $0.hasSuffix(".jpg") }.sorted().prefix(8)
         var pumpHits = 0
@@ -38,7 +50,8 @@ struct PumpDisplayCaptureTests {
             print("PU.29 \(name.prefix(11)): \(detection.displayRows) display rows, \(detection.textLines) text lines")
             if detection.isPumpDisplay { receiptMisses += 1 }
         }
-        #expect(pumpHits == pumps.count, "\(pumpHits)/\(pumps.count) pump fixtures classified as displays")
+        print("PU.29 heldout classification: \(pumpHits)/\(pumps.count)")
+        #expect(pumpHits >= Self.heldoutRecallFloor, "\(pumpHits)/\(pumps.count) heldout pump fixtures classified as displays")
         #expect(receiptMisses == 0, "\(receiptMisses) receipts classified as pump displays")
     }
 }

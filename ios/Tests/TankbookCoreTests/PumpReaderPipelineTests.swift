@@ -39,7 +39,8 @@ struct PumpReaderPipelineTests {
         var wrong: [String] = []
         let start = Date()
         for (name, value) in root.sorted(by: { $0.key < $1.key }) {
-            guard name != "_about", let ann = value as? [String: Any], let want = expected[name] else { continue }
+            guard name != "_about", let ann = value as? [String: Any], let want = expected[name],
+                  PumpReaderTestSupport.isHeldout(name) else { continue }
             guard let image = PumpReaderTestSupport.loadRGB(
                 url: PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent(name)) else { continue }
             // The only annotation the live path takes is the photo's rotation,
@@ -98,7 +99,8 @@ struct PumpReaderPipelineTests {
         let start = Date()
 
         for (name, value) in root.sorted(by: { $0.key < $1.key }) {
-            guard name != "_about", let ann = value as? [String: Any], let want = expected[name] else { continue }
+            guard name != "_about", let ann = value as? [String: Any], let want = expected[name],
+                  PumpReaderTestSupport.isHeldout(name) else { continue }
             let url = PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent(name)
             guard let image = PumpReaderTestSupport.loadRGB(url: url) else {
                 Issue.record("cannot load \(name)")

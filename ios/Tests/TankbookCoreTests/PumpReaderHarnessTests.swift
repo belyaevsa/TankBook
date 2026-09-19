@@ -315,7 +315,8 @@ struct PumpReaderHarnessTests {
         let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
         var result: [String: PumpFixtureAnnotation] = [:]
         for (name, value) in root {
-            guard name != "_about", let ann = value as? [String: Any] else { continue }
+            guard name != "_about", let ann = value as? [String: Any],
+                  PumpReaderTestSupport.isHeldout(name) else { continue }
             let rotationCW = (ann["rotationCW"] as? NSNumber)?.intValue ?? 0
             let raw = ann["windows"] as? [[String: Any]] ?? []
             let windows = raw.compactMap { entry -> PumpWindowAnnotation? in

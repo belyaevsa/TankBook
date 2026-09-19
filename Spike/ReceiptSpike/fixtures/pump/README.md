@@ -1167,3 +1167,45 @@ Veeder-Root keypad head in every condition the web offers; three pasted copies o
 **Row assignment on the ladder heads.** With 30 Veeder-Root panels in the corpus the geometry
 pass reads **707/739 (0.957)** - 24 of its 32 misses are the price ladder taken for the board.
 `PU.30` is the rule that fixes it; the floor sits at 0.95 until then.
+
+## Added 2026-09-19 (eighteen third-party stills: the Tokheim Quality panel)
+
+`pump-190` – `pump-207`, **third-party** (pasted by the product owner). Sixteen are the Tokheim
+Quality panel - `Стоимость` / `Количество` / `Цена за 1 литр` printed LEFT of the cells, the unit
+to the right, comma decimals, and a **one-decimal total** on six of them (asserted AS SHOWN, with a
+`csvDisagrees` note carrying the exact product - the law reads the display, so the CSV must say what
+the display says, as `pump-018` established). The corpus's fourth big head type.
+
+| id | place | shows | note |
+|---|---|---|---|
+| 190 | Tokheim, Kazakhstan (KZT) | 7200,7 / 49,66 / 145,0 | fog, one decimal on total and price |
+| 191 | Tokheim, RU | 500,0 / 10,00 / 50,00 | a 500 RUB preset, frontal, low contrast |
+| 192 | Tokheim, RU | 3602,0 / 63,65 / 56,59 | the photographer reflected; 63.65 x 56.59 = 3601.95, the display rounds |
+| 193 | Tokheim, RU | 3686,8 / 65,15 / 56,59 | same pump, next fill |
+| 194 | Tokheim, RU | 4968,21 / 96,47 / 51,50 | dusk, blue sky |
+| 195 | Tokheim, Lukoil RU | 481,01 / 10,63 / 45,25 | night, the price cell backlit green |
+| 196 | Tokheim, Lukoil RU | 1895,04 / 49,35 / 38,40 | night, snow on the frame |
+| 197 | Tokheim, RU | 3631,4 / 57,55 / 63,10 | amber backlight, a lamp flare above |
+| 198 | Tokheim, Lukoil RU | 426,43 / 7,15 / 59,64 | strong reflection over the total |
+| 199 | Tokheim, RU | 1630,88 / 30,09 / 54,20 | large cells, frontal |
+| 200 | Tokheim, RU | 5232,15 / (990,00) / 52,85 | a CASH/LITRES keypad head; the liters row reads 990,00 for 99.00 (5232.15 / 52.85) - a lit segment or display artefact; CSV asserts 99.00, the window text what is shown |
+| 201 | Tokheim, Belarus (BYN) | 64,92 / 24,97 / 2,60 | night, a QR sticker beside |
+| 202 | Tokheim, RU | 1000,2 / 25,70 / 38,92 | a 1000 RUB preset, angled, night lamps reflected |
+| 203 | unknown three-row head, RU | 960.78 / 44.75 / 21.47 | `РУБ` / `ЛИТР` / `РУБ`, the photographer over the whole display, a review-site watermark |
+| 204 | Tokheim, Bashneft RU | 1625,49 / 24,76 / 65,65 | the display 4 % of a portrait frame |
+| 205 | Tokheim, RU | 364,45 / 7,94 / 45,90 | 510 px, tilted |
+| 206 | Tokheim, RU | 1499,9 / 40,87 / 36,7 | 600 px, blurred; the price cell's last digit dark (`partial`) |
+| 207 | Dresser Wayne, RU | 1136.43 / 31.55 / 36.02 | `СУММА` / `ЛИТРЫ`, four price cells below with one lit |
+
+54 windows (793). Pump cells asserted: 527 → 581.
+
+## Added 2026-09-19 (four third-party stills: pesos, reais, and three-decimal cells)
+
+| id | head / place | shows | note |
+|---|---|---|---|
+| 208 | Veeder-Root, RU | 4816,61 / 97,07 / (49,63) | night, rain streaks; the price cell dim and blurred, 4816.61 / 97.07 = 49.62 - unasserted (`partial`) |
+| 209 | Wayne, Philippines (PHP) | 3450.08 / 46.749 / 73.80 | `PESOS` / `LITERS` / `PESOS / LITER`; **three-decimal liters** - a first; a `PUMP UNDER MAINTENANCE` sign beside |
+| 210 | Wayne Pignone, Gazpromneft RU | 1610.82 / 31.40 / 51.30 | `СУММА` / `ЛИТРЫ` / `ЦЕНА ЗА ЛИТР`, a reflection over the total |
+| 211 | Wayne, Brazil (BRL) | 29,73 / 7,63 / 3,897 | `TOTAL A PAGAR` / `LITROS` / `PREÇO POR LITRO`, three grade cells, **three-decimal price**, 600 px - the price cell 8 px tall (`partial`) |
+
+12 windows (805). Pump cells asserted: 581 → 592. Currencies in the corpus: EUR RUB KZT ISK TMT NOK GBP SEK AUD BGN BYN PHP BRL.

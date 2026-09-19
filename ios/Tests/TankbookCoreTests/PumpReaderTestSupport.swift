@@ -25,6 +25,26 @@ enum PumpReaderTestSupport {
         FileManager.default.fileExists(atPath: windowsURL.path)
     }
 
+    /// The fixtures a trained model may be scored on (decision 9,
+    /// docs/EXTRACTION.md): `pump/split.csv` names each still `train` or
+    /// `heldout`, drawn once and never redrawn. The classifier learns from the
+    /// train part's real glyphs, so a number measured on it is memorisation;
+    /// every ratchet that runs the model reads this set and nothing else.
+    /// A fixture absent from the file is held out - a new still is unseen
+    /// until the split says otherwise.
+    private static let split: [String: String] = {
+        let url = pumpFixturesRoot.appendingPathComponent("split.csv")
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return [:] }
+        var result: [String: String] = [:]
+        for line in text.split(separator: "\n").dropFirst() {
+            let cols = line.split(separator: ",", omittingEmptySubsequences: false)
+            if cols.count == 2 { result[String(cols[0])] = String(cols[1]) }
+        }
+        return result
+    }()
+
+    static func isHeldout(_ name: String) -> Bool { split[name] != "train" }
+
     /// The glyph-count oracle: digits plus leading spaces, never separators.
     static func glyphCount(_ text: String) -> Int {
         text.reduce(0) { count, ch in count + ((ch.isNumber || ch == " ") ? 1 : 0) }
