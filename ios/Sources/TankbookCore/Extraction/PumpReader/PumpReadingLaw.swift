@@ -179,11 +179,14 @@ public enum PumpReadingLaw {
     /// No fill is under half a litre or under one unit of currency.
     static let minLiters = 0.5
     static let minTotal = 1.0
+    /// No pump display shows more cells in one window than this; a longer row
+    /// is a banner, and its digits would not even fit an `Int`.
+    static let maxCells = 8
 
     /// The beam over the cells' ranked digits, then every allowed decimal
     /// placement of each string.
     static func candidates(_ window: PumpLocatedWindow, decimals: [Int]) -> [Candidate] {
-        guard !window.cells.isEmpty, !decimals.isEmpty else { return [] }
+        guard !window.cells.isEmpty, window.cells.count <= maxCells, !decimals.isEmpty else { return [] }
         var strings: [(digits: [Int], logPosterior: Double, substitutions: Int)] = [([], 0, 0)]
         for cell in window.cells {
             var next: [(digits: [Int], logPosterior: Double, substitutions: Int)] = []

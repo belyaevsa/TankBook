@@ -52,6 +52,62 @@ struct PumpReader {
         return out
     }
 
+    /// A located candidate the reader vouches for: the slicer found a row of
+    /// glyph cells and the classifier is confident they are digits. Printed
+    /// labels (SUMMA, LIITRIT, a brand) fail the second test - the decoder's
+    /// margin on a letter is low.
+    struct VerifiedWindow {
+        let quad: [CGPoint]
+        let glyphCount: Int
+        let meanMargin: Double
+    }
+
+    static let minimumVerifiedCells = 3
+    /// Mean decode margin (nats) below which a row is not digits. A digit cell
+    /// the model is sure of sits well above 2; letters and stickers below 1.
+    static let minimumMeanMargin = 1.5
+
+    /// Everything from a photo with no annotation: locate, verify, assign,
+    /// read, resolve. `rotationCW` turns the photo so the display reads
+    /// upright; the app's capture is upright already.
+    func readPhoto(image: PumpRGBImage, rotationCW: Int = 0, currency: CurrencyCode?,
+                   priceBand: FuelPriceBand?) throws -> PumpDisplayReading {
+        let upright = PumpPanelLocator.rotatedRGB(image, rotationCW: rotationCW)
+        let candidates = PumpPanelLocator.locate(upright, rotationCW: 0)
+        let verified = try verify(image: upright, candidates: candidates)
+        let assignment = PumpRowAssignment.assign(
+            windows: verified.map { PumpRowAssignment.Window(quad: $0.quad, glyphCount: $0.glyphCount) },
+            rotationCW: 0)
+        var windows: [Window] = []
+        for (window, role) in zip(verified, assignment.roles) {
+            guard let role else { continue }
+            windows.append(Window(field: role, quad: window.quad))
+        }
+        return try resolve(image: upright, windows: windows, currency: currency, priceBand: priceBand)
+    }
+
+    func verify(image: PumpRGBImage, candidates: [PumpPanelLocator.Candidate]) throws -> [VerifiedWindow] {
+        var out: [VerifiedWindow] = []
+        for candidate in candidates.prefix(12) {
+            let quad = candidate.quad.map { CGPoint(x: $0.x * CGFloat(image.width), y: $0.y * CGFloat(image.height)) }
+            guard let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: quad, stripHeight: Self.stripHeight) else { continue }
+            let stripRGB = PumpQuadWarp.rgbImage(from: strip)
+            let cells = PumpGlyphSlicer.slice(stripRGB.grayscale()).filter { !$0.isBlank }
+            guard cells.count >= Self.minimumVerifiedCells, cells.count <= PumpReadingLaw.maxCells else { continue }
+            var margins: [Double] = []
+            for cell in cells {
+                let probabilities = try Self.averaged(model: model, crops: [Self.resample(
+                    stripRGB, rect: cell.rect, width: PumpSegmentsModel.inputWidth,
+                    height: PumpSegmentsModel.inputHeight)!])
+                margins.append(PumpCellReading(probabilities: probabilities).margin)
+            }
+            let mean = margins.reduce(0, +) / Double(margins.count)
+            guard mean >= Self.minimumMeanMargin else { continue }
+            out.append(VerifiedWindow(quad: quad, glyphCount: cells.count, meanMargin: mean))
+        }
+        return out
+    }
+
     /// The whole answer for one photo.
     func resolve(image: PumpRGBImage, windows: [Window], currency: CurrencyCode?,
                  priceBand: FuelPriceBand?) throws -> PumpDisplayReading {

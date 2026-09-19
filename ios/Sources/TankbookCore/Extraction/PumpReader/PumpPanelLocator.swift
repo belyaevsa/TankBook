@@ -16,13 +16,51 @@ enum PumpPanelLocator {
         let glyphCount: Int
     }
 
+    /// Vision's text rectangles first (a display row is a row of same-height
+    /// character boxes; PU.24), the classical projection as the second source,
+    /// merged by IoU so a window found twice is one candidate. Ranked by how
+    /// many glyph boxes a row has and how large they are - a display's digits
+    /// are the biggest text on a pump.
     static func locate(_ rgb: PumpRGBImage, rotationCW: Int = 0) -> [Candidate] {
-        var gray = downscaleGray(rgb, targetWidth: 1024)
-        let rotateCount = ((rotationCW % 360) + 360) % 360 / 90
-        for _ in 0..<rotateCount {
-            gray = rotateClockwise90(gray)
+        let rotated = rotatedRGB(rgb, rotationCW: rotationCW)
+        var candidates: [(Candidate, CGFloat)] = []
+        // Vision proposes on a downscaled frame: a display's digits are tens
+        // of pixels tall at 1600 px wide, and the quads are normalised anyway.
+        let small = downscaleRGB(rotated, targetWidth: 1600)
+        if let cg = PumpQuadWarp.makeImage(small.pixels, width: small.width, height: small.height) {
+            for row in PumpVisionProposer.rows(in: cg) {
+                candidates.append((Candidate(quad: row.quad, glyphCount: row.boxCount),
+                                   CGFloat(row.boxCount) * row.height))
+            }
         }
-        return locate(gray)
+        for classical in locate(downscaleGray(rotated, targetWidth: 1024)) {
+            let duplicate = candidates.contains { PumpQuadWarp.iou($0.0.quad, classical.quad) > 0.5 }
+            if !duplicate {
+                candidates.append((classical, 0))
+            }
+        }
+        return candidates.sorted { $0.1 > $1.1 }.map(\.0)
+    }
+
+    /// The image turned so the display reads upright, in the reader's frame.
+    static func rotatedRGB(_ rgb: PumpRGBImage, rotationCW: Int) -> PumpRGBImage {
+        let turns = ((rotationCW % 360) + 360) % 360 / 90
+        var image = rgb
+        for _ in 0..<turns {
+            var out = [UInt8](repeating: 0, count: image.pixels.count)
+            let w = image.width, h = image.height
+            for y in 0..<h {
+                for x in 0..<w {
+                    let src = (y * w + x) * 4
+                    // (x, y) in the old image lands at (h - 1 - y, x) in the new.
+                    let dst = (x * h + (h - 1 - y)) * 4
+                    out[dst] = image.pixels[src]; out[dst + 1] = image.pixels[src + 1]
+                    out[dst + 2] = image.pixels[src + 2]; out[dst + 3] = image.pixels[src + 3]
+                }
+            }
+            image = PumpRGBImage(width: h, height: w, pixels: out)
+        }
+        return image
     }
 
     static func locate(_ gray: PumpGrayscale) -> [Candidate] {
@@ -101,6 +139,23 @@ enum PumpPanelLocator {
     }
 
     // MARK: - Image primitives
+
+    static func downscaleRGB(_ rgb: PumpRGBImage, targetWidth: Int) -> PumpRGBImage {
+        guard rgb.width > targetWidth else { return rgb }
+        let scale = Double(rgb.width) / Double(targetWidth)
+        let height = max(1, Int((Double(rgb.height) / scale).rounded()))
+        var out = [UInt8](repeating: 255, count: targetWidth * height * 4)
+        for y in 0..<height {
+            let sy = min(rgb.height - 1, Int(Double(y) * scale))
+            for x in 0..<targetWidth {
+                let sx = min(rgb.width - 1, Int(Double(x) * scale))
+                let i = (sy * rgb.width + sx) * 4
+                let o = (y * targetWidth + x) * 4
+                out[o] = rgb.pixels[i]; out[o + 1] = rgb.pixels[i + 1]; out[o + 2] = rgb.pixels[i + 2]
+            }
+        }
+        return PumpRGBImage(width: targetWidth, height: height, pixels: out)
+    }
 
     static func downscaleGray(_ rgb: PumpRGBImage, targetWidth: Int) -> PumpGrayscale {
         let width = min(targetWidth, rgb.width)

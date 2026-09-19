@@ -108,6 +108,19 @@ enum PumpQuadWarp {
     /// left edge the top edge, so the upright top-left is the image's
     /// bottom-left; 270° makes the right edge the top. The warp is a homography
     /// from these corners, so the image itself never needs rotating.
+    /// Intersection over union of two axis-aligned quads (their bounds).
+    static func iou(_ a: [CGPoint], _ b: [CGPoint]) -> Double {
+        func bounds(_ q: [CGPoint]) -> CGRect {
+            let xs = q.map(\.x), ys = q.map(\.y)
+            return CGRect(x: xs.min()!, y: ys.min()!, width: xs.max()! - xs.min()!, height: ys.max()! - ys.min()!)
+        }
+        let ra = bounds(a), rb = bounds(b)
+        let inter = ra.intersection(rb)
+        guard !inter.isNull, inter.width > 0, inter.height > 0 else { return 0 }
+        let union = ra.width * ra.height + rb.width * rb.height - inter.width * inter.height
+        return union > 0 ? Double(inter.width * inter.height / union) : 0
+    }
+
     static func readingOrder(_ quad: [CGPoint], rotationCW: Int) -> [CGPoint] {
         guard quad.count == 4 else { return quad }
         switch ((rotationCW % 360) + 360) % 360 {

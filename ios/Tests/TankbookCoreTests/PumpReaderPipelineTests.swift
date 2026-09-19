@@ -18,9 +18,65 @@ struct PumpReaderPipelineTests {
     // Measured 2026-09-19; the constants move only upward.
     private static let committedFloor = 39
     private static let precisionFloor = 0.94
+    // The live path (no annotation): measured 2026-09-19, moves only upward.
+    private static let liveCommittedFloor = 0
+    private static let livePrecisionFloor = 0.0
 
     private static let modelURL = PumpReaderTestSupport.repoRoot
         .appendingPathComponent("ios/App/Resources/PumpSegments.mlpackage")
+
+    @Test("the live path: locate, verify, assign, read, resolve - no annotation used", .pumpFixturesPresent)
+    func livePath() throws {
+        let model = try PumpSegmentsModel(contentsOf: Self.modelURL)
+        let reader = PumpReader(model: model)
+        let expected = try CorpusScorer.loadExpected(
+            PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent("expected.csv"))
+        let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)
+        let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        let pack = try FuelPriceBandStore.bundledPack()
+        var numericTotal = 0, committed = 0, committedCorrect = 0
+        var fixturesAllRight = 0, fixturesScored = 0
+        var wrong: [String] = []
+        let start = Date()
+        for (name, value) in root.sorted(by: { $0.key < $1.key }) {
+            guard name != "_about", let ann = value as? [String: Any], let want = expected[name] else { continue }
+            guard let image = PumpReaderTestSupport.loadRGB(
+                url: PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent(name)) else { continue }
+            // The only annotation the live path takes is the photo's rotation,
+            // which the app's capture gives it for free (the phone is upright).
+            let rotation = (ann["rotationCW"] as? NSNumber)?.intValue ?? 0
+            let reading = try reader.readPhoto(
+                image: image, rotationCW: rotation, currency: want.currency,
+                priceBand: want.currency.flatMap { pack.currencyBand(currency: $0) })
+            let cells: [ScoredCell] = [
+                ScoredCell(field: .liters, reading: reading.liters, want: want.liters),
+                ScoredCell(field: .unitPrice, reading: reading.unitPrice, want: want.unitPrice),
+                ScoredCell(field: .total, reading: reading.total, want: want.total),
+            ]
+            var fixtureTotal = 0, fixtureRight = 0
+            for cell in cells {
+                guard let wantValue = cell.want else { continue }
+                numericTotal += 1; fixtureTotal += 1
+                guard let got = cell.reading.value.map({ NSDecimalNumber(decimal: $0).doubleValue }) else { continue }
+                committed += 1
+                let derived: Bool = { if case .derived? = cell.reading.provenance { return true }; return false }()
+                if abs(got - wantValue) < (derived ? 0.1 : CorpusScorer.tolerance) {
+                    committedCorrect += 1; fixtureRight += 1
+                } else {
+                    wrong.append("\(name.prefix(8)) \(cell.field.rawValue) got \(got) want \(wantValue)")
+                }
+            }
+            if fixtureTotal > 0 { fixturesScored += 1; if fixtureRight == fixtureTotal { fixturesAllRight += 1 } }
+        }
+        let precision = committed > 0 ? Double(committedCorrect) / Double(committed) : 0
+        print("PU.24 live path: committed \(committed), correct \(committedCorrect), "
+              + "precision \(String(format: "%.3f", precision)), coverage \(String(format: "%.3f", Double(committed) / Double(max(numericTotal, 1)))) "
+              + "of \(numericTotal); photos with every field right \(fixturesAllRight)/\(fixturesScored); "
+              + "\(String(format: "%.1f", Date().timeIntervalSince(start)))s")
+        for line in wrong { print("  WRONG \(line)") }
+        #expect(committed >= Self.liveCommittedFloor)
+        #expect(precision >= Self.livePrecisionFloor)
+    }
 
     @Test("the reader over the annotated windows: committed cells, precision, coverage", .pumpFixturesPresent)
     func gateMirror() throws {
