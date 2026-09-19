@@ -1031,3 +1031,12 @@ and nothing on the two sideways slips.
 pump 7) and 55.13 (27.86 L, pump 8), both held in hand in front of the dispenser. **Matched pairs**
 with `../pump/pump-115` / `pump-116`; both have Live records in `../pump-live/` (`live-6282`,
 `live-6284`). JPEG, orientation baked in, every EXIF field stripped (product owner, 2026-09-19).
+
+## Added 2026-09-19 (the first third-party receipt)
+
+`receipt-076`: Rosneft (ООО "РН-Востокнефтепродукт", АЗК №15), АИ-92-К3, 49.59 L, ИТОГ 1576.96
+RUB, cash, dated 2013-06-07 - a photo pasted by the product owner from the web, **third-party**
+(same standing as the third-party pump stills: not ours to redistribute). The paper prints no unit
+price (1576.96 / 49.59 = 31.80 is an inference; the cell is blank), so four cells. Station
+asserted as `rosneft`: the brand appears only in the hotline line, the header is the legal
+entity - a miss here is the extractor's to earn. Receipt cells: 355 → 359.

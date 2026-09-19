@@ -1039,3 +1039,42 @@ None has a receipt; every price on display closes the arithmetic to the cent, wh
 | 130 | Wayne, RU | 1000.22 / 10.42 / 95.99 | a six-cell total with three zeros; car-wash reflection in the glass |
 
 45 windows (513). Pump cells asserted: 331 → 363.
+
+## Added 2026-09-19 (ten third-party stills: six new countries)
+
+`pump-131` – `pump-140`, all **third-party** (pasted by the product owner from the web; same
+standing as `pump-117`). The corpus's first heads outside EE / RU / KZ. Truth is the display plus
+its arithmetic, as for every third-party still; the CSV `currency` is the display's.
+
+| id | head / place | shows | note |
+|---|---|---|---|
+| 131 | Wayne, Circle K LT | 48.27 / 32.66 / 1.478 | a whole forecourt: the display is ~2 % of the frame height (below `PumpDisplayCapture.minimumRowHeightFraction` - a far-shot case the classifier is expected to miss); price cell `partial`; a customer from behind, no face |
+| 132 | Wayne, Circle K LT | 25.74 / 18.40 / 1.399 | `SUMA` / `LITRAI` labels, 637 px |
+| 133 | Wayne, Circle K EE | 30.22 / 22.57 / 1.339 | **total cut by the top edge** (`partial`); four lit board prices, the transaction price is the rightmost (D miles) |
+| 134 | Tokheim, Iceland (ISK) | 5000 / 21,45 / 233,1 | a total with **no decimals**, comma decimals elsewhere, labels left of the cells |
+| 135 | Tokheim, Turkmenistan (TMT) | – / 14.08 / 1.50 | the display is a few px tall in a full-pump shot: total unreadable (empty text, `partial`), CSV total blank |
+| 136 | Wayne, Norway (NOK) | 717.75 / 50.76 / 14.14 | `KRONER` / `LITER` / `Kr/liter` |
+| 137 | Wayne, UK (GBP) | 95.60 / 52.30 / 182.8 | **price in pence**: the cell shows `182.8`, the CSV asserts 1.828 (the checker's scale rule); `THIS SALE` / `LITRES` |
+| 138 | Wayne, EE, monochrome | 20.23 / 11.77 / – | a black-and-white scan of a print; price not on display (`notOnDisplay`, 20.23 / 11.77 = 1.719 is an inference) |
+| 139 | Wayne, France (EUR) | 103.88 / 64.40 / 1.613 | `€uro` / `Litres` / `€uro/litre`, 480 px |
+| 140 | Wayne, Circle K LT | 62.30 / 33.69 / (1.849) | **does not close**: 33.69 x 1.849 = 62.29, the display shows 62.30 - the 970 px price cell is the likely misread; price unasserted with a `csvDisagrees` note, window `partial` |
+
+33 windows (546). Pump cells asserted: 363 → 390.
+
+## Added 2026-09-19 (seven third-party stills; two copies declined)
+
+`pump-141` – `pump-147`, **third-party** (pasted by the product owner). Two of the ten pasted were
+not added: one was `pump-118` again (dhash distance 1), one the watermarked thumbnail of the
+stock photo that became `pump-145`.
+
+| id | head / place | shows | note |
+|---|---|---|---|
+| 141 | Wayne, Sweden (SEK) | 957.74 / 38.98 / 24.57 | `KRONOR` / `LITER` / `Kr/liter`; the D price cell is **cut by the left edge** (`partial`) |
+| 142 | Wayne, RU | (1600.11) / 48.49 / 33.00 | **does not close**: 48.49 x 33.00 = 1600.17, the 680 px total reads 1600.11 under glare - total unasserted, window `partial` |
+| 143 | Wayne, RU | 3921.62 / 93.15 / 42.10 | 95; four grade cells, three unlit |
+| 144 | Wayne, Alexela EE | 113.99 / 52.65 / 2.165 | **the same fill as `pump-117`** at a wider framing (dhash distance 61 - a different crop, not a copy); not a pair, one document |
+| 145 | Tokheim, UK (GBP) | 46,59 / 28,60 / 162,9 | a **watermarked stock photo** - pence with a comma; CSV asserts 1.629 |
+| 146 | Wayne, Gazpromneft RU | 1100.26 / 25.12 / 43.80 | 92; a media-outlet watermark in the corner |
+| 147 | Wayne, EE | 66.17 / 44.29 / 1.494 | `EUR` / `LIITRIT` / `EUR/1L`, square 1080 px |
+
+21 windows (567). Pump cells asserted: 390 → 410.

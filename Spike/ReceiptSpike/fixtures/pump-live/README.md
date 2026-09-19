@@ -183,6 +183,8 @@ was **not kept** - the file in the bucket is the 7 s cut, re-encoded without aud
 
 | `video-002-wayne-running-display-slow-fill-ru` | 1184 (1280x720, 29 fps, 41 s) | Wayne, Russia, **display counting up** through a slow diesel fill, camera steady, whole clip kept (no person in frame) | price `73.60` constant; total/liters run 2314.72 / 31.45 → 2475.17 / 33.63 (`31.45 x 73.60 = 2314.72` closes). Second-hand clip, third-party |
 
+| `video-003-wayne-circlek-fill-ends-ee` | 1209 (576x1024, 30 fps, 40 s) | Wayne, Circle K EE, **display counting up and then stopping** - the last ~4 s hold 155.48 / 75.51, the transaction's final state | price `2.059` constant; 146.89 / 71.34 → 155.48 / 75.51 (`75.51 x 2.059 = 155.48` closes). The one clip that shows the moment a fill becomes a transaction; second-hand, third-party |
+
 Why it is worth having: every frame shows a *different* number, so there is no single truth
 row - but the display's own arithmetic is a per-frame oracle for free: a frame's reading is
 right when `total == round(liters x 1.729, 2)`. That is a self-check no still can offer and the
