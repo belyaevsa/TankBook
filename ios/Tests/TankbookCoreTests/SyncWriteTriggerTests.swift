@@ -13,15 +13,28 @@ import Testing
 
 // MARK: - Helpers
 
-private func waitUntil(timeoutNanoseconds: UInt64 = 3_000_000_000,
+/// The ceiling on how long a test waits for the scheduled cycle to show. It is
+/// a liveness bound, never the assertion: every test here asserts the cycle
+/// COUNT and the pushed rows after the wait, so a scheduler that never fires
+/// still fails - it only takes longer to. The ceiling is generous because the
+/// 20 ms debounce and the cycle run on the main actor and the cooperative pool
+/// that the whole parallel `swift test` run (2,000+ tests, some of them
+/// seconds-long source-tree scans) shares with this suite; under that load, or
+/// with an `xcodebuild` on the same machine, a 3 s bound expired while the
+/// test's own setup was still being scheduled and read as "the trigger never
+/// fired". The behaviour under test does not get faster or slower with the
+/// bound; only the false red does.
+private let waitCeiling: Duration = .seconds(30)
+
+private func waitUntil(_ what: String, timeout: Duration = waitCeiling,
                        _ condition: @escaping @Sendable () async -> Bool) async {
-    let deadline = DispatchTime.now().uptimeNanoseconds + timeoutNanoseconds
+    let started = ContinuousClock.now
     while !(await condition()) {
-        if DispatchTime.now().uptimeNanoseconds >= deadline {
-            Issue.record("timed out waiting for the condition")
+        if ContinuousClock.now - started >= timeout {
+            Issue.record("timed out after \(timeout) waiting for \(what)")
             return
         }
-        try? await Task.sleep(nanoseconds: 10_000_000)
+        try? await Task.sleep(for: .milliseconds(10))
     }
 }
 
@@ -50,7 +63,7 @@ struct SyncWriteTriggerTests {
         // Wait for the cycle's OUTCOME (the row pushed clean), not just its
         // start: the coordinator counts a cycle before the engine has finished.
         // Poll the (Sendable) transport, never the non-Sendable repository.
-        await waitUntil { !transport.recordedPushBatches.isEmpty }
+        await waitUntil("the one cycle to push") { !transport.recordedPushBatches.isEmpty }
         try? await Task.sleep(for: .milliseconds(50))
         #expect(try repo.fetchDirtyRows().isEmpty,
                 "the pushed row is clean after the one cycle")
@@ -82,13 +95,13 @@ struct SyncWriteTriggerTests {
         for _ in 0..<5 {
             try repo.upsertFillUp(makeSyncFillUp(vehicleId: vehicle.id), syncState: .dirty)
         }
-        await waitUntil { coordinator.cycleCounts().total == 1 }
+        await waitUntil("the burst's one cycle") { coordinator.cycleCounts().total == 1 }
 
         #expect(coordinator.cycleCounts().total == 1,
                 "a burst inside the window must schedule exactly one cycle")
         // Wait for the cycle to actually push (the coordinator counts a cycle
         // at its start, before the engine has finished).
-        await waitUntil { !transport.recordedPushBatches.isEmpty }
+        await waitUntil("the burst to push") { !transport.recordedPushBatches.isEmpty }
         #expect(transport.recordedPushBatches.first?.count == 5,
                 "the one cycle pushes the whole burst, not one cycle per row")
         #expect(try repo.fetchDirtyRows().isEmpty,
@@ -123,7 +136,7 @@ struct SyncWriteTriggerTests {
         try repo.upsertFillUp(makeSyncFillUp(vehicleId: vehicle.id), syncState: .dirty)
         // The mode is on: the poke must NOT run a cycle; it registers with the
         // resumer instead.
-        await waitUntil { await resumer.pendingCount == 1 }
+        await waitUntil("the deferred cycle to register") { await resumer.pendingCount == 1 }
         #expect(coordinator.cycleCounts().total == 0,
                 "under Low Power Mode the trigger must defer, not run a cycle")
         #expect(transport.recordedPushBatches.isEmpty,
@@ -132,7 +145,7 @@ struct SyncWriteTriggerTests {
         // The mode ends: the resumer drains the registered cycle.
         power.isLowPowerModeEnabled = false
         center.post(name: .NSProcessInfoPowerStateDidChange, object: nil)
-        await waitUntil { !transport.recordedPushBatches.isEmpty }
+        await waitUntil("the drained cycle to push") { !transport.recordedPushBatches.isEmpty }
 
         #expect(coordinator.cycleCounts().total == 1,
                 "the deferred cycle drains through the resumer when the mode ends")
@@ -191,7 +204,7 @@ struct SyncWriteTriggerTests {
 
         // The debounced cycle then runs and fails against the dead transport -
         // the row stays dirty and nothing threw at the save.
-        await waitUntil { coordinator.cycleCounts().total == 1 }
+        await waitUntil("the failing cycle to run") { coordinator.cycleCounts().total == 1 }
         #expect(try repo.fetchDirtyRows().contains { $0.id == fill.id },
                 "a failed cycle leaves the save's row dirty - nothing was lost")
     }

@@ -13,6 +13,7 @@ public sealed class PostgresFixture : IAsyncLifetime
 {
     private readonly bool _dockerAvailable;
     private string? _adminConnectionString;
+    private readonly List<string> _issuedConnectionStrings = [];
 
     public PostgresFixture()
     {
@@ -21,7 +22,11 @@ public sealed class PostgresFixture : IAsyncLifetime
 
     public Task InitializeAsync() => Task.CompletedTask;
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public Task DisposeAsync()
+    {
+        ClearIssuedPools();
+        return Task.CompletedTask;
+    }
 
     /// <summary>Skips the current test when no Docker daemon is reachable.</summary>
     public void RequireAvailable()
@@ -37,6 +42,16 @@ public sealed class PostgresFixture : IAsyncLifetime
     public async Task<NpgsqlConnection> CreateDatabaseAsync()
     {
         RequireAvailable();
+
+        // The previous test of this class is over (xUnit runs a class's tests
+        // sequentially), but Npgsql keeps its pool - one per connection string,
+        // so one per test database, shared by the test's own connection and the
+        // host it booted - alive with idle physical connections for minutes.
+        // Across 480 tests in ~16 s those idle connections outnumber the
+        // server's max_connections and a parallel class's first open fails with
+        // 53300 "too many clients already". Closing the finished pools here
+        // keeps the live count at "the classes running right now".
+        ClearIssuedPools();
 
         _adminConnectionString ??= (await PostgresContainer.GetAsync()).GetConnectionString();
 
@@ -57,6 +72,18 @@ public sealed class PostgresFixture : IAsyncLifetime
             // from it (Npgsql otherwise strips it once opened).
             PersistSecurityInfo = true,
         };
+        _issuedConnectionStrings.Add(builder.ConnectionString);
         return new NpgsqlConnection(builder.ConnectionString);
+    }
+
+    private void ClearIssuedPools()
+    {
+        foreach (var connectionString in _issuedConnectionStrings)
+        {
+            using var connection = new NpgsqlConnection(connectionString);
+            NpgsqlConnection.ClearPool(connection);
+        }
+
+        _issuedConnectionStrings.Clear();
     }
 }
