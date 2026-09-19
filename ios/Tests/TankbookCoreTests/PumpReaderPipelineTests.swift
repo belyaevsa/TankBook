@@ -52,7 +52,7 @@ struct PumpReaderPipelineTests {
             var windows: [PumpReader.Window] = []
             for raw in ann["windows"] as? [[String: Any]] ?? [] {
                 guard let fieldName = raw["field"] as? String, let field = PumpField(rawValue: fieldName),
-                      field != .board, let text = raw["text"] as? String, !text.isEmpty,
+                      let text = raw["text"] as? String, !text.isEmpty,
                       let quad = raw["quad"] as? [[Double]] else { continue }
                 let pixels = PumpQuadWarp.readingOrder(
                     PumpReaderTestSupport.quadPixels(quad, width: image.width, height: image.height),

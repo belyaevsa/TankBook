@@ -49,9 +49,20 @@ public enum PumpReadingLaw {
     ) -> PumpDisplayReading {
         let conventions = PumpDisplayConventions.forCurrency(currency)
         let byField = Dictionary(grouping: windows, by: \.field)
-        guard let literWindow = byField[.liters]?.first,
-              let priceWindow = byField[.unitPrice]?.first else {
-            return .abstained
+        guard let literWindow = byField[.liters]?.first else { return .abstained }
+        guard let priceWindow = byField[.unitPrice]?.first else {
+            // No price window of its own: on a Wayne head the transaction price
+            // is one of the board cells, and only the arithmetic can say which.
+            // Exactly one board cell may close the triple.
+            let boards = byField[.board] ?? []
+            guard !boards.isEmpty else { return .abstained }
+            let readings = boards.map { board -> PumpDisplayReading in
+                let rest = windows.filter { $0.field != .board }
+                return resolve(windows: rest + [PumpLocatedWindow(field: .unitPrice, cells: board.cells)],
+                               currency: currency, priceBand: priceBand)
+            }
+            let closed = readings.filter { $0.committedCount == 3 }
+            return closed.count == 1 ? closed[0] : .abstained
         }
         let totalWindow = byField[.total]?.first
 

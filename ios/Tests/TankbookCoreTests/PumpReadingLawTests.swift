@@ -13,7 +13,7 @@ struct PumpReadingLawTests {
 
     // MARK: - Ratchet constants (measured 2026-09-19; move only upward)
 
-    private static let committedFloor = 284
+    private static let committedFloor = 294
     private static let precisionFloor = 0.996
     /// Cells the corpus itself declares unreadable as the receipt's value:
     /// a display that rounds or truncates what the receipt prints.
@@ -260,7 +260,7 @@ struct PumpReadingLawTests {
             var windows: [PumpLocatedWindow] = []
             for raw in ann["windows"] as? [[String: Any]] ?? [] {
                 guard let fieldName = raw["field"] as? String, let field = PumpField(rawValue: fieldName),
-                      field != .board, let text = raw["text"] as? String, !text.isEmpty else { continue }
+                      let text = raw["text"] as? String, !text.isEmpty else { continue }
                 var cells = Self.cells(for: text)
                 if let mutate { cells = mutate(field, cells) }
                 windows.append(PumpLocatedWindow(field: field, cells: cells))

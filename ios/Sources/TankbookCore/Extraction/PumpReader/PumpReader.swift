@@ -36,6 +36,10 @@ struct PumpReader {
             let stripRGB = PumpQuadWarp.rgbImage(from: strip)
             let cells = PumpGlyphSlicer.slice(stripRGB.grayscale())
             guard !cells.isEmpty else { continue }
+            // Fewer cells than the field can show is a slicer miscount; the
+            // law must not be handed it as a reading.
+            guard PumpRowAssignment.plausibleCount(cells.filter { !$0.isBlank }.count, for: window.field)
+                    || window.field == .board else { continue }
             var readings: [PumpCellReading] = []
             for cell in cells where !cell.isBlank {
                 let crop = Self.cropCell(stripRGB, rect: cell.rect)
