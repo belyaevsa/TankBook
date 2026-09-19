@@ -1,11 +1,11 @@
 {
   "receipts": {
     "hits": 286,
-    "total": 345
+    "total": 355
   },
   "pump": {
     "hits": 53,
-    "total": 320
+    "total": 326
   },
   "fiscal": {
     "hits": 5,
@@ -23,6 +23,7 @@
     "hits": 31,
     "total": 59
   },
+  "_note_2026_09_19": "Two Circle K Sikupilli pairs, EXIF stripped (pump-115/116, receipt-074/075: 15.17 x 1.979 = 30.02 and 27.86 x 1.979 = 55.13, 98 miles+), with Live records and two 4K angle-and-flicker videos in pump-live/ (the tankbook-corpus bucket). Totals only: receipts +10, pump +6. The hit and commit marks are NOT re-measured - this machine is macOS 27 and the marks are macOS 26 measurements (docs/TESTING.md -> runtime-specific); the next macOS 26 run records what the parser reads on the four new documents. Until then the marks are a floor the new cells can only raise.",
   "_note_stations_2026_09_19": "RV.179: the receipts' station column scored as its own class - 59 asserted cells (the oracle is the fixture filename, cross-checked against the OCR text; the 14 blanks and their reasons are in receipts/stations.md), scored by whether the extractor's station line contains the paper's brand as normalised tokens (StationBrandMatcher.normalisedTokens). MEASURED ON macOS 27 (the only runtime on hand), the one mark in this file that is not a macOS 26 number: 29/59 before the matcher learned to read a Latin look-alike inside a Cyrillic word (`PН-Тверь`), 31/59 after. The 28 misses are real - the extractor offers a cashier line, an address, a card-terminal fragment or a fiscal label where the paper prints the chain on another line (receipt-007 `ЛУКОНЛ-СЕВЕРО-ЗАПАДНЕФТЕПРОДУКТ`, an OCR misspelling; receipt-003 `ОООКРЫМ ОИЛ`, the legal form glued on) - the class's first honest number, 53%, with a named miss list printed by stationMarkIncludesAMiss. The first run on macOS 26 re-records it: a higher count passes the ratchet and moves the mark, a lower one is a red to read as the runtime, exactly as docs/TESTING.md says of every other mark.",
   "_note_2026_09_18": "Fifteen of the owner's 2026-09-14..17 captures: six Telegram-routed Russian fuel-card slips (receipt-068..073 - two RN-Tver terminal/order slip pairs, one of them photographed sideways, and the paper halves of pump-109/110), five Telegram-routed Russian displays (pump-106..110: two Wayne SUMMA faces that truncate the total, a night-lit zero-padded Scheidt & Bachmann face, a daylight Scheidt & Bachmann, the Tokheim half of receipt-070) and four full-resolution Circle K Estonia Gilbarco displays (pump-111..114). Receipts 270/315 -> 286/345: 15 of the 30 new cells resolve; the two sideways slips and the two Gazpromneft fuel-card slips (the receipt-061 shape, both operands inside the RUB band) contribute kind and currency only. receipt-069 first committed a confident-wrong total (63.30 x 30.000 = 1899 over a printed, repeated 2 049.00) - fixed in the same change as RV.291, so the recorded mark is measured with the fix in. Two confident-wrong litres remain unfixed and filed (RV.292): receipt-068 commits 1.0 and receipt-072 commits 10630454945. Pump 53/293 -> 53/320: nothing committed on any of the nine; committed stays 56, committed-correct 53, precision 0.946, coverage 0.191 -> 0.175, the mode stays off. Telegram files are 1280 px, EXIF already absent, committed byte-for-byte after a strip; the four HEICs are 3024x4032 conversions with orientation 6 baked in and EXIF/ICC stripped.",
   "_note_2026_09_14": "Five Circle K Estonia Gilbarco displays (pump-101..105), the Circle K Sikupilli paper half of pump-104 (receipt-067), a Lukoil AI-100 OFD e-receipt (screenshot-009), and the first invoice-shaped expense photograph (Snabb parking). Receipts 265/310 -> 270/315 and screenshots 35/40 -> 40/45: the app scorer resolves all five asserted cells on each new document. Pump 53/279 -> 53/293: no new numeric hit or commit; committed stays 56 and committed-correct 53, so precision stays 0.946 and coverage falls 0.201 -> 0.191. pump-104's washed price is deliberately unasserted and the parser abstains. Expenses 29/29 -> 33/33: the app extractor resolves parking, 4.39 EUR and 2026-09-14 from the Snabb invoice; the diagnostic Spike harness differs and commits VAT 0.08 as total. All six JPEGs and two PNGs are preserved byte-for-byte.",

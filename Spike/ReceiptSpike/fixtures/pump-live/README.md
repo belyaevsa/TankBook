@@ -1,10 +1,23 @@
 # Live Photo pump captures
 
-**Where the media lives (product owner, 2026-09-19): external S3 storage, not git.** The `.mov`
-and `.heic` files are gitignored; this README and its pairing tables are the record. Bucket and
-prefix: _to be filled in when the store is provisioned_; until then the files sit on the
-orchestrator's machine under this folder. Frames regenerate from the movies with the `ffmpeg`
-line below.
+**Where the media lives (product owner, 2026-09-19): Yandex Object Storage, not git.** The
+`.mov` and `.heic` files are gitignored; this README and its pairing tables are the record.
+
+## Access
+
+- Bucket `tankbook-corpus` (S3-compatible endpoint `https://storage.yandexcloud.net`, region
+  `ru-central1`), prefix `pump-live/`. Private; nothing in it is public.
+- Read/write is through the service account `tankbook-corpus-rw` with a **static access key**.
+  Keys are never in the repo (`docs/SECURITY.md`); each person mints their own:
+  `yc iam access-key create --service-account-name tankbook-corpus-rw --format json`
+  (needs `yc init` against the Tankbook folder first) and writes the two values to
+  `~/.config/tankbook/corpus-s3.env` as `AWS_ACCESS_KEY_ID=…` / `AWS_SECRET_ACCESS_KEY=…`
+  (mode 600). Revoke a key with `yc iam access-key delete`.
+- Sync: `scripts/corpus-sync.py pull` (a fresh machine), `push` (after new captures land),
+  `list`. It compares size and MD5, so a re-run moves nothing already there. Needs `boto3`
+  (`ml/pump-reader/.venv/bin/pip install boto3`, or any Python with it).
+- `../pump/` (the still corpus, its annotations and truth) stays in git; only the large media
+  is in the bucket. Frames regenerate from the movies with the `ffmpeg` line below.
 
 Live Photos (HEIC key frame + the paired `.mov`) of pump displays, shared by the product owner on
 2026-09-19 for PU.19 (per-cell fusion over frames). Every one is a fill that is ALREADY in
@@ -133,3 +146,19 @@ as above; `frames/` is gitignored.
 | `live-6245` | 24 | new fill (already in pump-live) | duplicate of an existing live capture, dropped |
 | `live-6246` | 48 | new fill (already in pump-live) | duplicate of an existing live capture, dropped |
 | `live-6227` | 24 | plain video, unpaired | |
+
+## Batch 4 (2026-09-19, product owner): two pump/receipt pairs, three movies with angle and flicker
+
+Two fills captured every way at once - the still (now `pump-115`/`pump-116` in `../pump/`, EXIF
+stripped, JPEG), the receipt (`receipt-074`/`receipt-075` in `../receipts/`), a Live record of each,
+and a longer 4K video walking the angle with the LCD flickering; plus a third fill on video only.
+
+| live | frames | what | paired still / truth |
+|---|---|---|---|
+| `live-6281` | 51 | Live record of the pump still | `pump-115` - 30.02 / 15.17 / 1.979 |
+| `live-6282` | 80 | Live record of the receipt | `receipt-074` (same fill) |
+| `live-6280` | 71 | 4K video, moving angle, flicker | `pump-115` (same fill) |
+| `live-6283` | 43 | Live record of the pump still | `pump-116` - 55.13 / 27.86 / 1.979 |
+| `live-6284` | 56 | Live record of the receipt | `receipt-075` (same fill) |
+| `live-6285` | 224 | 4K video, moving angle, flicker | `pump-116` (same fill) |
+| `live-6279` | 149 | 4K video, moving angle, flicker | **new fill, video only** - 62.12 / 32.37 / 1.919 (read by eye from the frames) |

@@ -21,6 +21,8 @@ train = [
     "pillow>=10",
     "pillow-heif>=0.18",
 ]
+# scripts/corpus-sync.py - the Live media store (Yandex Object Storage, S3 API).
+corpus = ["boto3>=1.34"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
