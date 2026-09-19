@@ -104,3 +104,8 @@ diagnostics/receipt-ocr-lines.txt
 diagnostics/pump-ocr-dump.txt
 
 Spike/ReceiptSpike/fixtures/pump-live/frames/
+# Live Photo records of the pump corpus (pump-live/README.md pairs each with
+# its still fixture); 235 MB of media lives outside git - only the README and
+# the pairing table are tracked.
+Spike/ReceiptSpike/fixtures/pump-live/*.mov
+Spike/ReceiptSpike/fixtures/pump-live/*.heic
