@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pump window annotator</title>
+<style>
+  :root { --bg:#0e1116; --panel:#171b22; --line:#2a303a; --fg:#e6e8eb; --dim:#8a919c;
+          --total:#ff5a5f; --liters:#4cc3ff; --unitPrice:#ffc857; --board:#9b8cff; --ok:#4ade80; --bad:#f87171; }
+  * { box-sizing:border-box }
+  body { margin:0; background:var(--bg); color:var(--fg); font:13px/1.4 -apple-system, system-ui, sans-serif; height:100vh; display:grid; grid-template-columns:260px 1fr 340px; }
+  aside, section.right { background:var(--panel); border-right:1px solid var(--line); overflow:auto; padding:8px }
+  section.right { border-right:0; border-left:1px solid var(--line) }
+  input, select, button, textarea { font:inherit; background:#0b0e13; color:var(--fg); border:1px solid var(--line); border-radius:4px; padding:3px 6px }
+  button { cursor:pointer; background:#222833 } button:hover { background:#2c3442 } button.primary { background:#2456a5 }
+  #list div { padding:3px 6px; cursor:pointer; border-radius:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  #list div.sel { background:#2456a5 } #list div .n { color:var(--dim); float:right }
+  #list div.todo { color:var(--dim) }
+  main { position:relative; overflow:auto; background:#05070a }
+  canvas { display:block; cursor:crosshair }
+  .row { display:flex; gap:6px; align-items:center; margin:4px 0; flex-wrap:wrap }
+  .win { border:1px solid var(--line); border-radius:6px; padding:6px; margin:6px 0 }
+  .win.sel { border-color:#5b8def }
+  .swatch { width:10px; height:10px; border-radius:2px; display:inline-block }
+  .dim { color:var(--dim) } .mono { font-family:ui-monospace, Menlo, monospace; font-variant-numeric:tabular-nums }
+  #status { position:sticky; bottom:0; background:var(--panel); padding:6px 0; border-top:1px solid var(--line) }
+  pre { white-space:pre-wrap; font-size:11px; max-height:200px; overflow:auto; margin:4px 0 }
+  .ok { color:var(--ok) } .bad { color:var(--bad) }
+  kbd { border:1px solid var(--line); border-radius:3px; padding:0 4px; font-size:11px; color:var(--dim) }
+</style>
+</head>
+<body>
+<aside>
+  <input id="filter" placeholder="filter…" style="width:100%">
+  <div id="list"></div>
+</aside>
+<main><canvas id="c"></canvas></main>
+<section class="right">
+  <div class="row"><b id="name">–</b></div>
+  <div class="row dim">Drag = new window · click = select · drag corner = adjust · <kbd>⌫</kbd> delete · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> field · <kbd>⌘S</kbd> save · <kbd>J</kbd>/<kbd>K</kbd> next/prev</div>
+  <div class="row">Zoom <input id="zoom" type="range" min="0.25" max="4" step="0.05" value="1" style="flex:1">
+    Rotate <select id="rot"><option>0</option><option>90</option><option>180</option><option>270</option></select></div>
+  <div class="row mono" id="csv"></div>
+  <div id="wins"></div>
+  <div class="row"><button id="add">+ window</button> <span class="dim">or drag on the image</span></div>
+  <div class="win">
+    <div class="row"><b>notOnDisplay</b> <label><input type="checkbox" data-nod="total">total</label> <label><input type="checkbox" data-nod="liters">liters</label> <label><input type="checkbox" data-nod="unitPrice">unitPrice</label></div>
+    <div class="row"><b>csvDisagrees</b> <span class="dim">reason per field, blank = none</span></div>
+    <div class="row">total <input data-dis="total" style="flex:1"></div>
+    <div class="row">liters <input data-dis="liters" style="flex:1"></div>
+    <div class="row">unitPrice <input data-dis="unitPrice" style="flex:1"></div>
+  </div>
+  <div id="status">
+    <div class="row"><button id="save" class="primary">Save</button><button id="check">Check</button><span id="msg" class="dim"></span></div>
+    <pre id="out"></pre>
+  </div>
+</section>
+<script>
+const FIELDS = ['total','liters','unitPrice','board'];
+const COLORS = {total:'#ff5a5f', liters:'#4cc3ff', unitPrice:'#ffc857', board:'#9b8cff'};
+const $ = s => document.querySelector(s);
+const canvas = $('#c'), ctx = canvas.getContext('2d');
+let fixtures = [], name = null, entry = null, row = null, img = null, dirty = false;
+let sel = -1, zoom = 1, drag = null;
+
+// ---- data ----
+async function loadList() {
+  fixtures = await (await fetch('/api/fixtures')).json();
+  renderList();
+}
+function renderList() {
+  const f = $('#filter').value.toLowerCase();
+  $('#list').innerHTML = fixtures.filter(x => x.name.toLowerCase().includes(f)).map(x =>
+    `<div data-n="${x.name}" class="${x.name===name?'sel':''} ${x.windows?'':'todo'}" title="${x.name}">${x.name.replace(/\.(jpe?g|heic|png)$/i,'')}<span class="n">${x.windows||'·'}</span></div>`).join('');
+  document.querySelectorAll('#list div').forEach(d => d.onclick = () => open(d.dataset.n));
+}
+async function open(n) {
+  if (dirty && !confirm('Discard unsaved changes?')) return;
+  name = n; sel = -1; dirty = false;
+  const r = await (await fetch('/api/entry/' + encodeURIComponent(n))).json();
+  entry = r.entry; row = r.row;
+  entry.windows = entry.windows || [];
+  $('#name').textContent = n;
+  $('#rot').value = String(entry.rotationCW || 0);
+  document.querySelectorAll('[data-nod]').forEach(c => c.checked = (entry.notOnDisplay||[]).includes(c.dataset.nod));
+  document.querySelectorAll('[data-dis]').forEach(i => i.value = (entry.csvDisagrees||{})[i.dataset.dis] || '');
+  $('#csv').innerHTML = row ? ['liters','unitPrice','total'].map(k =>
+      `<span>${k} <b>${row[k]||'–'}</b> <button data-use="${k}" title="add a window with this text">use</button></span>`).join(' ') + ` <span class="dim">${row.currency||''}</span>`
+    : '<span class="bad">not in expected.csv – add the truth row first</span>';
+  document.querySelectorAll('[data-use]').forEach(b => b.onclick = () => addWindow(b.dataset.use, row[b.dataset.use]));
+  img = new Image();
+  img.onload = () => { fit(); draw(); };
+  img.src = '/image/' + encodeURIComponent(n) + '?t=' + Date.now();
+  renderList(); renderWins(); location.hash = encodeURIComponent(n);
+}
+function collect() {
+  entry.rotationCW = +$('#rot').value || 0;
+  entry.notOnDisplay = [...document.querySelectorAll('[data-nod]:checked')].map(c => c.dataset.nod);
+  entry.csvDisagrees = {};
+  document.querySelectorAll('[data-dis]').forEach(i => { if (i.value.trim()) entry.csvDisagrees[i.dataset.dis] = i.value.trim(); });
+  return entry;
+}
+async function save() {
+  if (!name) return;
+  const r = await (await fetch('/api/entry/' + encodeURIComponent(name), {method:'PUT', body: JSON.stringify(collect())})).json();
+  entry = r.entry; entry.windows = entry.windows || []; dirty = false; setMsg('saved');
+  const fx = fixtures.find(x => x.name === name); if (fx) { fx.windows = entry.windows.length; fx.annotated = true; }
+  renderList(); renderWins(); draw();
+}
+async function check() {
+  const r = await (await fetch('/api/check', {method:'POST'})).json();
+  $('#out').textContent = r.output; $('#out').className = r.exit ? 'bad' : 'ok';
+}
+function setMsg(t) { $('#msg').textContent = t; setTimeout(() => { if ($('#msg').textContent === t) $('#msg').textContent = dirty ? 'unsaved' : ''; }, 1500); }
+function touch() { dirty = true; $('#msg').textContent = 'unsaved'; }
+
+// ---- windows panel ----
+function renderWins() {
+  $('#wins').innerHTML = entry.windows.map((w, i) => `
+    <div class="win ${i===sel?'sel':''}" data-i="${i}">
+      <div class="row"><span class="swatch" style="background:${COLORS[w.field]}"></span>
+        <select data-f="${i}">${FIELDS.map(f => `<option ${f===w.field?'selected':''}>${f}</option>`).join('')}</select>
+        <input data-t="${i}" value="${w.text||''}" placeholder="what the display shows" class="mono" style="flex:1">
+        <label title="digits only partly readable"><input type="checkbox" data-l="${i}" ${w.legibility==='partial'?'checked':''}>partial</label>
+        <button data-x="${i}" title="delete">×</button></div>
+      <div class="row dim mono">${w.quad.map(p => p.map(v => (+v).toFixed(3)).join(',')).join('  ')}</div>
+    </div>`).join('');
+  document.querySelectorAll('#wins .win').forEach(d => d.onclick = e => { if (e.target.tagName === 'DIV') { sel = +d.dataset.i; renderWins(); draw(); } });
+  document.querySelectorAll('[data-f]').forEach(s => s.onchange = () => { entry.windows[+s.dataset.f].field = s.value; touch(); renderWins(); draw(); });
+  document.querySelectorAll('[data-t]').forEach(s => s.oninput = () => { entry.windows[+s.dataset.t].text = s.value; touch(); });
+  document.querySelectorAll('[data-l]').forEach(s => s.onchange = () => { entry.windows[+s.dataset.l].legibility = s.checked ? 'partial' : undefined; touch(); });
+  document.querySelectorAll('[data-x]').forEach(b => b.onclick = e => { e.stopPropagation(); removeWindow(+b.dataset.x); });
+}
+function addWindow(field, text, quad) {
+  quad = quad || [[0.3,0.4],[0.7,0.4],[0.7,0.5],[0.3,0.5]];
+  entry.windows.push({field: field || 'total', text: text || '', quad});
+  sel = entry.windows.length - 1; touch(); renderWins(); draw();
+}
+function removeWindow(i) { entry.windows.splice(i, 1); sel = -1; touch(); renderWins(); draw(); }
+
+// ---- geometry: image space (oriented, normalised) <-> display space (rotated, pixels) ----
+function rot() { return +$('#rot').value || 0; }
+function dispSize() { const r = rot(); return (r === 90 || r === 270) ? [img.naturalHeight, img.naturalWidth] : [img.naturalWidth, img.naturalHeight]; }
+function toDisp([nx, ny]) {           // normalised image -> unscaled display px
+  const W = img.naturalWidth, H = img.naturalHeight, x = nx * W, y = ny * H;
+  switch (rot()) { case 90: return [H - y, x]; case 180: return [W - x, H - y]; case 270: return [y, W - x]; default: return [x, y]; }
+}
+function toImg([dx, dy]) {            // unscaled display px -> normalised image
+  const W = img.naturalWidth, H = img.naturalHeight; let x, y;
+  switch (rot()) { case 90: x = dy; y = H - dx; break; case 180: x = W - dx; y = H - dy; break; case 270: x = W - dy; y = dx; break; default: x = dx; y = dy; }
+  return [Math.min(1, Math.max(0, x / W)), Math.min(1, Math.max(0, y / H))];
+}
+function fit() {
+  const [w, h] = dispSize(), main = $('main');
+  zoom = Math.min((main.clientWidth - 16) / w, (main.clientHeight - 16) / h, 1);
+  $('#zoom').value = zoom;
+}
+function draw() {
+  if (!img || !img.naturalWidth) return;
+  const [w, h] = dispSize();
+  canvas.width = Math.round(w * zoom); canvas.height = Math.round(h * zoom);
+  ctx.save(); ctx.scale(zoom, zoom);
+  ctx.translate(w / 2, h / 2); ctx.rotate(rot() * Math.PI / 180); ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+  ctx.restore();
+  ctx.save(); ctx.scale(zoom, zoom);
+  entry.windows.forEach((win, i) => {
+    const pts = win.quad.map(toDisp);
+    ctx.lineWidth = (i === sel ? 3 : 2) / zoom; ctx.strokeStyle = COLORS[win.field] || '#fff';
+    ctx.beginPath(); pts.forEach((p, k) => k ? ctx.lineTo(...p) : ctx.moveTo(...p)); ctx.closePath(); ctx.stroke();
+    ctx.fillStyle = ctx.strokeStyle; ctx.font = `${14 / zoom}px system-ui`;
+    ctx.fillText(`${win.field} ${win.text || ''}`, pts[0][0], pts[0][1] - 4 / zoom);
+    if (i === sel) pts.forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 6 / zoom, 0, 7); ctx.fill(); });
+  });
+  if (drag && drag.kind === 'new') {
+    ctx.strokeStyle = '#fff'; ctx.setLineDash([4 / zoom, 4 / zoom]); ctx.lineWidth = 1 / zoom;
+    ctx.strokeRect(drag.x0, drag.y0, drag.x - drag.x0, drag.y - drag.y0);
+  }
+  ctx.restore();
+}
+function mouse(e) { const r = canvas.getBoundingClientRect(); return [(e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom]; }
+function hitCorner(p) {
+  if (sel < 0) return -1;
+  const pts = entry.windows[sel].quad.map(toDisp);
+  return pts.findIndex(q => Math.hypot(q[0] - p[0], q[1] - p[1]) < 10 / zoom);
+}
+function hitWindow(p) {
+  const [nx, ny] = toImg(p);
+  return entry.windows.findIndex(w => { const xs = w.quad.map(q => q[0]), ys = w.quad.map(q => q[1]);
+    return nx >= Math.min(...xs) && nx <= Math.max(...xs) && ny >= Math.min(...ys) && ny <= Math.max(...ys); });
+}
+canvas.onmousedown = e => {
+  if (!img) return; const [x, y] = mouse(e);
+  const c = hitCorner([x, y]);
+  if (c >= 0) { drag = {kind:'corner', c}; return; }
+  const w = hitWindow([x, y]);
+  if (w >= 0 && !e.shiftKey) { sel = w; drag = {kind:'move', x, y, quad: entry.windows[w].quad.map(p => [...p])}; renderWins(); draw(); return; }
+  drag = {kind:'new', x0:x, y0:y, x, y};
+};
+canvas.onmousemove = e => {
+  if (!drag) return; const [x, y] = mouse(e);
+  if (drag.kind === 'new') { drag.x = x; drag.y = y; }
+  else if (drag.kind === 'corner') { entry.windows[sel].quad[drag.c] = toImg([x, y]); touch(); }
+  else if (drag.kind === 'move') {
+    const d0 = toImg([drag.x, drag.y]), d1 = toImg([x, y]);
+    entry.windows[sel].quad = drag.quad.map(p => [Math.min(1, Math.max(0, p[0] + d1[0] - d0[0])), Math.min(1, Math.max(0, p[1] + d1[1] - d0[1]))]); touch();
+  }
+  draw();
+};
+canvas.onmouseup = e => {
+  if (!drag) return;
+  if (drag.kind === 'new') {
+    if (Math.abs(drag.x - drag.x0) > 4 && Math.abs(drag.y - drag.y0) > 4) {
+      const a = toImg([drag.x0, drag.y0]), b = toImg([drag.x, drag.y]);
+      const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]), y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
+      const missing = ['total','liters','unitPrice'].find(f => !entry.windows.some(w => w.field === f)) || 'board';
+      addWindow(missing, row && row[missing] ? row[missing] : '', [[x0,y0],[x1,y0],[x1,y1],[x0,y1]]);
+      document.querySelector(`[data-t="${sel}"]`)?.focus();
+    } else { sel = -1; renderWins(); }
+  } else renderWins();
+  drag = null; draw();
+};
+
+// ---- controls ----
+$('#zoom').oninput = e => { zoom = +e.target.value; draw(); };
+$('#rot').onchange = () => { touch(); fit(); draw(); };
+$('#add').onclick = () => addWindow();
+$('#save').onclick = save; $('#check').onclick = check;
+$('#filter').oninput = renderList;
+document.querySelectorAll('[data-nod],[data-dis]').forEach(i => i.oninput = touch);
+document.addEventListener('keydown', e => {
+  const typing = ['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName);
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); save(); return; }
+  if (typing) return;
+  if ((e.key === 'Backspace' || e.key === 'Delete') && sel >= 0) { e.preventDefault(); removeWindow(sel); }
+  if ('1234'.includes(e.key) && sel >= 0) { entry.windows[sel].field = FIELDS[+e.key - 1]; touch(); renderWins(); draw(); }
+  if (e.key === 'j' || e.key === 'k') {
+    const i = fixtures.findIndex(x => x.name === name); const n = fixtures[i + (e.key === 'j' ? 1 : -1)];
+    if (n) open(n.name);
+  }
+});
+window.onbeforeunload = () => dirty ? 'unsaved' : undefined;
+loadList().then(() => { const h = decodeURIComponent(location.hash.slice(1)); if (h) open(h); });
+</script>
+</body>
+</html>
