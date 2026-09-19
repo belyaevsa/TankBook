@@ -370,13 +370,16 @@ def main(argv: list[str] | None = None) -> int:
             if all_correct:
                 per_make[make]["correct"] += 1
 
-            key = filename.split(".")[0]
+            # One entry per window, never per fixture: a fixture has up to
+            # three transaction windows and the last one used to overwrite.
+            key = f"{filename.split('.')[0]}/{field}"
             read = _read_string(pred_bits)
             by_name[key] = {
                 "field": field,
                 "truth": text,
                 "read": read,
                 "correct": all_correct,
+                "digits_correct": digits_ok,
             }
 
             if args.dump is not None:
