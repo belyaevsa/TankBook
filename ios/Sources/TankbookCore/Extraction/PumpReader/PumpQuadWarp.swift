@@ -102,6 +102,22 @@ enum PumpQuadWarp {
     /// old image centre, landing in the expanded image's coordinate frame. The
     /// inverse of the image rotation a caller applies to upright the text, and
     /// numerically identical to the Python scorer's `rotate_points_cw`.
+    /// Reorders an annotated quad (TL, TR, BR, BL in image space) into reading
+    /// order for a display that reads upright only after the image is rotated
+    /// `rotationCW` degrees clockwise. Rotating 90° clockwise makes the image's
+    /// left edge the top edge, so the upright top-left is the image's
+    /// bottom-left; 270° makes the right edge the top. The warp is a homography
+    /// from these corners, so the image itself never needs rotating.
+    static func readingOrder(_ quad: [CGPoint], rotationCW: Int) -> [CGPoint] {
+        guard quad.count == 4 else { return quad }
+        switch ((rotationCW % 360) + 360) % 360 {
+        case 90: return [quad[3], quad[0], quad[1], quad[2]]
+        case 180: return [quad[2], quad[3], quad[0], quad[1]]
+        case 270: return [quad[1], quad[2], quad[3], quad[0]]
+        default: return quad
+        }
+    }
+
     static func rotatePointsClockwise(
         _ points: [CGPoint], rotationCW: Int, oldSize: (width: Int, height: Int)
     ) -> [CGPoint] {

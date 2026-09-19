@@ -31,7 +31,7 @@ struct PumpReaderHarnessTests {
     // local-contrast normalisation and the Otsu threshold absorb a few more than
     // PU.4's fixed-fraction pass - so the column-projection slicer cannot see it;
     // that gap is the classifier's dp bit, and PU.6 owns closing it.
-    private static let countAgreementFloor = 0.63
+    private static let countAgreementFloor = 0.65
     private static let dpAgreementFloor = 0.0
     private static let locatorMedianIoUFloor = 0.0
 
@@ -217,7 +217,7 @@ struct PumpReaderHarnessTests {
                 let expectedCount = PumpReaderTestSupport.glyphCount(window.text)
                 let expectedDP = PumpReaderTestSupport.dpCellIndex(window.text)
                 let result = slice(
-                    window: window, image: image,
+                    window: window, image: image, rotationCW: ann.rotationCW,
                     adaptiveThreshold: robust, localContrastNormalization: robust,
                     splitMerge: robust, shortCountRetry: robust)
 
@@ -261,11 +261,13 @@ struct PumpReaderHarnessTests {
     }
 
     private static func slice(
-        window: PumpWindowAnnotation, image: PumpRGBImage, pitchSnap: Bool = true,
+        window: PumpWindowAnnotation, image: PumpRGBImage, rotationCW: Int = 0, pitchSnap: Bool = true,
         adaptiveThreshold: Bool = true, localContrastNormalization: Bool = true,
         splitMerge: Bool = true, shortCountRetry: Bool = true
     ) -> SliceResult {
-        let quad = PumpReaderTestSupport.quadPixels(window.quad, width: image.width, height: image.height)
+        let quad = PumpQuadWarp.readingOrder(
+            PumpReaderTestSupport.quadPixels(window.quad, width: image.width, height: image.height),
+            rotationCW: rotationCW)
         let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: quad, stripHeight: 96)
         guard let strip else {
             return SliceResult(cells: [], strip: PumpQuadWarp.makeImage(

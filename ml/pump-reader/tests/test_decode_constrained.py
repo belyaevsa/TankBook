@@ -39,3 +39,17 @@ def test_constrained_decode_recovers_a_one_bit_loss() -> None:
     bits, _ = decode_constrained(probs)
     assert SegmentLabel(bits).digit == "9"
     assert SegmentLabel(target_to_bits(probs) & 0x7F).digit is None
+
+
+def test_reading_order_rolls_corners_like_the_swift_side() -> None:
+    """Oracle: 90 degrees clockwise makes the image's left edge the top edge, so
+    the upright top-left is the image's bottom-left; 270 makes the right edge
+    the top. The rotated fixtures (`pump-019/020` at 90, `pump-021/022/023` at
+    270) were warped as vertical slivers before this rule existed."""
+    from pump_reader.score import reading_order
+
+    tl, tr, br, bl = [0, 0], [1, 0], [1, 1], [0, 1]
+    q = np.array([tl, tr, br, bl], float)
+    assert reading_order(q, 90).tolist() == [bl, tl, tr, br]
+    assert reading_order(q, 270).tolist() == [tr, br, bl, tl]
+    assert reading_order(q, 0).tolist() == q.tolist()

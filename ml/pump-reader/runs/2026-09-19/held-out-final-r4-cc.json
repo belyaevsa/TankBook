@@ -1,23 +1,23 @@
 {
  "fixtures": 115,
- "windows_scored": 205,
+ "windows_scored": 214,
  "skipped_empty": 23,
  "per_segment_accuracy": {
-  "a": 0.8638,
-  "b": 0.9474,
-  "c": 0.9721,
-  "d": 0.8514,
-  "e": 0.8772,
-  "f": 0.8545,
-  "g": 0.9009,
-  "dp": 0.7802
+  "a": 0.8636,
+  "b": 0.9447,
+  "c": 0.9684,
+  "d": 0.8518,
+  "e": 0.8765,
+  "f": 0.8538,
+  "g": 0.8962,
+  "dp": 0.7787
  },
- "per_segment_mean": 0.8809,
- "per_glyph_accuracy": 0.5645,
- "per_digit_accuracy": 0.7317,
- "per_window_digits_accuracy": 0.3024,
- "per_window_accuracy": 0.0098,
- "dp_auc": 0.5708,
+ "per_segment_mean": 0.8792,
+ "per_glyph_accuracy": 0.5613,
+ "per_digit_accuracy": 0.7283,
+ "per_window_digits_accuracy": 0.2991,
+ "per_window_accuracy": 0.0047,
+ "dp_auc": 0.5632,
  "per_make": {
   "circlek": {
    "windows": 11,
@@ -28,15 +28,15 @@
    "correct": 1
   },
   "gilbarco": {
-   "windows": 82,
-   "correct": 1
+   "windows": 86,
+   "correct": 0
   },
   "gpn": {
    "windows": 3,
    "correct": 0
   },
   "kz": {
-   "windows": 6,
+   "windows": 7,
    "correct": 0
   },
   "lukoil": {
@@ -64,7 +64,7 @@
    "correct": 0
   },
   "wayne": {
-   "windows": 25,
+   "windows": 29,
    "correct": 0
   }
  }

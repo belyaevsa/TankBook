@@ -1,5 +1,5 @@
 {
- "_about": "Number windows on the pump corpus, hand-annotated by the orchestrator (2026-09-19). Coordinates are normalised [0,1] over the EXIF-oriented image; quad corners TL, TR, BR, BL in image space. rotationCW is how far to rotate the image clockwise for the text to read upright (absent = 0). text is what the display SHOWS - zero padding and the comma kept, empty when the window is unreadable. field: total | liters | unitPrice | board (a grade-price board cell that is not the transaction price). Precision: about +-1% of the image edge; the quads are an oracle for a locator, not a pixel-exact mask. Checked by scripts/pump-windows-check.py. Entry-level keys: notOnDisplay - fields expected.csv asserts (from the paired receipt) that the display does not show; csvDisagrees - the display shows a different number than expected.csv asserts, with the reason; legibility on a window - \"partial\" when the digits are only partly readable through glare.",
+ "_about": "Number windows on the pump corpus, hand-annotated by the orchestrator (2026-09-19). Coordinates are normalised [0,1] over the EXIF-oriented image; quad corners TL, TR, BR, BL in image space. rotationCW is how far to rotate the image clockwise for the text to read upright (absent = 0). text is what the display SHOWS - zero padding and the comma kept, empty when the window is unreadable. field: total | liters | unitPrice | board (a grade-price board cell that is not the transaction price). Precision: about +-1% of the image edge; the quads are an oracle for a locator, not a pixel-exact mask. Checked by scripts/pump-windows-check.py. Entry-level keys: notOnDisplay - fields expected.csv asserts (from the paired receipt) that the display does not show; csvDisagrees - the display shows a different number than expected.csv asserts, with the reason; legibility on a window - \"partial\" when the digits are only partly readable through glare. Conventions: no window = the field is not on this display; a window with empty text = found but unreadable; unlit leading cells are never transcribed (no string has a leading space); a board cell can coincide with the transaction price (pump-007, pump-009).",
  "pump-001.heic": {
   "windows": [
    {
@@ -144,7 +144,7 @@
   "windows": [
    {
     "field": "total",
-    "text": "20886.25",
+    "text": "20886.3",
     "quad": [
      [
       0.27,
@@ -208,7 +208,10 @@
      ]
     ]
    }
-  ]
+  ],
+  "csvDisagrees": {
+   "total": "the display shows 20886.3 (six cells, one decimal); expected.csv asserts the exact product 20886.25 - a display-rounding cell"
+  }
  },
  "pump-004-kz-95-kzt-tokheim.jpg": {
   "windows": [
@@ -850,7 +853,7 @@
    },
    {
     "field": "board",
-    "text": "072,80",
+    "text": "072,88",
     "quad": [
      [
       0.115,
@@ -2043,7 +2046,7 @@
     ]
    }
   ],
-  "rotationCW": 270
+  "rotationCW": 90
  },
  "pump-022-wayne-circlek-pump1-glare-ee.jpg": {
   "windows": [
@@ -2180,7 +2183,7 @@
     ]
    }
   ],
-  "rotationCW": 270
+  "rotationCW": 90
  },
  "pump-023-wayne-circlek-glare-ee.jpg": {
   "windows": [
@@ -2317,7 +2320,7 @@
     ]
    }
   ],
-  "rotationCW": 270
+  "rotationCW": 90
  },
  "pump-024-wayne-neste-ee-three-grade-prices.jpg": {
   "windows": [
@@ -2595,7 +2598,7 @@
    },
    {
     "field": "unitPrice",
-    "text": "1924",
+    "text": "1,924",
     "quad": [
      [
       0.415,

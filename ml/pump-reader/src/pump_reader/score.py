@@ -90,6 +90,20 @@ def _rotated_size(w: int, h: int, rot_cw: int) -> tuple[int, int]:
     return (h, w) if rot in (90, 270) else (w, h)
 
 
+def reading_order(quad: np.ndarray, rot_cw: int) -> np.ndarray:
+    """Reorder an annotated quad (TL, TR, BR, BL in image space) into reading order.
+
+    The warp is a homography from these four corners, so a display that reads
+    upright only after a clockwise rotation needs its corners rolled, not the
+    image rotated: 90 degrees clockwise makes the image's left edge the top edge,
+    so the upright top-left is the image's bottom-left. Mirrors
+    ``PumpQuadWarp.readingOrder``.
+    """
+    rot = rot_cw % 360
+    shift = {0: 0, 90: 1, 180: 2, 270: -1}[rot]
+    return np.roll(np.asarray(quad, dtype=np.float64), shift, axis=0)
+
+
 def rotate_points_cw(
     points: list[list[float]], rot_cw: int, old_size: tuple[int, int]
 ) -> np.ndarray:
@@ -299,8 +313,6 @@ def main(argv: list[str] | None = None) -> int:
         img = _load_image(path)
         w, h = img.size
         rot = int(ann.get("rotationCW", 0) or 0)
-        if rot:
-            img = img.rotate(-rot, expand=True)
         make = make_of(filename)
         for wi, win in enumerate(ann.get("windows", [])):
             text = win.get("text", "")
@@ -310,7 +322,7 @@ def main(argv: list[str] | None = None) -> int:
             if win.get("field") not in args.fields:
                 continue
             quad = np.asarray(win["quad"], dtype=np.float64) * np.array([w, h])
-            quad = rotate_points_cw(quad.tolist(), rot, (w, h))
+            quad = reading_order(quad, rot)
             cells_truth = parse_cells(text)
             n = len(cells_truth)
             if n == 0:

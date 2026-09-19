@@ -367,6 +367,27 @@ The day in one line, digit-only on count-correct windows: 0.123 (PU.3) →
 0.215 (PU.9) → 0.400 (PU.10) → 0.666 (PU.16) → 0.698 (transaction only) →
 0.717 (PU.17/18) → **0.753 / 0.732** (round 4, on 192 / 205 windows).
 
+### Round 4b (orchestrator, 2026-09-19): the oracle's second pass acted on
+
+`agents/reviews/PU.13-REVIEW-ANNOTATIONS.md` measured every window. Acted on, each checked by
+eye: `pump-003` total re-typed `20886.25` → `20886.3` (the display rounds; declared as
+`csvDisagrees`); `pump-026` price `1924` → `1,924` (the comma is there); `pump-009` board
+`072,80` → `072,88`. Not acted on: `pump-061`'s board quads sit on the digits in the overlay,
+`pump-087` shows no lit leading zero. **The consumers, not the oracle, mishandled rotation**:
+the Swift harness never applied `rotationCW` and the scorer rotated the image with a wrong
+point map, so the five rotated fixtures' 23 windows were warped as vertical slivers and charged
+to the model as errors. Both now roll the quad's corners into reading order and warp from
+those (`PumpQuadWarp.readingOrder`, `score.reading_order`) - no image rotation - and the strips
+proved three of the five were annotated 270 where 90 is right; corrected. Count agreement
+**273 → 282 of 433 (0.65)**.
+
+Final, transaction fields, shipped model:
+
+| | per-glyph | digit only | windows, every digit right | dp bit |
+|---|---|---|---|---|
+| all 320 | 0.469 | **0.609** | 0.213 | 0.763 |
+| count-correct 214 | 0.561 | **0.728** | 0.299 | 0.779 |
+
 ## Named mutation: drop the dp bit
 
 In `dataset.py`, the target's dp bit was dropped (7 bits, dp slot padded with a
