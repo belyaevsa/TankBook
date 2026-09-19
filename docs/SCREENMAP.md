@@ -91,6 +91,8 @@ flowchart TD
         Capture -.->|X| Back[return to opener]
         Confirm -->|tank row| TankLevel
         TankLevel -.->|Set / Skip| Confirm
+        Confirm & ConfirmManual -->|station menu · Change brand| StationBrandPicker
+        StationBrandPicker -.->|pick / Cancel| Confirm
         Confirm & ConfirmForeign & ConfirmMixed & ConfirmManual -->|Save| Home
         Confirm & ConfirmForeign & ConfirmMixed & ConfirmManual -.->|back| Capture
         ServiceEntry -->|Save| Home
@@ -113,6 +115,8 @@ flowchart TD
     Stations -.->|back| Garage
     StationSettings -.->|back| Stations
     StationSettings -->|Remove location (in place)| StationSettings
+    StationSettings -->|Brand · Change| StationBrandPicker
+    StationBrandPicker -.->|pick / Cancel| StationSettings
     VehicleDetail -.->|back| Garage
     VehicleDetail -->|Tire sets| TireSets
     VehicleDetail -->|Parts shelf [v1.x] PJ.25| PartsShelf
@@ -249,6 +253,7 @@ Beneath the three doors sits a fourth affordance that is **not** a peer door but
 | **Capture review** (RV.5, full-screen cover over Capture) | Capture's shutter · Capture's Photos pick – both doors, always; Service mode goes to the document camera instead and never passes through here | **Use this** → the pipeline runs, then Confirm/Foreign/Mixed/Manual, **pre-filled from the LOCAL read and opened immediately** (RV.57). The sheet carries a dismissible notice - "A more reliable reading may still arrive. You can proceed now." - because the cloud answer measured 12-36 s against a 3 s budget (RV.51), so waiting for it is not an option the user should be made to take. **A late answer never reaches the open editor**: within budget it fills blanks, past it the reading routes to the Inbox, where the per-field comparison is the place to accept it (hard rule 13 - nothing the user has typed is overwritten behind their back) · **Use this · Expense mode** (RV.62) → ExpenseEntry pre-filled with the recognised total/currency/date (never liters or fuel kind – a shop receipt has no fuel fields) · **Re-take** → Capture, nothing kept · **Type it** → the form for the selected mode (the same door the capture surface offers) | Re-take **is** the back path – it is the only way out other than a verdict, so the step can never be a dead end |
 | Confirm / Foreign / Mixed / Manual | Capture review "Use this" · Capture "Type it" (Fill-up mode) | Save → the sheet AND the capture modal behind it close (RV.12) → the opener tab, entry visible + toast · tank row → TankLevel · the foreign-currency conversion card offers the manual-rate entry on the card itself when the rate is pending (F9, hard rule 7), and "Edit rate" on a feed conversion (hard rule 13) | back → Capture (photo kept) · swipe-down discards scan (photo re-offerable) |
 | Tank level (sheet) | Confirm's tank row | Set / Skip → Confirm | swipe-down = Skip |
+| Station brand picker (sheet, RV.115 / RV.180) | Confirm's and Edit entry's station menu → **Change brand**; Station settings → **Brand · Change** | the vocabulary ordered on the device (the capture's country, the user's chains, the device region, the hint, the rest) with a search over every spelling; **No brand** first-class; "Use “…”" for the user's own word → written to the station, the pick is theirs permanently | swipe-down / Cancel = keep as is |
 | Service & expenses | Capture (Service mode, scan) · Capture "Type it" (Service mode) · ReminderComplete · Home's "Type it" menu (RV.61, the no-camera door) | Save → Home · vendor, line items, **the currency chip row (RV.279: the same offer Edit entry uses; the pick applies to the record and its items)**, date and odometer · **Tires mode** (P3.3) mounts a set (a `ServiceRecord` carrying `tireSetId`) and makes the odometer required | X → opener (typed input asks first) |
 | Expense entry (sheet, P3.2) | Capture "Type it" (Expense mode) · Capture review "Use this" in Expense mode (RV.62, pre-filled with the scan's total/currency/date, editable – hard rule 13) · ServiceEntry's Parts/Other mode row · Home's "Type it" menu (RV.61, the no-camera door) | Save → Home · category, title, money, **the currency chip row and the odometer card (RV.279: the same components Edit entry renders, so a foreign total is offered with its currency)**, date (PJ.6 wired the Capture door; `.parts` is an ordinary category, never a separate flow) | X → opener (typed input asks first) |
 | Edit entry | Log entry, duplicate/conflict cards, RecentlyDeleted · the account-wide flagged list ("Needs a look") and the inbox's "use a different receipt", both of which pass an EXPLICIT entry id | Save / Delete → Home · photo → viewer · Restore my version · a foreign-currency entry renders the conversion card (resolved from the rate store) and its rate is editable there, including a rate the user set before (hard rule 13) | X → opener |
@@ -260,7 +265,7 @@ Beneath the three doors sits a fourth affordance that is **not** a peer door but
 | Tire sets (P3.3) | Vehicle detail | row → Tire set form (rename) · New tire set → form · Archive (row menu, in place) | back → Vehicle detail |
 | Tire set form (P3.3) | Tire sets (New / row) | Save → Tire sets | back → Tire sets |
 | **Stations** (RV.150) | the Garage tab root's Stations door | a row → Station settings · **Add station (RV.156)** - the dashed tile in both states, naming through the same deterministic rule the entry row uses | back → Garage |
-| **Station settings** (RV.150) | the Stations list's row for that station | **Remove location** (in place; a later save with a fix re-adopts) · **Favourite** toggle (in place, PJ.55; reversible, persists as an ordinary station edit) | back → Stations |
+| **Station settings** (RV.150) | the Stations list's row for that station | **Brand · Change** → the station brand picker (RV.115 / RV.180) · **Remove location** (in place; a later save with a fix re-adopts) · **Favourite** toggle (in place, PJ.55; reversible, persists as an ordinary station edit) | back → Stations |
 | **Parts shelf** **[v1.x]** (P3.2 screen; PJ.25 gave it its second door) | Vehicle detail's "Parts shelf" row (**pushed**, PJ.25) · a service entry's "View shelf" button (**nested sheet**, P3.2 - unchanged) · `-presentScreen partsShelf` (nested-sheet pose) / `-presentScreen partsShelfPushed` (the pushed door's pose) | none - a read-only list (`.parts` expenses not yet installed in any service; derived, never stored) | **pushed**: back chevron + edge-swipe → the Vehicle detail that pushed it. **nested sheet**: swipe-down / close → the service entry. The shelf has no typed input, so neither door ever asks before leaving - nothing to lose (hard rule 8). The `SheetRoute.partsShelf` `.discardSilently` classification governs the SHEET presentation only; the pushed door is a stack pop, never a discard |
 
 | Car switcher (sheet) | Home car card/chip | pick → Home · Add car · archived → VehicleDetail | swipe-down → Home |

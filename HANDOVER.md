@@ -126,8 +126,9 @@ developer portal before the next store build, or automatic signing refuses the a
    enforced nowhere and `RV.295` moves up.
 3. **`gh auth login`** on this machine; the ASC exports into `~/.zshrc` (team id, key id, issuer id,
    key path) so `release.sh` runs without a hand-typed environment.
-4. **The journeys walk is due again** - 9 rows since the 2026-09-18 walk (`dc76405d`), and `J8`
-   is back to unreviewed (`RV.118`) - and the ticked rows now number twenty-nine: sweep them to
+4. The journeys walk ran 2026-09-19 over the tranche (`diagnostics/REVIEW-JOURNEYS-2026-09-19.md`:
+   0 new rows, two fixes in the walk). `J8` is back to unreviewed (`RV.118`-`RV.120` changed its
+   story) and awaits a `REVIEW-SCENARIO`. The ticked rows number twenty-nine: sweep them to
    `TASKS-DONE.md`. Enable Push Notifications on the App ID (above). Next 1.1 candidates the owner
    has not ranked: `PR.37`, `RV.296`, `RV.300`, `RV.297`–`RV.299`.
 5. Unchanged from 09-15: deploy the backend so migrations 023–025 run; `RV.283` decision; `RV.203`,

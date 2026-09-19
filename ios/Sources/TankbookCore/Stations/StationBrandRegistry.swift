@@ -15,8 +15,12 @@ public enum StationBrandRegistry {
 
     public static var brands: [StationBrand] {
         if let store = lock.withLock({ store }) { return store.brands }
-        return (try? StationBrandSeed.bundledPack().brands) ?? []
+        return bundled
     }
+
+    /// The seed decoded once: an import resolves hundreds of names through
+    /// this accessor, and decoding the pack per name is the cost to avoid.
+    private static let bundled: [StationBrand] = (try? StationBrandSeed.bundledPack().brands) ?? []
 
     nonisolated(unsafe) private static var hint: String?
 
