@@ -9,6 +9,49 @@ errors / 668 warnings from the repo ROOT, Release build 0. **118 open rows, 425 
 ticked rows sit in `TASKS.md` awaiting the sweep). Nothing is running; the queue is empty. Read
 this, then `CLAUDE.md`, then `docs/DEVELOPMENT-TIMELINE.md`, then `docs/TASKS.md`'s index.*
 
+## The pump-reader tranche (branch `pump-reader`, worktree `../fuel-counter-ios-pump-reader`, 2026-09-18/19)
+
+**Product owner, 2026-09-18:** *"we need to develop our own library to recognize pump photos. Not
+rely on OCR solely"* - and *"worth to build it in a worktree"*. The design is `docs/EXTRACTION.md`
+→ "The pump reader"; the rows are `docs/TASKS.md` → PU; the ledger entry is in
+`DEVELOPMENT-TIMELINE.md`. Nine rows in a day, every number below reproduced in the orchestrator's
+own hands. **Not merged to `main`.** Measured on this branch: package **2125 + 45 tests / 261
+suites**, `ml/pump-reader` **20 pytest**, lint 0 errors from the root (the training venv is now
+in `excluded:`), `scripts/pump-windows-check.py --check` 0.
+
+| Row | What | Number |
+|---|---|---|
+| PU.1 | synthetic seven-segment renderer, 5 make profiles | 9 tests; the agent's colour-driven profile test was blind to a geometry clone, a mask-based one was added |
+| PU.2 | 114 fixtures × number windows, hand-annotated by the orchestrator | 456 windows; 3 declared exceptions (`pump-031` display 32,58 vs CSV's receipt 32.50; `pump-072` price not on the board; `pump-067` partial) |
+| PU.3 | `SegmentNet`, 8 sigmoid segment outputs, 64 KB Core ML | synthetic 0.97 seg / 0.81 digit; **first held-out 0.123 per-glyph** - the naive slicer, not the model |
+| PU.4 | Swift slicer + first-cut locator | count agreement 0.40; locator median IoU 0.008 (only `pump-078` at 0.61) |
+| PU.7 | render realism, ablated | bold + slant help, spill + contrast HURT (both are real on the corpus); shipped bold + slant |
+| PU.8 | slicer robustness | count agreement **0.598** (259/433); seams load-bearing on the corpus (259 vs 187 off) |
+| PU.9 | train on the slicer's own framing | held-out per-glyph **0.215** on count-correct, 0.177 on all 433; dp bit 0.74 |
+
+**The five lessons of this tranche**
+
+1. **Look at the cell sheet before believing a pump-reader number.** Every step's headline
+   number was explained by a picture (`ml/pump-reader/runs/2026-09-19/held-out-cells*.png`), and
+   twice the picture contradicted the brief's diagnosis (PU.7's spill/contrast; PU.8's synthetic
+   mutation that could not separate an adaptive threshold from a relative one).
+2. **A framing change alone moved the same model from 0.170 to 0.105.** The classifier is only
+   as good as the agreement between how training cells and real cells are cut; PU.9 closed it by
+   cutting training cells the way the slicer does, and doubled the number.
+3. **Agents cannot annotate and cannot see their cells.** PU.2 was orchestrator work by
+   necessity; so was every sheet.
+4. **Two agents in one checkout with disjoint scopes worked** (PU.7 in `ml/`, PU.8 in `ios/`) -
+   until one changed a renderer the other's test replayed. Name the shared seam in both briefs.
+5. **The corpus has cells that score the wrong artefact**: `pump-031`'s `expected.csv` total is
+   the receipt's, not the display's. PU.6 decides.
+
+**What is still not there, in order:** (a) per-glyph 0.215 on count-correct windows is far from
+the gate - the next levers are the weakest segments d/g (~0.58) and the per-make gap (Scheidt
+0.30, Lukoil 0.10 count agreement); (b) the locator is a stub - the reader today needs the
+window handed to it; (c) PU.5 (row assignment, decimal recovery, `PumpPhotoGate`) is not
+started and should not start until (a) is above ~0.8 per-glyph on clean windows; (d) the dp is
+the classifier's job now (slicer floor 0.0). PU.6 writes the verdict either way.
+
 ## Where the work stands (2026-09-18, early afternoon)
 
 **The rejection.** App Review's screenshot was the Sign in sheet on an **iPad in
