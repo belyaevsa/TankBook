@@ -55,22 +55,28 @@ struct PumpSegmentsModel {
         Self.decode(try probabilities(cell: cell))
     }
 
-    /// The most likely digit over the valid patterns; blank is the slicer's call.
-    static func decode(_ probabilities: [Double]) -> Read {
+    /// All ten digits ranked by log-likelihood under the segment probabilities.
+    static func rank(_ probabilities: [Double]) -> [PumpGlyphCandidate] {
         let clamped = probabilities.prefix(7).map { min(max($0, 1e-6), 1 - 1e-6) }
-        var scored: [(Double, Character)] = digitPatterns.map { pattern in
+        var scored: [PumpGlyphCandidate] = digitPatterns.map { pattern in
             var ll = 0.0
             for i in 0..<7 {
                 let on = (pattern.bits >> UInt8(i)) & 1 == 1
                 ll += on ? log(clamped[i]) : log(1 - clamped[i])
             }
-            return (ll, pattern.digit)
+            return PumpGlyphCandidate(digit: Int(String(pattern.digit))!, logPosterior: ll)
         }
-        scored.sort { $0.0 > $1.0 }
+        scored.sort { $0.logPosterior > $1.logPosterior }
+        return scored
+    }
+
+    /// The most likely digit over the valid patterns; blank is the slicer's call.
+    static func decode(_ probabilities: [Double]) -> Read {
+        let ranked = rank(probabilities)
         return Read(
-            digit: scored[0].1,
-            decimalPoint: probabilities[7] >= 0.5,
-            margin: scored[0].0 - scored[1].0,
+            digit: Character(String(ranked[0].digit)),
+            decimalPoint: probabilities.count > 7 && probabilities[7] >= 0.5,
+            margin: ranked[0].logPosterior - ranked[1].logPosterior,
             probabilities: probabilities)
     }
 
