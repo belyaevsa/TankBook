@@ -957,6 +957,35 @@ receipts, and matched pairs or triples of the same fill from different documents
 `receipt-001` / `pump-001` / `screenshot-004` settled a question about list versus effective
 price that no amount of re-reading a single document could.
 
+### The matched pairs are a check on the oracle (RV.114)
+
+Eighteen pump/receipt pairs of the same fill are registered in `CorpusPairTests`, by name. Two
+properties run over them. **Oracle-level, everywhere**: the two `expected.csv` rows of a pair agree
+to the cent on litres and unit price, and on the total except where the two papers genuinely
+differ - a display that truncates its total (`pump-083` prints `1437.20` for the receipt's
+`1437.24`, `pump-110` `2953.00` for `2953.02`) or a receipt that rounds (`receipt-007`'s `4334.00`
+for `pump-002`'s `4334.83`), each written beside the pair. A pair whose oracles disagree is a wrong
+expectation, and a wrong oracle freezes a defect as the standard. **Extraction-level, on the
+measured runtime**: where both halves commit a cell, they commit the same value - a display read
+that contradicts the receipt of the same fill is the most provable confident-wrong value the corpus
+can produce. Proxy-run on macOS 27 (2026-09-19): no pair contradicts itself; the pumps of the
+RV.114 set abstain and their receipts resolve.
+
+### Orientation: Vision handles it, the app does not rotate first (decided 2026-09-19, RV.114)
+
+The corpus holds a 90°-rotated pump (`pump-069`), a 90°-rotated receipt (`receipt-050`), an
+upside-down receipt (`receipt-051`) and two sideways terminal slips (`receipt-068`, `-069`).
+The fixtures carry the rotation in their pixels (EXIF stripped), `VisionTextRecognizer` hands
+the pixels over as they are (a file's EXIF and a camera buffer's `imageOrientation` are honoured,
+nothing else is inferred), and the recognizer reads rotated text itself: on macOS 27 `receipt-050`
+and `receipt-051` resolve all five cells - the rotation cost nothing. The sideways slips are the
+exception, and what they lose is glyph fidelity on a dense Cyrillic print (the RV.292 shapes), not
+the layout. So: **no pre-rotation, no orientation question.** A capture goes to Vision as taken;
+a poor read degrades to "correct a field" through the same head-start rule as any other (hard rule
+15), and the confident-wrong properties (totals, kinds, litres, pairs) are what keep a garbled
+rotated read from becoming a value. If a future runtime loses the rotated receipts, that is a
+measured regression on the L5 gate, not a reason to add a rotation step ahead of the evidence.
+
 ## AdBlue on a receipt (added 2026-08-30)
 
 Vocabulary: `ADBLUE`, `AdBlue`, `AD BLUE`, `AUS 32`, `AUS32`, `DEF`, `HARNSTOFF`, `МОЧЕВИНА`,
