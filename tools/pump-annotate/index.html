@@ -31,14 +31,14 @@
 <body>
 <aside>
   <div class="row"><input id="filter" placeholder="filter…" style="flex:1">
-    <select id="state"><option value="all">all</option><option value="todo">todo</option><option value="done">done</option></select></div>
+    <select id="state"><option value="all">all</option><option value="todo">no windows</option><option value="unreviewed">not processed</option><option value="reviewed">processed</option></select></div>
   <div class="row dim" id="counts"></div>
   <div id="list"></div>
 </aside>
 <main><canvas id="c"></canvas></main>
 <section class="right">
-  <div class="row"><b id="name">–</b></div>
-  <div class="row dim">Drag = new window · click = select · drag corner = adjust · <kbd>⌫</kbd> delete · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> field · <kbd>⌘S</kbd> save · <kbd>J</kbd>/<kbd>K</kbd> next/prev</div>
+  <div class="row"><b id="name" style="flex:1">–</b> <label title="reviewed by a human; P toggles"><input type="checkbox" id="reviewed"> processed</label></div>
+  <div class="row dim">Drag = new window · click = select · drag corner = adjust · <kbd>⌫</kbd> delete · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> field · <kbd>⌘S</kbd> save · <kbd>P</kbd> processed · <kbd>⏎</kbd> save &amp; next · <kbd>J</kbd>/<kbd>K</kbd> next/prev</div>
   <div class="row">Zoom <input id="zoom" type="range" min="0.25" max="4" step="0.05" value="1" style="flex:1">
     Rotate <select id="rot"><option>0</option><option>90</option><option>180</option><option>270</option></select></div>
   <div class="row mono" id="csv"></div>
@@ -52,7 +52,7 @@
     <div class="row">unitPrice <input data-dis="unitPrice" style="flex:1"></div>
   </div>
   <div id="status">
-    <div class="row"><button id="save" class="primary">Save</button><button id="check">Check</button><span id="msg" class="dim"></span></div>
+    <div class="row"><button id="save" class="primary">Save</button><button id="savenext" title="mark processed, save, open the next">✓ Save &amp; next</button><button id="check">Check</button><span id="msg" class="dim"></span></div>
     <pre id="out"></pre>
   </div>
 </section>
@@ -71,11 +71,12 @@ async function loadList() {
 }
 function renderList() {
   const f = $('#filter').value.toLowerCase(), st = $('#state').value;
-  const done = fixtures.filter(x => x.windows).length;
-  $('#counts').textContent = `${done} done · ${fixtures.length - done} todo`;
-  const shown = fixtures.filter(x => x.name.toLowerCase().includes(f) && (st === 'all' || (st === 'done') === !!x.windows));
+  const done = fixtures.filter(x => x.windows).length, rev = fixtures.filter(x => x.reviewed).length;
+  $('#counts').textContent = `${rev} processed · ${done} with windows · ${fixtures.length - done} empty`;
+  const pass = x => st === 'all' || (st === 'todo' && !x.windows) || (st === 'reviewed' && x.reviewed) || (st === 'unreviewed' && !x.reviewed);
+  const shown = fixtures.filter(x => x.name.toLowerCase().includes(f) && pass(x));
   $('#list').innerHTML = shown.map(x =>
-    `<div data-n="${x.name}" class="${x.name===current?'sel':''} ${x.windows?'':'todo'}" title="${x.name}">${x.name.replace(/\.(jpe?g|heic|png)$/i,'')}<span class="n">${x.windows||'·'}</span></div>`).join('');
+    `<div data-n="${x.name}" class="${x.name===current?'sel':''} ${x.windows?'':'todo'}" title="${x.name}">${x.reviewed?'✓ ':''}${x.name.replace(/\.(jpe?g|heic|png)$/i,'')}<span class="n">${x.windows||'·'}</span></div>`).join('');
   document.querySelectorAll('#list div').forEach(d => d.onclick = () => openFixture(d.dataset.n));
 }
 async function openFixture(n) {
@@ -88,6 +89,7 @@ async function openFixture(n) {
   entry.windows = entry.windows || [];
   $('#name').textContent = n;
   $('#rot').value = String(entry.rotationCW || 0);
+  $('#reviewed').checked = !!entry.reviewed;
   document.querySelectorAll('[data-nod]').forEach(c => c.checked = (entry.notOnDisplay||[]).includes(c.dataset.nod));
   document.querySelectorAll('[data-dis]').forEach(i => i.value = (entry.csvDisagrees||{})[i.dataset.dis] || '');
   $('#csv').innerHTML = row ? ['liters','unitPrice','total'].map(k =>
@@ -101,6 +103,7 @@ async function openFixture(n) {
 }
 function collect() {
   entry.rotationCW = +$('#rot').value || 0;
+  entry.reviewed = $('#reviewed').checked;
   entry.notOnDisplay = [...document.querySelectorAll('[data-nod]:checked')].map(c => c.dataset.nod);
   entry.csvDisagrees = {};
   document.querySelectorAll('[data-dis]').forEach(i => { if (i.value.trim()) entry.csvDisagrees[i.dataset.dis] = i.value.trim(); });
@@ -110,7 +113,7 @@ async function save() {
   if (!current) return;
   const r = await (await fetch('/api/entry/' + encodeURIComponent(current), {method:'PUT', body: JSON.stringify(collect())})).json();
   entry = r.entry; entry.windows = entry.windows || []; dirty = false; setMsg('saved');
-  const fx = fixtures.find(x => x.name === current); if (fx) { fx.windows = entry.windows.length; fx.annotated = true; }
+  const fx = fixtures.find(x => x.name === current); if (fx) { fx.windows = entry.windows.length; fx.reviewed = !!entry.reviewed; }
   renderList(); renderWins(); draw();
 }
 async function check() {
@@ -231,6 +234,9 @@ $('#zoom').oninput = e => { zoom = +e.target.value; draw(); };
 $('#rot').onchange = () => { touch(); fit(); draw(); };
 $('#add').onclick = () => addWindow();
 $('#save').onclick = save; $('#check').onclick = check;
+$('#reviewed').onchange = touch;
+function next() { const names = [...document.querySelectorAll('#list div')].map(d => d.dataset.n); const n = names[names.indexOf(current) + 1]; if (n) openFixture(n); }
+$('#savenext').onclick = async () => { $('#reviewed').checked = true; await save(); next(); };
 $('#filter').oninput = renderList; $('#state').onchange = renderList;
 document.querySelectorAll('[data-nod],[data-dis]').forEach(i => i.oninput = touch);
 document.addEventListener('keydown', e => {
@@ -238,6 +244,8 @@ document.addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); save(); return; }
   if (typing) return;
   if ((e.key === 'Backspace' || e.key === 'Delete') && sel >= 0) { e.preventDefault(); removeWindow(sel); }
+  if (e.key === 'p') { $('#reviewed').checked = !$('#reviewed').checked; touch(); }
+  if (e.key === 'Enter') { $('#savenext').click(); }
   if ('1234'.includes(e.key) && sel >= 0) { entry.windows[sel].field = FIELDS[+e.key - 1]; touch(); renderWins(); draw(); }
   if (e.key === 'j' || e.key === 'k') {
     const names = [...document.querySelectorAll('#list div')].map(d => d.dataset.n);

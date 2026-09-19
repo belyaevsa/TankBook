@@ -20,6 +20,9 @@ the ml venv runs it); the converted images are cached under
 - Right: the text as the display SHOWS it (zero padding, comma), `partial`
   legibility, `rotationCW` (rotates the view only - quads stay in image space),
   `notOnDisplay` and `csvDisagrees`.
+- `processed` (`P`) marks the entry as checked by a human - `reviewed: true` in
+  the JSON - and `✓ Save & next` (`⏎`) sets it, saves and opens the next one in
+  the filtered list; the list filter separates empty / not processed / processed.
 - `Save` (`⌘S`) writes the entry back in the file's own formatting; `Check`
   runs `scripts/pump-windows-check.py --check` and shows the verdict.
 

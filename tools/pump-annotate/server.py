@@ -37,7 +37,7 @@ CHECK = ROOT / "scripts" / "pump-windows-check.py"
 HERE = Path(__file__).resolve().parent
 CACHE = Path.home() / "Library" / "Caches" / "tankbook-pump-annotate"
 IMAGE_EDGE = 2000
-ENTRY_KEYS = ("windows", "rotationCW", "notOnDisplay", "csvDisagrees")
+ENTRY_KEYS = ("windows", "rotationCW", "notOnDisplay", "csvDisagrees", "reviewed")
 WINDOW_KEYS = ("field", "text", "quad", "legibility")
 
 
@@ -105,6 +105,8 @@ def clean_entry(entry: dict) -> dict:
         out["notOnDisplay"] = list(entry["notOnDisplay"])
     if entry.get("csvDisagrees"):
         out["csvDisagrees"] = dict(entry["csvDisagrees"])
+    if entry.get("reviewed"):
+        out["reviewed"] = True
     return out
 
 
@@ -140,7 +142,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "name": n,
                 "inCsv": n in rows,
                 "windows": len(ann.get(n, {}).get("windows", [])),
-                "annotated": n in ann,
+                "reviewed": bool(ann.get(n, {}).get("reviewed")),
             } for n in names])
         if path.startswith("/api/entry/"):
             name = unquote(path[len("/api/entry/"):])
