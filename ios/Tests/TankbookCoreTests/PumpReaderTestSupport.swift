@@ -27,7 +27,7 @@ enum PumpReaderTestSupport {
 
     /// The fixtures a trained model may be scored on (decision 9,
     /// docs/EXTRACTION.md): `pump/split.csv` names each still `train` or
-    /// `heldout`. The heldout set was drawn once (62 of the 211 stills on
+    /// `heldout`. The heldout set was drawn once (64 of the 211 stills on
     /// 2026-09-19) and is frozen; every still added since is training
     /// material, so a fixture absent from the file is `train`. The
     /// classifier learns from the train part's real glyphs, so a number

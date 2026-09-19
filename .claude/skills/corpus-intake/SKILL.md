@@ -47,7 +47,7 @@ in `ios/Tests/TankbookCoreTests/CorpusPairTests.swift`.
 
 ## 2b. The split (decision 9, product owner 2026-09-19)
 
-`pump/split.csv` names the **frozen heldout set** - 62 of the 211 stills, drawn once with a seed
+`pump/split.csv` names the **frozen heldout set** - 64 of the 211 stills, drawn once with a seed
 and never redrawn - and every still added after it is **train**: append `<filename>,train` to
 the file (a still absent from it is read as train anyway; the row keeps the list complete). Never
 add a heldout row: the model-scored ratchets (`PumpReaderHarnessTests`, `PumpReaderPipelineTests`,

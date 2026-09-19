@@ -873,7 +873,7 @@ answer; PU.24 builds the locator, Vision region proposals first.
 **Decision 9 (product owner, 2026-09-19, third round): the corpus is split, and the split is
 frozen.** The pump corpus was held-out in full - nothing trained on it - which kept every number
 honest but left the classifier learning from synthetic renders alone. The owner chose a random
-70/30 draw over a provenance cut: `Spike/ReceiptSpike/fixtures/pump/split.csv` names **62 of the
+70/30 draw over a provenance cut: `Spike/ReceiptSpike/fixtures/pump/split.csv` names **64 of the
 211 stills as `heldout`**, drawn once with a seed and never redrawn, and **every still added
 after the draw is `train`**. The train part is the classifier's source of real glyphs (each
 annotated window's cells, labelled by its `text`) and of detector boxes; the heldout part is the
