@@ -109,6 +109,7 @@ Spike/ReceiptSpike/fixtures/pump-live/frames/
 # the pairing table are tracked.
 Spike/ReceiptSpike/fixtures/pump-live/*.mov
 Spike/ReceiptSpike/fixtures/pump-live/*.heic
+Spike/ReceiptSpike/fixtures/pump-live/*.mp4
 
 # scripts/corpus_db.py's scratch file (corpus.sqlite itself is committed)
 Spike/ReceiptSpike/fixtures/corpus.sqlite.tmp

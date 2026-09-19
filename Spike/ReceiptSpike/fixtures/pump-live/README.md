@@ -169,3 +169,20 @@ and a longer 4K video walking the angle with the LCD flickering; plus a third fi
 | `live-6284` | 56 | Live record of the receipt | `receipt-075` (same fill) |
 | `live-6285` | 224 | 4K video, moving angle, flicker | `pump-116` (same fill) |
 | `live-6279` | 149 | 4K video, moving angle, flicker | **new fill, video only** - 62.12 / 32.37 / 1.919 (read by eye from the frames) |
+
+## Batch 5 (2026-09-19, product owner): a running display on video
+
+`video-NNN-…mp4` is a third kind of medium beside the Live records: a plain video, not from
+the owner's camera roll, cut down to the seconds that show the display. The source clip here
+was 32 s of which the pump fills the frame for the first 7; the rest shows a person's face and
+was **not kept** - the file in the bucket is the 7 s cut, re-encoded without audio or metadata.
+
+| video | frames | what | truth |
+|---|---|---|---|
+| `video-001-wayne-circlek-running-display-ee` | 210 (720x1280, 30 fps) | Dresser Wayne, Circle K EE, **display counting up while pumping** | price `1.729` constant; total/liters run 3.18 / 1.84 → 4.98 / 2.88. Read at 1 fps by the orchestrator: 3.32/1.92, 3.73/2.16, 3.94/2.28, 4.27/2.47, 4.51/2.61, 4.88/2.82, 4.96/2.87 - every pair closes (`round(L x 1.729, 2)`) |
+
+Why it is worth having: every frame shows a *different* number, so there is no single truth
+row - but the display's own arithmetic is a per-frame oracle for free: a frame's reading is
+right when `total == round(liters x 1.729, 2)`. That is a self-check no still can offer and the
+material for the running-display behaviour (`docs/EXTRACTION.md`: a pump mid-fill is not a
+transaction until the numbers stop). Frames extract with the `ffmpeg` line above.

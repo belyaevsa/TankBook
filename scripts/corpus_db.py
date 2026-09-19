@@ -133,7 +133,7 @@ def load_windows(con: sqlite3.Connection) -> None:
                          min(xs), min(ys), max(xs), max(ys)))
 
 
-LIVE_ROW = re.compile(r"^\|\s*`?(live-\d+)(?:\.mov)?`?\s*\|\s*(\d+)\s*\|(.*)$")
+LIVE_ROW = re.compile(r"^\|\s*`?((?:live|video)-\d+[\w-]*?)(?:\.mov|\.mp4)?`?\s*\|\s*(\d+)[^|]*\|(.*)$")
 
 
 def load_media(con: sqlite3.Connection, in_bucket: set[str] | None, known: dict[str, tuple[int, int]]) -> None:
@@ -156,11 +156,11 @@ def load_media(con: sqlite3.Connection, in_bucket: set[str] | None, known: dict[
             continue  # a duplicate that was removed from the folder and the bucket
         rows.setdefault(name, {"frames": frames, "paired": paired, "note": note, "batch": batch})
     folder = FIX / "pump-live"
-    for path in folder.glob("live-*.*"):
-        if path.suffix.lower() in (".mov", ".heic"):
+    for path in list(folder.glob("live-*.*")) + list(folder.glob("video-*.*")):
+        if path.suffix.lower() in (".mov", ".heic", ".mp4"):
             rows.setdefault(path.stem, {"frames": None, "paired": None, "note": None, "batch": None})
     for stem, info in sorted(rows.items()):
-        for suffix in (".mov", ".heic"):
+        for suffix in ((".mp4",) if stem.startswith("video-") else (".mov", ".heic")):
             path = folder / f"{stem}{suffix}"
             key = S3_MEDIA_PREFIX + path.name
             was = known.get(path.name, (None, None))
@@ -173,7 +173,7 @@ def load_media(con: sqlite3.Connection, in_bucket: set[str] | None, known: dict[
                 match = con.execute("select name from fixtures where name like ?", (paired + "%",)).fetchone()
                 paired = match[0] if match else paired
             con.execute("insert into media values (?,?,?,?,?,?,?,?,?,?,?)",
-                        (path.name, "live" if suffix == ".mov" else "keyframe",
+                        (path.name, {".mov": "live", ".heic": "keyframe", ".mp4": "video"}[suffix],
                          str(path.relative_to(ROOT)), size,
                          key, f"{S3_ENDPOINT}/{S3_BUCKET}/{key}", in_bucket_now,
                          info["frames"], paired, info["note"], info["batch"]))

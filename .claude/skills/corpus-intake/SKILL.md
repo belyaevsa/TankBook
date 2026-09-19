@@ -17,7 +17,8 @@ For each file decide which of the four it is; the owner usually drops a mixed ba
 |---|---|---|
 | Pump display still (`.HEIC`/`.jpg`) | `Spike/ReceiptSpike/fixtures/pump/pump-NNN-<make>-<station>-<detail>-<country>.jpg` | yes |
 | Receipt still | `Spike/ReceiptSpike/fixtures/receipts/receipt-NNN-<station>-<detail>-<country>.jpg` | yes |
-| Live Photo record (`.mov` beside a HEIC) or a plain video | `Spike/ReceiptSpike/fixtures/pump-live/live-<IMGnumber>.mov` | **no** - the `tankbook-corpus` bucket |
+| Live Photo record (`.mov` beside a HEIC) | `Spike/ReceiptSpike/fixtures/pump-live/live-<IMGnumber>.mov` | **no** - the `tankbook-corpus` bucket |
+| A plain video (not from the owner's camera roll) | `pump-live/video-NNN-<make>-<station>-<detail>-<country>.mp4`, **cut to the seconds that show the display** and re-encoded without audio or metadata (`ffmpeg -ss … -t … -an -map_metadata -1 -c:v libx264 -crf 18`); a person in the rest of the clip never enters the corpus | **no** - the bucket |
 | A HEIC that is a copy of a still already in the corpus | delete it | - |
 
 Match copies by perceptual hash first (`dhash` at 16 px, distance 0 = identical) and by reading

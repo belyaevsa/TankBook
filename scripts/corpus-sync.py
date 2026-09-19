@@ -34,7 +34,7 @@ BUCKET = "tankbook-corpus"
 ROOT = Path(__file__).resolve().parent.parent
 # (bucket prefix, local folder, glob patterns) - extend as more media leaves git.
 SETS = [
-    ("pump-live/", ROOT / "Spike/ReceiptSpike/fixtures/pump-live", ("*.mov", "*.heic", "*.MOV", "*.HEIC")),
+    ("pump-live/", ROOT / "Spike/ReceiptSpike/fixtures/pump-live", ("*.mov", "*.heic", "*.mp4", "*.MOV", "*.HEIC", "*.MP4")),
 ]
 # The annotated data, pushed beside the media so the bucket is a complete copy.
 FIX = ROOT / "Spike/ReceiptSpike/fixtures"
@@ -97,7 +97,9 @@ def push(s3) -> None:
         for path in files:
             key = prefix + path.name
             size = path.stat().st_size
-            if key in remote and remote[key][0] == size and remote[key][1] == md5(path):
+            # A multipart ETag (it carries a "-") is not an MD5: size alone
+            # decides for those, as pull already does.
+            if key in remote and remote[key][0] == size and ("-" in remote[key][1] or remote[key][1] == md5(path)):
                 skipped += 1
                 continue
             s3.upload_file(str(path), BUCKET, key)
