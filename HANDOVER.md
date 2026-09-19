@@ -33,6 +33,12 @@ in `excluded:`), `scripts/pump-windows-check.py --check` 0.
 | PU.17/18 | the comma drawn where displays draw it; cells calibrated on aggregate corpus geometry; one strip resolution | 0.698 → 0.717 (transaction fields) |
 | PU.27 | contrast collapse on under the calibrated framing; interior blank cells kept; `PumpSegmentsModel.swift` validated against the Python model (246/247, 100 % agreement) | 0.732 |
 | PU.28 | oracle second pass (3 strings), rotation the consumers never applied | count agreement **282/433**, digit-only **0.609 all / 0.728 count-correct** |
+| PU.21 | the decode law in Swift (`PumpReadingLaw`): beam, conventions, exact tier, windows in nats, preset and truncated tiers, boards tried as the price | annotated strings: **294/320 committed at 0.997**; one misread per fixture: 3.9 % wrong |
+| PU.22 | the reader on real cells (`PumpReader`, `PumpReaderPipelineTests`, the gate-mirror) | **39 committed at 0.949, 12/114 photos every field right** (3/114 before the law) |
+| PU.20 | abstention frontier: five-crop TTA, label smoothing | 0.99 precision holds to **25 %** coverage (was 13 %) |
+| PU.23 | row assignment from geometry | 451/456 |
+| PU.24 (partial) | the automatic locator: Vision boxes ranked by the reader | median IoU **0.008 → 0.62**; live path (no annotation) **1/114** photos |
+| PU.29 | the classification stage and the alpha notice in the app | `.pump` reachable from every capture/attach/replace path; kind on attachment, entry and gateway |
 
 **The five lessons of this tranche**
 
@@ -60,6 +66,16 @@ statistics; the locator question is open; the shoot list stands.
 called with `kind: "receipt"`. Every pump rule, the gate, `DigitRepair` and the ratchet guard a door
 nobody walks through, while a user's real pump photo runs the receipt parser ungated. Rows to file
 once the owner says what the off-gate behaviour should be (review G1-G3).
+
+**Where it stands at the end of 2026-09-19 (all in the orchestrator's own hands - the owner asked
+for no more dispatches on this tranche):** on the annotated windows the reader commits 39 of 320
+cells at 0.949 and reads 12 of 114 photos completely; on a raw photo (locator included) 1 of 114.
+The gate is 0.99 / 0.60. The three levers, in order: the locator's verifier still passes labels
+and banners so row assignment rarely gets a clean column (PU.24's next round); the slicer
+miscounts 35 % of windows (PU.8 leftovers, faint Wayne LCD and glare splits); the dp bit (0.78).
+PU.19 (fusion over the 77 Live records) is filed and unstarted. The `pump-reader` branch is
+**not merged**; the 235 MB of Live movies in `pump-live/` need a decision (git or an external
+fixture store) before it is.
 
 **What is still not there, in order:** (a) per-glyph 0.215 on count-correct windows is far from
 the gate - the next levers are the weakest segments d/g (~0.58) and the per-make gap (Scheidt
