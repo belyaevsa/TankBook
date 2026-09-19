@@ -946,14 +946,14 @@
       "runtime": "iOS.26.5"
     },
     "PJ.20-import-sendfile": {
-      "commit": "cb57067",
+      "commit": "8bb63792",
       "device": "iPhone 17",
-      "runtime": "iOS.26.5"
+      "runtime": "iOS.27.0"
     },
     "PJ.20-import-sendfile-ru": {
-      "commit": "cb57067",
+      "commit": "8bb63792",
       "device": "iPhone 17",
-      "runtime": "iOS.26.5"
+      "runtime": "iOS.27.0"
     },
     "PJ.200-guest-reminders-row": {
       "commit": "17b76604",
