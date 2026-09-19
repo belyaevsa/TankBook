@@ -196,3 +196,27 @@ row - but the display's own arithmetic is a per-frame oracle for free: a frame's
 right when `total == round(liters x 1.729, 2)`. That is a self-check no still can offer and the
 material for the running-display behaviour (`docs/EXTRACTION.md`: a pump mid-fill is not a
 transaction until the numbers stop). Frames extract with the `ffmpeg` line above.
+
+## Frames and tracking (2026-09-20)
+
+Two scripts in `ml/pump-reader` turn the records into labelled training frames without a
+single new annotation:
+
+```
+cd ml/pump-reader
+PYTHONPATH=src .venv/bin/python -m pump_reader.frames        # every movie -> frames/<stem>/NNN.jpg
+PYTHONPATH=src .venv/bin/python -m pump_reader.track         # the still's quads carried into its record
+```
+
+`frames` extracts all 92 movies (7 214 frames, 1.4 GB, gitignored, regenerates in minutes).
+`track` registers each frame to its paired still directly - ORB on the display region, RANSAC
+homography, never chained frame to frame - maps the still's quads through it and drops a frame
+whose registration is weak (< 30 inliers) or whose quads leave the image or change area
+implausibly. It writes `frames/<stem>/windows.json` (the corpus shape, keyed by frame, with the
+still's `field` / `text` / `legibility`) and `frames/<stem>/sheet.jpg` with the quads drawn -
+the one human step is a glance at the sheet. **Only records paired to a train still are
+tracked** (decision 9); the 22 heldout records are the same fills as heldout stills and never
+train. First run: **46 records, 1 906 frames kept, 302 dropped** (the drops are the far, blurred
+opening frames of the zoom-in records and `live-6227`, the plain video whose framing never
+matches its still). Every kept frame carries the still's text as its label - the raw material
+of `pump_reader.realglyphs`.
