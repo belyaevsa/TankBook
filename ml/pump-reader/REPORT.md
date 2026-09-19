@@ -240,6 +240,42 @@ tight on the pitch; PU.1's renders carry a margin), and the dataset has to be
 built from the slicer's own framing. `pump-004`, `pump-009`, `pump-013`,
 `pump-015` all still read wrong.
 
+### Round 2 (orchestrator, 2026-09-19): the training material reviewed against the real cells
+
+`runs/2026-09-19/train-sheet-before.png` is 96 samples of what the model was
+actually trained on; `held-out-cells-final.png` is what it is asked to read.
+Side by side, four defects, none of them a modelling question:
+
+1. **The LCD ghost could be lighter than the ground.** Ghost, ground and ink were
+   sampled from independent colour ranges, so an off segment often drew as a
+   bright outline. A real ghost is a faint step from the ground toward the ink.
+   Now derived from the sampled pair (`profiles.resolve`), `test_lcd_ghost.py`.
+2. **The cell was one glyph wide, not one pitch wide.** PU.9 cut the target's
+   tight box, so every training glyph ran edge to edge; a real slicer cell has
+   the pitch's slack around the glyph and the neighbours' edges reaching in.
+3. **One LCD palette** (pale mint) against a corpus of grey-blue, dark olive,
+   yellow-green, white-blue and amber LCDs; and a technology prior of 40 % LED +
+   VFD for a corpus that is nearly all LCD. Six palette families, prior 85/10/5.
+4. **Augmentation far heavier than the corpus**: blur up to σ 1.5, a 2–6 px
+   black bar on 30 % of samples, perspective with black corners. Tamed; the
+   warp now clamps to the edge.
+
+Same `SegmentNet`, same recipe otherwise:
+
+| model | all 433 per-glyph | count-correct (259) per-glyph | dp bit (cc) |
+|---|---|---|---|
+| PU.9 | 0.177 | 0.215 | 0.74 |
+| round 2, 6 000 steps | 0.293 | 0.387 | 0.75 |
+| round 2, 15 000 steps / 120 k samples (**shipped**) | 0.309 | **0.400** | 0.74 |
+
+Per-segment on count-correct cells: a 0.85 b 0.79 c 0.81 d 0.83 e 0.88 f 0.83
+g 0.86. Doubling the steps bought 1.3 points, so the reader is limited by what
+the renders still do not show, not by training. `held-out-cells-r2.png`: the
+clean cells read right; what is left is the faint Wayne LCD (`pump-062`), the
+washed-out `pump-004` (`3008` → `???8`), and the dp landing on the wrong
+neighbour. Per-window is still ~0 because a window needs every glyph AND its
+dp right.
+
 ## Named mutation: drop the dp bit
 
 In `dataset.py`, the target's dp bit was dropped (7 bits, dp slot padded with a

@@ -17,14 +17,16 @@ from .profiles import MakeProfile
 # Default per-operation probabilities (overridable per call).
 DEFAULT_PROBS: dict[str, float] = {
     "perspective": 0.6,
-    "ghosting": 0.5,
-    "blur": 0.6,
-    "glare": 0.5,
+    "ghosting": 0.4,
+    "blur": 0.5,
+    "glare": 0.4,
     "canopy": 0.4,
     "reflection": 0.4,
     "contrast_collapse": 0.15,
     "noise_exposure": 0.7,
-    "occlusion": 0.3,
+    # Real cells almost never carry a hose or finger edge; the sheets showed
+    # the old 0.3 / 2-6 px bars dominating the training set.
+    "occlusion": 0.08,
 }
 
 
@@ -63,7 +65,6 @@ def _bilinear(img: np.ndarray, sx: np.ndarray, sy: np.ndarray) -> np.ndarray:
     fy = (sy - y0)[..., None].astype(np.float32)
     x1 = x0 + 1
     y1 = y0 + 1
-    valid = (x0 >= 0) & (x1 < w) & (y0 >= 0) & (y1 < h)
     x0c = np.clip(x0, 0, w - 1)
     x1c = np.clip(x1, 0, w - 1)
     y0c = np.clip(y0, 0, h - 1)
@@ -73,9 +74,9 @@ def _bilinear(img: np.ndarray, sx: np.ndarray, sy: np.ndarray) -> np.ndarray:
     i10 = img[y1c, x0c].astype(np.float32)
     i11 = img[y1c, x1c].astype(np.float32)
     out = i00 * (1 - fx) * (1 - fy) + i01 * fx * (1 - fy) + i10 * (1 - fx) * fy + i11 * fx * fy
-    out = out.astype(np.float32)
-    out[~valid] = 0.0
-    return out
+    # Outside the source the sample is clamped to the edge, not black: a real
+    # warp of a display window never has a black corner, it has more display.
+    return out.astype(np.float32)
 
 
 def warp_perspective(img: np.ndarray, hmat: np.ndarray) -> np.ndarray:
@@ -101,7 +102,9 @@ def apply_lcd_ghosting(
     """Strengthen the faint off-segment ghosts (lcd only)."""
     if ghost_mask is None:
         return img
-    strength = float(rng.uniform(0.1, 0.5))
+    # Real LCD ghosts are faint - a strong ghost is what makes an off segment
+    # indistinguishable from an on one, which is the d/g confusion on the sheets.
+    strength = float(rng.uniform(0.02, 0.2))
     on = np.asarray(profile.on_color.midpoint(), dtype=np.float32)
     g = ghost_mask[..., None].astype(np.float32)
     return img + g * (on - img) * strength
@@ -110,8 +113,8 @@ def apply_lcd_ghosting(
 def apply_blur(img: np.ndarray, rng: np.random.Generator) -> np.ndarray:
     pil = Image.fromarray(img.astype(np.uint8))
     if rng.random() < 0.6:
-        pil = pil.filter(ImageFilter.GaussianBlur(float(rng.uniform(0.5, 1.5))))
-    if rng.random() < 0.35:
+        pil = pil.filter(ImageFilter.GaussianBlur(float(rng.uniform(0.3, 0.9))))
+    if rng.random() < 0.2:
         k = 3 if rng.random() < 0.5 else 5
         kernel = np.zeros((k, k), dtype=np.float32)
         kernel[k // 2, :] = 1.0 / k
@@ -212,7 +215,7 @@ def apply_occlusion(img: np.ndarray, rng: np.random.Generator) -> np.ndarray:
     y0 = float(rng.uniform(-0.3, 1.3)) * h
     x1 = float(rng.uniform(0.7, 1.3)) * w
     y1 = float(rng.uniform(-0.3, 1.3)) * h
-    d.line([x0, y0, x1, y1], fill=255, width=int(rng.integers(2, 7)))
+    d.line([x0, y0, x1, y1], fill=255, width=int(rng.integers(1, 4)))
     mask = mask.filter(ImageFilter.GaussianBlur(0.5))
     m = (np.asarray(mask, dtype=np.float32) / 255.0)[..., None]
     dark = float(rng.uniform(0.0, 0.3))

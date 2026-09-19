@@ -58,6 +58,16 @@ class MakeProfile:
 
     def resolve(self, rng: np.random.Generator) -> "Resolved":
         """Sample one concrete instance of every range."""
+        on = self.on_color.sample(rng)
+        ground = self.ground_color.sample(rng)
+        if self.technology == "lcd":
+            # An LCD ghost is the off segment showing faintly THROUGH the ground:
+            # a short step from the sampled ground toward the sampled ink, never
+            # a colour of its own that can land lighter than the ground.
+            f = float(rng.uniform(0.04, 0.22))
+            ghost = tuple(int(round(ground[c] + (on[c] - ground[c]) * f)) for c in range(3))
+        else:
+            ghost = self.ghost_color.sample(rng)
         return Resolved(
             ratio=float(rng.uniform(*self.segment_ratio)),
             gap_frac=float(rng.uniform(*self.segment_gap)),
@@ -65,9 +75,9 @@ class MakeProfile:
             pitch=float(rng.uniform(*self.pitch)),
             dp_diameter_frac=float(rng.uniform(*self.dp_diameter)),
             dp_offset_frac=float(rng.uniform(*self.dp_offset)),
-            on=self.on_color.sample(rng),
-            ground=self.ground_color.sample(rng),
-            ghost=self.ghost_color.sample(rng),
+            on=on,
+            ground=ground,
+            ghost=ghost,
         )
 
     def is_lit(self, rgb: tuple[int, int, int]) -> bool:

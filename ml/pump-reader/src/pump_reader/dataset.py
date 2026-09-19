@@ -30,13 +30,35 @@ from PIL import Image
 
 from . import augment as _augment
 from .glyph import CELL_H, CELL_W, MARGIN, BLANK, DP_ONLY, SegmentLabel, render_glyph
-from .profiles import PROFILES, MakeProfile
+from .profiles import ColorRange, PROFILES, MakeProfile
 from .row import render_row_of_labels
 
 # LCD-heavy technology prior: LCD is the common pump panel, LED and VFD the less
 # common. A uniform prior would over-represent VFD far beyond its corpus share.
 TECHNOLOGIES: tuple[str, ...] = ("lcd", "led", "vfd")
-TECHNOLOGY_PRIORS: dict[str, float] = {"lcd": 0.6, "led": 0.3, "vfd": 0.1}
+# The corpus is almost entirely LCD (every Gilbarco, Wayne, Dresser, Scheidt and
+# Tokheim head in it); LED and VFD are kept as a minority so the reader does not
+# forget them.
+TECHNOLOGY_PRIORS: dict[str, float] = {"lcd": 0.85, "led": 0.10, "vfd": 0.05}
+
+# LCD palette families, by eye from the cell sheets (never fitted to a fixture):
+# (ground, on, ghost). Grey-blue transflective (Gilbarco), dark olive with black
+# ink (Wayne/Dresser), yellow-green (Scheidt/Tokheim), white-blue backlit, amber
+# backlit, and the pale mint PU.1 started with.
+LCD_PALETTES: tuple[tuple[ColorRange, ColorRange, ColorRange], ...] = (
+    (ColorRange((165, 172, 180), (215, 222, 232)), ColorRange((40, 44, 52), (85, 90, 98)),
+     ColorRange((150, 158, 168), (200, 208, 218))),
+    (ColorRange((85, 92, 78), (135, 142, 125)), ColorRange((12, 14, 12), (45, 48, 42)),
+     ColorRange((70, 78, 66), (120, 128, 112))),
+    (ColorRange((175, 185, 120), (225, 232, 175)), ColorRange((35, 42, 30), (80, 88, 70)),
+     ColorRange((160, 170, 110), (210, 218, 160))),
+    (ColorRange((200, 212, 225), (240, 246, 252)), ColorRange((30, 50, 80), (80, 100, 130)),
+     ColorRange((190, 202, 216), (232, 238, 246))),
+    (ColorRange((215, 170, 70), (245, 205, 120)), ColorRange((45, 30, 15), (95, 70, 40)),
+     ColorRange((205, 160, 65), (238, 198, 112))),
+    (ColorRange((170, 188, 178), (206, 220, 202)), ColorRange((30, 42, 36), (58, 70, 62)),
+     ColorRange((178, 194, 186), (198, 212, 198))),
+)
 
 # Blank and dp-only are their own classes (the slicer feeds leading-space and
 # decimal cells too); the ten digits share the remainder uniformly.
@@ -79,8 +101,8 @@ def _resolve_technology_palette(
     makes' LED colours (red / green / amber); LCD and VFD each have one.
     """
     if tech == "lcd":
-        p = PROFILES["gilbarco"]
-        return p.ground_color, p.on_color, p.ghost_color, 0.0
+        ground, on, ghost = LCD_PALETTES[int(rng.integers(0, len(LCD_PALETTES)))]
+        return ground, on, ghost, 0.0
     if tech == "vfd":
         p = PROFILES["scheidt"]
         return p.ground_color, p.on_color, p.ghost_color, p.bloom
@@ -213,9 +235,9 @@ def render_slicer_cell(
 
     A short row of the target plus 1-2 digit neighbours on each side is drawn
     clean (no augmentation) so the band and boxes are exact. The target's cell
-    is then cut tight: horizontally its own box (``CELL_W`` wide - the slicer's
-    cells are tight on the pitch, not advance-wide), vertically the whole row's
-    ink band (no vertical margin). Both crops jitter, then the crop is resized
+    is then cut the slicer's way: horizontally one pitch wide with the glyph
+    somewhere inside the pitch's slack, vertically the whole row's ink band
+    (no vertical margin). Both crops jitter, then the crop is resized
     to 32x48 with the same ``BILINEAR`` resampling ``score.py`` uses. The
     neighbours contribute the band and a realistic pitch; they do not bleed into
     the tight cell. Augmentation runs on the resized cell, as it does for the
@@ -232,12 +254,18 @@ def render_slicer_cell(
     b = boxes[n_left]
     # The left neighbour is always a digit, so its advance is one full pitch.
     pitch_px = boxes[n_left].x - boxes[n_left - 1].x
+    # The slicer's cell is one PITCH wide, not one glyph: the glyph sits inside
+    # it with the pitch's slack around it, and the neighbours' edges reach in
+    # at both sides. The slack is split with a random bias so the glyph is not
+    # always centred - the real grid is phased on run ends, not on centres.
+    slack = max(0.0, pitch_px - CELL_W)
+    lead = slack * float(rng.uniform(0.2, 0.8))
     dx = float(rng.uniform(-SLICER_X_JITTER, SLICER_X_JITTER)) * pitch_px
     dy = float(rng.uniform(-SLICER_Y_JITTER, SLICER_Y_JITTER)) * band_h
-    x0 = b.x + dx
+    x0 = b.x - lead + dx
     y0 = band_top + dy
     crop = row.crop(
-        (int(round(x0)), int(round(y0)), int(round(x0 + CELL_W)), int(round(y0 + band_h)))
+        (int(round(x0)), int(round(y0)), int(round(x0 + pitch_px)), int(round(y0 + band_h)))
     )
     resized = crop.resize((CELL_W, CELL_H), Image.BILINEAR)
     if augment:

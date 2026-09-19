@@ -5,7 +5,7 @@ ink-band y-crop (top of the highest lit pixel to the bottom of the lowest, no
 vertical margin) must leave lit pixels within 2 px of both the top and bottom
 canvas edges after the resize; the old margin framing left ``MARGIN`` of empty
 space instead. A ``1`` is segments b and c - the right-side verticals - so its
-lit columns must land in the right half of the canvas, not be centred by the
+lit columns' mean must land in the right half of the canvas, not be centred by the
 framing. Each test draws 300 samples (60 per make) and demands >= 95 % pass.
 """
 
@@ -49,6 +49,9 @@ def test_slicer_framing_1_sits_in_the_right_half() -> None:
         for _ in range(_N):
             img = render_slicer_cell(SegmentLabel.from_digit("1"), profile, rng, augment=False)
             cols = np.where(_lit_mask(img, profile).any(axis=0))[0]
-            if cols.size == 0 or cols.min() < 16:
+            # The cell is one pitch wide with the glyph somewhere in the slack,
+            # so a `1`'s ink (the glyph's right edge) lands right of the centre
+            # line: its columns' mean is in the right half.
+            if cols.size == 0 or cols.mean() < 16:
                 fails += 1
     assert fails / (5 * _N) <= 0.05, f"1 right-half failed {fails}/{5 * _N}"
