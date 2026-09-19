@@ -61,7 +61,7 @@ public enum PumpPhotoGate {
     /// does; the ratchet test asserts they match it. They describe the measured
     /// corpus, not a target - the ship decision is `violation(flagEnabled:)`
     /// against the precision threshold and coverage floor below.
-    public static let measuredNumericTotal: Int = 331
+    public static let measuredNumericTotal: Int = 363
 
     /// The precision threshold (B1): committed-value precision at or above this
     /// ships. ~99% is the analyses' convergence - a mode that pre-fills a wrong

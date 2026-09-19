@@ -181,6 +181,8 @@ was **not kept** - the file in the bucket is the 7 s cut, re-encoded without aud
 |---|---|---|---|
 | `video-001-wayne-circlek-running-display-ee` | 210 (720x1280, 30 fps) | Dresser Wayne, Circle K EE, **display counting up while pumping** | price `1.729` constant; total/liters run 3.18 / 1.84 → 4.98 / 2.88. Read at 1 fps by the orchestrator: 3.32/1.92, 3.73/2.16, 3.94/2.28, 4.27/2.47, 4.51/2.61, 4.88/2.82, 4.96/2.87 - every pair closes (`round(L x 1.729, 2)`) |
 
+| `video-002-wayne-running-display-slow-fill-ru` | 1184 (1280x720, 29 fps, 41 s) | Wayne, Russia, **display counting up** through a slow diesel fill, camera steady, whole clip kept (no person in frame) | price `73.60` constant; total/liters run 2314.72 / 31.45 → 2475.17 / 33.63 (`31.45 x 73.60 = 2314.72` closes). Second-hand clip, third-party |
+
 Why it is worth having: every frame shows a *different* number, so there is no single truth
 row - but the display's own arithmetic is a per-frame oracle for free: a frame's reading is
 right when `total == round(liters x 1.729, 2)`. That is a self-check no still can offer and the

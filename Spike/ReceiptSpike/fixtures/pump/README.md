@@ -1016,3 +1016,26 @@ redistribute, same standing as `pump-117`). No receipt; the arithmetic closes to
 what confirms the total, which sits under a strong window reflection (`legibility: partial`).
 Portrait, 3072 x 4096, no EXIF; the 98 board cell coincides with the transaction price, the
 other three are unlit. Three windows (468). Pump cells asserted: 328 → 331.
+
+## Added 2026-09-19 (twelve third-party stills: drive2.ru and four pasted)
+
+`pump-119` – `pump-130`, all **third-party** (eight from drive2.ru posts, four pasted by the product
+owner; same standing as `pump-117`: not ours to redistribute, a public release leaves them out).
+None has a receipt; every price on display closes the arithmetic to the cent, which is the truth.
+
+| id | head / station | shows | note |
+|---|---|---|---|
+| 119 | Wayne, Circle K EE | 59.58 / 43.52 / 1.369 | 95 miles; three unlit board cells |
+| 120 | Wayne, Circle K EE | 56.17 / 41.03 / 1.369 | four lit board prices, portrait, angled |
+| 121 | Wayne, Neste EE | 56.55 / 39.77 / 1.422 | `EUR` / `EUR/1L` labels, a second board cell 1.372, `Tb = 15°C` |
+| 122 | Wayne, Circle K EE | 56.14 / 39.56 / 1.419 | 98 milesPLUS; one board cell cut by the frame edge (not annotated) |
+| 123 | unknown, RU | 1911,53 / 41,70 / 45,84 | comma decimals; price cell cut at the bottom edge (`partial`); board cells cut at the left edge |
+| 124 | unknown, RU | 1803,39 / 0040,12 / 44,95 | zero-padded liters; price cut at the bottom (`partial`) |
+| 125 | Wayne, Circle K EE | 59.52 / 41.36 / – | **price out of frame** - `notOnDisplay`, CSV blank (59.52 / 41.36 = 1.439 is an inference, not a reading) |
+| 126 | Gilbarco, Circle K EE | 0056,76 / 0040,57 / – | zero-padded both rows, comma; price out of frame |
+| 127 | Wayne, EE (LõunaLeht photo) | 0.00 / 0.00 / – | idle, three board prices, 636 px - the smallest fixture |
+| 128 | Wayne, Gazpromneft RU | 0.00 / 0.00 / – | idle, five board prices 34.00–41.85 |
+| 129 | Wayne, Circle K EE | 53.82 / 38.39 / 1.402 | steep angle, price cell at the frame's bottom |
+| 130 | Wayne, RU | 1000.22 / 10.42 / 95.99 | a six-cell total with three zeros; car-wash reflection in the glass |
+
+45 windows (513). Pump cells asserted: 331 → 363.
