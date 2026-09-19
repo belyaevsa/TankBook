@@ -1209,3 +1209,16 @@ the display says, as `pump-018` established). The corpus's fourth big head type.
 | 211 | Wayne, Brazil (BRL) | 29,73 / 7,63 / 3,897 | `TOTAL A PAGAR` / `LITROS` / `PREÇO POR LITRO`, three grade cells, **three-decimal price**, 600 px - the price cell 8 px tall (`partial`) |
 
 12 windows (805). Pump cells asserted: 581 → 592. Currencies in the corpus: EUR RUB KZT ISK TMT NOK GBP SEK AUD BGN BYN PHP BRL.
+
+## Added 2026-09-20 (two owner captures; the first full annotation review)
+
+`pump-212`: Dresser Wayne at Circle K EE, D miles - 63.00 L at 2.069 = 130.35 EUR, four board
+cells (the D cell is the transaction price, printed `2069` without a point); a Live Photo whose
+record is `../pump-live/live-4386.mov` (73 frames). `pump-213`: Gilbarco at Circle K EE, pump 12,
+zero-padded `0112,71` / `0063,00` at `1,789` (63.00 L again - the same fill logic, a 63-litre
+tank). Both **train** (decision 9). Six + three windows (814). Pump cells asserted: 592 → 599 (pump-104's washed price, read on review as 1,949 and confirmed by `receipt-067`, is asserted too).
+
+The product owner walked the annotator through 108 entries the same day (`reviewed: true`),
+tightening quads corpus-wide, and read `pump-015`'s D price cell as **1.884** where the CSV holds
+the arithmetic's 1.889 (15.89 x 1.889 = 30.02; 1.884 gives 29.94) - declared in `csvDisagrees`,
+window `partial`, until a sharper look settles which digit is which.

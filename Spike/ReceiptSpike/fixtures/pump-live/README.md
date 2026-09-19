@@ -185,6 +185,12 @@ was **not kept** - the file in the bucket is the 7 s cut, re-encoded without aud
 
 | `video-003-wayne-circlek-fill-ends-ee` | 1209 (576x1024, 30 fps, 40 s) | Wayne, Circle K EE, **display counting up and then stopping** - the last ~4 s hold 155.48 / 75.51, the transaction's final state | price `2.059` constant; 146.89 / 71.34 → 155.48 / 75.51 (`75.51 x 2.059 = 155.48` closes). The one clip that shows the moment a fill becomes a transaction; second-hand, third-party |
 
+## Batch 6 (2026-09-20, product owner): one Live record
+
+| live | frames | paired still | note |
+|---|---|---|---|
+| `live-4386` | 73 (1920x1440) | `pump-212` | Dresser Wayne, Circle K EE; the HEIC became the still |
+
 Why it is worth having: every frame shows a *different* number, so there is no single truth
 row - but the display's own arithmetic is a per-frame oracle for free: a frame's reading is
 right when `total == round(liters x 1.729, 2)`. That is a self-check no still can offer and the
