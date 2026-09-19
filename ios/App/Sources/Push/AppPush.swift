@@ -144,6 +144,22 @@ final class AppPush {
 #if DEBUG
 import SwiftUI
 
+/// The UI-test marker for "a stored parse was deleted" (`-observeImportDelete`):
+/// the import stub counts every DELETE; the marker renders once one
+/// landed, so a test can prove an exit path issued it without a network.
+struct ImportParseDeletedMarker: View {
+    @AppStorage(ImportStubTransport.deleteCountKey) private var deleteCount = 0
+
+    var body: some View {
+        if ProcessInfo.processInfo.arguments.contains("-observeImportDelete"), deleteCount > 0 {
+            Text(verbatim: "·")
+                .frame(width: 1, height: 1)
+                .opacity(0.01)
+                .accessibilityIdentifier("importParseDeleted")
+        }
+    }
+}
+
 /// The UI-test marker for "the push-token PUT was acknowledged"
 /// (`-seedPushToken`): a 1 pt element the L4 waits on after a seeded sign-in.
 struct PushTokenRegisteredMarker: View {

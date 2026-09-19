@@ -34,6 +34,15 @@ struct ImportWizardView: View {
         // action), so the system nav bar - which would stack a second "Import"
         // title above it (P6.15a) - is hidden for all three wizard steps.
         .toolbar(.hidden, for: .navigationBar)
+        // F6a "cancel leaves nothing behind": every way out of the wizard that
+        // is not the commit drops the stored parses - Back to the source step
+        // and closing it, the presenter popping it - not only the Cancel
+        // buttons. A confirmed import already deleted them; a flow with no
+        // parse has nothing to delete.
+        .onDisappear {
+            guard let model, !model.didConfirm, !model.parseFiles.isEmpty else { return }
+            Task { await model.cancelImport() }
+        }
         .task {
             guard !didLoad else { return }
             didLoad = true

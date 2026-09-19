@@ -76,6 +76,7 @@ extension View {
         #if DEBUG
         return overlay(alignment: .topLeading) { BlobPrefetchLandedMarker() }
             .overlay(alignment: .topTrailing) { PushTokenRegisteredMarker() }
+            .overlay(alignment: .bottomLeading) { ImportParseDeletedMarker() }
         #else
         return self
         #endif

@@ -7,6 +7,13 @@ import Foundation
 @MainActor
 enum AppLaunchWiring {
     static func attach(pathMonitor: AppPathMonitor, sync: AppSync) {
+        #if DEBUG
+        // `-observeImportDelete`: the stub's DELETE count starts at zero
+        // for this launch, so the marker proves THIS run's exit path.
+        if ProcessInfo.processInfo.arguments.contains("-observeImportDelete") {
+            UserDefaults.standard.set(0, forKey: ImportStubTransport.deleteCountKey)
+        }
+        #endif
         BlobPrefetchService.shared.attach(pathMonitor)
         SyncService.attach(pathMonitor)
         // PR.20: a silent nudge runs the same opportunistic cycle the
