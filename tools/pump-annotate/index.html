@@ -112,13 +112,21 @@ async function openFixture(n) {
   img = new Image();
   img.onload = () => { fit(); draw(); };
   img.src = '/image/' + encodeURIComponent(n) + '?t=' + Date.now();
-  stillImg = img; frameMode = false; frameIdx = 0;
+  stillImg = img; resetFrames();
   document.querySelectorAll('[name=tracking]').forEach(r => r.checked = (entry.tracking || '') === r.value);
-  loadRecords(n);
+  recordsLoaded = loadRecords(n);
   renderList(); renderWins(); location.hash = encodeURIComponent(n);
 }
+let recordsLoaded = Promise.resolve();
+function resetFrames() {
+  frameMode = false; frameIdx = 0; records = [];
+  $('#frameSlider').style.display = 'none'; $('#frameSlider').value = 0; $('#frameSlider').max = 0;
+  $('#framesToggle').textContent = 'View frames'; $('#frameName').textContent = ''; $('#recinfo').textContent = '';
+}
 async function loadRecords(n) {
-  records = await (await fetch('/api/records/' + encodeURIComponent(n))).json();
+  const got = await (await fetch('/api/records/' + encodeURIComponent(n))).json();
+  if (n !== current) return;   // the user moved on while this was in flight
+  records = got;
   $('#live').style.display = records.length ? '' : 'none';
   $('#rec').innerHTML = records.map((r, i) => `<option value="${i}">${r.movie}</option>`).join('');
   showRecordInfo();
@@ -129,7 +137,8 @@ function showRecordInfo() {
   $('#recinfo').textContent = `${r.tracked.length} tracked of ${r.extracted} frames` + (r.extracted ? '' : ' – run pump_reader.frames / track');
   $('#frameSlider').max = Math.max(0, r.tracked.length - 1);
 }
-function enterFrames() {
+async function enterFrames() {
+  await recordsLoaded;
   const r = currentRecord(); if (!r || !r.tracked.length) return;
   frameMode = true; frameIdx = Math.min(frameIdx, r.tracked.length - 1); $('#frameSlider').style.display = '';
   $('#framesToggle').textContent = 'Back to still'; showFrame();
@@ -139,10 +148,12 @@ function leaveFrames() {
   $('#frameName').textContent = ''; fit(); draw();
 }
 function showFrame() {
-  const r = currentRecord(); const name = r.tracked[frameIdx]; if (!name) return;
+  if (!frameMode) return;
+  const r = currentRecord(); const name = r && r.tracked[frameIdx]; if (!name) return;
+  const movie = r.movie, still = current;
   $('#frameSlider').value = frameIdx; $('#frameName').textContent = `${name} · inliers ${r.frames[name].inliers} · ${frameIdx + 1}/${r.tracked.length}`;
   frameImg = new Image();
-  frameImg.onload = () => { img = frameImg; fit(); draw(); };
+  frameImg.onload = () => { if (frameMode && current === still && currentRecord() && currentRecord().movie === movie) { img = frameImg; fit(); draw(); } };
   frameImg.src = '/frame/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name);
 }
 function collect() {
