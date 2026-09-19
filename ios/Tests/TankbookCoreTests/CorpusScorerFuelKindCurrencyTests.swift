@@ -120,12 +120,17 @@ struct CorpusScorerFuelKindCurrencyTests {
             #expect(header == documented, "\(name) header must be the documented header; got '\(header)'")
             let expected = try CorpusScorer.loadExpected(url)
             #expect(!expected.isEmpty, "\(name) parsed no rows")
+            // No silent holes: every non-header line parses to a row. The
+            // count itself is a corpus fact that changes with every intake,
+            // so it is read off the file, not pinned here.
+            let lines = try String(contentsOf: url, encoding: .utf8)
+                .split(separator: "\n").dropFirst().filter { !$0.isEmpty }.count
+            #expect(expected.count == lines, "\(name): \(lines) lines, \(expected.count) rows parsed")
             for row in expected.values {                rows += 1
                 if row.fuelKind != nil { assertedFuelKind += 1 }
                 if row.currency != nil { assertedCurrency += 1 }
             }
         }
-        #expect(rows == 73 + 114 + 3 + 9, "corpus row count drifted: \(rows)")
         // The vacuous-assertion guard: a scored field nobody asserts is not
         // scored at all. The new columns must carry real cells, or this whole
         // task would measure nothing.
