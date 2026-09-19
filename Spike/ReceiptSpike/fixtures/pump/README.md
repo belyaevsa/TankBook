@@ -991,3 +991,19 @@ not production commits.
 **every EXIF field stripped** (product owner, 2026-09-19: no GPS, device or timestamp in the
 corpus from here on; earlier fixtures keep what they were committed with). Windows annotated in
 `windows.json` (+6 windows, 462).
+
+## Added 2026-09-19 (a press photo, and a correction to pump-013)
+
+`pump-117`: Dresser Wayne head at an Alexela station, Estonia, 98 - 52.65 L at 2.165 EUR/L =
+113.99 EUR (the arithmetic closes to the cent). **Third-party**: an ERR news photo of 2022-06-16
+(`https://s.err.ee/photo/crop/2022/06/16/1512979heedc.jpg`, added at the product owner's request),
+the corpus's first fixture that is not the owner's own capture - it has no receipt, so its truth
+is display-only, and it is not ours to redistribute; a public release of the corpus leaves it out.
+Frontal, sunlit, 2730 x 1535 with no EXIF. The 98 board cell coincides with the transaction
+price; the two other grade cells are unlit. Three windows (465).
+
+`pump-013` corrected while the owner reviewed the annotations in `tools/pump-annotate`: the
+price cell reads **1.774**, not 1.779. 1.779 was 13.06 / 7.34 - an inference, never on the
+display - and none of the four board prices (1.774 / 1.834 / 1.824 / 1.984) reproduces 13.06, so
+the transaction price is simply not shown. The cell is now a `board` window, `unitPrice` is
+`notOnDisplay`, and the CSV's price is blank (unscored). Pump cells asserted: 326 → 328.

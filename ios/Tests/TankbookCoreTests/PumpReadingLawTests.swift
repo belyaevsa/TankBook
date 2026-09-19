@@ -264,6 +264,9 @@ struct PumpReadingLawTests {
             for raw in ann["windows"] as? [[String: Any]] ?? [] {
                 guard let fieldName = raw["field"] as? String, let field = PumpField(rawValue: fieldName),
                       let text = raw["text"] as? String, !text.isEmpty else { continue }
+                // A window read through glare is the annotator's best guess,
+                // not a fact the law may repair the other fields against.
+                if raw["legibility"] as? String == "partial" { continue }
                 var cells = Self.cells(for: text)
                 if let mutate { cells = mutate(field, cells) }
                 windows.append(PumpLocatedWindow(field: field, cells: cells))
