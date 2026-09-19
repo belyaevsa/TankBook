@@ -33,55 +33,22 @@ enum PumpRowAssignment {
 
     static func assign(windows: [Window], rotationCW: Int) -> Assignment {
         guard !windows.isEmpty else { return Assignment(roles: []) }
-        let ordered = windows.map { PumpQuadWarp.readingOrder($0.quad, rotationCW: rotationCW) }
-        let boxes = ordered.map { Self.bounds($0, rotationCW: rotationCW) }
-
+        let boxes = windows.map { Self.bounds(PumpQuadWarp.readingOrder($0.quad, rotationCW: rotationCW),
+                                              rotationCW: rotationCW) }
         var roles = [PumpField?](repeating: nil, count: windows.count)
 
-        // Boards: greedy groups of near-equal windows sharing a baseline (a
-        // row, Wayne and Dresser) or a centre line (a column, Lukoil and the
-        // Russian Gilbarco heads).
-        var used = Set<Int>()
-        var rows: [[Int]] = []
-        var columns: [[Int]] = []
-        func sameSize(_ a: CGRect, _ b: CGRect) -> Bool {
-            abs(a.width - b.width) <= boardWidthTolerance * max(a.width, b.width)
-                && abs(a.height - b.height) <= boardWidthTolerance * max(a.height, b.height)
-        }
         // Rows first: a horizontal board is the common case, and a vertical
         // pair of transaction windows must never be mistaken for a column board.
-        for i in boxes.indices where !used.contains(i) {
-            var row = [i]
-            for j in boxes.indices where j != i && !used.contains(j) {
-                let a = boxes[i], b = boxes[j]
-                if sameSize(a, b), abs(a.midY - b.midY) <= boardBaselineTolerance * min(a.height, b.height) {
-                    row.append(j)
-                }
-            }
-            if row.count >= boardMinimumWindows {
-                rows.append(row)
-                for k in row { used.insert(k) }
-            }
-        }
+        var used = Set<Int>()
+        let rows = boardGroups(boxes, used: &used, axis: .row)
         // Columns only on a head with no row board at all (Lukoil, the Russian
-        // Gilbarco heads stack their grade prices vertically).
-        if rows.isEmpty {
-            for i in boxes.indices where !used.contains(i) {
-                var column = [i]
-                for j in boxes.indices where j != i && !used.contains(j) {
-                    let a = boxes[i], b = boxes[j]
-                    if sameSize(a, b), abs(a.midX - b.midX) <= boardBaselineTolerance * min(a.width, b.width) {
-                        column.append(j)
-                    }
-                }
-                // Three equal windows and nothing else is the transaction
-                // column itself, not a board.
-                if column.count >= boardMinimumWindows, column.count < windows.count {
-                    columns.append(column)
-                    for k in column { used.insert(k) }
-                }
-            }
+        // Gilbarco heads stack their grade prices vertically). Three equal
+        // windows and nothing else is the transaction column itself.
+        var columns = rows.isEmpty ? boardGroups(boxes, used: &used, axis: .column) : []
+        for group in columns where group.count >= windows.count {
+            for k in group { used.remove(k) }
         }
+        columns.removeAll { $0.count >= windows.count }
 
         // A head whose only windows are one equal-width row is a horizontal
         // transaction layout (an overlay), not a board: read it left to right.
@@ -96,17 +63,39 @@ enum PumpRowAssignment {
 
         // The transaction column, top-down.
         let column = boxes.indices.filter { !used.contains($0) }.sorted { boxes[$0].midY < boxes[$1].midY }
-        let order: [PumpField]
-        switch column.count {
-        case 3: order = [.total, .liters, .unitPrice]
-        case 2: order = [.total, .liters]
-        case 1: order = [.liters]
-        default: order = []
-        }
+        let order: [PumpField] = [[], [.liters], [.total, .liters], [.total, .liters, .unitPrice]][min(column.count, 3)]
         for (k, field) in zip(column, order) {
             roles[k] = field
         }
         return Assignment(roles: roles)
+    }
+
+    private enum Axis { case row, column }
+
+    /// Greedy groups of near-equal windows sharing a baseline (row) or a
+    /// centre line (column), at least `boardMinimumWindows` strong.
+    private static func boardGroups(_ boxes: [CGRect], used: inout Set<Int>, axis: Axis) -> [[Int]] {
+        func sameSize(_ a: CGRect, _ b: CGRect) -> Bool {
+            abs(a.width - b.width) <= boardWidthTolerance * max(a.width, b.width)
+                && abs(a.height - b.height) <= boardWidthTolerance * max(a.height, b.height)
+        }
+        func aligned(_ a: CGRect, _ b: CGRect) -> Bool {
+            switch axis {
+            case .row: return abs(a.midY - b.midY) <= boardBaselineTolerance * min(a.height, b.height)
+            case .column: return abs(a.midX - b.midX) <= boardBaselineTolerance * min(a.width, b.width)
+            }
+        }
+        var groups: [[Int]] = []
+        for i in boxes.indices where !used.contains(i) {
+            let group = [i] + boxes.indices.filter { j in
+                j != i && !used.contains(j) && sameSize(boxes[i], boxes[j]) && aligned(boxes[i], boxes[j])
+            }
+            if group.count >= boardMinimumWindows {
+                groups.append(group)
+                for k in group { used.insert(k) }
+            }
+        }
+        return groups
     }
 
     /// The axis-aligned box of a quad, in the frame where the display reads
