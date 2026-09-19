@@ -45,6 +45,16 @@ A pump row never asserts `fuelKind`; a receipt row does. **The receipt is the tr
 guess. Where a pump and a receipt show one fill, name both files `…-pair-…` and register the pair
 in `ios/Tests/TankbookCoreTests/CorpusPairTests.swift`.
 
+## 2b. The split (decision 9, product owner 2026-09-19)
+
+`pump/split.csv` names the **frozen heldout set** - 62 of the 211 stills, drawn once with a seed
+and never redrawn - and every still added after it is **train**: append `<filename>,train` to
+the file (a still absent from it is read as train anyway; the row keeps the list complete). Never
+add a heldout row: the model-scored ratchets (`PumpReaderHarnessTests`, `PumpReaderPipelineTests`,
+`PumpDisplayCaptureTests`) run on the heldout set only, so a fresh still joining it would move a
+measurement for no reason, and a train still is what the classifier's real glyphs come from.
+`scripts/corpus_db.py sql "select split, count(*) from fixtures where kind='pump' group by 1"`.
+
 ## 3. Window annotations (pump stills only; orchestrator's own work - agents cannot see)
 
 `windows.json` gets one entry per still: `field` (`total` / `liters` / `unitPrice` / `board`),

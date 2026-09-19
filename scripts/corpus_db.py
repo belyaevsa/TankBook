@@ -43,7 +43,8 @@ create table meta (key text primary key, value text);
 create table fixtures (
   name text primary key, kind text not null, path text not null, bytes integer, sha256 text,
   width integer, height integer,
-  liters text, unitPrice text, total text, fuelKind text, currency text, station text);
+  liters text, unitPrice text, total text, fuelKind text, currency text, station text,
+  split text);
 create table entries (
   fixture text primary key references fixtures(name),
   rotationCW integer not null default 0, reviewed integer not null default 0,
@@ -99,6 +100,10 @@ def previous(db: Path) -> tuple[dict[str, tuple[int, int]], dict[str, tuple[int,
 
 
 def load_fixtures(con: sqlite3.Connection, known: dict[str, tuple[int, int]]) -> None:
+    # decision 9: the frozen heldout draw; a pump still not listed is train.
+    split: dict[str, str] = {}
+    with (FIX / "pump" / "split.csv").open() as f:
+        split = {r["filename"]: r["split"] for r in csv.DictReader(f)}
     for kind in ("pump", "receipts"):
         folder = FIX / kind
         with (folder / "expected.csv").open() as f:
@@ -107,11 +112,12 @@ def load_fixtures(con: sqlite3.Connection, known: dict[str, tuple[int, int]]) ->
                 digest = sha256(path) if path.exists() else None
                 w, h = known.get(digest) if digest in known else (dimensions(path) if path.exists() else (None, None))
                 con.execute(
-                    "insert into fixtures values (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "insert into fixtures values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (row["filename"], "pump" if kind == "pump" else "receipt",
                      str(path.relative_to(ROOT)), path.stat().st_size if path.exists() else None, digest, w, h,
                      row.get("liters") or None, row.get("unitPrice") or None, row.get("total") or None,
-                     row.get("fuelKind") or None, row.get("currency") or None, row.get("station") or None))
+                     row.get("fuelKind") or None, row.get("currency") or None, row.get("station") or None,
+                     (split.get(row["filename"], "train") if kind == "pump" else None)))
 
 
 def load_windows(con: sqlite3.Connection) -> None:
