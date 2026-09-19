@@ -295,6 +295,16 @@ unchanged and is what keeps per-window near zero - PU.11 F2: the dp bit has
 AUC 0.52 on real cells, and PU.12 finding 3 says why (a dot in a corner where
 real displays draw a comma below the baseline between cells).
 
+### The headline is transaction fields only (product owner, 2026-09-19)
+
+`score.py --fields` defaults to `total,liters,unitPrice`; the board is out of the gate. Same
+model and decoder as round 3, 320 transaction windows (192 count-correct):
+
+| | per-glyph | digit only | windows, every digit right |
+|---|---|---|---|
+| all 320 | 0.429 | 0.569 | 0.266 |
+| count-correct 192 | 0.523 | **0.698** | **0.370** |
+
 ## Named mutation: drop the dp bit
 
 In `dataset.py`, the target's dp bit was dropped (7 bits, dp slot padded with a

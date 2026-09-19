@@ -814,6 +814,19 @@ glyph-level test set and the locator's oracle. The gate is the existing `PumpPho
 on committed cells ≥ 0.99, coverage against the 0.60 floor - scored by the same scorer, so the
 reader lands on the same ratchet as the rules parser (53/320 as of this writing).
 
+**Decisions (product owner, 2026-09-19).** (1) **The ship gate scores total, volume and
+price only** - the grade-price board cells are annotated (`field: board`) and reported on
+request, never in the headline; a board is a different display family (distance shot, often
+dot-matrix) and no journey promises reading it. (2) **Capture is a Live Photo**: the product
+owner shares HEIC files with the Live record, so the reader may assume several frames of the
+panel at inference and fuse per cell (glare and reflections move, digits do not); the corpus
+intake keeps the Live record. (3) **Synthetic geometry may be calibrated on the corpus's
+aggregate shape statistics** (cell aspect, phase, digit mix, comma rate - from `slices.json`
+rects and `windows.json` strings), never on pixels or per-fixture labels; the gate stays on all
+114. (4) The locator question - whether a tap-to-frame crop is an acceptable v1 - is open. (5)
+The shoot list stands: Scheidt +20, Tokheim +15, Lukoil/Adast +10, night +25, rain +15, KZT +10,
+full-resolution originals, and a display-glass make per fixture.
+
 **Where it lives.** Training, rendering, export and scoring are Python under `ml/pump-reader/`
 (PyTorch → coremltools), outside every gate except their own `pytest`; the exported `.mlpackage` is
 an app resource and the locator, slicer, decoder and Core ML wrapper are Swift in

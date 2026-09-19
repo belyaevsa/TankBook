@@ -236,6 +236,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dump", type=Path, default=None)
     parser.add_argument("--boxes", type=Path, default=None,
                         help="PU.4 slices.json: slice from the slicer's cell rects")
+    parser.add_argument("--fields", default="total,liters,unitPrice",
+                        type=lambda v: set(v.split(",")),
+                        help="window fields in the headline; the grade-price board is NOT in the "
+                             "ship gate (product owner, 2026-09-19) - pass 'board' to see it")
     parser.add_argument("--threshold-decode", action="store_true",
                         help="per-bit 0.5 threshold instead of the constrained decode (A/B only)")
     parser.add_argument("--only-count-correct", action="store_true",
@@ -284,6 +288,8 @@ def main(argv: list[str] | None = None) -> int:
             text = win.get("text", "")
             if not text:
                 skipped_empty += 1
+                continue
+            if win.get("field") not in args.fields:
                 continue
             quad = np.asarray(win["quad"], dtype=np.float64) * np.array([w, h])
             quad = rotate_points_cw(quad.tolist(), rot, (w, h))
