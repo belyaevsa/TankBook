@@ -81,6 +81,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--spill-prob", type=float, default=0.0)
     parser.add_argument("--contrast-prob", type=float, default=0.0)
+    parser.add_argument("--framing", type=str, default="slicer", choices=["slicer", "glyph"])
     args = parser.parse_args(argv)
 
     smoke = args.smoke
@@ -92,7 +93,11 @@ def main(argv: list[str] | None = None) -> int:
     rng = np.random.default_rng(args.seed)
     torch.manual_seed(args.seed)
 
-    recipe = {"spill_prob": args.spill_prob, "contrast_prob": args.contrast_prob}
+    recipe = {
+        "spill_prob": args.spill_prob,
+        "contrast_prob": args.contrast_prob,
+        "framing": args.framing,
+    }
     train_ds = SyntheticDataset(seed=args.seed, length=args.train_size, cache=True, **recipe)
     val_ds = SyntheticDataset(
         seed=args.seed + VAL_SEED_OFFSET, length=val_size, cache=True, **recipe
@@ -154,6 +159,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     metrics = {
         "steps": steps, "spill_prob": args.spill_prob, "contrast_prob": args.contrast_prob,
+        "framing": args.framing,
         "seed": args.seed,
         "wall_seconds": round(wall, 1),
         "train_size": args.train_size,

@@ -56,6 +56,14 @@ SPILL_PROB: float = 0.4
 SPILL_OVERLAP_PX: int = MARGIN + 2
 _SPILL_ADVANCE: float = CELL_W - SPILL_OVERLAP_PX
 
+# Slicer framing (PU.9): the cell is cut the way PumpGlyphSlicer hands it over,
+# not the way a lone glyph is drawn. The x crop is the target's own tight box
+# (one glyph wide, CELL_W), shifted by +-8 % of the profile's advance; the y
+# crop is the whole row's ink band (top of the highest lit pixel to the bottom
+# of the lowest, no vertical margin), shifted by +-6 % of the band height.
+SLICER_X_JITTER: float = 0.08
+SLICER_Y_JITTER: float = 0.06
+
 
 def _sample_technology(rng: np.random.Generator) -> str:
     return str(rng.choice(TECHNOLOGIES, p=[TECHNOLOGY_PRIORS[t] for t in TECHNOLOGIES]))
@@ -173,6 +181,73 @@ def render_cell(
     return render_glyph(label, profile, rng, augment=augment, overrides=overrides)
 
 
+def _row_ink_band(row: Image.Image, profile: MakeProfile) -> tuple[int, int]:
+    """The whole row's lit-pixel band: top of the highest to bottom of the lowest.
+
+    Mirrors the slicer's ``bandTop``/``bandBottom`` (the row profile thresholded
+    against the panel's on/ground split), so the cell crop carries no vertical
+    margin. Blank or dp-only targets still get the neighbours' band, exactly as
+    the slicer cuts a blank cell at the strip's band.
+    """
+    arr = np.asarray(row, dtype=np.float32)
+    lum = arr.mean(axis=2)
+    lum_on = sum(profile.on_color.midpoint()) / 3.0
+    lum_ground = sum(profile.ground_color.midpoint()) / 3.0
+    threshold = (lum_on + lum_ground) / 2.0
+    lit = lum < threshold if lum_on < lum_ground else lum > threshold
+    rows = np.where(lit.any(axis=1))[0]
+    if rows.size == 0:
+        return 0, arr.shape[0] - 1
+    return int(rows.min()), int(rows.max())
+
+
+def render_slicer_cell(
+    label: SegmentLabel,
+    profile: MakeProfile,
+    rng: np.random.Generator,
+    *,
+    augment: bool = True,
+    overrides: dict[str, float] | None = None,
+) -> Image.Image:
+    """Render the target the way the slicer hands it over (PU.9).
+
+    A short row of the target plus 1-2 digit neighbours on each side is drawn
+    clean (no augmentation) so the band and boxes are exact. The target's cell
+    is then cut tight: horizontally its own box (``CELL_W`` wide - the slicer's
+    cells are tight on the pitch, not advance-wide), vertically the whole row's
+    ink band (no vertical margin). Both crops jitter, then the crop is resized
+    to 32x48 with the same ``BILINEAR`` resampling ``score.py`` uses. The
+    neighbours contribute the band and a realistic pitch; they do not bleed into
+    the tight cell. Augmentation runs on the resized cell, as it does for the
+    glyph framing.
+    """
+    n_left = int(rng.integers(1, 3))
+    n_right = int(rng.integers(1, 3))
+    left = [_sample_neighbour_label(rng) for _ in range(n_left)]
+    right = [_sample_neighbour_label(rng) for _ in range(n_right)]
+    row, boxes = render_row_of_labels(left + [label] + right, profile, rng, augment=False)
+
+    band_top, band_bottom = _row_ink_band(row, profile)
+    band_h = band_bottom - band_top + 1
+    b = boxes[n_left]
+    # The left neighbour is always a digit, so its advance is one full pitch.
+    pitch_px = boxes[n_left].x - boxes[n_left - 1].x
+    dx = float(rng.uniform(-SLICER_X_JITTER, SLICER_X_JITTER)) * pitch_px
+    dy = float(rng.uniform(-SLICER_Y_JITTER, SLICER_Y_JITTER)) * band_h
+    x0 = b.x + dx
+    y0 = band_top + dy
+    crop = row.crop(
+        (int(round(x0)), int(round(y0)), int(round(x0 + CELL_W)), int(round(y0 + band_h)))
+    )
+    resized = crop.resize((CELL_W, CELL_H), Image.BILINEAR)
+    if augment:
+        arr, _ = _augment.augment(
+            np.asarray(resized, dtype=np.uint8), profile, rng, ghost_mask=None, overrides=overrides
+        )
+        return Image.fromarray(arr, "RGB")
+    return resized
+
+
 def _clamp_shift(dx: float, size: float, canvas: float, min_frac: float) -> float:
     """Clamp a paste offset so at least ``min_frac`` of the pasted image stays visible."""
     min_dx = min_frac * size - size
@@ -224,14 +299,19 @@ class SyntheticDataset:
         cache: bool = True,
         spill_prob: float = 0.0,
         contrast_prob: float = 0.0,
+        framing: str = "slicer",
     ) -> None:
         # Neighbour spill and contrast collapse are both real on the corpus and
         # both LOWER the held-out score when trained on (REPORT.md, the PU.7
         # ablation), so the shipped recipe leaves them off; the knobs stay so
         # the ablation can be re-run when the slicer or the profiles change.
+        # ``framing`` picks the cell renderer: "slicer" cuts the cell as the
+        # slicer hands it over (PU.9), "glyph" keeps the lone-glyph renderer
+        # with its crop jitter, so the ablation can re-run the old framing.
         self.seed = seed
         self.length = length
         self.spill_prob = spill_prob
+        self.framing = framing
         self.overrides = {"contrast_collapse": contrast_prob}
         self._cache: list[tuple[np.ndarray, np.ndarray] | None] = (
             [None] * length if cache else []
@@ -257,12 +337,15 @@ class SyntheticDataset:
         tech = _sample_technology(rng)
         label = _sample_dataset_label(rng)
         profile = with_technology(PROFILES[make], tech, rng)
-        img = render_cell(
-            label, profile, rng, augment=True,
-            spill_prob=self.spill_prob, overrides=self.overrides,
-        )
-        ground = img.getpixel((0, 0))
-        img = _jitter(img, rng, ground)
+        if self.framing == "slicer":
+            img = render_slicer_cell(label, profile, rng, augment=True, overrides=self.overrides)
+        else:
+            img = render_cell(
+                label, profile, rng, augment=True,
+                spill_prob=self.spill_prob, overrides=self.overrides,
+            )
+            ground = img.getpixel((0, 0))
+            img = _jitter(img, rng, ground)
         arr = np.asarray(img, dtype=np.uint8).transpose(2, 0, 1)  # CHW uint8
         return arr, bits_to_target(label.bits)
 

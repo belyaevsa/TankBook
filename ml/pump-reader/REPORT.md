@@ -1,3 +1,63 @@
+# PU.9 - train on the slicer's own framing
+
+`dataset.py` gains a second cell renderer, `framing="slicer"` (the new default):
+it draws a short row of 1-2 digit neighbours either side of the target, then
+cuts the cell the way `PumpGlyphSlicer` hands it over - horizontally the
+target's own tight box (one glyph wide), vertically the whole row's ink band
+(top of the highest lit pixel to the bottom of the lowest, no vertical margin),
+with x/y jitter, resized to 32x48 with the same `BILINEAR` resampling `score.py`
+uses. `framing="glyph"` keeps the lone-glyph renderer with its crop jitter, so
+the ablation can re-run it (`train.py --framing`). `SegmentNet` is untouched,
+so the before/after isolates the data framing.
+
+## Training
+
+`python -m pump_reader.train --steps 6000 --seed 0 --out .out/train-pu9-slicer`
+
+- Wall time **248.3 s**. Final validation: **per-segment 0.9837**, per-digit
+  0.8894 (up from the shipped recipe's 0.965 / 0.781 - the tight, full-height
+  cells are easier to read than the margin-carrying lone glyphs).
+- Committed metrics: `runs/2026-09-19/metrics-pu9.json`.
+
+## Export
+
+64 KB `.mlpackage` to `ios/App/Resources/PumpSegments.mlpackage` (same size as
+PU.3/PU.7).
+
+## Held-out score
+
+Scored with `--boxes ../../ios/.build/pump-reader-out/slices.json` (433 all
+windows, then the 259 count-correct subset). The before is the shipped recipe
+on the same anchored grid (REPORT.md below, "The shipped recipe").
+
+| model | all 433 per-glyph | count-correct (259) per-glyph | dp bit (cc) |
+|---|---|---|---|
+| before (shipped) | 0.0910 | 0.1052 | 0.7331 |
+| after (PU.9 slicer framing) | **0.1774** | **0.2147** | 0.7425 |
+
+**Training on the slicer's own framing more than doubles held-out per-glyph
+accuracy** (0.105 -> 0.215 count-correct, 0.091 -> 0.177 all). This confirms
+the PU.8 finding: the classifier was not weak, it was being fed cells it had
+never seen. The dp bit reads at 0.7425 on the count-correct windows (0.7345 all),
+essentially unchanged from the shipped 0.7331.
+
+## Tests
+
+20 passed (18 existing + `test_framing.py`). New: a slicer-framed `8` has lit
+pixels within 2 px of both canvas edges (oracle: the band trim) and a `1`'s lit
+columns land in the right half (oracle: the segment geometry b/c), each 300
+samples at >= 95 %. Named mutation: replacing the ink-band y-crop with the full
+row height sends `test_slicer_framing_8_touches_top_and_bottom` red (300/300).
+
+## Found and not fixed
+
+- **`pump-004` still reads wrong.** The framing win is broad (dp unchanged,
+  d/g still the weakest segments at ~0.59/0.58 on count-correct) but the
+  per-fixture misses are not re-examined here; the next row should look at the
+  remaining wrong cells on the anchored grid, not the aggregate.
+
+---
+
 # PU.7 - make the renders look like the corpus, then retrain
 
 Four render changes close the four gaps the PU.4 cell sheet showed, then a
@@ -170,6 +230,7 @@ then after the grid was anchored on the first occupied cell (259 count-correct,
 | PU.8 grid (245 cc) | shipped | 0.1253 | **0.1701** |
 | anchored grid (259 cc) | PU.3 | 0.0830 | 0.0975 |
 | anchored grid (259 cc) | shipped | 0.0910 | 0.1052 |
+| anchored grid (259 cc) | PU.9 slicer framing | **0.1774** | **0.2147** |
 
 The anchored grid is right by inspection (the sheet) and wins 14 windows on
 count, yet the classifier reads it WORSE - a framing change alone moves the
