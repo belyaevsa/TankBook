@@ -282,3 +282,35 @@ def render_glyph_mask(
     ghost_mask = Image.new("L", (CELL_W, CELL_H), 0)
     _draw_glyph(rgb, on_mask, ghost_mask, label, profile, res, 0.0, 0.0)
     return on_mask
+
+
+VALID_PATTERNS: tuple[int, ...] = tuple(
+    [SegmentLabel.from_digit(d).bits for d in DIGIT_SEGMENTS] + [BLANK.bits]
+)
+"""The seven-segment patterns a display can show (ten digits and blank), a-g only."""
+
+
+def decode_constrained(probs, *, allow_blank: bool = True) -> tuple[int, float]:
+    """Decode 8 segment probabilities to the most likely VALID glyph.
+
+    A per-bit threshold can emit a pattern no display shows; the digit is a
+    lookup over valid patterns ranked by likelihood, so the decoder searches
+    only those. Returns ``(bits, margin)`` where ``bits`` carries the chosen
+    a-g pattern plus the dp bit thresholded on its own, and ``margin`` is the
+    log-likelihood gap to the runner-up (an abstention signal for callers).
+    """
+    import math
+
+    p = [min(max(float(v), 1e-6), 1 - 1e-6) for v in probs[:7]]
+    scores = []
+    for pat in VALID_PATTERNS:
+        if pat == 0 and not allow_blank:
+            continue
+        ll = 0.0
+        for i in range(7):
+            ll += math.log(p[i]) if (pat >> i) & 1 else math.log(1 - p[i])
+        scores.append((ll, pat))
+    scores.sort(reverse=True)
+    best, second = scores[0], scores[1]
+    bits = best[1] | (0x80 if float(probs[7]) >= 0.5 else 0)
+    return bits, best[0] - second[0]

@@ -24,6 +24,7 @@ from PIL import Image, ImageOps
 
 from .augment import homography_from_corners
 from .dataset import bits_to_target, target_to_bits
+from .glyph import decode_constrained
 from .glyph import CELL_H, CELL_W, BLANK, DP_ONLY, SegmentLabel
 from .model import SegmentNet
 
@@ -209,9 +210,13 @@ def _read_string(bits_list: list[int]) -> str:
 
 
 def classify_cells(
-    model: SegmentNet, cells: list[Image.Image]
+    model: SegmentNet, cells: list[Image.Image], *, constrained: bool = True
 ) -> tuple[list[int], list[np.ndarray]]:
-    """Classify cells; returns per-cell (bits, 8-probability-vector)."""
+    """Classify cells; returns per-cell (bits, 8-probability-vector).
+
+    ``constrained`` decodes over the valid seven-segment patterns (the shipped
+    decoder); ``False`` is the per-bit threshold kept for the A/B.
+    """
     model.eval()
     bits: list[int] = []
     probs: list[np.ndarray] = []
@@ -219,7 +224,7 @@ def classify_cells(
         for cell in cells:
             p = torch.sigmoid(model(_to_tensor(cell)))[0].cpu().numpy()
             probs.append(p)
-            bits.append(target_to_bits(p))
+            bits.append(decode_constrained(p, allow_blank=False)[0] if constrained else target_to_bits(p))
     return bits, probs
 
 
@@ -231,6 +236,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dump", type=Path, default=None)
     parser.add_argument("--boxes", type=Path, default=None,
                         help="PU.4 slices.json: slice from the slicer's cell rects")
+    parser.add_argument("--threshold-decode", action="store_true",
+                        help="per-bit 0.5 threshold instead of the constrained decode (A/B only)")
     parser.add_argument("--only-count-correct", action="store_true",
                         help="score only windows whose slicer cell count matches the annotation")
     args = parser.parse_args(argv)
@@ -252,6 +259,8 @@ def main(argv: list[str] | None = None) -> int:
     per_make: dict[str, dict[str, int]] = {}
     seg_correct = np.zeros(8, dtype=np.int64)
     glyph_total = 0
+    digit_correct = 0
+    window_digits_correct = 0
     glyph_correct = 0
     window_total = 0
     window_correct = 0
@@ -293,13 +302,18 @@ def main(argv: list[str] | None = None) -> int:
                 cells = slice_cells_from_boxes(img, quad, cell_boxes)
             else:
                 cells, _ = slice_cells(img, quad, n)
-            pred_bits, _ = classify_cells(model, cells)
+            pred_bits, _ = classify_cells(model, cells, constrained=not args.threshold_decode)
 
             truth_bits = [c.bits for c in cells_truth]
             window_total += 1
             all_correct = True
+            digits_ok = True
             for tb, pb in zip(truth_bits, pred_bits):
                 glyph_total += 1
+                if (pb & 0x7F) == (tb & 0x7F):
+                    digit_correct += 1
+                else:
+                    digits_ok = False
                 seg_correct += (
                     (np.array([(pb >> i) & 1 for i in range(8)]) == bits_to_target(tb)).astype(np.int64)
                 )
@@ -309,6 +323,8 @@ def main(argv: list[str] | None = None) -> int:
                     all_correct = False
             if all_correct:
                 window_correct += 1
+            if digits_ok:
+                window_digits_correct += 1
 
             field = win.get("field", "?")
             per_make.setdefault(make, {"windows": 0, "correct": 0})
@@ -342,6 +358,10 @@ def main(argv: list[str] | None = None) -> int:
         "per_segment_accuracy": {_SEGMENT_NAMES[i]: round(per_segment[i], 4) for i in range(8)},
         "per_segment_mean": round(float(np.mean(per_segment)), 4),
         "per_glyph_accuracy": round(glyph_correct / glyph_total, 4) if glyph_total else 0.0,
+        # The digit alone (a-g), the dp bit aside: the number PU.5's arithmetic
+        # decimal recovery needs, since it places the point itself.
+        "per_digit_accuracy": round(digit_correct / glyph_total, 4) if glyph_total else 0.0,
+        "per_window_digits_accuracy": round(window_digits_correct / window_total, 4) if window_total else 0.0,
         "per_window_accuracy": round(window_correct / window_total, 4) if window_total else 0.0,
         "per_make": {
             m: {"windows": v["windows"], "correct": v["correct"]}

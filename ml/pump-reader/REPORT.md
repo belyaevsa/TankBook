@@ -276,6 +276,25 @@ washed-out `pump-004` (`3008` → `???8`), and the dp landing on the wrong
 neighbour. Per-window is still ~0 because a window needs every glyph AND its
 dp right.
 
+### Round 3 (orchestrator, 2026-09-19): the decoder, from PU.11-REVIEW-IMPL F1
+
+The scorer turned 8 sigmoids into a glyph by thresholding each bit at 0.5, so
+117 of its 128 possible a-g outputs were patterns no display shows - a quarter
+of all real reads were `?`. `decode_constrained` picks the most likely VALID
+pattern (log-likelihood over the ten digits; blank is the slicer's call, not the
+classifier's) and reports the margin to the runner-up. Same model, same slices:
+
+| decoder | per-glyph (a-g + dp) | digit only (a-g) | windows with every digit right |
+|---|---|---|---|
+| per-bit threshold | 0.400 | 0.532 | 0.209 |
+| constrained, blank allowed | 0.456 | 0.613 | 0.282 |
+| constrained, digits only (**shipped**) | 0.477 | **0.666** | **0.321** |
+
+(count-correct windows; all 433: digit only 0.411 → 0.539.) The dp bit is
+unchanged and is what keeps per-window near zero - PU.11 F2: the dp bit has
+AUC 0.52 on real cells, and PU.12 finding 3 says why (a dot in a corner where
+real displays draw a comma below the baseline between cells).
+
 ## Named mutation: drop the dp bit
 
 In `dataset.py`, the target's dp bit was dropped (7 bits, dp slot padded with a
