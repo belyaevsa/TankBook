@@ -2645,6 +2645,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },
+    "RV.298-expense-reminder-doors": {
+      "commit": "d2deafb2",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.298-expense-reminder-doors-ru": {
+      "commit": "d2deafb2",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "RV.37-replace-ask": {
       "commit": "4e7104f",
       "device": "iPhone 17",

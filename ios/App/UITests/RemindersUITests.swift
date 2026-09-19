@@ -431,3 +431,57 @@ final class RemindersUITests: XCTestCase {
                       "a reminder saved under a denied notification state still shows in the list")
     }
 }
+
+// MARK: - RV.298 an expense reminder's completion has the scan door too
+
+/// Hard rule 15 at the completion sheet for every entry kind: an expense
+/// reminder (the seeded "Insurance renewal") offers *Scan receipt* beside
+/// *Type amount*; the scan door opens the Capture screen in Expense mode, and
+/// the receipt's "Use this" lands in the expense form carrying the reminder's
+/// own pre-fill - the same hand-off the typing door makes.
+extension RemindersUITests {
+
+    private var receiptFixture: String {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Spike/ReceiptSpike/fixtures/receipts")
+            .appendingPathComponent("receipt-011-samara-diesel-ru.png")
+            .path
+    }
+
+    func testAnExpenseReminderOffersTheScanDoorAndItLandsInTheExpenseForm() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-presentScreen", "reminders", "-seedReminders",
+                               "-cameraStatus", "authorized", "-captureFixtureImage", receiptFixture]
+        app.launch()
+
+        let complete = app.buttons["reminderCompleteButton"].firstMatch
+        XCTAssertTrue(complete.waitForExistence(timeout: 10))
+        complete.tap()
+
+        let scan = app.buttons["reminderCompleteScanReceipt"]
+        XCTAssertTrue(scan.waitForExistence(timeout: 5), "an expense reminder offers the scan door")
+        XCTAssertTrue(app.buttons["reminderCompleteTypeAmount"].exists, "the typing door stays beside it")
+        scan.tap()
+
+        // Capture opens in Expense mode - the chip is selected, not merely offered.
+        let expenseChip = app.buttons["captureMode_expense"]
+        XCTAssertTrue(expenseChip.waitForExistence(timeout: 10), "the scan door opens the Capture screen")
+        XCTAssertTrue(expenseChip.isSelected, "and it opens in Expense mode")
+
+        let shutter = app.buttons["captureShutterButton"]
+        XCTAssertTrue(shutter.waitForExistence(timeout: 10))
+        shutter.tap()
+        let useThis = app.buttons["captureReviewUseButton"]
+        XCTAssertTrue(useThis.waitForExistence(timeout: 15))
+        useThis.tap()
+
+        // The expense form carries the reminder's pre-fill through the scan
+        // path exactly as through the typing one.
+        let title = app.textFields["expenseEntryTitleField"]
+        XCTAssertTrue(title.waitForExistence(timeout: 15), "the scan lands in the expense form")
+        XCTAssertEqual(title.value as? String, "Insurance renewal",
+                       "the reminder's title arrives as the expense title through the scan door")
+    }
+}

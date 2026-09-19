@@ -533,6 +533,10 @@ capture P3.5-reminder-complete-ru        ru -seedReminderComplete -presentScreen
 # and the two-line description test the row's width.
 capture PJ.24-reminder-complete-doors    en -seedReminderComplete -presentScreen reminders -presentReminderComplete
 capture PJ.24-reminder-complete-doors-ru ru -seedReminderComplete -presentScreen reminders -presentReminderComplete
+# RV.298: an expense reminder's sheet with both doors - "Scan receipt" beside
+# "Type amount" (the seeded insurance reminder).
+capture RV.298-expense-reminder-doors    en -seedReminders -presentScreen reminders -presentReminderComplete
+capture RV.298-expense-reminder-doors-ru ru -seedReminders -presentScreen reminders -presentReminderComplete
 capture P3.5-reminder-complete-prefill    en -seedReminderCompletionPrefill -presentScreen serviceEntry
 capture P3.5-reminder-complete-prefill-ru ru -seedReminderCompletionPrefill -presentScreen serviceEntry
 

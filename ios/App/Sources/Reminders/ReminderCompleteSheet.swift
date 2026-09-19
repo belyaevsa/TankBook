@@ -31,6 +31,10 @@ struct ReminderCompleteSheet: View {
 
     /// The entry sheet opened by "Type amount" (nested over this one).
     @State private var entrySheet: SheetRoute?
+    /// RV.298: an expense reminder's scan door - the Capture screen in Expense
+    /// mode over this sheet, the completion carried through the session into
+    /// the expense form the scan opens.
+    @State private var showExpenseCapture = false
 
     /// The completion moment: "now" - the sheet always completes the reminder
     /// as of the tap, so the next cycle counts from today, not the old due.
@@ -75,6 +79,21 @@ struct ReminderCompleteSheet: View {
             if newValue == nil, reminderIsDone() {
                 dismiss()
             }
+        }
+        .fullScreenCover(isPresented: $showExpenseCapture, onDismiss: captureClosed) {
+            CaptureView(initialMode: .expense, onEntrySaved: { showExpenseCapture = false })
+        }
+    }
+
+    /// The capture cover closed: a saved expense completed the reminder and
+    /// this sheet goes too; a cover left without a save drops the hand-off, so
+    /// the next expense the user opens does not inherit a completion it did
+    /// not come from.
+    private func captureClosed() {
+        if reminderIsDone() {
+            dismiss()
+        } else if completionSession.pending?.reminder.id == reminder.id {
+            completionSession.pending = nil
         }
     }
 
@@ -157,60 +176,61 @@ struct ReminderCompleteSheet: View {
     }
 
     private var costDoorsDescription: LocalizedStringKey {
-        entryKind.isService
-            ? "Creates a service entry pre-filled with today's date and odometer – scan the invoice or type a total."
-            : "Creates an entry pre-filled with the category, title and today's odometer – type a total and save."
+        entryKind.isService ? Self.serviceDoorsCopy : Self.expenseDoorsCopy
     }
 
-    /// The two entry doors side by side for a service reminder (the artboard's
-    /// row), the typing door alone for an expense one.
-    @ViewBuilder
-    private var costDoors: some View {
-        if entryKind.isService {
-            HStack(spacing: 8) {
-                Button(action: scanInvoice) {
-                    HStack(spacing: 7) {
-                        Image(systemName: "camera")
-                            .font(.system(size: 14, weight: .semibold))
-                        Text("Scan invoice")
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                    }
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(Theme.Palette.midnight)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 13)
-                    .background(Theme.Palette.taillight)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("reminderCompleteScanInvoice")
+    private static let serviceDoorsCopy: LocalizedStringKey =
+        "Creates a service entry pre-filled with today's date and odometer – scan the invoice or type a total."
+    private static let expenseDoorsCopy: LocalizedStringKey =
+        "Creates an entry pre-filled with the category, title and today's odometer – scan the receipt or type a total."
 
-                Button(action: typeAmount) {
-                    Text("Type amount")
+    /// The two entry doors side by side (hard rule 15): the scan door and the
+    /// typing door, for a service reminder (the invoice) and an expense one
+    /// (the receipt, RV.298) alike.
+    private var scanDoorIdentifier: String {
+        entryKind.isService ? "reminderCompleteScanInvoice" : "reminderCompleteScanReceipt"
+    }
+
+    private var scanDoorTitle: String {
+        entryKind.isService ? L10n.localize("Scan invoice") : L10n.localize("Scan receipt")
+    }
+
+    private func scanDoorTapped() {
+        if entryKind.isService { scanInvoice() } else { scanReceipt() }
+    }
+
+    private var costDoors: some View {
+        HStack(spacing: 8) {
+            Button(action: scanDoorTapped) {
+                HStack(spacing: 7) {
+                    Image(systemName: "camera")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text(scanDoorTitle)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.Palette.ink)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 13)
-                        .background(Theme.Palette.dash)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(RoundedRectangle(cornerRadius: 12)
-                            .stroke(Theme.Palette.hairline, lineWidth: 1))
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("reminderCompleteTypeAmount")
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(Theme.Palette.midnight)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .background(Theme.Palette.taillight)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
-        } else {
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(scanDoorIdentifier)
+
             Button(action: typeAmount) {
                 Text("Type amount")
-                    .font(.body.weight(.bold))
-                    .foregroundStyle(Theme.Palette.midnight)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.ink)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 13)
-                    .background(Theme.Palette.taillight)
+                    .background(Theme.Palette.dash)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12)
+                        .stroke(Theme.Palette.hairline, lineWidth: 1))
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("reminderCompleteTypeAmount")
@@ -307,6 +327,19 @@ struct ReminderCompleteSheet: View {
 
     private func scanInvoice() {
         openEntry(openScanner: true)
+    }
+
+    /// RV.298: the expense receipt lives in the Capture screen's Expense mode;
+    /// the hand-off is set first so the expense form the scan opens takes the
+    /// reminder's car, category and title exactly as the typing door does.
+    private func scanReceipt() {
+        completionSession.pending = ReminderCompletionSession.Pending(
+            reminder: reminder,
+            vehicleId: reminder.vehicleId,
+            completionDate: completionDate,
+            completionOdometer: currentOdometer,
+            openScanner: true)
+        showExpenseCapture = true
     }
 
     private func openEntry(openScanner: Bool) {

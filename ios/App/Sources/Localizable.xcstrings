@@ -4855,23 +4855,6 @@
         }
       }
     },
-    "Creates an entry pre-filled with the category, title and today's odometer – type a total and save.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Creates an entry pre-filled with the category, title and today's odometer – type a total and save."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Создаёт запись с предзаполненными категорией, названием и пробегом на сегодня – введите сумму и сохраните."
-          }
-        }
-      }
-    },
     "Currency": {
       "extractionState": "manual",
       "localizations": {
@@ -18022,6 +18005,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "≈ %@"
+          }
+        }
+      }
+    },
+    "Scan receipt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan receipt"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скан чека"
+          }
+        }
+      }
+    },
+    "Creates an entry pre-filled with the category, title and today's odometer – scan the receipt or type a total." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creates an entry pre-filled with the category, title and today's odometer – scan the receipt or type a total."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Создаст запись с категорией, названием и сегодняшним пробегом – отсканируйте чек или введите сумму."
           }
         }
       }

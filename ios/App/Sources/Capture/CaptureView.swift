@@ -81,13 +81,19 @@ struct CaptureView: View {
     /// completed entry looked like a failed one. The host closes the cover;
     /// this screen only says when.
     private let onEntrySaved: () -> Void
+    /// RV.298: the mode the opener asks for - a reminder's "Scan receipt" opens
+    /// in Expense mode. A mode the car is not offered is ignored, exactly as
+    /// the mode row would not show it; the user can still switch.
+    private let initialMode: CaptureMode?
 
     init(authorizer: CameraAuthorizing = SystemCameraAuthorizer(),
          injectedPowertrain: Powertrain? = nil,
+         initialMode: CaptureMode? = nil,
          onServiceEntry: @escaping () -> Void = {},
          onEntrySaved: @escaping () -> Void = {}) {
         self.authorizer = authorizer
         self.injectedPowertrain = injectedPowertrain
+        self.initialMode = initialMode
         self.onServiceEntry = onServiceEntry
         self.onEntrySaved = onEntrySaved
     }
@@ -219,6 +225,8 @@ struct CaptureView: View {
         if let forcedMode = ProcessInfo.processInfo.arguments.captureModeOverride,
            offeredModes.contains(forcedMode) {
             mode = forcedMode
+        } else if let initialMode, offeredModes.contains(initialMode) {
+            mode = initialMode
         } else if !offeredModes.contains(mode) {
             mode = CaptureMode.defaultMode(for: powertrain)
         }

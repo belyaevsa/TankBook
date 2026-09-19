@@ -148,6 +148,8 @@ flowchart TD
     Reminders -->|New reminder| ReminderForm
     Reminders -.->|back| Back3[return to opener]
     ReminderComplete -->|Scan invoice / Type amount| ServiceEntry
+    ReminderComplete -->|Scan receipt| Capture
+    ReminderComplete -->|Type amount| ExpenseEntry
     ReminderComplete -.->|Skip / dismiss| Reminders
     ReminderForm -->|Save| Reminders
     EditEntry -->|Save / Delete| Home
