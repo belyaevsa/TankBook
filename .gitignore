@@ -110,6 +110,5 @@ Spike/ReceiptSpike/fixtures/pump-live/frames/
 Spike/ReceiptSpike/fixtures/pump-live/*.mov
 Spike/ReceiptSpike/fixtures/pump-live/*.heic
 
-# Derived from the corpus files by scripts/corpus_db.py; rebuilt on every annotator save and push
-Spike/ReceiptSpike/fixtures/corpus.sqlite
+# scripts/corpus_db.py's scratch file (corpus.sqlite itself is committed)
 Spike/ReceiptSpike/fixtures/corpus.sqlite.tmp

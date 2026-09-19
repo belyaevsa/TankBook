@@ -6,7 +6,9 @@ The files in git stay the source of truth (`pump/expected.csv`,
 pairing tables, `CorpusPairTests.swift`); the ratchets read them and nothing
 else. This script folds them into one database for querying, for the
 annotator and for the bucket, and rebuilds it from scratch every time - it is
-derived, gitignored, and never edited by hand.
+derived, committed (product owner, 2026-09-19: browsable from a checkout without
+a build), and never edited by hand - a rebuild from unchanged inputs is
+byte-identical, so the diff is only ever real corpus change.
 
     scripts/corpus_db.py build            # -> fixtures/corpus.sqlite
     scripts/corpus_db.py build --s3       # also marks which media are in the bucket
@@ -15,7 +17,8 @@ derived, gitignored, and never edited by hand.
 Tables: fixtures (every still with its truth row, size, sha256), entries
 (the per-fixture annotation state), windows (one row per number window,
 quad as JSON plus its bounding box), media (Live records and videos, with
-their bucket key and pairing), pairs (the matched pump/receipt fills).
+their bucket key and pairing; whether a movie is on THIS machine is not
+recorded - `ls` answers that), pairs (the matched pump/receipt fills).
 """
 from __future__ import annotations
 
@@ -50,7 +53,7 @@ create table windows (
   field text not null, text text not null, legibility text, quad text not null,
   x0 real, y0 real, x1 real, y1 real);
 create table media (
-  name text primary key, kind text not null, path text, bytes integer, present integer not null,
+  name text primary key, kind text not null, path text not null, bytes integer,
   s3_key text not null, s3_url text not null, in_bucket integer,
   frames integer, paired_fixture text, note text, batch text);
 create table pairs (
@@ -78,16 +81,21 @@ def dimensions(path: Path) -> tuple[int | None, int | None]:
         return None, None
 
 
-def previous_dims(db: Path) -> dict[str, tuple[int, int]]:
-    """Dimensions are the slow part; carry them over by content hash."""
+def previous(db: Path) -> tuple[dict[str, tuple[int, int]], dict[str, tuple[int, int]]]:
+    """What the last build knew and this one may not recompute: dimensions
+    (slow) by content hash, and each medium's size and bucket presence - the
+    file is committed, so a build on a machine without the movies or without
+    the S3 key must not blank what a machine with them recorded."""
     if not db.exists():
-        return {}
+        return {}, {}
     try:
         with sqlite3.connect(db) as con:
-            return {s: (w, h) for s, w, h in con.execute(
+            dims = {s: (w, h) for s, w, h in con.execute(
                 "select sha256, width, height from fixtures where width is not null")}
+            media = {n: (b, k) for n, b, k in con.execute("select name, bytes, in_bucket from media")}
+            return dims, media
     except sqlite3.DatabaseError:
-        return {}
+        return {}, {}
 
 
 def load_fixtures(con: sqlite3.Connection, known: dict[str, tuple[int, int]]) -> None:
@@ -128,7 +136,7 @@ def load_windows(con: sqlite3.Connection) -> None:
 LIVE_ROW = re.compile(r"^\|\s*`?(live-\d+)(?:\.mov)?`?\s*\|\s*(\d+)\s*\|(.*)$")
 
 
-def load_media(con: sqlite3.Connection, in_bucket: set[str] | None) -> None:
+def load_media(con: sqlite3.Connection, in_bucket: set[str] | None, known: dict[str, tuple[int, int]]) -> None:
     """The README's pairing tables are the record of what each movie is; the
     folder says what is on this machine; the bucket key is deterministic."""
     readme = (FIX / "pump-live" / "README.md").read_text().splitlines()
@@ -155,19 +163,19 @@ def load_media(con: sqlite3.Connection, in_bucket: set[str] | None) -> None:
         for suffix in (".mov", ".heic"):
             path = folder / f"{stem}{suffix}"
             key = S3_MEDIA_PREFIX + path.name
-            present = path.exists()
-            known = (key in in_bucket) if in_bucket is not None else None
-            if not present and not known and suffix == ".heic":
+            was = known.get(path.name, (None, None))
+            in_bucket_now = (key in in_bucket) if in_bucket is not None else was[1]
+            size = path.stat().st_size if path.exists() else was[0]
+            if not path.exists() and not in_bucket_now and suffix == ".heic":
                 continue
             paired = info["paired"]
             if paired and not paired.endswith((".jpg", ".jpeg", ".png", ".heic")):
                 match = con.execute("select name from fixtures where name like ?", (paired + "%",)).fetchone()
                 paired = match[0] if match else paired
-            con.execute("insert into media values (?,?,?,?,?,?,?,?,?,?,?,?)",
+            con.execute("insert into media values (?,?,?,?,?,?,?,?,?,?,?)",
                         (path.name, "live" if suffix == ".mov" else "keyframe",
-                         str(path.relative_to(ROOT)) if present else None,
-                         path.stat().st_size if present else None, int(present),
-                         key, f"{S3_ENDPOINT}/{S3_BUCKET}/{key}", known,
+                         str(path.relative_to(ROOT)), size,
+                         key, f"{S3_ENDPOINT}/{S3_BUCKET}/{key}", in_bucket_now,
                          info["frames"], paired, info["note"], info["batch"]))
 
 
@@ -192,17 +200,20 @@ def bucket_keys() -> set[str]:
 
 
 def build(with_s3: bool = False) -> Path:
-    known = previous_dims(DB)
+    known, media_known = previous(DB)
     tmp = DB.with_suffix(".sqlite.tmp")
     tmp.unlink(missing_ok=True)
     with sqlite3.connect(tmp) as con:
         con.executescript(SCHEMA)
-        con.execute("insert into meta values ('built_from', ?)", (
-            subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip(),))
         load_fixtures(con, known)
         load_windows(con)
-        load_media(con, bucket_keys() if with_s3 else None)
+        load_media(con, bucket_keys() if with_s3 else None, media_known)
         load_pairs(con)
+        # The file is committed: a rebuild from unchanged inputs must be
+        # byte-identical, so no timestamps, no git revision, and a VACUUM to
+        # settle page layout.
+        con.commit()
+        con.execute("vacuum")
     tmp.replace(DB)
     return DB
 

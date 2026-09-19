@@ -21,8 +21,8 @@
   corpus as one database, built by `scripts/corpus_db.py` - fixtures with truth and size,
   annotation entries and windows, the media with their bucket keys and pairings, the matched
   pairs) plus the CSVs, `windows.json`, the station ledger and this README, so the bucket is a
-  complete copy and not only the bytes git refuses. The database is derived and gitignored;
-  `scripts/corpus_db.py build` rebuilds it, `tools/pump-annotate` rebuilds it on every save,
+  complete copy and not only the bytes git refuses. The database is derived;
+  `scripts/corpus_db.py build` rebuilds it, `tools/pump-annotate` rebuilds it on every save, and it is committed with the files it is built from (a rebuild from unchanged inputs is byte-identical);
   `scripts/corpus_db.py sql "…"` queries it. Frames regenerate from the movies with the
   `ffmpeg` line below.
 
