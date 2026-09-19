@@ -536,6 +536,22 @@ devices typing the same name mint the same id and converge instead of duplicatin
 name match selects the existing station rather than minting a second row. A blank or
 whitespace-only name creates nothing.
 
+**The brand is matched once, at minting, and is the user's from then on (RV.115 / RV.180,
+2026-09-18).** `brand` is the chain a `name` belongs to, set by the resolver from the station
+brand vocabulary (`docs/API.md` → `GET /reference/station-brands`: brands with alias spellings and
+a home `country`, bundled as a seed pack, cached, refreshed with `since_version`) through
+`StationBrandMatcher` - case- and script-insensitive, whole tokens only, legal forms and the
+generic station nouns dropped, longest spelling wins - so `Газпром`, `ГАЗПРОМНЕФТЬ`, `Gazpromneft`,
+`G-Drive` and `ООО "Газпромнефть-Центр" АЗС 12089` all mint stations carrying `brand = "Gazpromneft"`.
+`name` stays the site's full printed line: the brand is what the Log row and a picker show
+(the `displayTitle` accessor on the station), the name is what tells two forecourts of one chain apart, and a receipt
+naming only the chain invents no site. A name matching nothing mints a station with `brand = nil` -
+the user's own station, a first-class state, never an error. **Only a minted station is matched**:
+an existing station keeps whatever brand it has - matched, the user's own word, or cleared - so no
+later pack, sync merge or re-scan rewrites it (hard rule 13). The user changes the brand on the
+per-station settings screen and from the entry's station row (a vocabulary pick, their own word,
+or "No brand"), and the write is `setStationBrand`, an ordinary `.dirty` station edit.
+
 **The favourite is set by the user, never inferred (PJ.55).** `favorite` is the only station field
 the save stamp does not write: a favourite is a statement about the user's preference, not an
 observation about a visit, so no visit count, `lastUsedAt` or later curation may set it, and the
@@ -693,6 +709,17 @@ syncPayloadMemory (id text pk, payload text not null)
 
 `id` is the synced record's id (UUIDs are globally unique, so the key carries no entityType). Written on every successful push or pull; read when a dirty `Vehicle` is diffed. **This table is why the merge survives a relaunch**: the in-memory alternative dies with the process, and the first sync after a relaunch then claims *every* field changed – a stale device can revert another device's newer edit (hard rule 13). It lives in the same protected database as the records it remembers.
 
+### The S5 return notice (the "came back - delete again?" card's row)
+
+When an entry pulled from another device references a car **this device** deleted, the car resurrects as archived (SYNC.md S5) and the resurrect writes one notice for it. The card on Home and in the Garage reads that row - it is the only way the app knows a car came back rather than was simply archived - and the row is consumed by the user's answer. **Device-local** (deliberately NOT a synced table, like the sync cursor): the question belongs to the device that deleted the car, and the other devices see an archived car with entries, which is not a conflict for them.
+
+```sql
+vehicleReturn (vehicleId text pk references vehicle on delete cascade,
+               entryCount integer not null, returnedAt real not null)
+```
+
+One row per car, never one per entry: the first arriving entry resurrects the car and opens the notice at `entryCount = 1`, each later entry for a car whose notice is still open adds one (the card says "came back with 3 new entries"). A car with no open notice that is already live never gains one - the resurrect is a no-op for it. **Delete again** tombstones the car and its rows exactly as the user's original delete did (`softDeleteVehicle`: dirty, so the second tombstone pushes; the rows sit in Recently deleted for the undo window) and deletes the row; **Keep** deletes only the row. A hard-purged car takes its notice with it through the FK.
+
 ## Derived: consumption
 
 Never stored. Recomputed for a vehicle whenever any FillUp in range changes.
@@ -716,6 +743,48 @@ HEADLINE   headline(segments, window = 90 days, floor = 3):
              if count < floor: take the `floor` most recent segments overall (window extends)
              value = Σ liters / Σ km × 100        // distance-weighted, not mean of per100s
              label = honest span: "last 3 months" / "last 5 months" / "first estimate · N fill cycles"
+DISPLAY    (RV.296, 2026-09-19) the engine yields per100 and nothing else; every renderer reads the
+           car's figure through ConsumptionDisplay.value(per100:unit:) - L/100 and kWh/100 as is,
+           MPG (US) = 235.215 / per100, MPG (UK) = 282.481 / per100, km/L = 100 / per100. MPG and
+           km/L are INVERTED (higher is better): a trend's meaning ("improving") is unit-free, the
+           glyph follows the displayed figure (an improving MPG car shows ▲), and the percent beside
+           it is the displayed figure's own (a 20% drop in L/100 is a 25% rise in MPG -
+           HeadlineChange.displayedPercent(in:)). The edit toast compares at display precision in
+           the car's unit. Sites: the Home hero and best-this-year, the guest hero, the car switcher
+           vitals, the Trends tile and its sparkline, the Log row's per-fill figure, the month
+           divider, the after-save and edit toasts, the anomaly card, the F9a consumption quote.
+PROVENANCE (RV.118, 2026-09-19) what the headline is MADE OF, beside it on Home and Trends:
+             fills inside the headline's own spanDays (the same window, never a second one),
+             and how many of them were full tanks, led by the headline's honest label so an
+             extended window still names its real span - "last 3 months · 6 fills · 4 full tanks",
+             "last 5 months · 3 fills · 3 full tanks" (RV.296's walk: the label is the feature).
+             No closed segment: "Not enough data yet · N fills · M full tanks" with the counts
+             the car has, never a computed average. No fills: no line. EV cars: no line (the
+             segments are charge sessions, not fills). HeadlineProvenance.derive, read off the
+             engine's Headline - a coverage counted beside the figure, not a second computation.
+MONTH      (RV.119, 2026-09-19) the Log divider's glance, MonthGlance.derive over the counting
+GLANCE     entries and the engine's segments, per whole calendar month:
+             distanceKm = max − min odometer of the month's rows (≥ 2 readings, else absent)
+             per100     = Σ litres / Σ km × 100 over the segments CLOSING in the month (else absent)
+             costPerKm  = the .complete spend / distanceKm (else absent - never a partial ratio)
+             spendDelta = (spend − previous month's spend) / previous × 100, rounded, ONLY when
+                          both months are .complete in one currency, both hold ≥ 2 fills, the
+                          previous spend > 0 and the month is over (the month in progress is
+                          never compared). A gap month means no comparison.
+           Attached only to a section holding the whole month; a preview cut carries none.
+FILL       (RV.120, 2026-09-19) FillPattern.derive, nil under the floor (no headline) - that is the
+PATTERN    car whose numbers are noise. Over the headline's own span plus the fill that opened it:
+             kmBetweenFills   = mean positive odometer delta between consecutive fills (≥ 2, else absent)
+             daysBetweenFills = span / (fills − 1)                                    (≥ 2, else absent)
+             rangeLeftKm      = capacity / headline.per100 × 100 − (odometer − last full fill's),
+                                ONLY when the capacity is CORROBORATED by the user's own fills: some
+                                full fill ≥ 80% of it and none > 105% of it (hard rule 13 - a catalog
+                                figure nobody ever filled that far is a guess, and a range on a guess
+                                is confidently wrong); absent otherwise, or when nothing is left.
+             monthForecast    = the month's .complete spend so far / dayOfMonth × daysInMonth, rounded -
+                                a PREDICTION, labelled "≈ … on pace"; absent before day 7, below two
+                                money-bearing fills this month, or when the total is not exact.
+           The card names the tank the range was built on and omits any figure it cannot derive.
 LIFETIME   Σ liters / Σ km over all conflict-free segments – secondary stat.
 ANOMALY    rolling (trailing 90 days) vs the SEASONALLY-ALIGNED baseline: the same-length window
            one year (365 days) earlier, drawn from the trailing 12 months – NOT month-over-month

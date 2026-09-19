@@ -190,6 +190,7 @@ builder.Services.AddScoped<ConfigPublishService>();
 // rather than to a route that no longer exists.
 builder.Services.AddSingleton<CatalogSchemaValidator>();
 builder.Services.AddScoped<CatalogRepository>();
+builder.Services.AddScoped<Tankbook.Api.Reference.StationBrandRepository>();
 builder.Services.AddScoped<CatalogPublishService>();
 
 // Import parsing (docs/API.md "Import parsing", hard rule 9's named exception):
@@ -541,6 +542,12 @@ rates.MapGet("/pack", RateEndpoints.GetRatesPack);
 // has no write surface on the API at all.
 var catalog = v1.MapGroup("/catalog");
 catalog.MapGet("", CatalogEndpoints.GetCatalog);
+
+// Station brand vocabulary (docs/API.md "GET /reference/station-brands", RV.115):
+// public, ETag'd reference data in the catalog's shape. No write surface;
+// packs are written to the database (migration 025 seeds the first).
+var reference = v1.MapGroup("/reference");
+reference.MapGet("/station-brands", Tankbook.Api.Reference.StationBrandEndpoints.GetStationBrands);
 
 // Import parsing (docs/API.md "Import parsing"): the one endpoint that reads
 // what a field means, plus the public format list and the stored-parse read and

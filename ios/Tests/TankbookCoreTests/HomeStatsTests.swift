@@ -253,3 +253,89 @@ struct HomeStatsTests {
                 "the pending foreign fill contributes no figure; the last home price stands")
     }
 }
+
+// MARK: - RV.118 the headline says what it is made of
+
+/// The provenance is exact numbers off the engine's own headline - the span,
+/// the fills inside it, the full tanks among them - and it moves when a fill
+/// is added; a car under the floor reports the count it has and no average.
+struct HeadlineProvenanceTests {
+    private static let asOf = Date(timeIntervalSince1970: 1_752_000_000)
+    private static let day: TimeInterval = 86_400
+
+    private static func vehicle() -> Vehicle {
+        Vehicle(
+            id: UUID.v7(), createdAt: asOf - 400 * day, updatedAt: asOf - 400 * day,
+            deletedAt: nil, name: "Volvo V60", make: "Volvo", model: "V60", year: 2015,
+            plate: nil, powertrain: .ice, fuelKinds: [.petrol95],
+            tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
+            units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100, energy: .kWhPer100),
+            photo: nil, archived: false, paceLimitKmPerDay: 1500, initialOdometer: 100_000)
+    }
+
+    private static func fill(daysAgo: Int, odometer: Int, litres: Double, isFull: Bool) -> FillUp {
+        let date = asOf - Double(daysAgo) * day
+        return FillUp(
+            id: UUID.v7(), createdAt: date, updatedAt: date, deletedAt: nil,
+            vehicleId: UUID.v7(), date: date, odometer: odometer,
+            money: Money(amount: 50, currency: .eur, homeCurrency: .eur),
+            note: nil, attachments: [], provenance: .manual, conflict: .none,
+            purchaseGroupId: nil, volumeL: litres, unitPrice: nil,
+            fuelKind: .petrol95, fuelGrade: nil, isFull: isFull,
+            tankLevelAfterPct: isFull ? 100 : nil, stationId: nil,
+            crossCheck: .notApplicable, extraction: nil)
+    }
+
+    @Test("the window's fills and full tanks are counted exactly, and a new fill moves them")
+    func exactCountsThatMove() {
+        // Six fills inside 90 days, four full - three segments close; one older
+        // fill outside the window must not count.
+        var fills = [
+            Self.fill(daysAgo: 120, odometer: 100_000, litres: 40, isFull: true),
+            Self.fill(daysAgo: 80, odometer: 101_000, litres: 45, isFull: true),
+            Self.fill(daysAgo: 60, odometer: 101_500, litres: 20, isFull: false),
+            Self.fill(daysAgo: 50, odometer: 102_000, litres: 44, isFull: true),
+            Self.fill(daysAgo: 30, odometer: 102_600, litres: 25, isFull: false),
+            Self.fill(daysAgo: 20, odometer: 103_000, litres: 43, isFull: true),
+            Self.fill(daysAgo: 5, odometer: 103_800, litres: 46, isFull: true)
+        ]
+        let stats = HomeStats(vehicle: Self.vehicle(), entries: fills, asOf: Self.asOf)
+        let provenance = stats.provenance
+        #expect(stats.headline != nil)
+        #expect(provenance == HeadlineProvenance(fillCount: 6, fullTankCount: 4, spanDays: 90, underFloor: false,
+                                                 label: .window(months: 3)))
+
+        fills.append(Self.fill(daysAgo: 1, odometer: 104_000, litres: 15, isFull: false))
+        let moved = HomeStats(vehicle: Self.vehicle(), entries: fills, asOf: Self.asOf).provenance
+        #expect(moved?.fillCount == 7 && moved?.fullTankCount == 4, "a partial fill counts as a fill, not a full tank")
+    }
+
+    @Test("under the floor: the count it has, no average, no span")
+    func underTheFloor() {
+        let fills = [
+            Self.fill(daysAgo: 10, odometer: 100_000, litres: 40, isFull: true),
+            Self.fill(daysAgo: 3, odometer: 100_400, litres: 20, isFull: false)
+        ]
+        let stats = HomeStats(vehicle: Self.vehicle(), entries: fills, asOf: Self.asOf)
+        #expect(stats.headline == nil, "no segment closed - never a computed average")
+        #expect(stats.provenance == HeadlineProvenance(fillCount: 2, fullTankCount: 1, spanDays: nil, underFloor: true))
+        #expect(HomeStats(vehicle: Self.vehicle(), entries: [], asOf: Self.asOf).provenance == nil)
+    }
+
+    @Test("an extended window names its REAL span, and the fills inside it")
+    func extendedSpan() {
+        // Three segments, the oldest closing 150 days ago: the floor reaches
+        // past 90 days and the provenance says so.
+        let fills = [
+            Self.fill(daysAgo: 200, odometer: 100_000, litres: 40, isFull: true),
+            Self.fill(daysAgo: 150, odometer: 101_000, litres: 45, isFull: true),
+            Self.fill(daysAgo: 100, odometer: 102_000, litres: 44, isFull: true),
+            Self.fill(daysAgo: 20, odometer: 103_000, litres: 43, isFull: true)
+        ]
+        let stats = HomeStats(vehicle: Self.vehicle(), entries: fills, asOf: Self.asOf)
+        #expect(stats.headline?.windowExtended == true)
+        #expect(stats.provenance?.spanDays == 150)
+        #expect(stats.provenance?.label == .window(months: 5), "the honest label the line prints names the real span")
+        #expect(stats.provenance?.fillCount == 3, "the opening fill 200 days out is outside the claimed span")
+    }
+}

@@ -266,7 +266,10 @@ extension TankbookRepository {
     /// S5: an entry pulled from another device references a vehicle this device
     /// deleted. The vehicle resurrects as ARCHIVED (not active) so the entry has
     /// a home and the user can delete again in one tap - nothing is lost
-    /// silently (docs/SYNC.md S5).
+    /// silently (docs/SYNC.md S5). Every call counts one arriving entry on the
+    /// car's return notice: the first one resurrects and opens the notice, the
+    /// later ones (the car is live by then) only raise its count - the notice
+    /// is the "came back with N entries" card, and it stays until answered.
     public func resurrectArchivedIfTombstoned(vehicleId: UUID) throws {
         try database.write { db in
             let stamp = Date().timeIntervalSinceReferenceDate
@@ -275,6 +278,13 @@ extension TankbookRepository {
                 SET deletedAt = NULL, archived = 1, archivedAt = ?, updatedAt = ?, syncState = 'dirty'
                 WHERE id = ? AND deletedAt IS NOT NULL
                 """, arguments: [stamp, stamp, vehicleId.uuidString])
+            let resurrected = db.changesCount > 0
+            let noticeWaiting = try Bool.fetchOne(db, sql: """
+                SELECT EXISTS(SELECT 1 FROM \(TankbookSchema.vehicleReturn) WHERE vehicleId = ?)
+                """, arguments: [vehicleId.uuidString]) ?? false
+            if resurrected || noticeWaiting {
+                try recordVehicleReturn(vehicleId: vehicleId, at: stamp, in: db)
+            }
         }
     }
 

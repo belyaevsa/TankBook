@@ -233,12 +233,30 @@ endpoint, but it is an idempotent queue write and the only way the server learns
 actually needs - the backfill horizon is the demand, not a fixed window.
 
 
-### `GET /reference/station-brands` **[planned, RV.115]**
+### `GET /reference/station-brands` (RV.115, shipped 2026-09-18)
 
 The station **brand** vocabulary, so four spellings of one chain group as one. Same contract as
 `GET /catalog`: **public** (no auth - a signed-out user importing a file still needs it), ETag +
 `Cache-Control`, a versioned pack the client replaces wholesale, `since_version` for a delta. It is
 reference data, not a domain query, so hard rule 9 holds and no new exception is needed.
+
+```json
+{ "packVersion": 1, "kind": "full", "brands": [
+  { "id": "gazpromneft", "name": "Gazpromneft", "country": "RU",
+    "aliases": ["Газпромнефть", "Газпром", "Gazprom", "G-Drive", "ГПН"] },
+  { "id": "circle-k", "name": "Circle K", "country": "EE",
+    "aliases": ["CircleK", "Statoil", "Circle K Eesti"] }
+] }
+```
+
+`kind` is `full` (the whole vocabulary - the client replaces its held set) or `delta` (the brands
+changed above `since_version`, overlaid by `id`); a `since_version` at or above the current version
+is an honest empty delta; a delta larger than `Catalog:MaxDeltaEntries` is served as a full pack;
+a malformed `since_version` is a 400. There is **no write surface**: packs are written to the
+database (migration 025 seeds version 1 with 126 brands; an operator's correction upserts an id and
+bumps `station_brand_pack_state`). The device matches (`StationBrandMatcher`: whole tokens,
+case- and script-insensitive, legal forms and station nouns dropped, longest spelling wins) and
+orders; the server serves rows.
 
 **Brands, never individual forecourts.** A global list of every petrol station is a maintenance and
 privacy problem; a list of brands with their alias spellings (`Газпром` / `Газпромнефть` /
@@ -293,7 +311,11 @@ is where it may ride:
 > not - that is exactly the `Vary` fragmentation this design avoided.
 
 `POST /import/parse` matters most: it is the one uncacheable call a **signed-out** user makes, and
-importing a foreign file is precisely when the brand list is needed.
+importing a foreign file is precisely when the brand list is needed. **Shipped there first
+(RV.115, 2026-09-18):** the parse response carries `detectedCountry` when the edge names one - read
+from one request header (`Import:DetectedCountryHeader`, Cloudflare's `CF-IPCountry` by default;
+two ASCII letters or nothing), upper-cased, absent otherwise. The stored parse (`GET /import/{id}`)
+never carries it. The other three uncacheable responses may add it later under the same rule.
 
 Three bounds, so this stays a hint and not a new thing we know about people:
 

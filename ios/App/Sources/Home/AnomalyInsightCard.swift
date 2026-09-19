@@ -32,6 +32,10 @@ struct AnomalyInsightCard: View {
     /// the headline on this screen renders, so the card and the hero cannot
     /// disagree about a unit.
     let unitLabel: String
+    /// The car's headline unit, for the figures (RV.296: the engine's per100 is
+    /// converted here; an MPG car's rolling figure reads as MPG). The bars'
+    /// heights stay per100 ratios - the drift is a drift either way.
+    var headlineUnit: HeadlineUnit = .consumption(.lPer100)
     /// The drift's monthly cost in the currency that price is denominated in,
     /// both nil when the engine found no price in the window - the money line
     /// is then absent, never "free" (hard rule 13).
@@ -164,7 +168,8 @@ struct AnomalyInsightCard: View {
 
     private func bar(value: Double, label: String, color: Color, height: CGFloat) -> some View {
         VStack(spacing: 5) {
-            Text(ManualFillUpFormat.decimal(value, fractionDigits: 1))
+            Text(ManualFillUpFormat.decimal(ConsumptionDisplay.value(per100: value, unit: headlineUnit),
+                                            fractionDigits: 1))
                 .font(.custom(AppFonts.dinAlternateBold, size: 15))
                 .foregroundStyle(Theme.Palette.ink)
             RoundedRectangle(cornerRadius: 3)
@@ -212,6 +217,7 @@ struct AnomalyInsightCard: View {
     /// "6.5 L/100km" - a window's value in the vehicle's own unit (the number
     /// is the engine's; the unit is the same label the headline renders).
     private func valueLabel(_ value: Double) -> String {
-        "\(ManualFillUpFormat.decimal(value, fractionDigits: 1))\u{00A0}\(unitLabel)"
+        let figure = ConsumptionDisplay.value(per100: value, unit: headlineUnit)
+        return "\(ManualFillUpFormat.decimal(figure, fractionDigits: 1))\u{00A0}\(unitLabel)"
     }
 }

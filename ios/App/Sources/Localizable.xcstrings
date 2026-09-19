@@ -802,19 +802,55 @@
         }
       }
     },
-    "%@ came back with 1 new entry – stays archived.": {
+    "%@ came back with %lld new entries – stays archived.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ came back with 1 new entry – stays archived."
+          "variations": {
+            "plural": {
+            "one": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "%@ came back with %lld new entry – stays archived."
+              }
+            },
+            "other": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "%@ came back with %lld new entries – stays archived."
+              }
+            }
+            }
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "«%@» вернулся с 1 новой записью – остаётся в архиве."
+          "variations": {
+            "plural": {
+            "few": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "«%@» вернулся с %lld новыми записями – остаётся в архиве."
+              }
+            },
+            "many": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "«%@» вернулся с %lld новыми записями – остаётся в архиве."
+              }
+            },
+            "one": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "«%@» вернулся с %lld новой записью – остаётся в архиве."
+              }
+            },
+            "other": {
+              "stringUnit": {
+                "state": "translated",
+                "value": "«%@» вернулся с %lld новыми записями – остаётся в архиве."
+              }
+            }
+            }
           }
         }
       }
@@ -4855,19 +4891,70 @@
         }
       }
     },
-    "Creates an entry pre-filled with the category, title and today's odometer – type a total and save.": {
+    "Connection dropped – restore continues when you're back online.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Creates an entry pre-filled with the category, title and today's odometer – type a total and save."
+            "value": "Connection dropped – restore continues when you're back online."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Создаёт запись с предзаполненными категорией, названием и пробегом на сегодня – введите сумму и сохраните."
+            "value": "Связь прервалась – восстановление продолжится, когда вы снова будете в сети."
+          }
+        }
+      }
+    },
+    "Restored so far": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restored so far"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Восстановлено пока"
+          }
+        }
+      }
+    },
+    "Open my garage (partial, keeps filling)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open my garage (partial, keeps filling)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открыть гараж (частично, продолжает заполняться)"
+          }
+        }
+      }
+    },
+    "Retry now": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry now"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повторить сейчас"
           }
         }
       }
@@ -17576,6 +17663,486 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Не сходится – проверьте позиции"
+          }
+        }
+      }
+    },
+    "No brand" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No brand"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Без бренда"
+          }
+        }
+      }
+    },
+    "Use “%@”" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use “%@”"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использовать «%@»"
+          }
+        }
+      }
+    },
+    "Search brands" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search brands"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поиск бренда"
+          }
+        }
+      }
+    },
+    "Brand" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brand"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Бренд"
+          }
+        }
+      }
+    },
+    "Change brand" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change brand"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Изменить бренд"
+          }
+        }
+      }
+    },
+    "in %lld km" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "in %lld km"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "через %lld км"
+          }
+        }
+      }
+    },
+    "%lld km overdue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld km overdue"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "просрочено на %lld км"
+          }
+        }
+      }
+    },
+    "All reminders" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All reminders"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все напоминания"
+          }
+        }
+      }
+    },
+    "Overdue · %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overdue · %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Просрочено · %@"
+          }
+        }
+      }
+    },
+    "%lld full-tank" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld full tank"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld full tanks"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld с полным баком"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld с полным баком"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld с полным баком"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld с полным баком"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Not enough data yet" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not enough data yet"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пока мало данных"
+          }
+        }
+      }
+    },
+    "%1$@ lower than %2$@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ lower than %2$@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "на %1$@ ниже уровня %2$@"
+          }
+        }
+      }
+    },
+    "%1$@ higher than %2$@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ higher than %2$@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "на %1$@ выше уровня %2$@"
+          }
+        }
+      }
+    },
+    "same as %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "same as %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "на уровне %@"
+          }
+        }
+      }
+    },
+    "Fill pattern" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fill pattern"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Режим заправок"
+          }
+        }
+      }
+    },
+    "Between fills" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Between fills"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Между заправками"
+          }
+        }
+      }
+    },
+    "Every %@ days" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "every %@ days"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "каждые %@ дн."
+          }
+        }
+      }
+    },
+    "Range left" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Range left"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запас хода"
+          }
+        }
+      }
+    },
+    "on a %@ tank" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "on a %@ tank"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "на баке %@"
+          }
+        }
+      }
+    },
+    "This month, on pace" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This month, on pace"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот месяц, по темпу"
+          }
+        }
+      }
+    },
+    "after %lld days" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "after %lld day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "after %lld days"
+                }
+              }
+            }
+          }
+        },
+        "ru" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "по %lld дню"
+                }
+              },
+              "few" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "по %lld дням"
+                }
+              },
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "по %lld дням"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "по %lld дням"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "≈ %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "≈ %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "≈ %@"
+          }
+        }
+      }
+    },
+    "Scan receipt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan receipt"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скан чека"
+          }
+        }
+      }
+    },
+    "Creates an entry pre-filled with the category, title and today's odometer – scan the receipt or type a total." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creates an entry pre-filled with the category, title and today's odometer – scan the receipt or type a total."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Создаст запись с категорией, названием и сегодняшним пробегом – отсканируйте чек или введите сумму."
           }
         }
       }

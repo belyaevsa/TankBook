@@ -104,7 +104,12 @@ public enum RestoreOutcome: Equatable, Sendable {
     /// point is shown before the user can log anything (F7's merge-conflict
     /// prevention).
     case empty
-    /// The backend is down (or the pull was interrupted before anything landed).
+    /// The pull dropped mid-way (the device went offline, or the server went
+    /// away after pages had landed). The stats are what landed so far - nil
+    /// when the connection dropped before the first page. The persisted cursor
+    /// makes the next pull resume, so the garage is usable as it fills.
+    case interrupted(RestoreStats?)
+    /// The backend is down and nothing landed.
     case unreachable
     /// The device was revoked or the account deleted (410).
     case deviceRevoked
@@ -132,11 +137,13 @@ public struct RestoreEngine {
 
         let stats = try? RestoreStats.compute(repository: engine.repository, now: now)
 
-        if outcome.offline || outcome.serverUnavailable {
-            // A prior pull already landed data (an interrupted restore being
-            // resumed) - that data is usable and must be shown, not hidden
-            // behind an unreachable banner.
-            if let stats, stats.carCount > 0 { return .restored(stats) }
+        // Whatever landed - from this pull or a prior interrupted one being
+        // resumed - is usable and must be shown, never hidden behind an
+        // unreachable banner (docs/ERRORS.md -> Restoring, "Pull interrupted").
+        let landed = stats.flatMap { $0.carCount > 0 ? $0 : nil }
+        if outcome.offline { return .interrupted(landed) }
+        if outcome.serverUnavailable {
+            if let landed { return .interrupted(landed) }
             return .unreachable
         }
 

@@ -227,11 +227,11 @@ private func seedRichDataset(into repo: TankbookRepository) throws -> (vehicleId
     let cursor = InMemorySyncCursorStore()
     let engine1 = makeSyncEngine(repository: restored, transport: server, cursor: cursor, pullPageLimit: 2)
     let outcome1 = await RestoreEngine(engine: engine1).restore()
-    if case .restored(let partial) = outcome1 {
+    if case .interrupted(let partial?) = outcome1 {
         #expect(partial.carCount == 2, "page 1 (the two vehicles) landed before the interruption")
         #expect(partial.entryCount == 0, "no entries landed yet - the interruption was at the page boundary")
     } else {
-        Issue.record("the interrupted run reports the partial data it did land, got \(outcome1)")
+        Issue.record("the interrupted run reports `.interrupted` WITH the partial data it did land, got \(outcome1)")
     }
 
     // Resume: a fresh engine continues from the persisted cursor (which is
@@ -328,9 +328,22 @@ private func seedRichDataset(into repo: TankbookRepository) throws -> (vehicleId
 @Test func backendDownIsUnreachableNotAnError() async throws {
     let restored = try makeSyncRepository()
     let transport = SyncTransportDouble()
-    transport.setFailAll(true)
+    transport.enqueuePullError(.serverUnavailable)
     let outcome = await RestoreEngine(engine: makeSyncEngine(repository: restored, transport: transport)).restore()
     #expect(outcome == .unreachable, "a down backend maps to `.unreachable`, never a generic failure")
+}
+
+/// The connection dropped before the first page: `.interrupted` with nothing
+/// landed (docs/ERRORS.md -> Restoring, "Pull interrupted") - the row that says
+/// the restore continues when the device is back online, never the
+/// server-down copy, which would send the user to import a file for an
+/// outage that is their own connection.
+@Test func offlineBeforeTheFirstPageIsInterruptedWithNothingLanded() async throws {
+    let restored = try makeSyncRepository()
+    let transport = SyncTransportDouble()
+    transport.setFailAll(true)   // throws `.offline`
+    let outcome = await RestoreEngine(engine: makeSyncEngine(repository: restored, transport: transport)).restore()
+    #expect(outcome == .interrupted(nil), "offline with nothing landed is an interruption, not a down server")
 }
 
 @Test func emptyPullIsEmptyNotUnreachable() async throws {

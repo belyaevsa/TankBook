@@ -12,7 +12,7 @@ struct RestoringView: View {
     let snapshot: RestoreSnapshot
     @Environment(\.dismiss) private var dismiss
 
-    private static let monthYearFormatter: DateFormatter = {
+    static let monthYearFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale.current
         formatter.dateFormat = DateFormatter.dateFormat(fromTemplate: "MMM yyyy",

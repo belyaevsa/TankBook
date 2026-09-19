@@ -25,8 +25,11 @@ final class ImportRV189UITests: XCTestCase {
                       "the preview must be on screen")
         app.buttons["importConfirmButton"].tap()
 
-        XCTAssertTrue(app.staticTexts["Газпром"].waitForExistence(timeout: 10),
-                      "the imported fill must title itself with the station the file named")
+        // RV.115 / RV.180: the file's "Газпром" is a spelling of one chain; the
+        // Log row titles itself with the BRAND the matcher chose, never the
+        // fuel kind. The site's own line stays on the station (Garage).
+        XCTAssertTrue(app.staticTexts["Gazpromneft"].waitForExistence(timeout: 10),
+                      "the imported fill must title itself with the station's brand, not the fuel kind")
         XCTAssertFalse(app.staticTexts["92"].exists,
                        "the fuel kind must never stand in for the station the file named")
     }

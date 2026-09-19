@@ -35,6 +35,7 @@ struct GarageView: View {
     @Environment(AppToastCenter.self) private var toastCenter
 
     @State private var rows: [GarageRow] = []
+    @State private var returnNotices: [VehicleReturnNoticeItem] = []
     @State private var selectedID: UUID?
     @State private var showsLimitSheet = false
     @State private var didSeed = false
@@ -47,6 +48,12 @@ struct GarageView: View {
                 // place on every tab root.
                 TabRootHeader(title: "Garage", titleIdentifier: "garageHeaderTitle",
                               onSignIn: { presentSheet(.signIn) })
+                // S5: a deleted car that came back with another device's
+                // entries asks its one question here, where the car lives
+                // (docs/SYNC.md S5) - Home carries the same cards.
+                ForEach(returnNotices) { item in
+                    VehicleReturnNoticeCard(item: item)
+                }
                 if rows.isEmpty {
                     emptyGarage
                 } else {
@@ -405,6 +412,7 @@ struct GarageView: View {
             // list can never disagree) - never N per-car queries inside a list
             // render.
             let acrossReminders = try repository.liveRemindersAcrossVehicles()
+            returnNotices = try VehicleReturnNotices.items(repository: repository)
             rows = try vehicles.map { vehicle in
                 let entries = try repository.liveEntries(forVehicle: vehicle.id)
                 let stats = vehicle.archived ? nil : HomeStats(

@@ -74,6 +74,38 @@ public class ImportEndpointTests : IClassFixture<PostgresFixture>
         Assert.True(storage.ByteObjects.ContainsKey(ImportKeys.ResultKey(deviceId, importId)));
     }
 
+    /// <summary>
+    /// RV.115: the cold-start hint (docs/API.md "detectedCountry") rides the
+    /// POST's fresh response when the edge names a country, is absent
+    /// otherwise, and is never stored - the re-read of the same parse carries
+    /// none. A malformed header value is no hint, never an error.
+    /// </summary>
+    [SkippableFact]
+    public async Task Parse_EchoesTheEdgeCountryAsAHint_AndTheStoredParseNeverCarriesIt()
+    {
+        var storage = new RecordingBlobStorage();
+        await using var app = await StartAsync(storage);
+        var deviceId = Guid.NewGuid();
+
+        using var plain = await ParseAsync(app.Client, "mfm", MfmFixture.ReadAllBytes(MfmFixture.FuelCsv), "fuel.csv", deviceId);
+        var plainBody = ParseBody(await plain.Content.ReadAsStringAsync());
+        Assert.False(plainBody.TryGetProperty("detectedCountry", out _), "no edge header, no hint");
+
+        using var hinted = await ParseAsync(app.Client, "mfm", MfmFixture.ReadAllBytes(MfmFixture.FuelCsv), "fuel.csv", deviceId,
+            headers: new Dictionary<string, string> { [Tankbook.Api.Reference.DetectedCountry.DefaultHeader] = "ee" });
+        var hintedBody = ParseBody(await hinted.Content.ReadAsStringAsync());
+        Assert.Equal("EE", hintedBody.GetProperty("detectedCountry").GetString());
+
+        using var get = await GetImportAsync(app.Client, hintedBody.GetProperty("importId").GetGuid());
+        var stored = ParseBody(await get.Content.ReadAsStringAsync());
+        Assert.False(stored.TryGetProperty("detectedCountry", out _), "the hint is per request, never stored with the parse");
+
+        using var malformed = await ParseAsync(app.Client, "mfm", MfmFixture.ReadAllBytes(MfmFixture.FuelCsv), "fuel.csv", deviceId,
+            headers: new Dictionary<string, string> { [Tankbook.Api.Reference.DetectedCountry.DefaultHeader] = "Estonia" });
+        Assert.Equal(HttpStatusCode.OK, malformed.StatusCode);
+        Assert.False(ParseBody(await malformed.Content.ReadAsStringAsync()).TryGetProperty("detectedCountry", out _));
+    }
+
     [SkippableFact]
     public async Task Parse_WithNoBearerTokenAtAll_StillWorks()
     {
@@ -504,13 +536,18 @@ public class ImportEndpointTests : IClassFixture<PostgresFixture>
         return (body.RootElement.GetProperty("accessToken").GetString()!, body.RootElement.GetProperty("accountId").GetGuid());
     }
 
-    private static async Task<HttpResponseMessage> ParseAsync(HttpClient client, string? format, byte[] fileBytes, string fileName, Guid deviceId, string? bearer = null)
+    private static async Task<HttpResponseMessage> ParseAsync(HttpClient client, string? format, byte[] fileBytes, string fileName, Guid deviceId, string? bearer = null, IReadOnlyDictionary<string, string>? headers = null)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/v1/import/parse");
         request.Headers.TryAddWithoutValidation("X-Device-Id", deviceId.ToString());
         if (bearer is not null)
         {
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearer);
+        }
+
+        foreach (var (name, value) in headers ?? new Dictionary<string, string>())
+        {
+            request.Headers.TryAddWithoutValidation(name, value);
         }
 
         request.Content = BuildMultipart(format, fileBytes, fileName);

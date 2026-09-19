@@ -37,10 +37,12 @@ struct StationsListView: View {
                                         .font(.subheadline.weight(.semibold))
                                         .foregroundStyle(Theme.Palette.ink)
                                         .lineLimit(1)
-                                    Text(station.location != nil ? "Location saved"
-                                                                : "No location")
+                                    // RV.115: the chain beside the site, so two
+                                    // forecourts of one brand read as one chain.
+                                    Text(rowCaption(station))
                                         .font(.caption)
                                         .foregroundStyle(Theme.Palette.inkSoft)
+                                        .accessibilityIdentifier("stationListRowCaption")
                                 }
                                 Spacer(minLength: 0)
                                 Image(systemName: "chevron.right")
@@ -72,6 +74,13 @@ struct StationsListView: View {
             Button("Cancel", role: .cancel) { newStationName = "" }
             Button("Add") { submitNewStation() }
         }
+    }
+
+    /// "Brand · Location saved" - the brand first when the station has one.
+    private func rowCaption(_ station: Station) -> String {
+        let location = L10n.localize(station.location != nil ? "Location saved" : "No location")
+        guard let brand = station.brand else { return location }
+        return "\(brand) · \(location)"
     }
 
     /// The add door (RV.156): the dashed "+ Add station" card at the end of the
@@ -127,9 +136,7 @@ struct StationsListView: View {
     /// location status through the catalogue - never an English literal riding
     /// a String expression (the P5.3 shape).
     private func locationLabel(_ station: Station) -> String {
-        station.location != nil
-            ? "\(station.name), \(L10n.localize("Location saved"))"
-            : "\(station.name), \(L10n.localize("No location"))"
+        "\(station.name), \(rowCaption(station))"
     }
 
     private func beginAddingStation() {

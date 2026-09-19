@@ -160,7 +160,8 @@ struct ManualFillUpView: View {
                                              lastKnown: lastKnown,
                                              paceLimitKmPerDay: vehicle!.paceLimitKmPerDay)
                     ManualFillUpStationRow(stations: $stations, selection: $selectedStation,
-                                           onChose: { stationChosenByUser = true })
+                                           onChose: { stationChosenByUser = true },
+                                           currency: form.currency)
                     ManualFillUpFuelFullCard(form: $form, fuelKinds: vehicle!.fuelKinds)
                     FuelKindMismatchNotice(scannedKind: prefill?.extraction?.fuelKind, fuelKinds: vehicle!.fuelKinds)
                     if !form.isFull {

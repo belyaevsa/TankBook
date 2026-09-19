@@ -281,6 +281,7 @@ enum ImportService {
 /// transport's response - the stub only replaces the bytes, never the code path.
 #if DEBUG
 struct ImportStubTransport: TankbookHTTPTransport, @unchecked Sendable {
+    static let deleteCountKey = "debug.importDeleteCount"
     private let formatsName: String?
     private let parseName: String?
     private let parse422: Bool
@@ -300,7 +301,10 @@ struct ImportStubTransport: TankbookHTTPTransport, @unchecked Sendable {
             return Self.resource("import-formats-\(formatsName)")
         }
         if path.hasPrefix("/v1/import/"), request.method == "DELETE" {
-            // Idempotent delete, exactly as the endpoint promises.
+            // Idempotent delete, exactly as the endpoint promises. Counted so
+            // an L4 can observe that an exit path issued it.
+            UserDefaults.standard.set(UserDefaults.standard.integer(forKey: Self.deleteCountKey) + 1,
+                                      forKey: Self.deleteCountKey)
             return TankbookHTTPResponse(status: 204)
         }
         if path.hasPrefix("/v1/import/") {

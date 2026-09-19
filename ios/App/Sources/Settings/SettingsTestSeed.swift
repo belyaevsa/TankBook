@@ -163,13 +163,6 @@ enum SettingsTestSeed {
         // must run before the state guard below returns early for `.none`.
         PhotoSyncingTestSeed.seedSessionAtLaunchIfRequested()
         resetLanguageForTestsIfRequested(arguments)
-        // `-clearSessionForTests`: a guest-path test must START signed out, and
-        // the simulator's Keychain outlives every launch - a session another
-        // suite or a screenshot pose planted would otherwise arm the gateway
-        // for a test asserting a guest gets no transport.
-        if arguments.contains("-clearSessionForTests") {
-            try? KeychainSessionStore().clear()
-        }
         let state = Self.state(arguments)
         // The auth-expired seed is deliberately NOT planted at launch: the
         // launch opportunistic sync must see no session (a no-op), so the

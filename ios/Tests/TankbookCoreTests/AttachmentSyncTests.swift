@@ -293,3 +293,29 @@ private func longEdge(of jpeg: Data) -> (width: Int, height: Int) {
     let height = properties?[kCGImagePropertyPixelHeight] as? Int ?? 0
     return (width, height)
 }
+
+// MARK: - PR.20 Low Data Mode defers the upload
+
+/// A constrained path (Low Data Mode) defers the blob and leaves the record
+/// dirty; the same gate uploads and commits once the path is unconstrained.
+@Test func blobGateDefersUnderAConstrainedPathAndUploadsOtherwise() async throws {
+    let rendition = Data("rendition-bytes".utf8)
+    let orderLog = OrderLog()
+    let blobTransport = BlobTransportDouble(orderLog: orderLog)
+    blobTransport.setBeginResult(.upload(url: uploadURL(), expiresAt: nil))
+    let attachment = makeSyncAttachment(sha256: BlobHash.sha256(rendition))
+
+    let constrained = LocalFileBlobPushGate(
+        uploader: BlobUploader(transport: blobTransport),
+        source: FixedBlobSource(data: rendition),
+        isNetworkConstrained: { true })
+    #expect(await constrained.ensureBlobCommitted(for: attachment) == .deferred)
+    #expect(orderLog.recorded.isEmpty, "a constrained path spends nothing - no begin, no PUT")
+
+    let unconstrained = LocalFileBlobPushGate(
+        uploader: BlobUploader(transport: blobTransport),
+        source: FixedBlobSource(data: rendition),
+        isNetworkConstrained: { false })
+    #expect(await unconstrained.ensureBlobCommitted(for: attachment) == .committed)
+    #expect(orderLog.recorded.contains("put"))
+}

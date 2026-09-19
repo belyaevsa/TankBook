@@ -18,7 +18,9 @@ struct ImportWizardView: View {
     @State private var showingFilePicker = false
     @State private var showingCarPicker = false
     @State private var showingNotSupported = false
-    @State private var showingSendFile = false
+    /// The consent sheet's item for the `-seedSendFile` screenshot pose, which
+    /// has no not-supported sheet to raise it from.
+    @State private var sendFile: SendFileItem?
     @State private var didLoad = false
 
     var body: some View {
@@ -34,6 +36,15 @@ struct ImportWizardView: View {
         // action), so the system nav bar - which would stack a second "Import"
         // title above it (P6.15a) - is hidden for all three wizard steps.
         .toolbar(.hidden, for: .navigationBar)
+        // F6a "cancel leaves nothing behind": every way out of the wizard that
+        // is not the commit drops the stored parses - Back to the source step
+        // and closing it, the presenter popping it - not only the Cancel
+        // buttons. A confirmed import already deleted them; a flow with no
+        // parse has nothing to delete.
+        .onDisappear {
+            guard let model, !model.didConfirm, !model.parseFiles.isEmpty else { return }
+            Task { await model.cancelImport() }
+        }
         .task {
             guard !didLoad else { return }
             didLoad = true
@@ -62,7 +73,15 @@ struct ImportWizardView: View {
             // sheet so the consent + share sheet render without a real tap.
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("-seedSendFile") {
-                showingNotSupported = true
+                // The screenshot pose (`simctl` cannot tap): the fixture is
+                // staged as if picked and the consent sheet raised - after the
+                // wizard's own push has settled, as a user's taps would be; a
+                // sheet raised in the same transaction as the push lands EMPTY
+                // on the iOS 27 simulator.
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(800))
+                    sendFile = ImportNotSupportedSheet.stageSeedFile().map(SendFileItem.init)
+                }
             }
             #endif
         }
@@ -132,6 +151,9 @@ struct ImportWizardView: View {
         }
         .sheet(isPresented: $showingNotSupported) {
             ImportNotSupportedSheet(model: model)
+        }
+        .sheet(item: $sendFile) { item in
+            SendFileConsentSheet(item: item)
         }
     }
 
@@ -392,10 +414,13 @@ struct ImportNotSupportedSheet: View {
     let model: ImportFlowModel?
     @Environment(\.dismiss) private var dismiss
     @State private var showingFilePicker = false
-    @State private var pickedFileURL: URL?
     @State private var sendFileReadFailed = false
-    @State private var showingSendFile = false
-    @State private var didSeed = false
+    /// The consent sheet's item. `sheet(item:)` rather than a flag plus an
+    /// `if let` over the URL: on the iOS 27 simulator a sheet whose content
+    /// is conditional on state set in the same transaction as its flag lands
+    /// EMPTY - the body evaluates, nothing lays out, nothing reaches the
+    /// accessibility tree - and the user is left with a blank sheet.
+    @State private var sendFile: SendFileItem?
 
     private var supportedNames: String {
         guard let model else { return "" }
@@ -450,8 +475,9 @@ struct ImportNotSupportedSheet: View {
                 .formCard()
                 .accessibilityIdentifier("importSendFileReadFailed")
             }
-            ImportPrimaryBar(action: { showingFilePicker = true },
+            ImportPrimaryBar(action: sendFileTapped,
                              label: { Text(L10n.sendFileTitle) })
+                .accessibilityIdentifier("importNotSupportedSend")
             Button("Pick a different app") {
                 dismiss()
             }
@@ -476,41 +502,46 @@ struct ImportNotSupportedSheet: View {
             switch stager.stage(url, log: AppLog.shared) {
             case .staged(let copy):
                 sendFileReadFailed = false
-                pickedFileURL = copy
-                showingSendFile = true
+                sendFile = SendFileItem(url: copy)
             case .readFailed:
                 sendFileReadFailed = true
             }
         }
-        .sheet(isPresented: $showingSendFile) {
-            if let fileURL = pickedFileURL {
-                SendFileConsentSheet(fileURL: fileURL, dispose: {
-                    ImportService.makePickedFileStager().dispose(fileURL)
-                })
-            }
+        .sheet(item: $sendFile) { item in
+            SendFileConsentSheet(item: item)
         }
-        #if DEBUG
-        .task { seedIfRequested() }
-        #endif
     }
 
-    /// PJ.20 DEBUG seed: with `-seedSendFile` a temp file is "picked" and the
-    /// consent sheet opens, so the L4 test and screenshot reach the share sheet
-    /// without driving the system file picker.
+    private func sendFileTapped() {
+        #if DEBUG
+        // `-seedSendFilePick`: the tap stages the fixture file instead of
+        // opening the system picker, so the L4 reaches the consent step through
+        // the same taps and the same presentations a user makes.
+        if ProcessInfo.processInfo.arguments.contains("-seedSendFilePick") {
+            sendFile = Self.stageSeedFile().map(SendFileItem.init)
+            return
+        }
+        #endif
+        showingFilePicker = true
+    }
+
     #if DEBUG
-    private func seedIfRequested() {
-        guard !didSeed else { return }
-        didSeed = true
-        guard ProcessInfo.processInfo.arguments.contains("-seedSendFile") else { return }
+    /// The fixture "pick", staged through the real stager.
+    static func stageSeedFile() -> URL? {
         let stager = ImportService.makePickedFileStager()
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("MyFuelManager_export.csv")
         try? Data("Date;Odometer;Volume\n1/1/2024;120000;42.5".utf8).write(to: url)
-        guard case .staged(let copy) = stager.stage(url, log: nil) else { return }
-        pickedFileURL = copy
-        showingSendFile = true
+        guard case .staged(let copy) = stager.stage(url, log: nil) else { return nil }
+        return copy
     }
     #endif
+}
+
+/// The consent sheet's item: the staged file it is about.
+struct SendFileItem: Identifiable {
+    let url: URL
+    var id: String { url.path }
 }
 
 /// The explicit-consent step before the file is shared (PJ.20, docs/ERRORS.md
@@ -518,14 +549,13 @@ struct ImportNotSupportedSheet: View {
 /// the copy states plainly what the file may contain, and "Share file" is the
 /// affirmative act. Nothing is uploaded or queued until then.
 ///
-/// RV.73: `fileURL` is always the staged container copy of the user's pick
-/// (the security scope died with the file-picker handler). `dispose` deletes
-/// that copy once its use is over - when the share sheet settles, or when this
+/// RV.73: the item's `url` is always the staged container copy of the user's
+/// pick (the security scope died with the file-picker handler). `dispose`
+/// deletes that copy once its use is over - when the share sheet settles, or when this
 /// sheet is cancelled - so the user data never outlives the flow (hard rule 8,
 /// the "must not outlive its use" promise).
 struct SendFileConsentSheet: View {
-    let fileURL: URL?
-    var dispose: (() -> Void)?
+    let item: SendFileItem
     @Environment(\.dismiss) private var dismiss
     /// Whether the share sheet was offered. Guards `onDisappear` against the
     /// SwiftUI gotcha where presenting a sheet on top fires the presenter's
@@ -542,26 +572,24 @@ struct SendFileConsentSheet: View {
                 .font(.subheadline)
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .lineSpacing(1.5)
-            if let fileURL {
-                HStack(spacing: 8) {
-                    Image(systemName: "doc")
-                        .font(.caption)
-                        .foregroundStyle(Theme.Palette.action)
-                    Text(verbatim: fileURL.lastPathComponent)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.Palette.ink)
-                        .accessibilityIdentifier("sendFileFileName")
-                }
-                .padding(.horizontal, Theme.Spacing.cardPadding)
-                .padding(.vertical, 12)
-                .formCard()
+            HStack(spacing: 8) {
+                Image(systemName: "doc")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.action)
+                Text(verbatim: item.url.lastPathComponent)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.ink)
+                    .accessibilityIdentifier("sendFileFileName")
             }
+            .padding(.horizontal, Theme.Spacing.cardPadding)
+            .padding(.vertical, 12)
+            .formCard()
             Spacer()
             ImportPrimaryBar(action: presentShare,
                              label: { Text(L10n.sendFileShare) })
                 .accessibilityIdentifier("sendFileShareButton")
             Button("Cancel") {
-                dispose?()
+                dispose()
                 dismiss()
             }
             .buttonStyle(.plain)
@@ -577,8 +605,12 @@ struct SendFileConsentSheet: View {
         .onDisappear {
             // Cancelled or swiped away without sharing - dispose only when the
             // share sheet was never offered (its completion handles that path).
-            if !didShare { dispose?() }
+            if !didShare { dispose() }
         }
+    }
+
+    private func dispose() {
+        ImportService.makePickedFileStager().dispose(item.url)
     }
 
     /// PJ.20: the actual file rides the share sheet, with the consent sentence
@@ -586,9 +618,8 @@ struct SendFileConsentSheet: View {
     /// controller (RV.181), so the consent sheet underneath stays alive while
     /// the destination's UI is up.
     private func presentShare() {
-        guard let fileURL else { return }
         didShare = true
-        SharePresenter.present(items: [fileURL as Any, L10n.sendFileMessage]) { outcome in
+        SharePresenter.present(items: [item.url as Any, L10n.sendFileMessage]) { outcome in
             // Shape only: that the share ended, how, and that the payload was
             // the staged file - never its name, its bytes or a destination app
             // (hard rule 12).
@@ -596,7 +627,7 @@ struct SendFileConsentSheet: View {
                          outcome: outcome)
             // The share sheet has read the file (or the user dismissed it);
             // the staged copy has served its purpose either way.
-            dispose?()
+            dispose()
         }
     }
 }

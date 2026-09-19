@@ -134,7 +134,7 @@ private final class GatedPushTransport: SyncTransport, @unchecked Sendable {
         .deletingLastPathComponent()
         .deletingLastPathComponent()
         .deletingLastPathComponent()
-        .appendingPathComponent("App/Sources/SignIn/SignInFlow.swift"), encoding: .utf8)
+        .appendingPathComponent("App/Sources/SignIn/SignInFlow+RestoreProvider.swift"), encoding: .utf8)
     #expect(source.contains("SeededSyncCursorStore(seed: 0"),
             "the restore must start from 0 and persist each advance through")
     #expect(!source.contains("InMemorySyncCursorStore()"),

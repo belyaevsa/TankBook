@@ -429,7 +429,7 @@ extension ManualFillUpFormState {
             // The engine's own figure, quoted in the vehicle's headline unit -
             // the same value and unit Home and Trends render (one derivation).
             let quote = OdometerConflict.consumptionQuote(
-                per100: per100,
+                per100: ConsumptionDisplay.value(per100: per100, unit: vehicle.headlineUnit),
                 unit: L10n.headlineUnit(vehicle.headlineUnit),
                 volumeUnit: vehicle.units.volume)
             return OdometerConflict(quote: quote, flagKind: flag.kind,

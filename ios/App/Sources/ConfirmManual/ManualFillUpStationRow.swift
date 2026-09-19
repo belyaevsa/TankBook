@@ -29,8 +29,13 @@ struct ManualFillUpStationRow: View {
     /// pick theirs (hard rule 13), so no later suggestion pass may move it.
     var onChose: () -> Void = {}
 
+    /// RV.180: the currency the entry is in, so the brand picker can rank the
+    /// capture's country first; nil leaves that signal out.
+    var currency: CurrencyCode?
+
     @State private var isAddingStation = false
     @State private var newStationName = ""
+    @State private var isPickingBrand = false
 
     /// A chosen station's name is runtime data; the placeholder is copy.
     /// Coalescing them into one `String` sends the literal through
@@ -41,6 +46,18 @@ struct ManualFillUpStationRow: View {
             Text(name)
         } else {
             Text("Choose station")
+        }
+    }
+
+    /// RV.180: the chain under the site, when the station has one - the brand
+    /// the matcher chose is a default the user can change from this row.
+    @ViewBuilder
+    private func brandCaption(_ selection: Station?) -> some View {
+        if let brand = selection?.brand {
+            Text(brand)
+                .font(.caption2)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .accessibilityIdentifier("manualFillUpStationBrand")
         }
     }
 
@@ -64,6 +81,37 @@ struct ManualFillUpStationRow: View {
             Button("Cancel", role: .cancel) { newStationName = "" }
             Button("Add") { submitNewStation() }
         }
+        .sheet(isPresented: $isPickingBrand) {
+            if let selection {
+                StationBrandPickerSheet(station: selection, currency: currency) { setBrand($0, on: selection) }
+            }
+        }
+    }
+
+    /// RV.180: the brand pick, written to the station through the same rule
+    /// the Garage uses; the row's selection and list follow so the caption
+    /// changes on the spot. A scanned station not yet persisted (RV.161 writes
+    /// it at save) changes in memory, and the save's `persistScannedStation`
+    /// carries the pick into the row it mints. The user's pick is theirs
+    /// permanently.
+    private func setBrand(_ brand: String?, on station: Station) {
+        var updated = station
+        let trimmed = brand?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        updated.brand = trimmed.isEmpty ? nil : trimmed
+        do {
+            let repository = try AppStore.repository()
+            if try repository.station(id: station.id) != nil {
+                _ = try loggedWrite(AppLog.shared, op: .update, entityType: Station.entityType,
+                                    entityId: station.id, source: .manual, fieldsChanged: ["brand"]) {
+                    try repository.setStationBrand(id: station.id, brand)
+                }
+                if let live = try repository.station(id: station.id) { updated = live }
+            }
+        } catch {
+            AppLog.error(operation: "station.setBrand", category: .ui, error: error)
+        }
+        selection = updated
+        if let index = stations.firstIndex(where: { $0.id == updated.id }) { stations[index] = updated }
     }
 
     /// The add door for an empty set: one direct action in the action colour,
@@ -100,6 +148,14 @@ struct ManualFillUpStationRow: View {
                 }
             }
             Divider()
+            if selection != nil {
+                Button {
+                    isPickingBrand = true
+                } label: {
+                    Label("Change brand", systemImage: "tag")
+                }
+                .accessibilityIdentifier("manualFillUpChangeBrandMenuItem")
+            }
             Button {
                 beginAddingStation()
             } label: {
@@ -108,13 +164,16 @@ struct ManualFillUpStationRow: View {
             .accessibilityIdentifier("manualFillUpAddStationMenuItem")
         } label: {
             HStack(spacing: 4) {
-                // Same coalesced-String trap: a station's name is runtime data,
-                // the fallback is copy. Coalescing makes the whole expression a
-                // String and the fallback renders its English key. Split so the
-                // literal reaches the LocalizedStringKey overload.
-                stationLabel(selection)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.action)
+                VStack(alignment: .trailing, spacing: 1) {
+                    // Same coalesced-String trap: a station's name is runtime data,
+                    // the fallback is copy. Coalescing makes the whole expression a
+                    // String and the fallback renders its English key. Split so the
+                    // literal reaches the LocalizedStringKey overload.
+                    stationLabel(selection)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.action)
+                    brandCaption(selection)
+                }
                 Image(systemName: "chevron.up.chevron.down")
                     .font(.caption2)
                     .foregroundStyle(Theme.Palette.inkSoft)

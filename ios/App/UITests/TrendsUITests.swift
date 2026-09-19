@@ -36,7 +36,9 @@ final class TrendsUITests: XCTestCase {
         let app = launch(args: ["-seedHomeFirstEstimate"])
 
         XCTAssertTrue(anyElement(app, "trendsConsumptionTile").waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["first estimate · 1 fill cycle"].waitForExistence(timeout: 5),
+        // RV.118: the caption leads with the honest label and adds the fills.
+        let firstEstimate = NSPredicate(format: "label BEGINSWITH %@", "first estimate · 1 fill cycle")
+        XCTAssertTrue(app.staticTexts.matching(firstEstimate).firstMatch.waitForExistence(timeout: 5),
                       "the first-estimate wording is the feature - assert the text, not the presence")
     }
 
@@ -46,7 +48,8 @@ final class TrendsUITests: XCTestCase {
         let app = launch(args: ["-seedHomeExtendedWindow"])
 
         XCTAssertTrue(anyElement(app, "trendsConsumptionTile").waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["last 5 months"].waitForExistence(timeout: 5),
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "last 5 months"))
+                        .firstMatch.waitForExistence(timeout: 5),
                       "a number computed over five months must be labelled with its real span")
 
         // The consumption tile must NEVER claim the window it did not cover -
@@ -55,9 +58,9 @@ final class TrendsUITests: XCTestCase {
         let consumptionLabels = app.staticTexts
             .matching(identifier: "trendsConsumptionTile")
             .allElementsBoundByIndex.map(\.label)
-        XCTAssertTrue(consumptionLabels.contains("last 5 months"),
+        XCTAssertTrue(consumptionLabels.contains { $0.hasPrefix("last 5 months") },
                       "the consumption tile's caption is the honest span, got \(consumptionLabels)")
-        XCTAssertFalse(consumptionLabels.contains("last 3 months"),
+        XCTAssertFalse(consumptionLabels.contains { $0.contains("last 3 months") },
                        "the extended span must never be labelled as the claimed window: \(consumptionLabels)")
     }
 
@@ -70,7 +73,8 @@ final class TrendsUITests: XCTestCase {
         XCTAssertTrue(anyElement(app, "trendsCostPerKmTile").exists)
         XCTAssertTrue(anyElement(app, "trendsSpendTile").exists)
         XCTAssertTrue(anyElement(app, "trendsPriceTile").exists)
-        XCTAssertTrue(app.staticTexts["last 3 months"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "last 3 months"))
+                        .firstMatch.waitForExistence(timeout: 5))
     }
 
     // MARK: - The hero arrow (PJ.30)

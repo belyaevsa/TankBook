@@ -471,6 +471,8 @@ final class AppSync {
     /// repository. After the clear, the surface re-reads the (now empty)
     /// session so the account card renders the guest state.
     func signOut() async {
+        // PR.20: the next sign-in re-sends the token (the row is per account-device).
+        AppPush.shared.signedOut()
         let store = sessionStore
         let authService: any AuthService = RemoteAuthService(
             director: AppConfigStore.shared.director,

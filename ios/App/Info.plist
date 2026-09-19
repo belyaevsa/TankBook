@@ -48,6 +48,10 @@
 	<string>Tankbook uses your location to suggest the fuel station you are at, so you have less to type.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Tankbook uses your photo library so you can log a receipt from an existing photo when the camera is not available.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

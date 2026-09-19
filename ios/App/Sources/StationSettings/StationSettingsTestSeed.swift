@@ -36,13 +36,18 @@ enum StationSettingsTestSeed {
             photo: nil, archived: false, paceLimitKmPerDay: 1500,
             initialOdometer: 119_486)
         try? repository.upsertVehicle(vehicle)
+        let brandSeed = ProcessInfo.processInfo.arguments.contains("-seedStationBrand")
 
         // The station a save already stamped: location captured from the
         // forecourt fix, lastUsedAt and defaults written by the save.
         let station = Station(
             id: UUID.v7(), createdAt: now.addingTimeInterval(-20 * 86_400),
             updatedAt: now.addingTimeInterval(-2 * 86_400), deletedAt: nil,
-            name: "Prima Auto", brand: nil,
+            // `-seedStationBrand` (RV.115): the same station under a chain's
+            // printed line, so the Brand card and the Stations row show a
+            // matched brand beside the site.
+            name: brandSeed ? "Circle K Sikupilli teenindusjaam" : "Prima Auto",
+            brand: brandSeed ? "Circle K" : nil,
             location: GeoCoordinate(latitude: 59.4378, longitude: 24.7536),
             favorite: false,
             defaults: Station.Defaults(fuelKind: .petrol95, fuelGrade: nil),

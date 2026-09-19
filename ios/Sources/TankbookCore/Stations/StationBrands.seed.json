@@ -1,0 +1,1168 @@
+{
+  "packVersion": 1,
+  "brands": [
+    {
+      "id": "gazpromneft",
+      "name": "Gazpromneft",
+      "country": "RU",
+      "aliases": [
+        "Газпромнефть",
+        "Газпром нефть",
+        "Газпром",
+        "Gazprom",
+        "G-Drive",
+        "ГПН",
+        "Газпромнефть-Центр",
+        "Газпромнефть-Урал",
+        "Газпромнефть-Северо-Запад"
+      ]
+    },
+    {
+      "id": "lukoil",
+      "name": "Lukoil",
+      "country": "RU",
+      "aliases": [
+        "Лукойл",
+        "ЛУКОЙЛ",
+        "Лукойл-Центрнефтепродукт",
+        "Лукойл-Югнефтепродукт",
+        "Лукойл-Уралнефтепродукт",
+        "Ликард"
+      ]
+    },
+    {
+      "id": "rosneft",
+      "name": "Rosneft",
+      "country": "RU",
+      "aliases": [
+        "Роснефть",
+        "РН-Карт",
+        "Rosneft-Card"
+      ]
+    },
+    {
+      "id": "tatneft",
+      "name": "Tatneft",
+      "country": "RU",
+      "aliases": [
+        "Татнефть",
+        "Татнефть-АЗС Центр",
+        "Татнефть-АЗС-Запад"
+      ]
+    },
+    {
+      "id": "bashneft",
+      "name": "Bashneft",
+      "country": "RU",
+      "aliases": [
+        "Башнефть",
+        "Башнефть-Розница"
+      ]
+    },
+    {
+      "id": "teboil",
+      "name": "Teboil",
+      "country": "RU",
+      "aliases": [
+        "Тебойл",
+        "Teboil Rus"
+      ]
+    },
+    {
+      "id": "neftmagistral",
+      "name": "Neftmagistral",
+      "country": "RU",
+      "aliases": [
+        "Нефтьмагистраль",
+        "Нефть магистраль"
+      ]
+    },
+    {
+      "id": "surgutneftegas",
+      "name": "Surgutneftegas",
+      "country": "RU",
+      "aliases": [
+        "Сургутнефтегаз",
+        "СНГ"
+      ]
+    },
+    {
+      "id": "eka",
+      "name": "EKA",
+      "country": "RU",
+      "aliases": [
+        "ЕКА",
+        "ЕКА-АЗС"
+      ]
+    },
+    {
+      "id": "trassa",
+      "name": "Trassa",
+      "country": "RU",
+      "aliases": [
+        "Трасса",
+        "Трасса-АЗС"
+      ]
+    },
+    {
+      "id": "opti",
+      "name": "OPTI",
+      "country": "RU",
+      "aliases": [
+        "ОПТИ",
+        "Опти"
+      ]
+    },
+    {
+      "id": "tnk",
+      "name": "TNK",
+      "country": "RU",
+      "aliases": [
+        "ТНК",
+        "ТНК-BP"
+      ]
+    },
+    {
+      "id": "irkutskoil",
+      "name": "Irkutsk Oil",
+      "country": "RU",
+      "aliases": [
+        "Иркутская нефтяная компания",
+        "ИНК",
+        "Крайснефть"
+      ]
+    },
+    {
+      "id": "nnk",
+      "name": "NNK",
+      "country": "RU",
+      "aliases": [
+        "ННК",
+        "Альянс",
+        "Альянс-Нефтепродукт"
+      ]
+    },
+    {
+      "id": "magistral",
+      "name": "Magistral",
+      "country": "RU",
+      "aliases": [
+        "Магистраль"
+      ]
+    },
+    {
+      "id": "kalina-oil",
+      "name": "Kalina Oil",
+      "country": "RU",
+      "aliases": [
+        "Калина Ойл",
+        "Калина-Ойл"
+      ]
+    },
+    {
+      "id": "fuel-star",
+      "name": "Petrol Star",
+      "country": "RU",
+      "aliases": [
+        "Петрол Стар"
+      ]
+    },
+    {
+      "id": "qazaqoil",
+      "name": "Qazaq Oil",
+      "country": "KZ",
+      "aliases": [
+        "QazaqOil",
+        "Казак Ойл",
+        "Қазақ Ойл",
+        "Qazaq Oil KZ"
+      ]
+    },
+    {
+      "id": "kazmunaygas",
+      "name": "KazMunayGas",
+      "country": "KZ",
+      "aliases": [
+        "КазМунайГаз",
+        "ҚазМұнайГаз",
+        "KMG",
+        "КМГ",
+        "ҚМГ",
+        "КазМунайГаз Аймак"
+      ]
+    },
+    {
+      "id": "helios",
+      "name": "Helios",
+      "country": "KZ",
+      "aliases": [
+        "Гелиос",
+        "Helios KZ",
+        "Гелиос АЗС"
+      ]
+    },
+    {
+      "id": "sinooil",
+      "name": "Sinooil",
+      "country": "KZ",
+      "aliases": [
+        "Синойл",
+        "Sino Oil",
+        "СИНООЙЛ"
+      ]
+    },
+    {
+      "id": "royal-petrol",
+      "name": "Royal Petrol",
+      "country": "KZ",
+      "aliases": [
+        "Роял Петрол",
+        "RoyalPetrol"
+      ]
+    },
+    {
+      "id": "petro-retail",
+      "name": "PetroRetail",
+      "country": "KZ",
+      "aliases": [
+        "ПетроРитейл",
+        "Petro Retail",
+        "Petroretail"
+      ]
+    },
+    {
+      "id": "compass-kz",
+      "name": "Compass",
+      "country": "KZ",
+      "aliases": [
+        "Компас",
+        "Compass KZ"
+      ]
+    },
+    {
+      "id": "green-kz",
+      "name": "Green",
+      "country": "KZ",
+      "aliases": [
+        "Грин",
+        "Green АЗС"
+      ]
+    },
+    {
+      "id": "petrol-asia",
+      "name": "Petrol Asia",
+      "country": "KZ",
+      "aliases": [
+        "Петрол Азия",
+        "PetrolAsia"
+      ]
+    },
+    {
+      "id": "aidyn",
+      "name": "Aidyn",
+      "country": "KZ",
+      "aliases": [
+        "Айдын",
+        "Айдын Мунай"
+      ]
+    },
+    {
+      "id": "dostyk",
+      "name": "Dostyk",
+      "country": "KZ",
+      "aliases": [
+        "Достык",
+        "Достық"
+      ]
+    },
+    {
+      "id": "circle-k",
+      "name": "Circle K",
+      "country": "EE",
+      "aliases": [
+        "CircleK",
+        "Circle-K",
+        "Statoil",
+        "Сёркл Кей",
+        "Circle K Sikupilli",
+        "Circle K Eesti",
+        "Circle K Latvia",
+        "Circle K Lietuva"
+      ]
+    },
+    {
+      "id": "neste",
+      "name": "Neste",
+      "country": "FI",
+      "aliases": [
+        "Neste Oil",
+        "Neste Eesti",
+        "Neste Latvija",
+        "Neste Lietuva",
+        "Neste Express",
+        "Несте"
+      ]
+    },
+    {
+      "id": "olerex",
+      "name": "Olerex",
+      "country": "EE",
+      "aliases": [
+        "Olerex AS",
+        "Олерекс"
+      ]
+    },
+    {
+      "id": "alexela",
+      "name": "Alexela",
+      "country": "EE",
+      "aliases": [
+        "Alexela Energia",
+        "Алексела"
+      ]
+    },
+    {
+      "id": "terminal-oil",
+      "name": "Terminal",
+      "country": "EE",
+      "aliases": [
+        "Terminal Oil",
+        "Terminal Tanklad"
+      ]
+    },
+    {
+      "id": "viada",
+      "name": "Viada",
+      "country": "LT",
+      "aliases": [
+        "Viada Baltija",
+        "Viada LT",
+        "Виада"
+      ]
+    },
+    {
+      "id": "virsi",
+      "name": "Virši",
+      "country": "LV",
+      "aliases": [
+        "Virsi",
+        "Viršī",
+        "Virši-A"
+      ]
+    },
+    {
+      "id": "orlen",
+      "name": "Orlen",
+      "country": "PL",
+      "aliases": [
+        "PKN Orlen",
+        "Orlen Lietuva",
+        "Orlen Deutschland",
+        "Орлен"
+      ]
+    },
+    {
+      "id": "abc-fi",
+      "name": "ABC",
+      "country": "FI",
+      "aliases": [
+        "ABC-asema",
+        "ABC Prisma",
+        "S-market ABC"
+      ]
+    },
+    {
+      "id": "st1",
+      "name": "St1",
+      "country": "FI",
+      "aliases": [
+        "St1 Oy",
+        "St1 Way",
+        "Shell St1"
+      ]
+    },
+    {
+      "id": "omv",
+      "name": "OMV",
+      "country": "AT",
+      "aliases": [
+        "О-Эм-Ви",
+        "OMV Slovensko",
+        "OMV Česko"
+      ]
+    },
+    {
+      "id": "mol",
+      "name": "MOL",
+      "country": "HU",
+      "aliases": [
+        "MOL Group",
+        "INA",
+        "МОЛ"
+      ]
+    },
+    {
+      "id": "petrom",
+      "name": "Petrom",
+      "country": "RO",
+      "aliases": [
+        "OMV Petrom",
+        "Petrom SA"
+      ]
+    },
+    {
+      "id": "rompetrol",
+      "name": "Rompetrol",
+      "country": "RO",
+      "aliases": [
+        "Rompetrol Downstream",
+        "KMG Rompetrol"
+      ]
+    },
+    {
+      "id": "lotos",
+      "name": "Lotos",
+      "country": "PL",
+      "aliases": [
+        "Grupa Lotos",
+        "Lotos Paliwa"
+      ]
+    },
+    {
+      "id": "moya",
+      "name": "Moya",
+      "country": "PL",
+      "aliases": [
+        "Moya Stacja"
+      ]
+    },
+    {
+      "id": "benzina",
+      "name": "Benzina",
+      "country": "CZ",
+      "aliases": [
+        "Benzina Orlen",
+        "Benzina a.s."
+      ]
+    },
+    {
+      "id": "eurooil",
+      "name": "EuroOil",
+      "country": "CZ",
+      "aliases": [
+        "Euro Oil",
+        "Čepro EuroOil"
+      ]
+    },
+    {
+      "id": "slovnaft",
+      "name": "Slovnaft",
+      "country": "SK",
+      "aliases": [
+        "Slovnaft a.s."
+      ]
+    },
+    {
+      "id": "petrol-si",
+      "name": "Petrol",
+      "country": "SI",
+      "aliases": [
+        "Petrol d.d.",
+        "Petrol Slovenija"
+      ]
+    },
+    {
+      "id": "wog",
+      "name": "WOG",
+      "country": "UA",
+      "aliases": [
+        "ВОГ",
+        "WOG Retail"
+      ]
+    },
+    {
+      "id": "okko",
+      "name": "OKKO",
+      "country": "UA",
+      "aliases": [
+        "ОККО",
+        "Okko Group"
+      ]
+    },
+    {
+      "id": "socar",
+      "name": "SOCAR",
+      "country": "AZ",
+      "aliases": [
+        "Сокар",
+        "SOCAR Energy",
+        "SOCAR Georgia",
+        "SOCAR Ukraine"
+      ]
+    },
+    {
+      "id": "belorusneft",
+      "name": "Belorusneft",
+      "country": "BY",
+      "aliases": [
+        "Белоруснефть",
+        "Беларуснафта"
+      ]
+    },
+    {
+      "id": "shell",
+      "name": "Shell",
+      "country": "NL",
+      "aliases": [
+        "Royal Dutch Shell",
+        "Shell V-Power",
+        "Shell Express",
+        "Шелл",
+        "Shell Deutschland",
+        "Shell UK"
+      ]
+    },
+    {
+      "id": "bp",
+      "name": "BP",
+      "country": "GB",
+      "aliases": [
+        "British Petroleum",
+        "BP Ultimate",
+        "БП",
+        "Aral BP"
+      ]
+    },
+    {
+      "id": "aral",
+      "name": "Aral",
+      "country": "DE",
+      "aliases": [
+        "Aral AG",
+        "Арал"
+      ]
+    },
+    {
+      "id": "esso",
+      "name": "Esso",
+      "country": "GB",
+      "aliases": [
+        "Esso Express",
+        "Esso Deutschland",
+        "Эссо"
+      ]
+    },
+    {
+      "id": "totalenergies",
+      "name": "TotalEnergies",
+      "country": "FR",
+      "aliases": [
+        "Total",
+        "Total Energies",
+        "TotalEnergies Access",
+        "Total Access",
+        "Тоталь"
+      ]
+    },
+    {
+      "id": "eni",
+      "name": "Eni",
+      "country": "IT",
+      "aliases": [
+        "Agip",
+        "Eni Station",
+        "Agip Eni",
+        "Эни"
+      ]
+    },
+    {
+      "id": "q8",
+      "name": "Q8",
+      "country": "KW",
+      "aliases": [
+        "Kuwait Petroleum",
+        "Q8 Easy",
+        "Q8 Tankstation"
+      ]
+    },
+    {
+      "id": "jet",
+      "name": "JET",
+      "country": "DE",
+      "aliases": [
+        "Jet Tankstelle",
+        "JET UK",
+        "Conoco JET"
+      ]
+    },
+    {
+      "id": "avia",
+      "name": "AVIA",
+      "country": "CH",
+      "aliases": [
+        "Avia International",
+        "AVIA Tankstelle"
+      ]
+    },
+    {
+      "id": "star-orlen",
+      "name": "star",
+      "country": "DE",
+      "aliases": [
+        "star Tankstelle",
+        "star Orlen"
+      ]
+    },
+    {
+      "id": "hem",
+      "name": "HEM",
+      "country": "DE",
+      "aliases": [
+        "HEM Tankstelle",
+        "Deutsche Tamoil HEM"
+      ]
+    },
+    {
+      "id": "tamoil",
+      "name": "Tamoil",
+      "country": "NL",
+      "aliases": [
+        "Tamoil Nederland",
+        "Tamoil Italia"
+      ]
+    },
+    {
+      "id": "westfalen",
+      "name": "Westfalen",
+      "country": "DE",
+      "aliases": [
+        "Westfalen AG",
+        "Westfalen Tankstelle"
+      ]
+    },
+    {
+      "id": "repsol",
+      "name": "Repsol",
+      "country": "ES",
+      "aliases": [
+        "Repsol Campsa",
+        "Репсол"
+      ]
+    },
+    {
+      "id": "cepsa",
+      "name": "Cepsa",
+      "country": "ES",
+      "aliases": [
+        "Moeve",
+        "Cepsa Estación"
+      ]
+    },
+    {
+      "id": "galp",
+      "name": "Galp",
+      "country": "PT",
+      "aliases": [
+        "Galp Energia"
+      ]
+    },
+    {
+      "id": "bft",
+      "name": "bft",
+      "country": "DE",
+      "aliases": [
+        "bft Tankstelle",
+        "Bundesverband freier Tankstellen"
+      ]
+    },
+    {
+      "id": "tinq",
+      "name": "Tinq",
+      "country": "NL",
+      "aliases": [
+        "TinQ",
+        "TinQ Tankstation"
+      ]
+    },
+    {
+      "id": "texaco",
+      "name": "Texaco",
+      "country": "GB",
+      "aliases": [
+        "Texaco UK",
+        "Тексако"
+      ]
+    },
+    {
+      "id": "gulf",
+      "name": "Gulf",
+      "country": "GB",
+      "aliases": [
+        "Gulf Oil",
+        "Gulf UK"
+      ]
+    },
+    {
+      "id": "tesco-fuel",
+      "name": "Tesco",
+      "country": "GB",
+      "aliases": [
+        "Tesco Petrol",
+        "Tesco Extra Petrol",
+        "Tesco Fuel"
+      ]
+    },
+    {
+      "id": "sainsburys-fuel",
+      "name": "Sainsbury's",
+      "country": "GB",
+      "aliases": [
+        "Sainsburys",
+        "Sainsbury's Petrol"
+      ]
+    },
+    {
+      "id": "asda-fuel",
+      "name": "Asda",
+      "country": "GB",
+      "aliases": [
+        "Asda Petrol",
+        "Asda Express"
+      ]
+    },
+    {
+      "id": "morrisons-fuel",
+      "name": "Morrisons",
+      "country": "GB",
+      "aliases": [
+        "Morrisons Petrol",
+        "Morrisons Daily"
+      ]
+    },
+    {
+      "id": "applegreen",
+      "name": "Applegreen",
+      "country": "IE",
+      "aliases": [
+        "Apple Green"
+      ]
+    },
+    {
+      "id": "maxol",
+      "name": "Maxol",
+      "country": "IE",
+      "aliases": [
+        "Maxol Group"
+      ]
+    },
+    {
+      "id": "ingo",
+      "name": "Ingo",
+      "country": "SE",
+      "aliases": [
+        "INGO Sverige",
+        "INGO Danmark"
+      ]
+    },
+    {
+      "id": "okq8",
+      "name": "OKQ8",
+      "country": "SE",
+      "aliases": [
+        "OK Q8",
+        "OKQ8 Sverige"
+      ]
+    },
+    {
+      "id": "preem",
+      "name": "Preem",
+      "country": "SE",
+      "aliases": [
+        "Preem AB"
+      ]
+    },
+    {
+      "id": "uno-x",
+      "name": "Uno-X",
+      "country": "NO",
+      "aliases": [
+        "UnoX",
+        "Uno X"
+      ]
+    },
+    {
+      "id": "yx",
+      "name": "YX",
+      "country": "NO",
+      "aliases": [
+        "YX Norge",
+        "YX 7-Eleven"
+      ]
+    },
+    {
+      "id": "migrol",
+      "name": "Migrol",
+      "country": "CH",
+      "aliases": [
+        "Migrol AG",
+        "Migrolino"
+      ]
+    },
+    {
+      "id": "coop-pronto",
+      "name": "Coop Pronto",
+      "country": "CH",
+      "aliases": [
+        "Coop Tankstelle"
+      ]
+    },
+    {
+      "id": "turmoel",
+      "name": "Turmöl",
+      "country": "AT",
+      "aliases": [
+        "Turmoel",
+        "Turmöl Tankstelle"
+      ]
+    },
+    {
+      "id": "avanti",
+      "name": "Avanti",
+      "country": "AT",
+      "aliases": [
+        "Avanti Tankstelle"
+      ]
+    },
+    {
+      "id": "intermarche-fuel",
+      "name": "Intermarché",
+      "country": "FR",
+      "aliases": [
+        "Intermarche",
+        "Intermarché Station"
+      ]
+    },
+    {
+      "id": "leclerc-fuel",
+      "name": "E.Leclerc",
+      "country": "FR",
+      "aliases": [
+        "Leclerc",
+        "Leclerc Station",
+        "E Leclerc"
+      ]
+    },
+    {
+      "id": "carrefour-fuel",
+      "name": "Carrefour",
+      "country": "FR",
+      "aliases": [
+        "Carrefour Station",
+        "Carrefour Market Station"
+      ]
+    },
+    {
+      "id": "auchan-fuel",
+      "name": "Auchan",
+      "country": "FR",
+      "aliases": [
+        "Auchan Station"
+      ]
+    },
+    {
+      "id": "chevron",
+      "name": "Chevron",
+      "country": "US",
+      "aliases": [
+        "Chevron Texaco",
+        "Chevron with Techron"
+      ]
+    },
+    {
+      "id": "exxonmobil",
+      "name": "ExxonMobil",
+      "country": "US",
+      "aliases": [
+        "Exxon",
+        "Mobil",
+        "Exxon Mobil",
+        "Mobil 1"
+      ]
+    },
+    {
+      "id": "sunoco",
+      "name": "Sunoco",
+      "country": "US",
+      "aliases": [
+        "Sunoco APlus"
+      ]
+    },
+    {
+      "id": "marathon",
+      "name": "Marathon",
+      "country": "US",
+      "aliases": [
+        "Marathon Petroleum",
+        "Marathon Gas"
+      ]
+    },
+    {
+      "id": "speedway",
+      "name": "Speedway",
+      "country": "US",
+      "aliases": [
+        "Speedway Gas"
+      ]
+    },
+    {
+      "id": "valero",
+      "name": "Valero",
+      "country": "US",
+      "aliases": [
+        "Valero Energy"
+      ]
+    },
+    {
+      "id": "phillips-66",
+      "name": "Phillips 66",
+      "country": "US",
+      "aliases": [
+        "Phillips66",
+        "Conoco",
+        "Union 76"
+      ]
+    },
+    {
+      "id": "citgo",
+      "name": "Citgo",
+      "country": "US",
+      "aliases": [
+        "CITGO Petroleum"
+      ]
+    },
+    {
+      "id": "costco-fuel",
+      "name": "Costco",
+      "country": "US",
+      "aliases": [
+        "Costco Gas",
+        "Costco Gasoline"
+      ]
+    },
+    {
+      "id": "sams-club-fuel",
+      "name": "Sam's Club",
+      "country": "US",
+      "aliases": [
+        "Sams Club",
+        "Sam's Club Fuel"
+      ]
+    },
+    {
+      "id": "wawa",
+      "name": "Wawa",
+      "country": "US",
+      "aliases": [
+        "Wawa Fuel"
+      ]
+    },
+    {
+      "id": "sheetz",
+      "name": "Sheetz",
+      "country": "US",
+      "aliases": []
+    },
+    {
+      "id": "7-eleven-fuel",
+      "name": "7-Eleven",
+      "country": "US",
+      "aliases": [
+        "7 Eleven",
+        "Seven Eleven",
+        "7-11"
+      ]
+    },
+    {
+      "id": "caseys",
+      "name": "Casey's",
+      "country": "US",
+      "aliases": [
+        "Caseys",
+        "Casey's General Store"
+      ]
+    },
+    {
+      "id": "kwik-trip",
+      "name": "Kwik Trip",
+      "country": "US",
+      "aliases": [
+        "KwikTrip",
+        "Kwik Star"
+      ]
+    },
+    {
+      "id": "quiktrip",
+      "name": "QuikTrip",
+      "country": "US",
+      "aliases": [
+        "Quik Trip",
+        "QT"
+      ]
+    },
+    {
+      "id": "racetrac",
+      "name": "RaceTrac",
+      "country": "US",
+      "aliases": [
+        "Race Trac",
+        "RaceWay"
+      ]
+    },
+    {
+      "id": "buc-ees",
+      "name": "Buc-ee's",
+      "country": "US",
+      "aliases": [
+        "Bucees",
+        "Buc-ees"
+      ]
+    },
+    {
+      "id": "pilot-flying-j",
+      "name": "Pilot Flying J",
+      "country": "US",
+      "aliases": [
+        "Pilot",
+        "Flying J",
+        "Pilot Travel Center"
+      ]
+    },
+    {
+      "id": "loves",
+      "name": "Love's",
+      "country": "US",
+      "aliases": [
+        "Loves",
+        "Love's Travel Stop"
+      ]
+    },
+    {
+      "id": "arco",
+      "name": "ARCO",
+      "country": "US",
+      "aliases": [
+        "Arco ampm",
+        "ampm"
+      ]
+    },
+    {
+      "id": "petro-canada",
+      "name": "Petro-Canada",
+      "country": "CA",
+      "aliases": [
+        "Petro Canada",
+        "PetroCanada"
+      ]
+    },
+    {
+      "id": "husky",
+      "name": "Husky",
+      "country": "CA",
+      "aliases": [
+        "Husky Energy"
+      ]
+    },
+    {
+      "id": "pemex",
+      "name": "Pemex",
+      "country": "MX",
+      "aliases": [
+        "Petróleos Mexicanos"
+      ]
+    },
+    {
+      "id": "tesla-supercharger",
+      "name": "Tesla Supercharger",
+      "country": "US",
+      "aliases": [
+        "Tesla",
+        "Supercharger",
+        "Tesla Charging"
+      ]
+    },
+    {
+      "id": "ionity",
+      "name": "Ionity",
+      "country": "DE",
+      "aliases": [
+        "IONITY"
+      ]
+    },
+    {
+      "id": "enbw",
+      "name": "EnBW",
+      "country": "DE",
+      "aliases": [
+        "EnBW mobility+",
+        "EnBW HyperNetz"
+      ]
+    },
+    {
+      "id": "fastned",
+      "name": "Fastned",
+      "country": "NL",
+      "aliases": []
+    },
+    {
+      "id": "electra",
+      "name": "Electra",
+      "country": "FR",
+      "aliases": []
+    },
+    {
+      "id": "chargepoint",
+      "name": "ChargePoint",
+      "country": "US",
+      "aliases": [
+        "Charge Point"
+      ]
+    },
+    {
+      "id": "electrify-america",
+      "name": "Electrify America",
+      "country": "US",
+      "aliases": []
+    },
+    {
+      "id": "evgo",
+      "name": "EVgo",
+      "country": "US",
+      "aliases": [
+        "EV go"
+      ]
+    },
+    {
+      "id": "gridserve",
+      "name": "Gridserve",
+      "country": "GB",
+      "aliases": [
+        "Gridserve Electric Highway"
+      ]
+    },
+    {
+      "id": "eleport",
+      "name": "Eleport",
+      "country": "EE",
+      "aliases": []
+    },
+    {
+      "id": "enefit-volt",
+      "name": "Enefit Volt",
+      "country": "EE",
+      "aliases": [
+        "Enefit",
+        "Eesti Energia"
+      ]
+    }
+  ]
+}

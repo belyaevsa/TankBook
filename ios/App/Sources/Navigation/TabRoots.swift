@@ -316,7 +316,7 @@ struct AppRootView: View {
         .environment(inbox)
         .task {
             pathMonitor.start()
-            BlobPrefetchService.shared.attach(pathMonitor)
+            AppLaunchWiring.attach(pathMonitor: pathMonitor, sync: sync)
             runPurgeIfNeeded()
             #if DEBUG
             DebugLaunchHooks.run(toastCenter: toastCenter)
@@ -527,9 +527,10 @@ struct AppRootView: View {
             // RV.44: drain the delivery outbox (signed-in only, best-effort).
             AutomaticPassRunner.Step(code: .delivery) { await inbox.drainOutbox() },
             // RV.127: retry queued feedback on the same cadence (hard rule 8).
-            AutomaticPassRunner.Step(code: .feedback) {
-                await FeedbackService.outbox.flush()
-            }
+            AutomaticPassRunner.Step(code: .feedback) { await FeedbackService.outbox.flush() },
+            // RV.115: the brand vocabulary's since_version refresh (public
+            // reference data; a failure leaves the held pack standing).
+            AutomaticPassRunner.Step(code: .stationBrands) { await AppStationBrands.refresh() }
         ], log: AppLog.shared)
     }
 

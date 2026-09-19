@@ -10,8 +10,13 @@ public enum ConsumptionDelta {
     /// The headline value rounded to the displayed 1-decimal precision,
     /// or `nil` when no headline exists (below the data floor).
     public static func displayedValue(_ headline: Headline?) -> Double? {
+        displayedValue(headline, in: .consumption(.lPer100))
+    }
+
+    /// The figure as the car's unit displays it, at display precision (RV.296).
+    public static func displayedValue(_ headline: Headline?, in unit: HeadlineUnit) -> Double? {
         guard let value = headline?.value else { return nil }
-        return (value * 10).rounded() / 10
+        return ConsumptionDisplay.rounded(per100: value, unit: unit)
     }
 
     /// True when the two recompute results differ at display precision - the

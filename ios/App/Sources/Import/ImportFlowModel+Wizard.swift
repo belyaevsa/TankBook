@@ -609,6 +609,9 @@ extension ImportFlowModel {
                                                         fileName: upload.fileName,
                                                         format: format)
                 guard !Task.isCancelled else { return }
+                // RV.115: the per-request country hint orders the brand picker
+                // (in memory only; docs/API.md "detectedCountry").
+                if let hint = result.detectedCountry { StationBrandRegistry.detectedCountry = hint }
                 parseFiles.append(ImportParseFile(fileName: upload.fileName,
                                                   rawData: upload.data,
                                                   parse: result))

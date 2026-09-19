@@ -267,4 +267,25 @@ final class GarageUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["garageHeaderTitle"].waitForExistence(timeout: 5))
         waitForLiveRowCount(3, in: app)
     }
+
+    // MARK: - S5: the car that came back
+
+    /// The Garage carries the same S5 card as Home, and "Delete again" is
+    /// real: the returned car (listed archived) is tombstoned again and its
+    /// row and the card both leave - with the live car untouched.
+    func testDeleteAgainRemovesTheReturnedCarAndItsCard() {
+        let app = launch(["-seedSettingsSignedIn", "-seedHomeArchivedReturned"])
+        openGarage(app)
+
+        let message = app.staticTexts["vehicleReturnMessage"].firstMatch
+        XCTAssertTrue(message.waitForExistence(timeout: 10), "the Garage renders the notice")
+        XCTAssertTrue(app.buttons["garageArchivedRow"].firstMatch.exists, "the returned car is listed archived")
+        XCTAssertEqual(liveRows(app).count, 1)
+
+        app.buttons["vehicleReturnDeleteAgain"].firstMatch.tap()
+        XCTAssertTrue(message.waitForNonExistence(timeout: 5), "the notice is answered")
+        XCTAssertTrue(app.buttons["garageArchivedRow"].firstMatch.waitForNonExistence(timeout: 5),
+                      "the car goes back where the user put it")
+        waitForLiveRowCount(1, in: app)
+    }
 }

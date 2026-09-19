@@ -190,3 +190,43 @@ struct AccountClientTests {
         #expect(transport.receivedRequests().isEmpty, "no request must go out")
     }
 }
+
+// MARK: - PR.20 the push-token PUT and the registration decision
+
+@Suite("Push token registration (PR.20)")
+struct PushTokenRegistrationTests {
+
+    @Test func putSendsTheTokenToTheDevicePath_andNilClearsIt() async throws {
+        let transport = AccountTestTransport()
+        transport.script([TankbookHTTPResponse(status: 204), TankbookHTTPResponse(status: 204)])
+        let client = makeClient(transport: transport)
+        let deviceID = UUID()
+
+        try await client.setPushToken(deviceID: deviceID, apnsToken: "0a1b2c")
+        try await client.setPushToken(deviceID: deviceID, apnsToken: nil)
+
+        let requests = transport.receivedRequests()
+        #expect(requests.count == 2)
+        #expect(requests[0].method == "PUT")
+        #expect(requests[0].url.path == "/v1/account/devices/\(deviceID.uuidString.lowercased())/push-token")
+        let first = try JSONSerialization.jsonObject(with: #require(requests[0].body)) as? [String: Any]
+        #expect(first?["apnsToken"] as? String == "0a1b2c")
+        let second = try JSONSerialization.jsonObject(with: #require(requests[1].body)) as? [String: Any]
+        #expect(second?["apnsToken"] is NSNull, "a nil token clears the row")
+    }
+
+    @Test func sendsOnceForAPairAndAgainWhenEitherHalfChanges() {
+        let acked = PushTokenRegistration.Acknowledged(token: "aa", accountId: "acct-1")
+        #expect(PushTokenRegistration.shouldSend(token: "aa", accountId: "acct-1", acknowledged: nil))
+        #expect(!PushTokenRegistration.shouldSend(token: "aa", accountId: "acct-1", acknowledged: acked),
+                "an unchanged pair sends nothing on relaunch")
+        #expect(PushTokenRegistration.shouldSend(token: "bb", accountId: "acct-1", acknowledged: acked),
+                "a rotated token sends once")
+        #expect(PushTokenRegistration.shouldSend(token: "aa", accountId: "acct-2", acknowledged: acked),
+                "a different account sends again with the same token")
+        #expect(!PushTokenRegistration.shouldSend(token: nil, accountId: "acct-1", acknowledged: nil))
+        #expect(!PushTokenRegistration.shouldSend(token: "aa", accountId: nil, acknowledged: nil),
+                "a guest never registers")
+        #expect(PushTokenRegistration.hex(Data([0x0a, 0x1b, 0xff])) == "0a1bff")
+    }
+}

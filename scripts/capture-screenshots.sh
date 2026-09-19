@@ -315,6 +315,12 @@ capture P1.10-trends-first-estimate en -seedHomeFirstEstimate -selectTrendsTab
 # where the tile's eyebrow and caption run longest beside the arrow.
 capture PJ.30-trends-hero-arrow     en -seedHomeTwoWindows -selectTrendsTab
 capture PJ.30-trends-hero-arrow-ru  ru -seedHomeTwoWindows -selectTrendsTab
+# RV.296: the miles car reads MPG - the hero (44.8 MPG for 5.25 L/100km) and
+# the Trends tile with its arrow following the displayed figure.
+capture RV.296-home-mpg           en -seedSettingsSignedIn -seedHomeFullHistory -seedHomeMiles
+capture RV.296-home-mpg-ru        ru -seedSettingsSignedIn -seedHomeFullHistory -seedHomeMiles
+capture RV.296-trends-mpg-arrow   en -seedHomeTwoWindows -seedHomeMiles -selectTrendsTab
+capture RV.296-trends-mpg-arrow-ru ru -seedHomeTwoWindows -seedHomeMiles -selectTrendsTab
 # PJ.31: price by brand (J8) on the full-history seed - Shell and Neste, four
 # fills each, the sentence naming the gap. RU is where "обходится вам на 1%
 # дороже, чем" runs longest.
@@ -527,6 +533,10 @@ capture P3.5-reminder-complete-ru        ru -seedReminderComplete -presentScreen
 # and the two-line description test the row's width.
 capture PJ.24-reminder-complete-doors    en -seedReminderComplete -presentScreen reminders -presentReminderComplete
 capture PJ.24-reminder-complete-doors-ru ru -seedReminderComplete -presentScreen reminders -presentReminderComplete
+# RV.298: an expense reminder's sheet with both doors - "Scan receipt" beside
+# "Type amount" (the seeded insurance reminder).
+capture RV.298-expense-reminder-doors    en -seedReminders -presentScreen reminders -presentReminderComplete
+capture RV.298-expense-reminder-doors-ru ru -seedReminders -presentScreen reminders -presentReminderComplete
 capture P3.5-reminder-complete-prefill    en -seedReminderCompletionPrefill -presentScreen serviceEntry
 capture P3.5-reminder-complete-prefill-ru ru -seedReminderCompletionPrefill -presentScreen serviceEntry
 
@@ -617,6 +627,10 @@ capture P4.7-restore-empty        en -presentScreen signIn -signInRestoreEmpty
 capture P4.7-restore-empty-ru     ru -presentScreen signIn -signInRestoreEmpty
 capture P4.7-restore-unreachable  en -presentScreen signIn -signInRestoreUnreachable
 capture P4.7-restore-unreachable-ru ru -presentScreen signIn -signInRestoreUnreachable
+# PJ.39: the pull dropped mid-restore - what landed, open the partial garage,
+# retry now.
+capture PJ.39-restore-interrupted    en -presentScreen signIn -signInRestoreInterrupted
+capture PJ.39-restore-interrupted-ru ru -presentScreen signIn -signInRestoreInterrupted
 
 # RV.261: the last-odometer recency is the v1 half of J11's provenance clause;
 # the source device ("from your Android phone") is [v2] and does not render.
@@ -1022,6 +1036,28 @@ xcrun simctl ui "${DEVICE}" appearance dark >/dev/null 2>&1
 # дней") and the list's chip run longest.
 capture PJ.4-home-reminder    en -seedSettingsSignedIn -seedHomeReminderDue
 capture PJ.4-home-reminder-ru ru -seedSettingsSignedIn -seedHomeReminderDue
+# RV.122: the reminder chip strip - three due chips (overdue, date, distance)
+# in due order and the "All reminders" door last; RU is where chips bite.
+capture RV.122-home-reminder-chips    en -seedSettingsSignedIn -seedHomeReminderChips
+capture RV.122-home-reminder-chips-ru ru -seedSettingsSignedIn -seedHomeReminderChips
+# RV.118: the headline's provenance line under the figure - "5 fills · last
+# 90 days · 5 full tanks" - and its RU plurals.
+capture RV.118-home-provenance    en -seedSettingsSignedIn -seedHomeFullHistory
+capture RV.118-home-provenance-ru ru -seedSettingsSignedIn -seedHomeFullHistory
+# RV.119: the Log's month divider with its glance - "800 km · 6.7 L/100km ·
+# 0.19 €/km" and "25% lower than <month>" under last month's spend.
+capture RV.119-log-month-glance    en -seedSettingsSignedIn -seedHomeMonthGlance
+capture RV.119-log-month-glance-ru ru -seedSettingsSignedIn -seedHomeMonthGlance
+# RV.120: the fill pattern card - spacing, frequency, range on a corroborated
+# tank, the month's pace - under the vitals.
+capture RV.120-home-fill-pattern    en -seedSettingsSignedIn -seedHomeFillPattern
+capture RV.120-home-fill-pattern-ru ru -seedSettingsSignedIn -seedHomeFillPattern
+# PJ.40: the S5 "came back - delete again?" card, real data through the sync
+# resurrect, on Home and in the Garage.
+capture PJ.40-home-returned      en -seedSettingsSignedIn -seedHomeArchivedReturned
+capture PJ.40-home-returned-ru   ru -seedSettingsSignedIn -seedHomeArchivedReturned
+capture PJ.40-garage-returned    en -seedSettingsSignedIn -seedHomeArchivedReturned -selectGarageTab
+capture PJ.40-garage-returned-ru ru -seedSettingsSignedIn -seedHomeArchivedReturned -selectGarageTab
 
 # PJ.5: the notification deep link - a tapped reminder opens Reminders with
 # the completion sheet for the REMINDER the identifier named (the fixed
@@ -1326,6 +1362,14 @@ capture RV.160-about-feedback-offline-ru ru -feedbackConsentOn -feedbackTranspor
 # PJ.55: the per-station favourite control on RV.150's Station settings screen.
 capture PJ.55-station-favourite    en -seedStationSettings -presentScreen stationSettings
 capture PJ.55-station-favourite-ru ru -seedStationSettings -presentScreen stationSettings
+
+# RV.115 / RV.180: the station's Brand card - the chain the matcher chose
+# beside the site's printed line, changeable - and the Stations list row
+# naming both.
+capture RV.115-station-brand    en -seedStationSettings -seedStationBrand -presentScreen stationSettings
+capture RV.115-station-brand-ru ru -seedStationSettings -seedStationBrand -presentScreen stationSettings
+capture RV.115-stations-list    en -seedStationSettings -seedStationBrand -presentScreen stations
+capture RV.115-stations-list-ru ru -seedStationSettings -seedStationBrand -presentScreen stations
 
 # Two names for one picture is a defect this file produced ten times before
 # anyone counted (see alias_shot). A deliberate alias is a copy and is expected;

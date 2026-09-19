@@ -130,6 +130,19 @@ user mid-restore.
 
 Same shape as J3, with the deltas: camera pointed at the pump display before hanging up the nozzle (→ prompt tip on first use: "no receipt? Shoot the pump"); OCR reads the three numbers, arithmetic triple-match assigns them (⚠ glare/LED segments – the spike's ~95% gate applies before this ships); station name auto-suggested from location + favorites. This journey is **unowned by any competitor** – it must feel as reliable as J3 or not exist.
 
+**One chain, one station (RV.115 + RV.180, shipped 2026-09-18).** A station has a **brand** (the
+chain) and a **name** (the site's full printed line). The brand is matched once, when the station is
+minted - from a typed name, a scanned station line or an imported column - against the station brand
+vocabulary (`docs/API.md` → `GET /reference/station-brands`), so `Газпром`, `Gazpromneft` and `ООО
+"Газпромнефть-Центр" АЗС 12089` all land under `Gazpromneft`; the Log row and Trends' price-per-brand
+line show the brand, the station row on Confirm shows the site with the brand beneath it, and the
+Garage's Stations list shows both. A name matching nothing is the user's own station with no brand.
+The brand is a default (hard rule 13): the user changes it - a vocabulary pick, their own word or
+"No brand" - from the entry's station row (**Change brand** in the station menu) or in the Garage's
+station settings, and no later pack, merge or re-scan rewrites it. The picker orders the vocabulary
+on the device: the capture's country first, then the chains the user already fuels at, then the
+device region, then the server's cold-start hint, then the rest.
+
 **Station suggestion – the logic (written 2026-08-30, shipped as PJ.19 [v1.1]).** The station
 field is a default input (hard rule 13): the app proposes one, the user changes it in one tap, and
 a changed station is theirs. The proposal is ranked, first match wins:
@@ -528,7 +541,7 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 
 | Action | What happens | Notes |
 |---|---|---|
-| **Complete** | Sheet: "Done! Log the cost?" → one tap opens the service/expense entry pre-filled (category, title, today, current odometer); scan the invoice or type a lump sum *(PJ.24, 2026-09-18: a service reminder's sheet offers both doors side by side and the scan door opens the document camera over the pre-filled entry; an expense reminder's scan door is `RV.298`)*. Then: "Next oil change in 15 000 km or Aug 2027" – the next cycle is already scheduled, anchored at *completion* (not the original due date, so schedules never drift) | Declining the cost log is first-class – completion never forces bookkeeping (.done without entry) |
+| **Complete** | Sheet: "Done! Log the cost?" → one tap opens the service/expense entry pre-filled (category, title, today, current odometer); scan the invoice or type a lump sum *(PJ.24, 2026-09-18: a service reminder's sheet offers both doors side by side and the scan door opens the document camera over the pre-filled entry; an expense reminder's sheet offers *Scan receipt* beside *Type amount* since `RV.298`, 2026-09-19: it opens the Capture screen in Expense mode with the completion carried through the session, so the receipt's "Use this" lands in the expense form with the reminder's own pre-fill; a cover left without a save drops the hand-off)*. Then: "Next oil change in 15 000 km or Aug 2027" – the next cycle is already scheduled, anchored at *completion* (not the original due date, so schedules never drift) | Declining the cost log is first-class – completion never forces bookkeeping (.done without entry) |
 | **Reschedule** | Push the due date/odometer; a fired notification re-arms | For "next month, honestly" moments – snoozing beats ignoring |
 | **Delete** | Gone (tombstone, 30-day undo like everything) | Distinct from **dismiss-with-reason**, which keeps history and teaches insights ("sold the tires") |
 | **Dismiss** (with an optional reason) | The row leaves the live list and moves to the **History** section at the foot of the reminders list (RV.248): the reason the alert collected is the row's caption ("Sold the tires"), and the completion count of the same title on the same car rides beside it. The alert's promise - *"It stays in your history – a reason helps the app learn"* - is now what the screen shows | A reason-less dismissal still reads as history ("Dismissed"). The reason is retained (synced) and displayed; the "learn" half the copy names is the insight logic, which is not built - the owner's 2026-09-12 decision (a) kept the copy and added the surface. *(RV.248: the history section is on the merged all-cars list and on a car's own list; the merged rows name their car.)* |
@@ -541,14 +554,33 @@ records that a completion happened, never whether it beat the due point, so the 
 "on time". Nothing in History is deletable; the 30-day undo for a real delete lives in Recently
 deleted.
 
-⚠ The completion→entry→next-cycle chain is where competitors leak: a reminder marked done with no record and no follow-up is a dead end (Drivvo's pattern). Ours is a loop. *(PJ.4: Reminders has a production entry point – the Home banner derives from real reminders and VehicleDetail carries a reminders row, so this journey is reachable in a Release build.)*
+⚠ The completion→entry→next-cycle chain is where competitors leak: a reminder marked done with no record and no follow-up is a dead end (Drivvo's pattern). Ours is a loop. *(PJ.4: Reminders has a production entry point – the Home banner derives from real reminders and VehicleDetail carries a reminders row, so this journey is reachable in a Release build. **RV.122, 2026-09-19: the single banner became the chip strip** – every due reminder of the selected car is its own amber chip saying what and when or how far, in due order, with "All reminders" as the last chip; a chip lands on that reminder in the merged list. Nothing due, no strip – the RV.76 row is the door then.)*
 
 **Success metric:** completed reminders that create an entry ≥50%; recurring reminders auto-rescheduled 100%.
 
 ### J8 · The monthly glance
-**Status: implemented 2026-09-11** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J8-2026-09-11c)
+**Status: unreviewed** - RV.118 (2026-09-19) changed the story (the headline's provenance line); the 2026-09-11 IMPLEMENTED verdict was reviewed against the story before it.
 **Trigger:** idle curiosity, end of month, or the "August: €212 on the Volvo" notification (opt-in).
-**Journey:** open Trends → hero consumption metric with trend arrow *(PJ.30, 2026-09-18: the arrow is the current 90-day window against the one before it - "▼20%" - and is absent, never invented, when either window does not stand on its own segments)* → monthly spend bars → price-per-liter line per station brand ("Shell costs you 4% more than Neste") *(PJ.31, 2026-09-18: a card under the tiles, one line per brand over the last year, the sentence from the engine's means - absent below two brands with two fills each; "brand" is the station's own name until `RV.115` lands the brand vocabulary)*. Feeling sought: *control*, not accounting homework. → Every chart answers a sentence-shaped question; no chart junk. Exit within 60 seconds, satisfied.
+**Journey:** open Trends → hero consumption metric with trend arrow *(PJ.30, 2026-09-18: the arrow is the current 90-day window against the one before it - "▼20%" - and is absent, never invented, when either window does not stand on its own segments)* → monthly spend bars → price-per-liter line per station brand ("Shell costs you 4% more than Neste") *(PJ.31, 2026-09-18: a card under the tiles, one line per brand over the last year, the sentence from the engine's means - absent below two brands with two fills each; since `RV.115` (2026-09-18) "brand" is the station's matched brand, falling back to its name)*. Feeling sought: *control*, not accounting homework. → Every chart answers a sentence-shaped question; no chart junk. Exit within 60 seconds, satisfied.
+
+**A derived figure says what it is made of (RV.118, 2026-09-19).** Under the headline on Home and
+as the Trends consumption tile's caption: "last 3 months · 6 fills · 4 full tanks" - the span is the
+headline's own honest label (an extended window still reads "last 5 months"), the fills and full
+tanks are counted inside its `spanDays`. A car with fills but no closed segment reads "Not enough data yet · 2 fills ·
+1 full tank" - the count it has, never an average. It is the difference between a number and a
+claim: a low figure over three fills reads as what it is.
+
+**The Log's month divider carries the month (RV.119, 2026-09-19).** Under each whole month's spend:
+"800 km · 6.7 L/100km · 0.19 €/km", and "25% lower than August" when the comparison is honest -
+both months complete in one currency, two fills each, the month over. An incomparable month says
+nothing rather than something false; the month in progress is never compared.
+
+**The fill pattern (RV.120, 2026-09-19).** The card under Home's vitals and Trends' tiles answers the
+two questions a driver at a pump has - how far this tank goes, what this month will cost - beside
+how far and how often they fill. All four are local arithmetic over the headline's own window, gated
+the same way the headline is (nothing under the floor), and each is absent rather than guessed: the
+range only on a tank capacity the user's own fills corroborated, the forecast only from day 7 with
+two fills and an exact total, and always labelled as a pace, never a bill.
 
 **Success metric:** ≥40% of MAU open Trends monthly; session length short (it's a glance, not a report).
 
@@ -784,11 +816,12 @@ fact where a blank is an honest absence.
 is a review list that failed to explain itself.
 
 ### F7 · Restore fails or comes back empty (J11's nightmare)
-**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F7-2026-09-12c)
+*(Status cleared 2026-09-19: PJ.39 added the interrupted-pull promise below; the 2026-09-12c review predates it.)*
 **Trigger:** new phone, sign-in works, but the backup is missing, corrupt, or the backend is down. The category's fatal moment – this journey gets engineered redundancy, not just good copy.
 
 - Restore sources, tried in order and shown honestly: sync pull from zero (the normal path – `SYNC.md`) → a server backup snapshot → "import a file you exported yourself." **RV.260 (2026-09-12): the third source is a Tankbook backup restored locally** – the per-car archive `ExportBuilder` writes, read back by "Restore from backup" through `VehicleArchiveReader`, with no account and no network (hard rule 1). A full-account export is refused locally with its named next step; it is the sync path's input. The third-party import wizard (My Fuel Manager / Drivvo) is a door BESIDE the backup one, not the fallback itself – it cannot read a Tankbook archive.
 - If the backend is down: say exactly that ("sync service unreachable – you can import an export file, or your data will arrive as soon as it's back"), never a generic "something went wrong."
+- If the connection drops mid-pull (PJ.39): say that too ("connection dropped – restore continues when you're back online"), show what landed so far in numbers, and offer both next steps - open the partial garage, which keeps filling from the persisted cursor once online, or retry now. The user's own connection is never answered with the server-down copy and its "import a file" door.
 - If truly nothing is found: the app says so *before* the user logs anything new (an empty garage with "expecting your data? →" recovery entry point), because the worst sequence is: user re-adds car manually, backup later reappears, and now there's a merge problem. **This includes after a provider switch (RV.259):** when the wrong-provider question sends the user to the other provider and that account is *also* empty, "truly nothing found" is now the truth and the flow lands on this recovery screen (import a file / Start fresh) - it never re-asks the reverse question, which would loop Apple ↔ Google with no in-flow exit.
 - Post-restore: show the same verification stats as J2 (entries, date range, last odometer) so trust is re-established with numbers, not a checkmark.
 
@@ -830,7 +863,7 @@ is a review list that failed to explain itself.
 **Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F10-2026-09-12)
 **Trigger:** two devices (or two drivers) changed the same data while apart – possibly during a server outage, so conflicts arrive in a batch when sync recovers. Full scenario matrix: `SYNC.md` S1–S9.
 
-- **Never modal, never at sync time.** Conflicts materialize as badges where the data lives: amber timeline flags on entries (S3), a "possible duplicate" combined card (S2), a quiet Garage notice when an archived vehicle returns with new entries (S5). A batch after an outage gets one summary toast – "Synced. 2 entries need a look" – that filters the Log to flagged items.
+- **Never modal, never at sync time.** Conflicts materialize as badges where the data lives: amber timeline flags on entries (S3), a "possible duplicate" combined card (S2), a quiet Garage notice when an archived vehicle returns with new entries (S5; real since 2026-09-19 - the resurrect writes a device-local notice, Home and the Garage render it with a working *Delete again* and *Keep*). A batch after an outage gets one summary toast – "Synced. 2 entries need a look" – that filters the Log to flagged items.
 - **Nothing is lost silently:** overwritten edits and deleted entries sit in a 30-day local undo log ("Recently deleted" / "restore my version" from the entry's edit screen).
 - **Stats stay honest during limbo:** an unresolved duplicate counts once, not twice; a flagged timeline entry is excluded from consumption with the Trends footnote.
 - **Server down = non-event** (extends F3): a passive "Waiting to sync · N changes" row in Settings is the only surface; no screen in the app is sync-gated.

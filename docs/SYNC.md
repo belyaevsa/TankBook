@@ -181,8 +181,17 @@ row revoked; ordinary sign-out is the milder control that sits between "keep syn
     re-triggers the trigger; a write that lands in that brief in-flight window
     is not lost - it stays dirty and goes with the next trigger (S7).
   - **Push notification nudge** (silent APNs "there's news" – no content in the
-    push): **[v1.x], NOT wired** – designed in NOTIFICATIONS.md, no call site
-    exists, and the source-scan guard does not expect one.
+    push): **device side wired (PR.20, 2026-09-19)** – `AppDelegate` hands a
+    `content-available` push to `AppPush.handleSilentPush`, which runs
+    `runOpportunisticSync` and answers `.newData`; the token registers through
+    `PUT /account/devices/{id}/push-token` after sign-in (NOTIFICATIONS.md). The
+    backend's sending side is P4.8's `SyncNudgeService` (after a push that
+    wrote, siblings only, throttled), so the loop is closed; foreground polling
+    remains the always-there path.
+  - **Low Data Mode (PR.20)**: `LocalFileBlobPushGate` defers a photo upload on
+    a constrained path (`AppPathMonitor.isConstrained`) - the record stays dirty
+    and the entry syncs text-first exactly as it does offline (S7); the blob
+    follows on the next unconstrained cycle.
 
 **Push batches are bounded by records AND by encoded bytes (RV.97, 2026-09-06).** One push request is a batch of dirty changes, capped two ways at once (`SyncEngine`):
 
@@ -301,11 +310,15 @@ entry); the count is a presentation, never a write. The alternative – clearing
 locally-created entry owns – was rejected too: a record that merged down from another device is
 re-dirtied and indistinguishable from one authored here, so the sweep would still race a restore.
 
-## Reference data: server-curated packs (vehicle catalog, rates)
+## Reference data: server-curated packs (vehicle catalog, rates, station brands)
 
 The vehicle catalog is **curated on the server**, and the server is the **master copy**. The app ships a
 bundled seed pack, downloads updated packs into a cache, and **where the two overlap the server's values
-win**. Same mechanism for exchange-rate packs (`P5`).
+win**. Same mechanism for exchange-rate packs (`P5`) and, since RV.115 (2026-09-18), for the **station
+brand vocabulary** (`GET /reference/station-brands`, `StationBrandStore`): a full pack replaces the held
+set, a delta overlays by id, a version not above the held one is ignored. The same limit as the catalog
+applies: the pack changes what the NEXT station matches and never rewrites a saved station's `brand`
+(`docs/SCHEMA.md` → Station).
 
 This is a *different channel from user-data sync*, and conflating the two is the mistake to avoid. Nothing
 here has an SCN, a tombstone, a dirty queue or a conflict state, because the flow is **one-way and
@@ -420,7 +433,7 @@ iPad deletes a mistaken entry; iPhone, offline, edits the same entry's price.
 Device A deletes the sold Volvo entirely; device B, offline, logs one last fill-up to it.
 - **Prevention first:** in UI, "delete vehicle" is really *archive* (J13); hard delete demands typed confirmation and cascades tombstones over its entries.
 - **Transport:** B's new fill-up references a tombstoned vehicle → the vehicle resurrects as **archived**, entry attached.
-- **Screens:** quiet notice card in the Garage: "Volvo V60 came back from another device with 1 new entry – it stays archived. Delete again?" One tap re-deletes; nothing is lost silently.
+- **Screens:** quiet notice card in the Garage and on Home: "Volvo V60 came back with 1 new entry – stays archived." with *Delete again* and *Keep* on it. One tap re-deletes (the car and its rows go back to the tombstone, dirty, and sit in Recently deleted for the undo window); *Keep* leaves the archived car with its entries. Either answer consumes the notice on both surfaces. The card reads a **device-local** row the resurrect writes (`vehicleReturn`, SCHEMA.md -> The S5 return notice) - N arriving entries are one card with a count - and it is written only on the device that deleted the car; the other devices pull an archived car with entries and see no card. Nothing is lost silently.
 
 ### S5a · The LAST car deleted - does the empty garage survive a pull? (RV.100, answered 2026-09-07; fixed by RV.101, 2026-09-07)
 

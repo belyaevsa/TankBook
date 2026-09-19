@@ -37,6 +37,8 @@ struct SignInFlowHost: View {
                     EmptyRestoreView(flow: flow)
                 case .restoreUnreachable:
                     RestoreUnreachableView(flow: flow)
+                case .restoreInterrupted(let snapshot):
+                    RestoreInterruptedView(flow: flow, snapshot: snapshot)
                 case .uploading:
                     // Transient - `onFinished` dismisses immediately (the push itself
                     // is P4.5; nothing blocks the user here, hard rule 1).

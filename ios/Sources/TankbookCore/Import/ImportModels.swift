@@ -337,12 +337,18 @@ public struct ImportParseResponse: Codable, Sendable, Equatable {
     /// Absent on an older server / an older stored parse - the preview then
     /// shows no notice rather than failing to decode.
     public let unsupported: [String: Int]?
+    /// RV.115: the server's cold-start country hint (docs/API.md
+    /// "detectedCountry") - a per-request, uncacheable default that only
+    /// breaks ties in the brand picker's ordering. Absent from a stored parse
+    /// and from an older server; nothing depends on it.
+    public let detectedCountry: String?
 
     public init(importId: String, format: String, scope: String,
                 candidates: [ImportCandidate], unparsed: [ImportUnparsedRow],
                 ambiguities: [ImportAmbiguity],
                 vehicleGroups: [ImportVehicleGroup]? = nil,
-                unsupported: [String: Int]? = nil) {
+                unsupported: [String: Int]? = nil,
+                detectedCountry: String? = nil) {
         self.importId = importId
         self.format = format
         self.scope = scope
@@ -351,6 +357,7 @@ public struct ImportParseResponse: Codable, Sendable, Equatable {
         self.ambiguities = ambiguities
         self.vehicleGroups = vehicleGroups
         self.unsupported = unsupported
+        self.detectedCountry = detectedCountry
     }
 
     /// The currency the file declares, if any (the `currency` ambiguity's first

@@ -28,27 +28,33 @@ enum TrendsFormat {
     /// The hero tile's arrow (PJ.30): the window-over-window change as the
     /// artboard prints it - "▼20%" for a lower (better) window, "▲" for a
     /// higher one - and its spoken form. `nil` in, nothing out.
-    static func headlineDelta(_ change: HeadlineChange?) -> String? {
+    /// The arrow follows the DISPLAYED figure (RV.296): improving consumption
+    /// is a falling L/100 and a rising MPG, so the glyph flips for an inverted
+    /// unit while the direction's meaning - and the colour - does not.
+    static func headlineDelta(_ change: HeadlineChange?, unit: HeadlineUnit) -> String? {
         guard let change else { return nil }
-        let arrow = change.direction == .improving ? "▼" : "▲"
-        return String(format: "%@%.0f%%", arrow, change.percent)
+        let figureRises = (change.direction == .improving) == ConsumptionDisplay.isInverted(unit)
+        return String(format: "%@%.0f%%", figureRises ? "▲" : "▼", change.displayedPercent(in: unit))
     }
 
-    static func headlineDeltaSpoken(_ change: HeadlineChange?) -> String? {
+    static func headlineDeltaSpoken(_ change: HeadlineChange?, unit: HeadlineUnit) -> String? {
         guard let change else { return nil }
-        let percent = String(format: "%.0f", change.percent)
-        let format = L10n.localize(change.direction == .improving
-                                   ? "%@%% lower than the previous 3 months"
-                                   : "%@%% higher than the previous 3 months")
+        let percent = String(format: "%.0f", change.displayedPercent(in: unit))
+        let figureRises = (change.direction == .improving) == ConsumptionDisplay.isInverted(unit)
+        let format = L10n.localize(figureRises
+                                   ? "%@%% higher than the previous 3 months"
+                                   : "%@%% lower than the previous 3 months")
         return String(format: format, percent)
     }
 
     /// The price tile's caption: the % change from the previous logged price
-    /// when a second price exists, else the last fill's date - a caption, never
-    /// a fabricated trend.
+    /// when a second price exists and the move clears the shared noise floor
+    /// (RV.297 - an unchanged price is not a rise), else the last fill's date -
+    /// a caption, never a fabricated trend.
     static func priceCaption(series: [TrendPoint]) -> String? {
         guard let last = series.last else { return nil }
-        guard let previous = series.dropLast().last, previous.value > 0 else {
+        guard let previous = series.dropLast().last, previous.value > 0,
+              abs(last.value - previous.value) / previous.value >= TrendDirection.noiseThreshold else {
             return HomeFormat.day(last.date)
         }
         let change = (last.value - previous.value) / previous.value * 100

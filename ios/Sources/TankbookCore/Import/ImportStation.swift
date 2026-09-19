@@ -13,9 +13,14 @@ import Foundation
 
 /// Resolves a station name - typed or imported - to a `Station`. Decision:
 /// match an existing station whose name is exactly the trimmed value, else
-/// create a new record. Brand normalisation (Газпром / Газпромнефть / ...) is
-/// [RV.115]'s reference-data list; this matcher deliberately does not fork it -
-/// two spellings are two stations until the brand list exists.
+/// create a new record whose `brand` is the vocabulary's match for the name
+/// (`StationBrandMatcher` over `StationBrandRegistry.brands`), or nil when
+/// nothing matches - the user's own station, no brand, a first-class state.
+/// The brand is set HERE and nowhere else: an existing station keeps whatever
+/// brand it has, typed, matched or cleared (hard rule 13), so a later pack
+/// never rewrites one. Two spellings of one chain are still two `Station`
+/// records (two forecourts, or one typed twice); the brand is what groups
+/// them (docs/JOURNEYS.md J4, RV.115 / RV.180).
 public enum ImportStationResolver {
 
     /// The `Station` a name maps to - the typed path's and an import's shared
@@ -32,14 +37,17 @@ public enum ImportStationResolver {
     /// two devices typing the same name converge on one record instead of
     /// duplicating.
     public static func station(for name: String, existing: [Station],
-                               now: Date = Date()) -> Station {
+                               now: Date = Date(),
+                               brands: [StationBrand] = StationBrandRegistry.brands) -> Station {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         if let match = existing.first(where: { $0.name == trimmed }) {
             return match
         }
         return Station(
             id: stableID(for: trimmed), createdAt: now, updatedAt: now,
-            deletedAt: nil, name: trimmed, brand: nil, location: nil,
+            deletedAt: nil, name: trimmed,
+            brand: StationBrandMatcher.match(trimmed, brands: brands)?.name,
+            location: nil,
             favorite: false, defaults: Station.Defaults(fuelKind: nil, fuelGrade: nil),
             lastUsedAt: now)
     }

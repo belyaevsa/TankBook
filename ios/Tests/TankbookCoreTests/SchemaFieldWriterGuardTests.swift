@@ -43,11 +43,7 @@ struct SchemaFieldWriterGuardTests {
         .init(field: "Preferences.proFeedbackDiagnostics",
               reason: "The About-screen diagnostics toggle the field documents was never built; the "
                   + "field is decoded (Records+Extras.swift:251) and synced but unwritable. "
-                  + "Reported by RV.196."),
-        .init(field: "Station.brand",
-              reason: "Only ever written as nil when a station is minted (ImportStation.swift:42); "
-                  + "brand normalisation is RV.115/RV.180's reference-data work, which owns this "
-                  + "field. Out of scope for RV.196.")
+                  + "Reported by RV.196.")
     ]
 
     /// A heading whose fields are legitimately out of this row's scope, with the
@@ -208,8 +204,7 @@ struct SchemaFieldWriterGuardTests {
             "Preferences.eagerMediaOnWiFi",
             "Preferences.notifications.anomalies",
             "Preferences.notifications.reminders",
-            "Preferences.proFeedbackDiagnostics",
-            "Station.brand"
+            "Preferences.proFeedbackDiagnostics"
         ], "the field scan's report moved - read it before updating this list. Got \(unwritten)")
     }
 
@@ -348,7 +343,7 @@ struct SchemaFieldWriterGuardTests {
         #expect(FieldWriterScanner.reasonProblem(in: bare) != nil,
                 "an exception with no reason must fail the self-check")
         let reasoned = FieldWriterScanner.DocumentedException(
-            field: "Station.brand", reason: "no surface sets a brand; RV.115/RV.180 own it")
+            field: "Station.brand", reason: "a reason that reads as one")
         #expect(FieldWriterScanner.reasonProblem(in: reasoned) == nil)
     }
 

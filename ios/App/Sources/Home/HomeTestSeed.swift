@@ -42,6 +42,7 @@ enum HomeTestSeed {
     private static func seedAction(for arguments: [String]) -> ((TankbookRepository) -> Void)? {
         let actions: [(argument: String, seed: (TankbookRepository) -> Void)] = [
             ("-seedHomeEmptyVehicle", seedEmptyVehicle),
+            ("-seedHomeArchivedReturned", VehicleReturnTestSeed.seed),
             ("-seedHomeRV99LongName", seedRV99LongName),
             ("-seedHomeDeleteLastCar", seedDeleteLastCar),
             ("-seedHomeSingleFill", seedSingleFill),
@@ -58,6 +59,8 @@ enum HomeTestSeed {
             ("-seedHomeRV88USDConverted", RV88HomeTestSeed.seedConverted),
             ("-seedHomeRV106Pending", RV106HomeTestSeed.seedPending),
             ("-seedHomeRV111OldPending", RV111HomeTestSeed.seedPending),
+            ("-seedHomeMonthGlance", RV119HomeTestSeed.seed),
+            ("-seedHomeFillPattern", RV120HomeTestSeed.seed),
             ("-seedHomeDuplicate", seedDuplicate),
             ("-seedHomeDuplicateFields", HomeDuplicateTestSeed.seedFields),
             ("-seedHomeCarSwitcher", CarSwitcherTestSeed.seedGarage),
@@ -66,6 +69,7 @@ enum HomeTestSeed {
             ("-seedHomeAnomaly", AnomalyTestSeed.seed),
             ("-seedHomeReminderDue", seedReminderDue),
             ("-seedHomeRemindersDue", RemindersEntryTestSeed.seedDue),
+            ("-seedHomeReminderChips", RemindersEntryTestSeed.seedChips),
             ("-seedHomeRemindersNothingDue", RemindersEntryTestSeed.seedNothingDue),
             ("-seedHomeGarageCounts", RemindersEntryTestSeed.seedGarageCounts),
             ("-seedHomeMultiYearLog", seedMultiYearLog),
