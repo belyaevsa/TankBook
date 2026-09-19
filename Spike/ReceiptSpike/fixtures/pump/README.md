@@ -1007,3 +1007,12 @@ price cell reads **1.774**, not 1.779. 1.779 was 13.06 / 7.34 - an inference, ne
 display - and none of the four board prices (1.774 / 1.834 / 1.824 / 1.984) reproduces 13.06, so
 the transaction price is simply not shown. The cell is now a `board` window, `unitPrice` is
 `notOnDisplay`, and the CSV's price is blank (unscored). Pump cells asserted: 326 → 328.
+
+## Added 2026-09-19 (an Instagram photo)
+
+`pump-118`: Dresser Wayne head at Circle K, Estonia, 98 miles+ - 43.23 L at 2.079 EUR/L =
+89.88 EUR. **Third-party** (an Instagram post, added at the product owner's request; not ours to
+redistribute, same standing as `pump-117`). No receipt; the arithmetic closes to the cent and is
+what confirms the total, which sits under a strong window reflection (`legibility: partial`).
+Portrait, 3072 x 4096, no EXIF; the 98 board cell coincides with the transaction price, the
+other three are unlit. Three windows (468). Pump cells asserted: 328 → 331.
