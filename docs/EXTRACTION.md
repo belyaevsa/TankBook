@@ -827,6 +827,18 @@ rects and `windows.json` strings), never on pixels or per-fixture labels; the ga
 The shoot list stands: Scheidt +20, Tokheim +15, Lukoil/Adast +10, night +25, rain +15, KZT +10,
 full-resolution originals, and a display-glass make per fixture.
 
+**Decisions (product owner, 2026-09-19, second round).** (6) **The truth for a fill is the
+receipt; the pump reading stands only when no receipt was provided.** For the gate that means
+`expected.csv` (the receipt's values) stays the oracle - a display that rounds a total
+(`pump-003` shows `20886.3`, the receipt says 20886.25) is not "read right" when the reader
+commits the display value; the reader is expected to abstain on a truncated total and let the
+arithmetic derive it from volume × price, which reproduces the receipt exactly. (7) **While the
+gate is off, the app recognises what it can and says so**: a frame classified as a pump display
+runs the reader, the Confirm pre-fill carries the reading with an alpha notice ("pump displays
+are read in alpha - check every field"), typing stays the peer door, and no pump photo is parsed
+as a receipt in silence. (8) **The locator is automatic** - a tap-to-frame crop is not the v1
+answer; PU.24 builds the locator, Vision region proposals first.
+
 **Where it lives.** Training, rendering, export and scoring are Python under `ml/pump-reader/`
 (PyTorch → coremltools), outside every gate except their own `pytest`; the exported `.mlpackage` is
 an app resource and the locator, slicer, decoder and Core ML wrapper are Swift in
