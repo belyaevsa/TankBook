@@ -78,15 +78,14 @@ struct SyncTriggerSourceGuardTests {
     /// PR.20: the nudge is wired on the device, and the doc says so with the
     /// call sites the guard can check - a silent push reaches
     /// `AppPush.handleSilentPush`, which runs the ONE opportunistic cycle
-    /// (never a second engine). The backend's sending side is the part the doc
-    /// still names as not built.
+    /// (never a second engine). The backend's sending side is P4.8's.
     @Test func thePushNudgeIsWiredThroughTheOneOpportunisticCycle() throws {
         let bullet = try triggerBullet(in: syncDoc())
         #expect(bullet.contains("Push notification nudge"),
                 "the nudge trigger must stay documented")
         #expect(bullet.contains("device side wired"),
-                "the doc must say the device side is wired, with the backend's sending side named as not built")
-        #expect(bullet.contains("sending side is not built"))
+                "the doc must say the device side is wired and name the backend's sender")
+        #expect(bullet.contains("SyncNudgeService"))
 
         let delegate = try appSource("Push/AppDelegate.swift")
         #expect(delegate.contains("didReceiveRemoteNotification"),

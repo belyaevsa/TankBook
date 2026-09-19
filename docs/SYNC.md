@@ -185,8 +185,9 @@ row revoked; ordinary sign-out is the milder control that sits between "keep syn
     `content-available` push to `AppPush.handleSilentPush`, which runs
     `runOpportunisticSync` and answers `.newData`; the token registers through
     `PUT /account/devices/{id}/push-token` after sign-in (NOTIFICATIONS.md). The
-    backend's sending side is not built, so no nudge arrives yet; foreground
-    polling remains the always-there path.
+    backend's sending side is P4.8's `SyncNudgeService` (after a push that
+    wrote, siblings only, throttled), so the loop is closed; foreground polling
+    remains the always-there path.
   - **Low Data Mode (PR.20)**: `LocalFileBlobPushGate` defers a photo upload on
     a constrained path (`AppPathMonitor.isConstrained`) - the record stays dirty
     and the entry syncs text-first exactly as it does offline (S7); the blob

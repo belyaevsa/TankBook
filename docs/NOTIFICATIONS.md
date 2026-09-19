@@ -28,8 +28,9 @@ forgets the acknowledgement), and on a silent push runs the same opportunistic c
 the App ID** (`docs/STORE.md`) or registration fails at runtime - logged as `push.register`
 `registration_failed`, never shown, and the device keeps polling. Every failure here is a warning
 (hard rule 1: nudges are an optimisation). Log lines: `push.token` (acknowledged), `push.nudge`
-(a wake), shape only. The **backend's sending side** - deciding when to nudge and the ~1/15 min
-throttle - is not built; until it is, the registered tokens are stored and unused.
+(a wake), shape only. The **backend's sending side is P4.8's** `SyncNudgeService`: after a push
+that wrote, every sibling device of the account with a token is nudged (the pusher never), one
+nudge per device per window, a dead token clears the row. With PR.20 the loop is closed end to end.
 
 ## Scenario catalog
 

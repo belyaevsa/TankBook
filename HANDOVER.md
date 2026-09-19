@@ -94,8 +94,7 @@ month divider's glance (`d8e8666f`) · `RV.120` the fill pattern card (this comm
 and L4, EN + RU screenshots opened, `gate.sh` green (`RELEASE=1` where a DEBUG seam moved), the
 docs reconciled in the same commit. Filed on the way: `RV.300` (three timing-flaky tests under
 full-suite load: `SyncWriteTriggerTests` x3, `ExtractEndpointTests` x2 - all pass alone), `PR.37`
-(the backend's nudge SENDER - PR.20 registers tokens and handles a silent push, nothing sends one
-yet). Backend: migration **025** (station brands, 126 rows) and `GET /reference/station-brands`;
+(filed and then CUT: the nudge sender was already P4.8's `SyncNudgeService` - the loop is closed). Backend: migration **025** (station brands, 126 rows) and `GET /reference/station-brands`;
 480 backend tests. iOS as left: **2141 + 45 tests / 265 suites**, app-target **278**, lint 0 / 670.
 
 **Six lessons this tranche paid for.** (1) A container `accessibilityIdentifier` swallows its
@@ -130,7 +129,7 @@ developer portal before the next store build, or automatic signing refuses the a
    0 new rows, two fixes in the walk). `J8` is back to unreviewed (`RV.118`-`RV.120` changed its
    story) and awaits a `REVIEW-SCENARIO`. The ticked rows number twenty-nine: sweep them to
    `TASKS-DONE.md`. Enable Push Notifications on the App ID (above). Next 1.1 candidates the owner
-   has not ranked: `PR.37`, `RV.296`, `RV.300`, `RV.297`–`RV.299`.
+   has not ranked: `RV.296`, `RV.300`, `RV.297`–`RV.299`.
 5. Unchanged from 09-15: deploy the backend so migrations 023–025 run; `RV.283` decision; `RV.203`,
    `RV.262`, then `RV.242`, `RV.210`, `RV.129`, `RV.109`; sweep the thirteen ticked rows to
    `TASKS-DONE.md`; the journeys walk is at **11 rows since 2026-09-13** - it is due.
