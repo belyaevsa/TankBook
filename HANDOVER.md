@@ -1,13 +1,13 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-19 (02:15; "The second 1.1 tranche" below is the newest). **v1.0 build 1344 was REJECTED by App Review (guideline 4.0, "hard to
+*Updated 2026-09-19 (09:40; "The third 1.1 tranche" below is the newest). **v1.0 build 1344 was REJECTED by App Review (guideline 4.0, "hard to
 read type"); the fix is on `main` (`RV.293`, `2055a926`) and build 1368 is being uploaded.** This is
-a **fresh machine** (macOS 27.0, Xcode 27.0, iOS 27.0 simulator) set up today. Measured on the tree
-as left: **iOS 2077 + 45 tests / 253 suites** (56 s), app-target bundle **276**, **backend 469 / 469
-- 0 skipped, the first time the Postgres-backed half ran locally** (Docker works here), lint 0
-errors / 670 warnings from the repo ROOT, Release build 0. **126 open rows, 425 closed** (twenty-nine
-ticked rows sit in `TASKS.md` awaiting the sweep). Nothing is running; the queue is empty. Read
-this, then `CLAUDE.md`, then `docs/DEVELOPMENT-TIMELINE.md`, then `docs/TASKS.md`'s index.*
+a **fresh machine** (macOS 27.0, Xcode 27.0, iOS 27.0 simulator) set up 2026-09-18. Measured on the
+tree as left: **iOS 2150 + 45 tests / 267 suites** (27 s + 43 s), **backend 480 / 480** (Docker
+works here), lint 0 errors / 670 warnings from the repo ROOT, Release build 0. **38 ticked rows sit
+in `TASKS.md` awaiting the sweep.** `main` is **32 commits ahead of `origin/main`** - push it.
+Nothing is running; the queue is empty. Read this, then `CLAUDE.md`, then
+`docs/DEVELOPMENT-TIMELINE.md`, then `docs/TASKS.md`'s index.*
 
 ## Where the work stands (2026-09-18, early afternoon)
 
@@ -114,22 +114,51 @@ in an extension (`RV.180`).
 developer portal before the next store build, or automatic signing refuses the archive. Build 1368
 (already uploaded) is unaffected.
 
+## The third 1.1 tranche (2026-09-19, morning): seven rows + two walks by the orchestrator, one commit each
+
+`RV.296` + `RV.297` a MPG / km/L car reads its own unit everywhere, the price caption's noise floor
+(`d2deafb2`) · `RV.298` the expense reminder's Scan receipt door (`f03ac3db`) · `PR.37` CUT, the
+sender existed (`0627cea9`) · `PJ.44` the parse deleted on every wizard exit (`8d862720`) · `PJ.40`
+the real S5 "came back - stays archived" card (`d4e8f208`) · `RV.300` the flaky-under-load tests
+(`942406b1`) · `RV.299` the blank consent sheet on iOS 27 (`2704e983`) · `PJ.39` the
+interrupted-restore row (`6e9ff47e`). Two journeys walks (`1135cbed`, `8bb63792`: 0 ticked-but-untrue,
+0 new rows, three doc fixes). Each row has its L1 and L4, EN + RU screenshots opened, `gate.sh`
+green (`RELEASE=1` where a DEBUG seam moved), the docs reconciled in the same commit.
+
+**Five lessons this tranche paid for.** (1) **`RV.300` was two real causes, not "timing"**: the
+backend's Npgsql pool per test database was never cleared - 505 peak connections against
+`max_connections=500`, measured in `pg_stat_activity` - and the iOS three waited on a 3 s
+wall-clock bound that expired on scheduling under load, not on the trigger. Measure before widening.
+(2) **`RV.299` was a product defect** the row allowed for: on iOS 27 a `.sheet(isPresented:)` whose
+content is an `if let` over state set in the same transaction as the flag presents EMPTY - body
+evaluated, nothing laid out, nothing in the accessibility tree - for a real tap. `sheet(item:)`
+fixes it. Prefer `sheet(item:)` whenever the content depends on a value set with the flag. (3) A
+seed that raises a sheet from `.task` on the iOS 27 simulator can render and STILL be absent from
+the accessibility tree; drive the L4 through the user's own taps and keep the auto-raise for the
+`simctl` pose only. (4) `PJ.40`'s answer on one tab root left the other root's copy of the card
+standing - the tab roots stay mounted; route a shared card's answer through `AppToastCenter.revision`
+so both reload. (5) A UI test asserting `isHittable` on a card that grew content above it fails
+below the fold: scroll first (`testDuplicateCardRendersWithBothActionsReachable`).
+
+**F7's status line was cleared** (`PJ.39` added the interrupted-pull promise); **J8's was cleared
+earlier** (`RV.118`-`RV.120`, `RV.296`/`RV.297`). Both await a `REVIEW-SCENARIO` walk.
+
 ## What to do next
 
 1. **Owner: finish the resubmission.** Wait for build 1368 to process, swap it onto version 1.0
    (Build section → ⊖ 1344 → + 1368 → Save), reply in the Resolution Center naming the fix, Submit.
    `docs/STORE-REVIEW-REPLY-2026-09-18.md` is not written yet - write it if the owner wants the
    Notes text mirrored the way 09-15's was.
-2. **Push `main`** (three commits ahead) and watch `iOS Core` on CI: which macOS `macos-latest`
+2. **Push `main`** (32 commits ahead) and watch `iOS Core` on CI: which macOS `macos-latest`
    resolves to decides whether the L5 suites run or skip there - if it is 27 too, the marks are
    enforced nowhere and `RV.295` moves up.
 3. **`gh auth login`** on this machine; the ASC exports into `~/.zshrc` (team id, key id, issuer id,
    key path) so `release.sh` runs without a hand-typed environment.
-4. The journeys walk ran 2026-09-19 over the tranche (`diagnostics/REVIEW-JOURNEYS-2026-09-19.md`:
-   0 new rows, two fixes in the walk). `J8` is back to unreviewed (`RV.118`-`RV.120` changed its
-   story) and awaits a `REVIEW-SCENARIO`. The ticked rows number twenty-nine: sweep them to
-   `TASKS-DONE.md`. Enable Push Notifications on the App ID (above). Next 1.1 candidates the owner
-   has not ranked: `RV.296`, `RV.300`, `RV.297`–`RV.299`.
+4. The journeys walk ran twice on 2026-09-19 (`diagnostics/REVIEW-JOURNEYS-2026-09-19.md`,
+   `-2026-09-19b.md`: 0 new rows). `J8` and `F7` are unreviewed and await a `REVIEW-SCENARIO` each.
+   The ticked rows number thirty-eight: sweep them to `TASKS-DONE.md`. Enable Push Notifications on
+   the App ID (above). The 1.1 rows the owner queued are all shipped; pick the next from the open
+   `[v1.1]` rows in `TASKS.md` (the launch-triage tier 3 list names them).
 5. Unchanged from 09-15: deploy the backend so migrations 023–025 run; `RV.283` decision; `RV.203`,
    `RV.262`, then `RV.242`, `RV.210`, `RV.129`, `RV.109`; sweep the thirteen ticked rows to
    `TASKS-DONE.md`; the journeys walk is at **11 rows since 2026-09-13** - it is due.
