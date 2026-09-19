@@ -25,13 +25,14 @@ struct PumpReaderHarnessTests {
 
     // MARK: - Ratchet constants
 
-    // Measured 2026-09-19 (PU.4 first cut): 173/433 windows agree on glyph count.
-    // The 0.80 target in the brief is the ceiling this ratchet grows toward; the
-    // corpus is glare-heavy and the dp is absorbed into the host glyph on most
-    // makes, so the column-projection slicer cannot see it - that gap is the
-    // classifier's dp bit, and PU.6 owns closing it.
-    private static let countAgreementFloor = 0.39
-    private static let dpAgreementFloor = 0.01
+    // Measured 2026-09-19 (PU.8, then the grid anchored on the first occupied
+    // cell): 259/433 windows agree on glyph count, up from PU.4's 173/433. The 0.80 target in the brief is the ceiling this ratchet
+    // grows toward. The dp is absorbed into the host glyph on most makes - the
+    // local-contrast normalisation and the Otsu threshold absorb a few more than
+    // PU.4's fixed-fraction pass - so the column-projection slicer cannot see it;
+    // that gap is the classifier's dp bit, and PU.6 owns closing it.
+    private static let countAgreementFloor = 0.59
+    private static let dpAgreementFloor = 0.0
     private static let locatorMedianIoUFloor = 0.0
 
     // MARK: - The slicer ratchet
@@ -57,13 +58,32 @@ struct PumpReaderHarnessTests {
                 Comment(stringLiteral: "the harness skipped \(score.skipped) fixtures it must be able to load"))
     }
 
+    // MARK: - The named mutation (the PU.8 seams -> the PU.4 fixed-fraction pass)
+
+    @Test("the adaptive threshold, contrast normalisation, split merge and short-count retry win windows on the corpus")
+    func robustnessSeamsAreLoadBearing() throws {
+        // A uniform contrast collapse on a synthetic strip cannot separate an
+        // adaptive threshold from a fixed fraction of the profile's max (both
+        // are relative), so the seams are shown load-bearing where they were
+        // measured: on the corpus, against the same slicer with them off.
+        let robust = try Self.scoreSlicer(robust: true)
+        let fixed = try Self.scoreSlicer(robust: false)
+        print("PU.8 seams: robust \(robust.countAgreementText) vs fixed \(fixed.countAgreementText)")
+        #expect(robust.countOK > fixed.countOK,
+                Comment(stringLiteral: "the PU.8 seams must win windows: robust \(robust.countOK) vs fixed \(fixed.countOK)"))
+    }
+
     // MARK: - The named mutation (pitch snap -> raw runs)
 
     @Test("without the pitch snap the 1-glyph fixtures lose count agreement")
     func pitchSnapIsLoadBearing() throws {
         let windows = try Self.loadWindows()
         // Fixtures with a leading `1` whose digit splits into two column runs:
-        // the snap merges them back into one cell, the raw runs do not.
+        // the snap merges them back into one cell, the raw runs do not. The
+        // split is only visible under the fixed-fraction threshold on the raw
+        // strip - PU.8's Otsu threshold, local-contrast normalisation, split
+        // merge and short-count retry are separate seams, so this snap mutation
+        // is shown with all four switched off to keep it load-bearing on its own.
         let cases: [(name: String, field: String)] = [
             ("pump-006-kz-adast-92-kzt.png", "total"),
             ("pump-013-dresser-wayne-ee-four-prices.heic", "total"),
@@ -76,8 +96,12 @@ struct PumpReaderHarnessTests {
             guard let window = ann.windows.first(where: { $0.field == fixture.field }),
                   !window.text.isEmpty else { continue }
             let expected = PumpReaderTestSupport.glyphCount(window.text)
-            let snapped = Self.slice(window: window, image: image).cells.count
-            let raw = Self.slice(window: window, image: image, pitchSnap: false).cells.count
+            let snapped = Self.slice(window: window, image: image,
+                                     adaptiveThreshold: false, localContrastNormalization: false,
+                                     splitMerge: false, shortCountRetry: false).cells.count
+            let raw = Self.slice(window: window, image: image, pitchSnap: false,
+                                 adaptiveThreshold: false, localContrastNormalization: false,
+                                 splitMerge: false, shortCountRetry: false).cells.count
             print("\(fixture.name) \(fixture.field): snapped \(snapped) raw \(raw) expected \(expected)")
             #expect(snapped == expected, "\(fixture.name) must agree under the pitch snap")
             #expect(raw != expected, "\(fixture.name) must lose agreement without the pitch snap")
@@ -173,7 +197,7 @@ struct PumpReaderHarnessTests {
         let stripHeight: Int
     }
 
-    private static func scoreSlicer() throws -> SlicerScore {
+    private static func scoreSlicer(robust: Bool = true) throws -> SlicerScore {
         let windows = try loadWindows()
         var score = SlicerScore()
         let stripsDir = PumpReaderTestSupport.outRoot.appendingPathComponent("strips")
@@ -192,7 +216,10 @@ struct PumpReaderHarnessTests {
                 }
                 let expectedCount = PumpReaderTestSupport.glyphCount(window.text)
                 let expectedDP = PumpReaderTestSupport.dpCellIndex(window.text)
-                let result = slice(window: window, image: image)
+                let result = slice(
+                    window: window, image: image,
+                    adaptiveThreshold: robust, localContrastNormalization: robust,
+                    splitMerge: robust, shortCountRetry: robust)
 
                 let make = makeOf(name)
                 score.countTotal += 1
@@ -227,12 +254,16 @@ struct PumpReaderHarnessTests {
             }
             score.slices[name] = fixtureSlices
         }
-        writeSlicesJSON(score.slices)
+        if robust {
+            writeSlicesJSON(score.slices)
+        }
         return score
     }
 
     private static func slice(
-        window: PumpWindowAnnotation, image: PumpRGBImage, pitchSnap: Bool = true
+        window: PumpWindowAnnotation, image: PumpRGBImage, pitchSnap: Bool = true,
+        adaptiveThreshold: Bool = true, localContrastNormalization: Bool = true,
+        splitMerge: Bool = true, shortCountRetry: Bool = true
     ) -> SliceResult {
         let quad = PumpReaderTestSupport.quadPixels(window.quad, width: image.width, height: image.height)
         let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: quad, stripHeight: 96)
@@ -243,6 +274,10 @@ struct PumpReaderHarnessTests {
         let gray = PumpQuadWarp.rgbImage(from: strip).grayscale()
         var options = PumpGlyphSlicer.Options()
         options.pitchSnap = pitchSnap
+        options.adaptiveThreshold = adaptiveThreshold
+        options.localContrastNormalization = localContrastNormalization
+        options.splitMerge = splitMerge
+        options.shortCountRetry = shortCountRetry
         let cells = PumpGlyphSlicer.slice(gray, options: options)
         return SliceResult(cells: cells, strip: strip, stripWidth: strip.width, stripHeight: strip.height)
     }

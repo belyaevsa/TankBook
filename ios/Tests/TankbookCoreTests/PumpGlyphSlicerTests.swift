@@ -65,7 +65,32 @@ struct PumpGlyphSlicerTests {
         #expect(PumpGlyphSlicer.slice(led).count == 3, "LED strip should slice to 3 cells")
     }
 
+    @Test(
+        "a PU.1 render collapsed to 15 % contrast still slices to its box count",
+        .enabled(if: pythonAvailable, "ml/pump-reader/.venv/bin/python is not available to replay the PU.1 render")
+    )
+    func faintDisplaySlicesToItsBoxes() throws {
+        let loaded = try #require(Self.synth)
+        let row = try #require(loaded.rows.first(where: { Self.isPerspectiveFree($0) }))
+        let image = try #require(PumpReaderTestSupport.loadRGB(url: loaded.imagesDir.appendingPathComponent(row.file)))
+        let gray = image.grayscale()
+        let faint = Self.collapseContrast(gray, remaining: 0.15)
+
+        let cells = PumpGlyphSlicer.slice(faint)
+        #expect(cells.count == row.boxes.count,
+                "faint display sliced \(cells.count) cells, the oracle has \(row.boxes.count) boxes")
+
+    }
+
     // MARK: - Synthetic strips
+
+    /// Scales every pixel toward the strip mean until the ink/background
+    /// contrast is `remaining` of the original, matching a faint display.
+    private static func collapseContrast(_ gray: PumpGrayscale, remaining: Float) -> PumpGrayscale {
+        let mean = gray.pixels.reduce(0, +) / Float(gray.pixels.count)
+        let pixels = gray.pixels.map { mean + ($0 - mean) * remaining }
+        return PumpGrayscale(width: gray.width, height: gray.height, pixels: pixels)
+    }
 
     private static func makeStrip(darkOnLight: Bool) -> PumpGrayscale {
         let pitch = 24
