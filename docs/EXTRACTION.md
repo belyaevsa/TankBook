@@ -75,8 +75,23 @@ unchanged by this row.
 
 Ground truth here has to come from something the extractor cannot see: the fixture **filenames**,
 which the product owner wrote from the images before any station extractor existed, cross-checked
-against the OCR. That is **RV.179**. Until it lands **this feature's accuracy is unknown**, and the
-tests below assert structure only - convergence, the logging gate, and the write path.
+against the OCR. That is **RV.179**, and it landed 2026-09-19: **measured, 31 of 59 (53%)** on
+macOS 27 (the one mark not measured on macOS 26 - `docs/TESTING.md` names the exception). The
+column is the `station` cell of `receipts/expected.csv` - the paper's brand as the normalised token
+runs (`StationBrandMatcher.normalisedTokens`) the extracted line must contain, `|` between the
+spellings a receipt may print (`lukoil|lukoyl`) - written from the filename and cross-checked line
+by line against the OCR dump; **14 of 73 cells are blank**, each with its reason in
+`receipts/stations.md` (seven where the read carries no trace of the brand, seven where the
+filename names a city or nothing - three of those print a chain the filename does not, and are
+named there for renaming). It is scored as its **own class** (`stations` in `high-water.json`) so the
+receipts marks keep their cell counts, an abstention against an asserted cell is a **miss**, and
+`stationMarkIncludesAMiss` prints every miss - a fresh class at 100% is circularity, not quality.
+What the misses say: the extractor offers a cashier line, an address, a card-terminal fragment or a
+fiscal label where the paper prints the chain on another line, and OCR misspells the chain itself
+(`ЛУКОНЛ-СЕВЕРО-ЗАПАДНЕФТЕПРОДУКТ`, `ТАЗПРОМНЕФТЬ`) or glues the legal form on (`ОООКРЫМ ОИЛ`). The
+first measurement also fixed one matcher blind spot: a Latin look-alike inside a Cyrillic word
+(`PН-Тверь` with a Latin P, which every RN slip prints) is now read as the Cyrillic it stands for
+before transliteration, 29 -> 31.
 
 **Hard rule 12.** A station name, brand or address is a domain value and is never logged, at any
 level, in any build; only counts and confidence are shape. A source-scan gate

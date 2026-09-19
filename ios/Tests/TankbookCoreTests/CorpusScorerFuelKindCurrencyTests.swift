@@ -104,7 +104,7 @@ struct CorpusScorerFuelKindCurrencyTests {
     private static let fixturesRoot = repoRoot
         .appendingPathComponent("Spike/ReceiptSpike/fixtures")
 
-    @Test("every expected.csv parses with the six-column header and no silent holes")
+    @Test("every expected.csv parses with the documented header and no silent holes")
     func expectedParsesWithTheNewColumns() throws {
         var assertedFuelKind = 0
         var assertedCurrency = 0
@@ -113,10 +113,11 @@ struct CorpusScorerFuelKindCurrencyTests {
             let url = Self.fixturesRoot.appendingPathComponent(name).appendingPathComponent("expected.csv")
             let header = try String(contentsOf: url, encoding: .utf8)
                 .split(separator: "\n").first.map(String.init) ?? ""
-            #expect(
-                header == "filename,liters,unitPrice,total,fuelKind,currency",
-                "\(name) header must be the documented six-column header; got '\(header)'"
-            )
+            // The receipts class carries the seventh, `station` column (RV.179);
+            // the other classes keep the six.
+            let stationColumn = name == "receipts" ? ",station" : ""
+            let documented = "filename,liters,unitPrice,total,fuelKind,currency" + stationColumn
+            #expect(header == documented, "\(name) header must be the documented header; got '\(header)'")
             let expected = try CorpusScorer.loadExpected(url)
             #expect(!expected.isEmpty, "\(name) parsed no rows")
             for row in expected.values {                rows += 1

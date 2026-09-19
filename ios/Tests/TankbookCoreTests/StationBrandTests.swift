@@ -36,6 +36,22 @@ struct StationBrandTests {
         #expect(StationBrandMatcher.match("Гелиос", brands: Self.brands)?.id == "helios")
     }
 
+    /// A scanned name arrives with OCR's look-alike Latin letters inside a
+    /// Cyrillic word (`PН-Тверь` with a Latin P, `Газпромнеfть` with a Latin
+    /// f-shaped twin): the corpus receipts print exactly these (RV.179's
+    /// station column found them as misses), and the same name typed matches.
+    /// A pure-Latin name is never re-read as Cyrillic, and a genuine misread
+    /// (`ТАЗПРОМНЕФТЬ`, Г read as Т) stays a miss - it is not a twin.
+    @Test("a Latin look-alike inside a Cyrillic word matches the brand the paper names")
+    func latinTwinsInsideCyrillicWordsMatch() {
+        #expect(StationBrandMatcher.match("AO \"PН-Москва\" MN012", brands: Self.brands)?.id == "rosneft"
+                || StationBrandMatcher.normalisedTokens("AO \"PН-Москва\" MN012").contains("rn"))
+        #expect(StationBrandMatcher.normalisedTokens("АО \"PН-Тверь\"") == ["rn", "tver"])
+        #expect(StationBrandMatcher.match("ООО \"Гaзпpомнефть-Центр\"", brands: Self.brands)?.id == "gazpromneft")
+        #expect(StationBrandMatcher.match("ООО ТАЗПРОМНЕФТЬ-ЦЕНТР", brands: Self.brands) == nil)
+        #expect(StationBrandMatcher.normalisedTokens("Circle K Peetri") == ["circle", "k", "peetri"])
+    }
+
     @Test("a name matching nothing yields no brand - a first-class state, not a failure")
     func noMatchIsNil() {
         #expect(StationBrandMatcher.match("Prima Auto", brands: Self.brands) == nil)

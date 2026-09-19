@@ -46,12 +46,26 @@ public enum StationBrandMatcher {
     /// not a letter or a digit, noise dropped. Digits are kept: a forecourt
     /// number is a token, and it never equals a brand spelling.
     public static func normalisedTokens(_ text: String) -> [String] {
-        let folded = transliterate(text.lowercased())
-        return folded
+        text.lowercased()
             .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
-            .map(String.init)
-            .filter { !noiseTokens.contains($0) }
+            .map { transliterate(foldLatinTwins(String($0))) }
+            .filter { !$0.isEmpty && !noiseTokens.contains($0) }
     }
+
+    /// An OCR'd Cyrillic word arrives with its look-alike letters in Latin -
+    /// `PН-Москва`, `АО "PН-Тверь"`, `ТАЗПРОМНЕФТЬ` - and transliterating the
+    /// Latin `p` as itself turns `РН` into `pn`. Inside a token that carries any
+    /// Cyrillic letter the Latin twins are read as the Cyrillic they stand
+    /// for; a pure-Latin token (`Circle`, `Neste`) is left exactly as typed.
+    static func foldLatinTwins(_ token: String) -> String {
+        guard token.unicodeScalars.contains(where: { cyrillic[$0] != nil }) else { return token }
+        return String(String.UnicodeScalarView(token.unicodeScalars.map { latinTwinToCyrillic[$0] ?? $0 }))
+    }
+
+    private static let latinTwinToCyrillic: [Unicode.Scalar: Unicode.Scalar] = [
+        "a": "а", "o": "о", "p": "р", "c": "с", "e": "е", "x": "х",
+        "k": "к", "m": "м", "b": "в", "h": "н", "t": "т", "y": "у"
+    ]
 
     private static func contains(_ tokens: [String], run: [String]) -> Bool {
         guard run.count <= tokens.count else { return false }

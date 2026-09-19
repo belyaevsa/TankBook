@@ -577,6 +577,10 @@ way macOS 27 does is a device measurement (`RV.295`). Two consequences until it 
 
 1. **A green `swift test` on macOS 27 is not evidence the parser is at its mark** – the skips
    are printed in the run and CI on the measured runtime is where the numbers are enforced.
+   **One exception, named**: the `stations` mark (RV.179, 2026-09-19) was measured on macOS 27
+   because no other runtime was on hand; `high-water.json`'s note beside it says so, and the
+   first macOS 26 run re-records it (a higher count moves the mark, a lower one is a red to read
+   as the runtime).
 2. **Extending a high-water mark or a fixture needs the measured runtime** – a number recorded
    on 27 would be compared against 26's marks by the next 26 run.
 

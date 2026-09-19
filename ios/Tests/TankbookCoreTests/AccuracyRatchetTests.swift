@@ -119,6 +119,7 @@ struct CorpusAccuracyGateTests {
         let fiscal: ClassScore
         let screenshots: ClassScore
         let expenses: ClassScore
+        let stations: ClassScore
 
         func recorded(for name: String) -> ClassScore {
             switch name {
@@ -126,6 +127,7 @@ struct CorpusAccuracyGateTests {
             case "pump": return pump
             case "fiscal": return fiscal
             case "expenses": return expenses
+            case "stations": return stations
             default: return screenshots
             }
         }
@@ -134,16 +136,19 @@ struct CorpusAccuracyGateTests {
     @Test func corpusScoresDoNotRegress() async throws {
         let highWater = try loadHighWater()
         var failures: [String] = []
-        for name in ["receipts", "pump", "fiscal", "screenshots", "expenses"] {
+        for name in ["receipts", "pump", "fiscal", "screenshots", "expenses", "stations"] {
             // The pump class is scored under the re-scoped B1 metric (numeric
             // only, precision + coverage); the ratchet still guards its recall
             // (hits may not fall, total may not shrink). The expense class is
             // scored from its photographs where it has one, else from the
-            // hand-authored `.txt` (RV.278).
+            // hand-authored `.txt` (RV.278). The station class is the receipts'
+            // `station` column scored on its own (RV.179), so the receipts
+            // marks keep their cell counts.
             let scored: ScoredClass
             switch name {
             case "pump": scored = try await scorePump().scoredClass
             case "expenses": scored = try await scoreExpenses().scoredClass
+            case "stations": scored = try await scoreStations().score
             default: scored = try await scoreClass(name)
             }
             let recorded = highWater.recorded(for: name)
@@ -161,15 +166,29 @@ struct CorpusAccuracyGateTests {
     }
 
     @Test func everyClassIsScored() async throws {
-        for name in ["receipts", "pump", "fiscal", "screenshots", "expenses"] {
+        for name in ["receipts", "pump", "fiscal", "screenshots", "expenses", "stations"] {
             let total: Int
             switch name {
             case "pump": total = try await scorePump().numericTotal
             case "expenses": total = try await scoreExpenses().total
+            case "stations": total = try await scoreStations().score.total
             default: total = try await scoreClass(name).total
             }
             #expect(total > 0, "\(name) scored no fields")
         }
+    }
+
+    /// RV.179: the station mark is a real measurement only if it can miss. A
+    /// class whose every asserted cell hits is, for a fresh extraction class,
+    /// evidence of a circular oracle (RV.161's 46/46) rather than of quality -
+    /// so the live score must record at least one miss, and each miss is
+    /// printed with what the extractor offered against what the paper names.
+    @Test func stationMarkIncludesAMiss() async throws {
+        let scored = try await scoreStations()
+        #expect(scored.score.hits < scored.score.total,
+                "a station class with no miss is a circular oracle, not a perfect extractor")
+        #expect(!scored.misses.isEmpty)
+        print("stations \(scored.score.hits)/\(scored.score.total); misses:\n" + scored.misses.joined(separator: "\n"))
     }
 
     /// RV.277: the expense class is a real, scored corpus class now, not only a
@@ -275,6 +294,17 @@ struct CorpusAccuracyGateTests {
     }
 
     // MARK: - Scoring
+
+    private func scoreStations() async throws -> (score: ScoredClass, misses: [String]) {
+        let folder = Self.fixturesRoot.appendingPathComponent("receipts")
+        let expected = try CorpusScorer.loadExpected(folder.appendingPathComponent("expected.csv"))
+        let images = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
+            .filter { CorpusScorer.imageExtensions.contains($0.pathExtension.lowercased()) }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+        let records = try await extractRecords(folder: folder, images: images, expected: expected, source: .receipt)
+        return CorpusScorer.scoreStations(images: images.map(\.lastPathComponent),
+                                          records: records, expected: expected)
+    }
 
     private func scoreClass(_ name: String) async throws -> ScoredClass {
         let folder = Self.fixturesRoot.appendingPathComponent(name)

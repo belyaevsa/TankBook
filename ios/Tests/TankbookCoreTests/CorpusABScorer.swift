@@ -29,6 +29,10 @@ struct ExtractionRecord: Codable, Equatable, Sendable {
     let currency: CurrencyCode?
     let latencySeconds: Double?
     let error: String?
+    /// The station identity line the extractor offered (RV.161), scored by the
+    /// `stations` class (RV.179). Absent from the frozen `vision-ab` files,
+    /// which decode it as nil.
+    let stationName: String?
 
     init(
         filename: String,
@@ -38,7 +42,8 @@ struct ExtractionRecord: Codable, Equatable, Sendable {
         fuelKind: FuelKind? = nil,
         currency: CurrencyCode? = nil,
         latencySeconds: Double? = nil,
-        error: String? = nil
+        error: String? = nil,
+        stationName: String? = nil
     ) {
         self.filename = filename
         self.liters = liters
@@ -48,6 +53,7 @@ struct ExtractionRecord: Codable, Equatable, Sendable {
         self.currency = currency
         self.latencySeconds = latencySeconds
         self.error = error
+        self.stationName = stationName
     }
 }
 
@@ -77,7 +83,8 @@ extension ExtractionRecord {
             fuelKind: extraction.fuelKind,
             currency: extraction.currency,
             latencySeconds: latencySeconds,
-            error: error
+            error: error,
+            stationName: extraction.stationName
         )
     }
 }
@@ -121,19 +128,37 @@ struct ExpectedRow: Equatable, Sendable {
     let total: Double?
     let fuelKind: FuelKind?
     let currency: CurrencyCode?
+    /// RV.179: the station the paper names, as the runs of normalised tokens
+    /// (`StationBrandMatcher.normalisedTokens`) the extracted line must contain
+    /// - `circle k`, `krym oil`, `lukoil|lukoyl` for a brand the receipt may
+    /// print in either script. Written from the fixture FILENAME, which the
+    /// owner named from the paper before any station extractor existed, and
+    /// cross-checked against the OCR text; a cell the two cannot agree on is
+    /// left empty and listed in `receipts/stations.md` with its reason.
+    let station: [[String]]?
 
     init(
         liters: Double? = nil,
         unitPrice: Double? = nil,
         total: Double? = nil,
         fuelKind: FuelKind? = nil,
-        currency: CurrencyCode? = nil
+        currency: CurrencyCode? = nil,
+        station: [[String]]? = nil
     ) {
         self.liters = liters
         self.unitPrice = unitPrice
         self.total = total
         self.fuelKind = fuelKind
         self.currency = currency
+        self.station = station
+    }
+
+    /// Parses the `station` cell: alternatives separated by `|`, tokens by
+    /// space, each run normalised exactly as the extracted line will be.
+    static func parseStation(_ cell: String) -> [[String]]? {
+        let runs = cell.split(separator: "|").map { StationBrandMatcher.normalisedTokens(String($0)) }
+            .filter { !$0.isEmpty }
+        return runs.isEmpty ? nil : runs
     }
 }
 
@@ -220,10 +245,43 @@ enum CorpusScorer {
                 unitPrice: Double(cols[2]),
                 total: Double(cols[3]),
                 fuelKind: cols.count > 4 ? FuelKind(rawValue: cols[4]) : nil,
-                currency: cols.count > 5 ? CurrencyCode(rawValue: cols[5]) : nil
+                currency: cols.count > 5 ? CurrencyCode(rawValue: cols[5]) : nil,
+                station: cols.count > 6 ? ExpectedRow.parseStation(cols[6]) : nil
             )
         }
         return result
+    }
+
+    /// RV.179: the station class - one cell per receipt whose `station` column
+    /// is asserted. A hit is an extracted line whose normalised tokens contain
+    /// one of the expected runs; an abstention against an asserted cell is a
+    /// MISS, never a skip (the generous-blank trap that produced a fake 46/46).
+    /// Scored as its own class so the receipts marks - the ratchet's and
+    /// `CorpusCompressionTests`' - keep their cell counts.
+    static func scoreStations(
+        images: [String],
+        records: [String: ExtractionRecord],
+        expected: [String: ExpectedRow]
+    ) -> (score: ScoredClass, misses: [String]) {
+        var hits = 0
+        var total = 0
+        var misses: [String] = []
+        for image in images {
+            guard let runs = expected[image]?.station else { continue }
+            total += 1
+            let tokens = records[image]?.stationName.map(StationBrandMatcher.normalisedTokens) ?? []
+            let hit = runs.contains { run in
+                guard run.count <= tokens.count else { return false }
+                return (0...(tokens.count - run.count)).contains { Array(tokens[$0..<($0 + run.count)]) == run }
+            }
+            if hit {
+                hits += 1
+            } else {
+                let wanted = runs.map { $0.joined(separator: " ") }.joined(separator: " | ")
+                misses.append("\(image): got \(records[image]?.stationName ?? "nil"), expected \(wanted)")
+            }
+        }
+        return (ScoredClass(name: "stations", hits: hits, total: total), misses)
     }
 
     /// The legacy numeric-only view of an `expected.csv` (columns

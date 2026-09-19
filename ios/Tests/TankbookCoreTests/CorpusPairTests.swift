@@ -129,3 +129,39 @@ struct CorpusPairTests {
     }
 }
 #endif
+
+// MARK: - The station column's oracle (RV.179), checked without Vision
+
+/// The `station` column's two runtime-independent properties: every receipt
+/// with an empty cell is listed in `stations.md` with its reason (a blank for
+/// any other reason is a miss hiding), and the recorded mark is not a full
+/// score (a fresh extraction class at 100% is a circular oracle).
+@Suite("The station column's oracle (RV.179)")
+struct StationOracleTests {
+    private static let receiptsFolder = URL(fileURLWithPath: #filePath).standardizedFileURL
+        .deletingLastPathComponent().deletingLastPathComponent()
+        .deletingLastPathComponent().deletingLastPathComponent()
+        .appendingPathComponent("Spike/ReceiptSpike/fixtures/receipts")
+
+    @Test func everyBlankStationCellIsListedWithAReason() throws {
+        let expected = try CorpusScorer.loadExpected(Self.receiptsFolder.appendingPathComponent("expected.csv"))
+        let ledger = try String(contentsOf: Self.receiptsFolder.appendingPathComponent("stations.md"), encoding: .utf8)
+        let blanks = expected.filter { $0.value.station == nil }.map(\.key).sorted()
+        let listed = blanks.filter { ledger.contains("| `\($0)` |") }
+        #expect(listed.count == blanks.count,
+                "blank cells without a stated reason: \(Set(blanks).subtracting(listed).sorted())")
+        let asserted = expected.count - blanks.count
+        #expect(ledger.contains("Asserted: \(asserted) of \(expected.count) receipts"),
+                "the ledger's counts must match the column (\(asserted) asserted, \(blanks.count) blank)")
+        #expect(!blanks.isEmpty && blanks.count < expected.count)
+    }
+
+    @Test func theRecordedStationMarkIsNotAFullScore() throws {
+        struct Mark: Decodable { let hits: Int; let total: Int }
+        struct HighWater: Decodable { let stations: Mark }
+        let url = Self.receiptsFolder.deletingLastPathComponent().appendingPathComponent("high-water.json")
+        let mark = try JSONDecoder().decode(HighWater.self, from: Data(contentsOf: url)).stations
+        #expect(mark.total > 0)
+        #expect(mark.hits < mark.total, "a 100% station mark is evidence of circularity, not quality")
+    }
+}

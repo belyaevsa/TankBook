@@ -1,74 +1,74 @@
-filename,liters,unitPrice,total,fuelKind,currency
-receipt-001.heic,67.00,1.869,125.22,diesel,EUR
-receipt-002-krymoil-yalta-100-ru.png,43.820,450.00,19719.00,petrol100,RUB
-receipt-003-krymoil-sevastopol-diesel-ru.png,20.00,259.00,5180.00,diesel,RUB
-receipt-004-krymoil-azs166-95-ru.png,20.00,205.00,4100.00,petrol95,RUB
-receipt-005-krymoil-azs166-95-flat-ru.png,20.00,205.00,4100.00,petrol95,RUB
-receipt-006-gridyaeva-92-ru.jpeg,40.00,195.00,7800.00,petrol92,RUB
-receipt-007-lukoil-spb-100-ru.png,43.61,99.40,4334.00,petrol100,RUB
-receipt-008-kemerovo-95-2022-ru.png,48.89,48.80,2385.83,petrol95,RUB
-receipt-009-mkad-mixed-fuel-water-ru.png,47.56,129.00,6135.24,,RUB
-receipt-010-gazpromneft-diesel-bonus-ru.jpeg,63.000,,3058.00,diesel,RUB
-receipt-011-samara-diesel-ru.png,66.810,62.89,4201.68,diesel,RUB
-receipt-012-neftmagistral-lpg-ru.jpeg,52.15,23.99,1251.00,lpg,RUB
-receipt-013-rn-moscow-95-ru.png,50.00,71.25,3562.50,,RUB
-receipt-014-orion-penza-95-ru.jpeg,30.00,100.00,3000.00,petrol95,RUB
-receipt-015-kedr-simferopol-95-ru.jpg,20.00,269.00,5380.00,petrol95,RUB
-receipt-016-rn-moscow-fuelcard-nonfiscal-ru.jpeg,30.000,64.40,1932.00,,RUB
-receipt-017-tatneft-domodedovo-diesel-2020-ru.jpg,20.00,48.09,961.00,diesel,RUB
-receipt-018-krymoil-yalta-100-clear-ru.png,43.820,450.00,19719.00,petrol100,RUB
-receipt-019-web-2018-ru.jpg,,,3621.00,,RUB
-receipt-020-web-2020-ru.jpg,,,2134.40,,RUB
-receipt-021-web-2018-ru.jpg,,,2519.81,,RUB
-receipt-022-teboil-spb-100-2024-ru.jpg,70.50,80.29,5660.45,,RUB
-receipt-023-rn-tver-fuelcard-95-ru.png,20.00,68.30,1366.00,petrol95,RUB
-receipt-024-krymoil-sevastopol-diesel-newpower-ru.png,13.540,245.00,3317.30,diesel,RUB
-receipt-025-tatneft-mkad-mixed-service-2019-ru.png,38.28,43.38,1660.59,petrol95,RUB
-receipt-026-kedr-feodosia-95-ru.png,20.00,269.00,5380.00,petrol95,RUB
-receipt-027-lukoil-voronezh-95-ru.png,30.00,70.05,2101.00,petrol95,RUB
-receipt-028-siboil-yakutsk-95-2023-ru.png,10.00,62.20,622.00,petrol95,RUB
-receipt-029-lukoil-dashboard-100-2021-ru.png,43.24,58.51,2529.97,petrol100,RUB
-receipt-030-yandex-zapravki-agent-95-2023-ru.png,11.000,43.55,479.05,,RUB
-receipt-031-gazprom-discount-list-vs-paid-ru.png,30.00,69.98,2099.40,petrol95,RUB
-receipt-032-rn-stupino-pulsar95-ru.png,20.00,73.15,1463.00,petrol95,RUB
-receipt-033-lukoil-astana-92-kzt-vat16-kz.jpeg,24.690,243.00,6000.00,petrol92,KZT
-receipt-034-lukoil-m11-ekto95-contract-zero-price-ru.jpeg,30.61,,,petrol95,RUB
-receipt-035-gdrive95-fuelcard-priced-ru.jpeg,39.000,70.44,2747.16,petrol95,RUB
-receipt-036-tatneft-azs172-98-terminal-slip-ru.jpeg,25.00,99.99,2499.75,petrol98,RUB
-receipt-037-tatneft-azs172-98-vat22-qr-ru.jpeg,25.00,99.99,2499.75,petrol98,RUB
-receipt-038-circlek-sikupilli-95e0-pump8-ee.jpg,45.22,1.754,79.32,petrol95,EUR
-receipt-039-circlek-sikupilli-zero-volume-pump7-ee.jpg,,1.744,,,EUR
-receipt-040-gpn-okulovka-gdrive95-fuelcard-ru.jpg,57.000,71.18,4057.26,petrol95,RUB
-receipt-041-zolotaya-seredina-tver-95-fuelcard-ru.jpg,54.000,68.44,3695.76,petrol95,RUB
-receipt-042-circlek-jarvevana-tallinn-db0-pump7-ee.jpg,87.290,1.839,160.53,diesel,EUR
-receipt-043-artemovsk-gazservis-95-vat22-watermark-ru.jpg,40.00,120.00,4800.00,petrol95,RUB
-receipt-044-rn-tver-chkalovskaya-95-nonfiscal-terminal-slip-ru.jpeg,25.00,68.30,1707.50,petrol95,RUB
-receipt-045-circlek-jarvevana-pump7-db0-2694l-ee.jpg,26.94,1.919,51.71,diesel,EUR
-receipt-046-circlek-sikupilli-pump5-db0-5580l-ee.jpg,55.80,1.799,100.38,diesel,EUR
-receipt-047-gazpromneft-edrovo-gdrive95-fuelcard-pair-ru.jpeg,53.00,71.05,3765.65,petrol95,RUB
-receipt-048-rn-tver-budovo-95-nonfiscal-terminal-slip-pair-ru.jpeg,15.00,69.50,1042.50,petrol95,RUB
-receipt-049-circlek-jarvevana-pump4-95miles-4837l-pair-ee.jpg,48.37,2.059,99.59,petrol95,EUR
-receipt-050-circlek-jarvevana-pump7-db0-7070l-rotated90-pair-ee.jpg,70.70,2.099,148.40,diesel,EUR
-receipt-051-gazpromneft-tver-gdrive95-fuelcard-rotated180-ru.jpg,30.000,69.62,2088.60,petrol95,RUB
-receipt-052-gazpromneft-tver-gdrive95-fuelcard-pair-ru.jpeg,32.000,70.31,2249.92,petrol95,RUB
-receipt-053-gpn-tver-95-ru.jpg,29.000,68.44,1984.76,petrol95,RUB
-receipt-054-circlek-tallinn-95-et.jpg,46.24,1.934,89.43,petrol95,EUR
-receipt-055-circlek-tallinn-98-discount-et.jpg,77.56,1.934,150.00,petrol98,EUR
-receipt-056-circlek-tallinn-zero-et.jpg,0.00,1.884,0.00,petrol95,EUR
-receipt-057-gpn-valday-95-occluded-ru.jpg,57.000,69.05,3935.85,petrol95,RUB
-receipt-058-circlek-peetri-98e0-pump7-4353l-ee.jpg,43.53,1.969,85.71,petrol98,EUR
-receipt-059-circlek-peetri-db0-pump5-768l-night-wet-ee.jpg,7.68,1.989,15.28,diesel,EUR
-receipt-060-gazpromneft-azs12089-95-fuelcard-pair-ru.jpeg,21.000,68.44,1437.24,petrol95,RUB
-receipt-061-gazpromneft-okulovka-azs1010-gdrive95-fuelcard-pair-ru.jpeg,42.000,71.18,2989.56,petrol95,RUB
-receipt-062-rn-tver-chkalovskaya-95firm-3000l-nonfiscal-terminal-slip-pair-ru.jpeg,30.00,71.30,2139.00,petrol95,RUB
-receipt-063-rn-tver-chkalovskaya-95firm-1000l-nonfiscal-terminal-slip-pair-ru.jpeg,10.00,71.30,713.00,petrol95,RUB
-receipt-064-circlek-peetri-db0-pump5-2307l-pair-ee.jpg,23.07,1.944,44.85,diesel,EUR
-receipt-065-rn-tver-tc252-95firm-2000l-nonfiscal-terminal-slip-pair-ru.jpeg,20.00,71.30,1426.00,petrol95,RUB
-receipt-066-circlek-jarvevana-db0-pump4-6404l-pair-ee.jpg,64.04,2.024,129.62,diesel,EUR
-receipt-067-circlek-sikupilli-95e0-pump1-2650l-pair-ee.jpg,26.50,1.949,51.65,petrol95,EUR
-receipt-068-rn-tver-azk15-95-3000l-nonfiscal-terminal-slip-sideways-pair-ru.jpeg,30.00,68.30,2049.00,petrol95,RUB
-receipt-069-rn-tver-azk15-95k5-3000l-nonfiscal-order-slip-sideways-pair-ru.jpeg,30.00,68.30,2049.00,petrol95,RUB
-receipt-070-gazpromneft-edrovo-azs10031-gdrive95-fuelcard-pair-ru.jpeg,48.000,71.05,3410.40,petrol95,RUB
-receipt-071-gazpromneft-gdrive95-fuelcard-header-cut-pair-ru.jpeg,42.000,70.31,2953.02,petrol95,RUB
-receipt-072-rn-tver-chkalovskaya-95firm-1500l-nonfiscal-terminal-slip-pair-ru.jpeg,15.00,71.30,1069.50,petrol95,RUB
-receipt-073-rn-tver-chkalovskaya-pulsar95-1500l-nonfiscal-order-slip-pair-ru.jpeg,15.00,71.30,1069.50,petrol95,RUB
+filename,liters,unitPrice,total,fuelKind,currency,station
+receipt-001.heic,67.00,1.869,125.22,diesel,EUR,
+receipt-002-krymoil-yalta-100-ru.png,43.820,450.00,19719.00,petrol100,RUB,krym oil
+receipt-003-krymoil-sevastopol-diesel-ru.png,20.00,259.00,5180.00,diesel,RUB,krym oil
+receipt-004-krymoil-azs166-95-ru.png,20.00,205.00,4100.00,petrol95,RUB,krym oil
+receipt-005-krymoil-azs166-95-flat-ru.png,20.00,205.00,4100.00,petrol95,RUB,krym oil
+receipt-006-gridyaeva-92-ru.jpeg,40.00,195.00,7800.00,petrol92,RUB,gridyaeva
+receipt-007-lukoil-spb-100-ru.png,43.61,99.40,4334.00,petrol100,RUB,lukoil|lukoyl
+receipt-008-kemerovo-95-2022-ru.png,48.89,48.80,2385.83,petrol95,RUB,
+receipt-009-mkad-mixed-fuel-water-ru.png,47.56,129.00,6135.24,,RUB,
+receipt-010-gazpromneft-diesel-bonus-ru.jpeg,63.000,,3058.00,diesel,RUB,gazpromneft
+receipt-011-samara-diesel-ru.png,66.810,62.89,4201.68,diesel,RUB,
+receipt-012-neftmagistral-lpg-ru.jpeg,52.15,23.99,1251.00,lpg,RUB,neftmagistral
+receipt-013-rn-moscow-95-ru.png,50.00,71.25,3562.50,,RUB,
+receipt-014-orion-penza-95-ru.jpeg,30.00,100.00,3000.00,petrol95,RUB,orion
+receipt-015-kedr-simferopol-95-ru.jpg,20.00,269.00,5380.00,petrol95,RUB,
+receipt-016-rn-moscow-fuelcard-nonfiscal-ru.jpeg,30.000,64.40,1932.00,,RUB,rn
+receipt-017-tatneft-domodedovo-diesel-2020-ru.jpg,20.00,48.09,961.00,diesel,RUB,tatneft
+receipt-018-krymoil-yalta-100-clear-ru.png,43.820,450.00,19719.00,petrol100,RUB,krym oil
+receipt-019-web-2018-ru.jpg,,,3621.00,,RUB,
+receipt-020-web-2020-ru.jpg,,,2134.40,,RUB,
+receipt-021-web-2018-ru.jpg,,,2519.81,,RUB,
+receipt-022-teboil-spb-100-2024-ru.jpg,70.50,80.29,5660.45,,RUB,teboil|teboyl
+receipt-023-rn-tver-fuelcard-95-ru.png,20.00,68.30,1366.00,petrol95,RUB,rn
+receipt-024-krymoil-sevastopol-diesel-newpower-ru.png,13.540,245.00,3317.30,diesel,RUB,
+receipt-025-tatneft-mkad-mixed-service-2019-ru.png,38.28,43.38,1660.59,petrol95,RUB,tatneft
+receipt-026-kedr-feodosia-95-ru.png,20.00,269.00,5380.00,petrol95,RUB,kedr
+receipt-027-lukoil-voronezh-95-ru.png,30.00,70.05,2101.00,petrol95,RUB,lukoil|lukoyl
+receipt-028-siboil-yakutsk-95-2023-ru.png,10.00,62.20,622.00,petrol95,RUB,siboil|siboyl
+receipt-029-lukoil-dashboard-100-2021-ru.png,43.24,58.51,2529.97,petrol100,RUB,lukoil|lukoyl
+receipt-030-yandex-zapravki-agent-95-2023-ru.png,11.000,43.55,479.05,,RUB,yandex|yandeks
+receipt-031-gazprom-discount-list-vs-paid-ru.png,30.00,69.98,2099.40,petrol95,RUB,gazprom
+receipt-032-rn-stupino-pulsar95-ru.png,20.00,73.15,1463.00,petrol95,RUB,rn
+receipt-033-lukoil-astana-92-kzt-vat16-kz.jpeg,24.690,243.00,6000.00,petrol92,KZT,lukoil|lukoyl
+receipt-034-lukoil-m11-ekto95-contract-zero-price-ru.jpeg,30.61,,,petrol95,RUB,lukoil|lukoyl
+receipt-035-gdrive95-fuelcard-priced-ru.jpeg,39.000,70.44,2747.16,petrol95,RUB,gazpromneft
+receipt-036-tatneft-azs172-98-terminal-slip-ru.jpeg,25.00,99.99,2499.75,petrol98,RUB,
+receipt-037-tatneft-azs172-98-vat22-qr-ru.jpeg,25.00,99.99,2499.75,petrol98,RUB,tatneft
+receipt-038-circlek-sikupilli-95e0-pump8-ee.jpg,45.22,1.754,79.32,petrol95,EUR,circle k
+receipt-039-circlek-sikupilli-zero-volume-pump7-ee.jpg,,1.744,,,EUR,circle k
+receipt-040-gpn-okulovka-gdrive95-fuelcard-ru.jpg,57.000,71.18,4057.26,petrol95,RUB,gazpromneft
+receipt-041-zolotaya-seredina-tver-95-fuelcard-ru.jpg,54.000,68.44,3695.76,petrol95,RUB,
+receipt-042-circlek-jarvevana-tallinn-db0-pump7-ee.jpg,87.290,1.839,160.53,diesel,EUR,circle k
+receipt-043-artemovsk-gazservis-95-vat22-watermark-ru.jpg,40.00,120.00,4800.00,petrol95,RUB,artemovsk gazservis|gazservis
+receipt-044-rn-tver-chkalovskaya-95-nonfiscal-terminal-slip-ru.jpeg,25.00,68.30,1707.50,petrol95,RUB,rn
+receipt-045-circlek-jarvevana-pump7-db0-2694l-ee.jpg,26.94,1.919,51.71,diesel,EUR,circle k
+receipt-046-circlek-sikupilli-pump5-db0-5580l-ee.jpg,55.80,1.799,100.38,diesel,EUR,circle k
+receipt-047-gazpromneft-edrovo-gdrive95-fuelcard-pair-ru.jpeg,53.00,71.05,3765.65,petrol95,RUB,gazpromneft
+receipt-048-rn-tver-budovo-95-nonfiscal-terminal-slip-pair-ru.jpeg,15.00,69.50,1042.50,petrol95,RUB,rn
+receipt-049-circlek-jarvevana-pump4-95miles-4837l-pair-ee.jpg,48.37,2.059,99.59,petrol95,EUR,circle k
+receipt-050-circlek-jarvevana-pump7-db0-7070l-rotated90-pair-ee.jpg,70.70,2.099,148.40,diesel,EUR,circle k
+receipt-051-gazpromneft-tver-gdrive95-fuelcard-rotated180-ru.jpg,30.000,69.62,2088.60,petrol95,RUB,gazpromneft
+receipt-052-gazpromneft-tver-gdrive95-fuelcard-pair-ru.jpeg,32.000,70.31,2249.92,petrol95,RUB,gazpromneft
+receipt-053-gpn-tver-95-ru.jpg,29.000,68.44,1984.76,petrol95,RUB,
+receipt-054-circlek-tallinn-95-et.jpg,46.24,1.934,89.43,petrol95,EUR,circle k
+receipt-055-circlek-tallinn-98-discount-et.jpg,77.56,1.934,150.00,petrol98,EUR,circle k
+receipt-056-circlek-tallinn-zero-et.jpg,0.00,1.884,0.00,petrol95,EUR,circle k
+receipt-057-gpn-valday-95-occluded-ru.jpg,57.000,69.05,3935.85,petrol95,RUB,
+receipt-058-circlek-peetri-98e0-pump7-4353l-ee.jpg,43.53,1.969,85.71,petrol98,EUR,circle k
+receipt-059-circlek-peetri-db0-pump5-768l-night-wet-ee.jpg,7.68,1.989,15.28,diesel,EUR,circle k
+receipt-060-gazpromneft-azs12089-95-fuelcard-pair-ru.jpeg,21.000,68.44,1437.24,petrol95,RUB,gazpromneft
+receipt-061-gazpromneft-okulovka-azs1010-gdrive95-fuelcard-pair-ru.jpeg,42.000,71.18,2989.56,petrol95,RUB,gazpromneft
+receipt-062-rn-tver-chkalovskaya-95firm-3000l-nonfiscal-terminal-slip-pair-ru.jpeg,30.00,71.30,2139.00,petrol95,RUB,rn
+receipt-063-rn-tver-chkalovskaya-95firm-1000l-nonfiscal-terminal-slip-pair-ru.jpeg,10.00,71.30,713.00,petrol95,RUB,rn
+receipt-064-circlek-peetri-db0-pump5-2307l-pair-ee.jpg,23.07,1.944,44.85,diesel,EUR,circle k
+receipt-065-rn-tver-tc252-95firm-2000l-nonfiscal-terminal-slip-pair-ru.jpeg,20.00,71.30,1426.00,petrol95,RUB,rn
+receipt-066-circlek-jarvevana-db0-pump4-6404l-pair-ee.jpg,64.04,2.024,129.62,diesel,EUR,circle k
+receipt-067-circlek-sikupilli-95e0-pump1-2650l-pair-ee.jpg,26.50,1.949,51.65,petrol95,EUR,circle k
+receipt-068-rn-tver-azk15-95-3000l-nonfiscal-terminal-slip-sideways-pair-ru.jpeg,30.00,68.30,2049.00,petrol95,RUB,rn
+receipt-069-rn-tver-azk15-95k5-3000l-nonfiscal-order-slip-sideways-pair-ru.jpeg,30.00,68.30,2049.00,petrol95,RUB,rn
+receipt-070-gazpromneft-edrovo-azs10031-gdrive95-fuelcard-pair-ru.jpeg,48.000,71.05,3410.40,petrol95,RUB,gazpromneft
+receipt-071-gazpromneft-gdrive95-fuelcard-header-cut-pair-ru.jpeg,42.000,70.31,2953.02,petrol95,RUB,gazpromneft
+receipt-072-rn-tver-chkalovskaya-95firm-1500l-nonfiscal-terminal-slip-pair-ru.jpeg,15.00,71.30,1069.50,petrol95,RUB,rn
+receipt-073-rn-tver-chkalovskaya-pulsar95-1500l-nonfiscal-order-slip-pair-ru.jpeg,15.00,71.30,1069.50,petrol95,RUB,rn
