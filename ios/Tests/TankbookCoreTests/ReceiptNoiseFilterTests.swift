@@ -126,3 +126,73 @@ struct ReceiptNoiseFilterTests {
         #expect(result.liters != 1.0)
     }
 }
+
+// MARK: - The two confident-wrong litres of the RN-Tver terminal slips
+
+/// receipt-068 (photographed sideways) and receipt-072 (upright): two RN-Tver
+/// PetrolPlus slips whose litres came out as `1.0` (the unit legend, garbled
+/// past the `=` glyph) and `10630454945` (the `РН ККТ` register number with a
+/// trailing Latin `L` read as a litre marker). Both lines belong to classes
+/// the filter already names; these are the shapes that reached the operand
+/// path anyway.
+@Suite("Garbled unit legends and lettered identifiers are noise")
+struct ReceiptNoiseFilterGarbledShapesTests {
+
+    @Test("every garbled unit-legend read classifies as the unit convention",
+          arguments: [
+              "1 ед.=1 литр для нефтепродуктов/суг",          // receipt-044, the shape the rule was written for
+              "1 ВД.«1 ЛИТР ДЛЯ НЕМТЕПРОДУКТОВ/СУГ",           // receipt-068, `ЕД` -> `ВД`, `=` -> `«`
+              "1 ед.-1 МЗ для кт",                              // receipt-068, `=` -> `-`
+              "1 На, 9), ЛИТР АЛЯ НЕИТЕ РОДИТІВ С.2",           // receipt-068 on macOS 27: only the structure survives
+              "1 ед.+1 NЗ для КПГ"                              // receipt-068 on macOS 27: `=` -> `+`
+          ])
+    func garbledUnitLegendIsNoise(line: String) {
+        #expect(ReceiptNoiseFilter.classify(line) == .unitConvention)
+    }
+
+    @Test("a long digit run with a letter on its tail is an identifier, never a volume",
+          arguments: ["0010630454945L", "738444090123284L", "625987284600ł"])
+    func letteredIdentifierIsNoise(line: String) {
+        #expect(ReceiptNoiseFilter.classify(line) == .russianFiscalIdentifier)
+    }
+
+    /// The 19-digit card number is caught one rule earlier, as card-terminal
+    /// furniture; either class keeps it off the operand path.
+    @Test func longBareRunIsNoiseOfSomeClass() {
+        #expect(ReceiptNoiseFilter.classify("7013330012055589222") != nil)
+    }
+
+    /// The vacuous trap: a bound that eats real values. Marked volumes with a
+    /// separator and bare totals stay readable.
+    @Test("marked volumes and bare totals are still value lines",
+          arguments: ["23.07L", "7.68L", "5380.00", "3695.76", "30.00", "15.00", "40 л", "1069.50"])
+    func realValuesAreNotNoise(line: String) {
+        #expect(ReceiptNoiseFilter.classify(line) == nil)
+    }
+
+    /// receipt-072's line set, as Vision reads it: the register number under
+    /// `ККТ` must never become the volume. The honest outcomes are the marked
+    /// `15.00` or an abstention.
+    @Test func registerNumberWithATrailingLIsNotTheVolume() {
+        let lines = [
+            "KKT", "6905035353", "Ккт", "0000143.56015857", "0010630454945L", "738444090123284L",
+            "АО \"РН-ТВЕРЬ\" АЗК TN250", "ИНН: 6905035353", "СУМма", "единиЦ",
+            "1069.50", "15.00", "ЛИРБФИРН", "1069.50", "71.30", "ШЕна за ед.",
+            "1 ЕД.=1 ЛИТР дЛя нефтепродУктов/СУГ", "1 ед.=1 мЗ для КПГ", "0010630454945L"
+        ]
+        let result = FuelExtractor().extract(textLines: lines)
+        #expect(result.liters == nil || result.liters == 15.0,
+                "got \(String(describing: result.liters)) - the register number must never be the volume")
+    }
+
+    /// receipt-068's line set: the garbled legend must not become one litre.
+    @Test func garbledLegendIsNotOneLitre() {
+        let lines = [
+            "2049.00", "2049.00", "PetroLPLus", "625987284600ł", "30.00", "ЕДИНИЦ",
+            "PH-Тверь", "АЗК 15", "1 На, 9), ЛИТР АЛЯ НЕИТЕ РОДИТІВ С.2",
+            "ИНН: 6905035353", "1 ед.+1 NЗ для КПГ", "Шена з8 ед.", "ИТОГО", "ЛИ-95", "ТОваР"
+        ]
+        let result = FuelExtractor().extract(textLines: lines)
+        #expect(result.liters != 1.0)
+    }
+}

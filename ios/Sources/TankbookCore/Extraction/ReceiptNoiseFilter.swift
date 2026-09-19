@@ -70,19 +70,25 @@ public enum ReceiptNoiseFilter {
         if matchesAny(key, russianFiscalPatterns) { return .russianFiscalIdentifier }
         if matchesAny(key, estonianRegistrationPatterns) { return .estonianRegistration }
         if matchesAny(key, cardTerminalPatterns) { return .cardTerminal }
-        if key.firstMatch(of: /\d\s*[ЕE]Д\.?\s*[=]/) != nil { return .unitConvention }
+        if matchesAny(key, unitConventionPatterns) { return .unitConvention }
         if matchesAny(key, contactPatterns) { return .contactDetails }
 
-        // A bare identifier: a run of 14 or more digits with nothing else on the
-        // line. Fiscal drive numbers and card PANs have this shape and money
-        // never does - a printed total carries a decimal separator, and the
-        // longest legitimate bare value in the corpus is `19719.00`.
+        // A bare identifier: a run of 10 or more digits, at most one letter on
+        // its tail, and nothing else on the line. Fiscal drive and register
+        // numbers and card PANs have this shape and money never does - a
+        // printed total carries a decimal separator, the longest legitimate
+        // bare value in the corpus is `19719.00`, and no real volume has more
+        // than two digits before its separator. The tail letter is witnessed:
+        // Vision hands the register number under a `РН ККТ` label back as
+        // `0010630454945L` (receipt-072) and a card number as `625987284600ł`
+        // (receipt-068), and without this rule the `L` reads as a litre marker
+        // on a volume of ten billion.
         //
         // The bound is what keeps this safe. A shorter rule would eat real
         // values, which is the trap Kimi's read of the dump named: a bare
         // `5380.00` IS the total on receipt-015, and `3695.76` is the only
-        // legible total on receipt-041.
-        if trimmed.wholeMatch(of: /\d{14,}/) != nil { return .russianFiscalIdentifier }
+        // legible total on receipt-041 - both carry a separator and stay.
+        if trimmed.wholeMatch(of: /\d{10,}\p{L}?/) != nil { return .russianFiscalIdentifier }
 
         return nil
     }
@@ -115,6 +121,17 @@ public enum ReceiptNoiseFilter {
         /\bPOS\s*NO\b/,
         /[X*]{4,}\s*\d{4}/,              // a masked PAN
         /\b\d{17,}\b/                     // a card number inside a longer line
+    ] }
+
+    /// The `1 ед.=1 литр для нефтепродуктов/суг` footnote (receipt-044) and
+    /// the shapes a sideways read garbles it into (receipt-068): the `=`
+    /// comes back as `+`, `«` or `-`, the `ЕД` as `ВД`, and on the worst read
+    /// nothing survives but the structure - a leading `1`, a `ЛИТР` a few
+    /// glyphs later and a `ДЛЯ` (or `АЛЯ`) after it. That structure is the
+    /// key, never the `=` glyph. Canonical forms: Е/В -> E/B, Т -> T, Р -> P, А -> A.
+    private static var unitConventionPatterns: [Regex<Substring>] { [
+        /\d\s*[EB]Д\.?\s*[=+«\-]/,
+        /^\s*1(?!\d).{0,12}?ЛИTP\s.{0,8}?[ДA]ЛЯ(?!\p{L})/
     ] }
 
     private static var contactPatterns: [Regex<Substring>] { [

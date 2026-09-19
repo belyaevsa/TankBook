@@ -222,6 +222,32 @@ struct CorpusAccuracyGateTests {
         #expect(contradictions.isEmpty, Comment(stringLiteral: contradictions.joined(separator: "\n")))
     }
 
+    /// The litres counterpart of the RV.56 (totals) and RV.270 (kinds)
+    /// properties: a committed volume that contradicts the paper is a confident
+    /// wrong value (hard rule 13), which the ratchet cannot see - it counts a
+    /// miss and a contradiction the same, so `receipt-068`'s `1.0` and
+    /// `receipt-072`'s ten-billion litres shipped as pre-fills while the score
+    /// merely dropped. An abstention (`nil`) is allowed; a committed litres
+    /// value off the expected one by the scorer's own tolerance fails. The next
+    /// confident-wrong volume fails the suite instead of lowering a number.
+    @Test func noReceiptCommitsAVolumeItsExpectedContradicts() async throws {
+        let folder = Self.fixturesRoot.appendingPathComponent("receipts")
+        let expected = try CorpusScorer.loadExpected(folder.appendingPathComponent("expected.csv"))
+        let images = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
+            .filter { CorpusScorer.imageExtensions.contains($0.pathExtension.lowercased()) }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+        let records = try await extractRecords(folder: folder, images: images, expected: expected, source: .receipt)
+        var contradictions: [String] = []
+        for image in images {
+            guard let want = expected[image.lastPathComponent]?.liters else { continue }
+            guard let got = records[image.lastPathComponent]?.liters else { continue }
+            if abs(got - want) >= 0.005 {
+                contradictions.append("\(image.lastPathComponent): committed \(got) L, expected \(want) L")
+            }
+        }
+        #expect(contradictions.isEmpty, Comment(stringLiteral: contradictions.joined(separator: "\n")))
+    }
+
     /// P2.7 "the gate IS the check", made executable: the real, live-scored pump
     /// corpus must match the compile-time gate constants (so the constants cannot
     /// drift from reality), and the shipped flag must be off while the measured

@@ -213,6 +213,8 @@ one of them was a candidate operand. The cost was not a missed field, which is r
 | receipt-046 | volume `10180925` | `Reg.kood 10180925, KMKR nr• EE1003L` | the lone-marker volume path |
 | receipt-041 | volume `5.000` | `2X5LT6` - a card **authorisation code** | it parses as the operand pair `2 X 5L`, marker and all |
 | receipt-044 | volume `1.000`, kind `lpg` | `1 ед.=1 литр для нефтепродуктов/суг` | the footnote states the document's units, and `суг` reads as LPG |
+| receipt-068 | volume `1.000` | `1 ВД.«1 ЛИТР ДЛЯ НЕМТЕПРОДУКТОВ/СУГ`, `1 ед.-1 МЗ для кт` | the same footnote read sideways: `ЕД` -> `ВД`, `=` -> `«`/`-`/`+`, so the glyph-keyed rule never fires and the `1 ... ЛИТР` reads as a marked volume (RV.292) |
+| receipt-072 | volume `10630454945` | `0010630454945L` | the `РН ККТ` register number, its label emitted on its own lines and a Latin `L` grown on its tail, so the label-keyed rule never sees the value and the `L` reads as a litre marker (RV.292) |
 
 `ReceiptNoiseFilter` classifies a line into one of five witnessed noise classes - Russian fiscal
 identifiers, Estonian registration, card-terminal furniture, unit-convention footnotes, contact
@@ -235,7 +237,21 @@ preceded by one. But `EE1003L` ends in a token-final `L` and passes that test, s
 the date, the discount line, a stranded marker line (`л =5380.00`), the `Цена за ед.` reference
 block - which is the *only* source of receipt-023's and receipt-044's unit price - and above all
 **bare short-decimal value lines**, because a bare `5380.00` IS the total on receipt-015. The
-bare-identifier rule is bounded at 14 digits for exactly that reason.
+bare-identifier rule is bounded by the **separator**, not only by length: a run of 10+ digits with
+at most one letter on its tail is an identifier (no printed money lacks its separator, and no real
+volume has more than two digits before it), while anything carrying a `.` or `,` stays a value line
+(RV.292). The unit-convention rule is keyed on the footnote's **structure** - a leading `1`, a
+`ЛИТР`/`М3` a few glyphs on, a `ДЛЯ` after - because a sideways read keeps the structure and loses
+the `=` (receipt-068).
+
+**The whole-class litres property** (`noReceiptCommitsAVolumeItsExpectedContradicts`, beside RV.56's
+totals and RV.270's kinds): a committed volume that contradicts `expected.csv` fails the suite on the
+measured runtime, so the next confident-wrong litres is a red, not a lower score. Measured once on
+macOS 27 as a proxy (2026-09-19, RV.292): 068 and 072 are clean, and **six other receipts commit a
+wrong volume on that runtime** - `receipt-003`, `-005`, `-032` (`2.0` for `20.0`), `-040` (`21.18`
+for `57.0`), `-057` (`9.05` for `57.0`), `-064` (`23.0` for `23.07`) - which is RV.295's question
+(is it the runtime or the parser) with litres now in the evidence, and unverified on macOS 26 until
+the measured runtime runs the property.
 
 ### 4. Resolve
 
