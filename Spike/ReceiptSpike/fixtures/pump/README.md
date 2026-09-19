@@ -1099,3 +1099,18 @@ own cell under `ЦЕНА/ЛИТР`. Every arithmetic closes.
 | 156 | Gilbarco Veeder-Root, RU | 934,05 / 23,95 / 39,00 | keypad head, backlit cells at night, three-cell ladder |
 
 43 windows (610). Pump cells asserted: 410 → 437.
+
+## Added 2026-09-19 (four more Veeder-Root heads; pump-153 at full resolution)
+
+`pump-157` – `pump-160`, **third-party**, all Gilbarco Veeder-Root keypad heads in Russia. Of the
+six pasted, one was `pump-153` again at 1920 px (dhash distance 0) - the fixture file now IS that
+larger version, quads unchanged - and one a tighter crop of the same photo, not added.
+
+| id | shows | note |
+|---|---|---|
+| 157 | 1747,20 / 44,80 / 39,00 | the price ladder cut by the left edge (no board windows); sunlit, a car reflected below |
+| 158 | 9900,0 / 146,84 / 67,42 | **wet panel**, angled; the total has ONE decimal (five cells) - the CSV asserts the product 9899.95 with a `csvDisagrees` note, as `pump-003` |
+| 159 | 1932,80 / 20,00 / 96,64 | a **preset** fill of exactly 20.00 L; a customer's torso at the bottom, no face |
+| 160 | 00260,86 / 00004,28 / 061,79 | zero-padded all three rows, **does not close** (4.28 x 61.79 = 264.46): every cell is legible, so this is a loyalty discount on the total or a display artefact, like `pump-031`; only the price is asserted, the two other cells are blank |
+
+12 windows (622). Pump cells asserted: 437 → 447.
