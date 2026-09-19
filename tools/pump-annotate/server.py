@@ -2,11 +2,11 @@
 """Number-window annotator for the pump corpus - a local web page over
 `Spike/ReceiptSpike/fixtures/pump/windows.json`.
 
-    ml/pump-reader/.venv/bin/python tools/pump-annotate/server.py   # then open the URL it prints
+    python3 tools/pump-annotate/server.py   # then open the URL it prints
 
 Reads `expected.csv` for the truth cells and `windows.json` for the quads,
-serves each fixture as an EXIF-oriented JPEG (HEIC included, via pillow-heif
-from the ml venv), and writes the entry back on Save in the file's own
+serves each fixture as a capped JPEG (HEIC included - Pillow when the ml venv
+runs it, macOS `sips` otherwise), and writes the entry back on Save in the file's own
 formatting. The page draws rectangles, drags corners, names the field and
 types what the display shows; `Check` runs `scripts/pump-windows-check.py
 --check` and shows its verdict. The format itself is documented in the file's
@@ -56,27 +56,38 @@ def load_rows() -> dict[str, dict]:
 
 
 def oriented_jpeg(name: str) -> bytes:
-    """The fixture as the browser must see it: EXIF applied, long edge capped,
-    cached by content hash so a re-exported fixture is never served stale."""
+    """The fixture as the browser must see it: HEIC decoded, long edge capped,
+    cached by content hash so a re-exported fixture is never served stale.
+    Pillow (the ml venv) bakes the EXIF orientation in; without it macOS
+    `sips` converts and the browser applies the orientation tag itself."""
     src = FIX / name
     digest = hashlib.sha256(src.read_bytes()).hexdigest()[:16]
     CACHE.mkdir(parents=True, exist_ok=True)
     cached = CACHE / f"{digest}.jpg"
     if cached.exists():
         return cached.read_bytes()
-    from PIL import Image, ImageOps  # noqa: PLC0415 - the ml venv has it
     try:
-        import pillow_heif  # noqa: PLC0415
-        pillow_heif.register_heif_opener()
+        from PIL import Image, ImageOps  # noqa: PLC0415
+        try:
+            import pillow_heif  # noqa: PLC0415
+            pillow_heif.register_heif_opener()
+        except ImportError:
+            pass
+        with Image.open(src) as im:
+            im = ImageOps.exif_transpose(im).convert("RGB")
+            im.thumbnail((IMAGE_EDGE, IMAGE_EDGE))
+            buf = io.BytesIO()
+            im.save(buf, "JPEG", quality=88)
+        cached.write_bytes(buf.getvalue())
     except ImportError:
-        pass
-    with Image.open(src) as im:
-        im = ImageOps.exif_transpose(im).convert("RGB")
-        im.thumbnail((IMAGE_EDGE, IMAGE_EDGE))
-        buf = io.BytesIO()
-        im.save(buf, "JPEG", quality=88)
-    cached.write_bytes(buf.getvalue())
-    return buf.getvalue()
+        probe = subprocess.run(["sips", "-g", "pixelWidth", "-g", "pixelHeight", str(src)],
+                               check=True, capture_output=True, text=True).stdout
+        edge = max(int(line.split()[-1]) for line in probe.splitlines() if "pixel" in line)
+        # sips resamples up as readily as down; only cap what is larger.
+        cap = ["--resampleHeightWidthMax", str(IMAGE_EDGE)] if edge > IMAGE_EDGE else []
+        subprocess.run(["sips", "-s", "format", "jpeg", "-s", "formatOptions", "88", *cap,
+                        str(src), "--out", str(cached)], check=True, capture_output=True)
+    return cached.read_bytes()
 
 
 def clean_entry(entry: dict) -> dict:
@@ -143,9 +154,6 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_bytes(oriented_jpeg(name), "image/jpeg")
             except Exception:  # noqa: BLE001 - logged, then the raw file is served
                 traceback.print_exc()
-                # Without Pillow the browser gets the original: Safari renders
-                # HEIC and applies EXIF orientation itself; other browsers
-                # show HEIC as broken, which is the venv hint again.
                 suffix = name.rsplit(".", 1)[-1].lower()
                 ctype = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "heic": "image/heic"}.get(suffix, "application/octet-stream")
                 return self.send_bytes((FIX / name).read_bytes(), ctype)
@@ -173,11 +181,6 @@ class Handler(SimpleHTTPRequestHandler):
 
 def main() -> None:
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
-    try:
-        import PIL  # noqa: F401, PLC0415
-    except ImportError:
-        print("Pillow not importable: HEIC and EXIF-oriented images will only render in Safari. "
-              "Run with ml/pump-reader/.venv/bin/python.", file=sys.stderr)
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     print(f"pump annotator: http://127.0.0.1:{port}/  ({WINDOWS.relative_to(ROOT)})")
     try:

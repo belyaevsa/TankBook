@@ -5,14 +5,12 @@ quads that tell the locator ratchets where the number windows are and what
 each display shows. It is the manual step of `.claude/skills/corpus-intake`
 (step 3), which also carries the annotation conventions.
 
-    ml/pump-reader/.venv/bin/python tools/pump-annotate/server.py
+    python3 tools/pump-annotate/server.py
     # open http://127.0.0.1:8765/
 
-The venv is needed for Pillow + pillow-heif (HEIC fixtures are served as
-EXIF-oriented JPEG); the server itself is stdlib. No venv yet:
-`python3 -m venv ml/pump-reader/.venv && ml/pump-reader/.venv/bin/pip install
-pillow pillow-heif`. Under a Python without Pillow the server says so at
-start and serves the original files, which only Safari renders (HEIC).
+Stdlib only. HEIC fixtures are converted with macOS `sips` (or Pillow when
+the ml venv runs it); the converted images are cached under
+`~/Library/Caches/tankbook-pump-annotate/` by content hash.
 
 - Left: every fixture in `expected.csv` (grey = no windows yet). `J`/`K` walk it.
 - Middle: drag a rectangle to add a window (the first three go to
