@@ -42,6 +42,16 @@
   <div class="row">Zoom <input id="zoom" type="range" min="0.25" max="4" step="0.05" value="1" style="flex:1">
     Rotate <select id="rot"><option>0</option><option>90</option><option>180</option><option>270</option></select></div>
   <div class="row mono" id="csv"></div>
+  <div class="win" id="live" style="display:none">
+    <div class="row"><b>Live record</b> <select id="rec"></select> <span id="recinfo" class="dim"></span></div>
+    <div class="row"><button id="framesToggle">View frames</button> <input id="frameSlider" type="range" min="0" max="0" value="0" style="flex:1;display:none">
+      <span id="frameName" class="mono dim"></span></div>
+    <div class="row"><b>tracking</b>
+      <label><input type="radio" name="tracking" value=""> unreviewed</label>
+      <label><input type="radio" name="tracking" value="ok"> ok</label>
+      <label><input type="radio" name="tracking" value="bad"> bad – skip this record</label>
+      <span class="dim">(<kbd>←</kbd>/<kbd>→</kbd> step frames, <kbd>Esc</kbd> back to the still)</span></div>
+  </div>
   <div id="wins"></div>
   <div class="row"><button id="add">+ window</button> <span class="dim">or drag on the image</span></div>
   <div class="win">
@@ -63,6 +73,7 @@ const $ = s => document.querySelector(s);
 const canvas = $('#c'), ctx = canvas.getContext('2d');
 let fixtures = [], current = null, entry = null, row = null, img = null, dirty = false;
 let sel = -1, zoom = 1, drag = null;
+let records = [], frameMode = false, frameIdx = 0, frameImg = null, stillImg = null;
 
 // ---- data ----
 async function loadList() {
@@ -99,10 +110,42 @@ async function openFixture(n) {
   img = new Image();
   img.onload = () => { fit(); draw(); };
   img.src = '/image/' + encodeURIComponent(n) + '?t=' + Date.now();
+  stillImg = img; frameMode = false; frameIdx = 0;
+  document.querySelectorAll('[name=tracking]').forEach(r => r.checked = (entry.tracking || '') === r.value);
+  loadRecords(n);
   renderList(); renderWins(); location.hash = encodeURIComponent(n);
+}
+async function loadRecords(n) {
+  records = await (await fetch('/api/records/' + encodeURIComponent(n))).json();
+  $('#live').style.display = records.length ? '' : 'none';
+  $('#rec').innerHTML = records.map((r, i) => `<option value="${i}">${r.movie}</option>`).join('');
+  showRecordInfo();
+}
+function currentRecord() { return records[+$('#rec').value || 0]; }
+function showRecordInfo() {
+  const r = currentRecord(); if (!r) return;
+  $('#recinfo').textContent = `${r.tracked.length} tracked of ${r.extracted} frames` + (r.extracted ? '' : ' – run pump_reader.frames / track');
+  $('#frameSlider').max = Math.max(0, r.tracked.length - 1);
+}
+function enterFrames() {
+  const r = currentRecord(); if (!r || !r.tracked.length) return;
+  frameMode = true; frameIdx = Math.min(frameIdx, r.tracked.length - 1); $('#frameSlider').style.display = '';
+  $('#framesToggle').textContent = 'Back to still'; showFrame();
+}
+function leaveFrames() {
+  frameMode = false; img = stillImg; $('#frameSlider').style.display = 'none'; $('#framesToggle').textContent = 'View frames';
+  $('#frameName').textContent = ''; fit(); draw();
+}
+function showFrame() {
+  const r = currentRecord(); const name = r.tracked[frameIdx]; if (!name) return;
+  $('#frameSlider').value = frameIdx; $('#frameName').textContent = `${name} · inliers ${r.frames[name].inliers} · ${frameIdx + 1}/${r.tracked.length}`;
+  frameImg = new Image();
+  frameImg.onload = () => { img = frameImg; fit(); draw(); };
+  frameImg.src = '/frame/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name);
 }
 function collect() {
   entry.rotationCW = +$('#rot').value || 0;
+  entry.tracking = (document.querySelector('[name=tracking]:checked') || {}).value || undefined;
   entry.reviewed = $('#reviewed').checked;
   entry.notOnDisplay = [...document.querySelectorAll('[data-nod]:checked')].map(c => c.dataset.nod);
   entry.csvDisagrees = {};
@@ -148,7 +191,12 @@ function addWindow(field, text, quad) {
 function removeWindow(i) { entry.windows.splice(i, 1); sel = -1; touch(); renderWins(); draw(); }
 
 // ---- geometry: image space (oriented, normalised) <-> display space (rotated, pixels) ----
-function rot() { return +$('#rot').value || 0; }
+function rot() { return frameMode ? 0 : (+$('#rot').value || 0); }
+function windowsToDraw() {
+  if (!frameMode) return entry.windows;
+  const r = currentRecord(); const name = r && r.tracked[frameIdx];
+  return name ? r.frames[name].windows : [];
+}
 function dispSize() { const r = rot(); return (r === 90 || r === 270) ? [img.naturalHeight, img.naturalWidth] : [img.naturalWidth, img.naturalHeight]; }
 function toDisp([nx, ny]) {           // normalised image -> unscaled display px
   const W = img.naturalWidth, H = img.naturalHeight, x = nx * W, y = ny * H;
@@ -172,7 +220,7 @@ function draw() {
   ctx.translate(w / 2, h / 2); ctx.rotate(rot() * Math.PI / 180); ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
   ctx.restore();
   ctx.save(); ctx.scale(zoom, zoom);
-  entry.windows.forEach((win, i) => {
+  windowsToDraw().forEach((win, i) => {
     const pts = win.quad.map(toDisp);
     ctx.lineWidth = (i === sel ? 3 : 2) / zoom; ctx.strokeStyle = COLORS[win.field] || '#fff';
     ctx.beginPath(); pts.forEach((p, k) => k ? ctx.lineTo(...p) : ctx.moveTo(...p)); ctx.closePath(); ctx.stroke();
@@ -198,7 +246,7 @@ function hitWindow(p) {
     return nx >= Math.min(...xs) && nx <= Math.max(...xs) && ny >= Math.min(...ys) && ny <= Math.max(...ys); });
 }
 canvas.onmousedown = e => {
-  if (!img) return; const [x, y] = mouse(e);
+  if (!img || frameMode) return; const [x, y] = mouse(e);
   const c = hitCorner([x, y]);
   if (c >= 0) { drag = {kind:'corner', c}; return; }
   const w = hitWindow([x, y]);
@@ -233,6 +281,10 @@ canvas.onmouseup = e => {
 $('#zoom').oninput = e => { zoom = +e.target.value; draw(); };
 $('#rot').onchange = () => { touch(); fit(); draw(); };
 $('#add').onclick = () => addWindow();
+$('#framesToggle').onclick = () => frameMode ? leaveFrames() : enterFrames();
+$('#frameSlider').oninput = e => { frameIdx = +e.target.value; showFrame(); };
+$('#rec').onchange = () => { frameIdx = 0; showRecordInfo(); if (frameMode) showFrame(); };
+document.querySelectorAll('[name=tracking]').forEach(r => r.onchange = touch);
 $('#save').onclick = save; $('#check').onclick = check;
 $('#reviewed').onchange = touch;
 function next() { const names = [...document.querySelectorAll('#list div')].map(d => d.dataset.n); const n = names[names.indexOf(current) + 1]; if (n) openFixture(n); }
@@ -243,6 +295,10 @@ document.addEventListener('keydown', e => {
   const typing = ['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName);
   if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); save(); return; }
   if (typing) return;
+  if (frameMode && e.key === 'ArrowRight') { e.preventDefault(); frameIdx = Math.min(frameIdx + 1, currentRecord().tracked.length - 1); showFrame(); return; }
+  if (frameMode && e.key === 'ArrowLeft') { e.preventDefault(); frameIdx = Math.max(frameIdx - 1, 0); showFrame(); return; }
+  if (frameMode && e.key === 'Escape') { leaveFrames(); return; }
+  if (frameMode) return;
   if ((e.key === 'Backspace' || e.key === 'Delete') && sel >= 0) { e.preventDefault(); removeWindow(sel); }
   if (e.key === 'p') { $('#reviewed').checked = !$('#reviewed').checked; touch(); }
   if (e.key === 'Enter') { $('#savenext').click(); }

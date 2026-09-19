@@ -37,7 +37,9 @@ CHECK = ROOT / "scripts" / "pump-windows-check.py"
 HERE = Path(__file__).resolve().parent
 CACHE = Path.home() / "Library" / "Caches" / "tankbook-pump-annotate"
 IMAGE_EDGE = 2000
-ENTRY_KEYS = ("windows", "rotationCW", "notOnDisplay", "csvDisagrees", "reviewed")
+ENTRY_KEYS = ("windows", "rotationCW", "notOnDisplay", "csvDisagrees", "reviewed", "tracking")
+FRAMES = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "pump-live" / "frames"
+DB = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "corpus.sqlite"
 WINDOW_KEYS = ("field", "text", "quad", "legibility")
 
 
@@ -118,6 +120,30 @@ def clean_entry(entry: dict) -> dict:
         out["csvDisagrees"] = dict(entry["csvDisagrees"])
     if entry.get("reviewed"):
         out["reviewed"] = True
+    if entry.get("tracking") in ("ok", "bad"):
+        out["tracking"] = entry["tracking"]
+    return out
+
+
+def records_for(still: str) -> list[dict]:
+    """The Live records paired to a still (corpus.sqlite media table) with
+    their tracked-frame files, when pump_reader.track has run."""
+    import sqlite3  # noqa: PLC0415
+    try:
+        with sqlite3.connect(DB) as con:
+            names = [r[0] for r in con.execute(
+                "select name from media where kind = 'live' and paired_fixture = ? order by name", (still,))]
+    except sqlite3.DatabaseError:
+        names = []
+    out = []
+    for name in names:
+        stem = Path(name).stem
+        tracked = FRAMES / stem / "windows.json"
+        frames = {}
+        if tracked.exists():
+            frames = json.loads(tracked.read_text()).get("frames", {})
+        out.append({"movie": stem, "tracked": sorted(frames), "frames": frames,
+                    "extracted": len(list((FRAMES / stem).glob("*.jpg"))) if (FRAMES / stem).exists() else 0})
     return out
 
 
@@ -159,6 +185,16 @@ class Handler(SimpleHTTPRequestHandler):
             name = unquote(path[len("/api/entry/"):])
             ann, rows = load_windows(), load_rows()
             return self.send_json({"entry": ann.get(name, {"windows": []}), "row": rows.get(name)})
+        if path.startswith("/api/records/"):
+            name = unquote(path[len("/api/records/"):])
+            return self.send_json(records_for(name))
+        if path.startswith("/frame/"):
+            rel = unquote(path[len("/frame/"):])
+            stem, _, file = rel.partition("/")
+            target = FRAMES / stem / file
+            if "/" in stem or "/" in file or not target.exists():
+                return self.send_error(HTTPStatus.NOT_FOUND)
+            return self.send_bytes(target.read_bytes(), "image/jpeg")
         if path.startswith("/image/"):
             name = unquote(path[len("/image/"):])
             if "/" in name or not (FIX / name).exists():

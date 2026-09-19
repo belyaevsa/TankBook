@@ -23,6 +23,12 @@ the ml venv runs it); the converted images are cached under
 - `processed` (`P`) marks the entry as checked by a human - `reviewed: true` in
   the JSON - and `✓ Save & next` (`⏎`) sets it, saves and opens the next one in
   the filtered list; the list filter separates empty / not processed / processed.
+- **Live record / View frames** (shown when the still has a Live record and
+  `pump_reader.frames` + `pump_reader.track` have run): steps through the
+  record's tracked frames with the carried quads drawn (`←`/`→`, slider,
+  `Esc` back). Mark **tracking ok / bad** on the still; `bad` makes the glyph
+  extractor skip that record. Frames are read-only - a wrong quad is fixed on
+  the still and the record re-tracked.
 - `Save` (`⌘S`) writes the entry back in the file's own formatting and rebuilds
   `fixtures/corpus.sqlite` (also rebuilt at startup) (`scripts/corpus_db.py`), which is committed with it; `Check`
   runs `scripts/pump-windows-check.py --check` and shows the verdict.
