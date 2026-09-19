@@ -9,7 +9,10 @@ each display shows. It is the manual step of `.claude/skills/corpus-intake`
     # open http://127.0.0.1:8765/
 
 The venv is needed for Pillow + pillow-heif (HEIC fixtures are served as
-EXIF-oriented JPEG); the server itself is stdlib.
+EXIF-oriented JPEG); the server itself is stdlib. No venv yet:
+`python3 -m venv ml/pump-reader/.venv && ml/pump-reader/.venv/bin/pip install
+pillow pillow-heif`. Under a Python without Pillow the server says so at
+start and serves the original files, which only Safari renders (HEIC).
 
 - Left: every fixture in `expected.csv` (grey = no windows yet). `J`/`K` walk it.
 - Middle: drag a rectangle to add a window (the first three go to

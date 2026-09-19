@@ -23,6 +23,7 @@ import io
 import json
 import subprocess
 import sys
+import traceback
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -140,8 +141,14 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_error(HTTPStatus.NOT_FOUND)
             try:
                 return self.send_bytes(oriented_jpeg(name), "image/jpeg")
-            except Exception as e:  # noqa: BLE001 - report, the page shows it
-                return self.send_json({"error": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            except Exception:  # noqa: BLE001 - logged, then the raw file is served
+                traceback.print_exc()
+                # Without Pillow the browser gets the original: Safari renders
+                # HEIC and applies EXIF orientation itself; other browsers
+                # show HEIC as broken, which is the venv hint again.
+                suffix = name.rsplit(".", 1)[-1].lower()
+                ctype = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "heic": "image/heic"}.get(suffix, "application/octet-stream")
+                return self.send_bytes((FIX / name).read_bytes(), ctype)
         return self.send_error(HTTPStatus.NOT_FOUND)
 
     def do_PUT(self):
@@ -166,6 +173,11 @@ class Handler(SimpleHTTPRequestHandler):
 
 def main() -> None:
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
+    try:
+        import PIL  # noqa: F401, PLC0415
+    except ImportError:
+        print("Pillow not importable: HEIC and EXIF-oriented images will only render in Safari. "
+              "Run with ml/pump-reader/.venv/bin/python.", file=sys.stderr)
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     print(f"pump annotator: http://127.0.0.1:{port}/  ({WINDOWS.relative_to(ROOT)})")
     try:
