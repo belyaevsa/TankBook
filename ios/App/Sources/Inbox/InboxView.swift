@@ -94,6 +94,9 @@ private struct InboxItemCard: View {
 
             if let entry = inbox.entry(for: item) {
                 let offers = GatewayInboxPolicy.offers(recognition: item.recognition, entry: entry)
+                if readingDoesNotAddUp(entry) {
+                    doesNotAddUpLine
+                }
                 if offers.isEmpty {
                     nothingToChange
                     leaveAsIsAction
@@ -129,6 +132,23 @@ private struct InboxItemCard: View {
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.inkSoft)
         }
+    }
+
+    /// A fuel reading whose own numbers cannot coexist (volume x price far
+    /// from its total): the policy withholds the three numbers, and the card
+    /// says why the receipt column has none - the honest next step is the
+    /// photo, not a tick (docs/ERRORS.md -> Inbox).
+    private func readingDoesNotAddUp(_ entry: InboxEntry) -> Bool {
+        guard case .fuel(let extraction) = item.recognition,
+              case .fillUp(let fill) = entry else { return false }
+        return !GatewayInboxPolicy.fuelNumbersAddUp(extraction, fill)
+    }
+
+    private var doesNotAddUpLine: some View {
+        Text("The reading's numbers don't add up – its litres, price and total are left out. Check the photo before taking anything.")
+            .font(.caption)
+            .foregroundStyle(Theme.Palette.inkSoft)
+            .accessibilityIdentifier("inboxDoesNotAddUp")
     }
 
     // MARK: The comparison table (yours vs the receipt)

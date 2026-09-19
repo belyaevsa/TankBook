@@ -2506,14 +2506,14 @@
       "runtime": "iOS.26.5"
     },
     "RV.271-inbox-imperial": {
-      "commit": "5e9587ed",
+      "commit": "b7a05b9c",
       "device": "iPhone 17",
-      "runtime": "iOS.26.5"
+      "runtime": "iOS.27.0"
     },
     "RV.271-inbox-imperial-ru": {
-      "commit": "5e9587ed",
+      "commit": "b7a05b9c",
       "device": "iPhone 17",
-      "runtime": "iOS.26.5"
+      "runtime": "iOS.27.0"
     },
     "RV.271-pace-limit-imperial": {
       "commit": "206a7295",
@@ -2625,6 +2625,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.288-inbox-does-not-add-up": {
+      "commit": "b7a05b9c",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.288-inbox-does-not-add-up-ru": {
+      "commit": "b7a05b9c",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "RV.29-home-vitals": {
       "commit": "1cfd0d3",
       "device": "iPhone 17",
@@ -2706,14 +2716,14 @@
       "runtime": "iOS.26.5"
     },
     "RV.38-inbox-item": {
-      "commit": "175e320",
+      "commit": "b7a05b9c",
       "device": "iPhone 17",
-      "runtime": "iOS.26.5"
+      "runtime": "iOS.27.0"
     },
     "RV.38-inbox-item-ru": {
-      "commit": "175e320",
+      "commit": "b7a05b9c",
       "device": "iPhone 17",
-      "runtime": "iOS.26.5"
+      "runtime": "iOS.27.0"
     },
     "RV.40-settings-signout": {
       "commit": "f30dc27",

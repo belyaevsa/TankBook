@@ -869,6 +869,14 @@ are silent:
   triples (`pump-011` returned `58.01 x 1.789 = 15.15`; `pump-015` returned `1.589 x 1.144 =
   2000`; `pump-013` abstained entirely). A `mismatch` demotes to nil. That is real value - it
   just is not a correctness test.
+- **The inbox is its fourth consumer (RV.288, 2026-09-19).** A late answer that lands after the
+  save (`GatewayInboxPolicy.fuelOffers`) runs the same `TimelineValidator.crossCheck` BEFORE it
+  offers anything: three numbers that cannot coexist are one bad read, not three plausible
+  corrections, so none of the three is offered and the card says the reading does not add up
+  (`ERRORS.md` → Inbox). Two read numbers are checked against the user's third; one alone has
+  nothing to fail against. A zero read is nil, never an offer - the owner's `0.56 L x 1.954`
+  beside a `0.00` total (build 1344, 2026-09-15) is the instance. The confidences still do not
+  reach the offer; that is the residual named in the row.
 - The cross-check must **not** be used to "verify" the operand assignment, because the two
   failures that actually occur both pass it. Volume-vs-price still needs the resolution ladder
   (unit markers, decimal count, price bands) and the user.

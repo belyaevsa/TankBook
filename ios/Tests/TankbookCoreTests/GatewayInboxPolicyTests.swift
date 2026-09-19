@@ -20,7 +20,10 @@ struct GatewayInboxPolicyTests {
         GatewayExtraction(
             total: .init(value: Decimal(string: "99.99")!, confidence: 0.92),
             volume: .init(value: 55.00, confidence: 0.90),
-            unitPrice: .init(value: Decimal(string: "1.500")!, confidence: 0.88),
+            // 55.00 x 1.818 = 99.99: the reading's own numbers must add up, or
+            // RV.288's gate withholds them - a fixture whose trio contradicts
+            // itself would test the gate, not the offers.
+            unitPrice: .init(value: Decimal(string: "1.818")!, confidence: 0.88),
             date: .init(value: "17.08.2026", confidence: 0.80),
             fuelKind: .init(value: .diesel, confidence: 0.70),
             currency: .init(value: .rub, confidence: 0.60),
@@ -122,7 +125,7 @@ struct GatewayInboxPolicyTests {
     func blankFieldIsOffered() {
         let blank = Self.savedEntryBlankPrice()
         let extraction = GatewayExtraction(
-            unitPrice: .init(value: Decimal(string: "1.500")!, confidence: 0.9),
+            unitPrice: .init(value: Decimal(string: "1.818")!, confidence: 0.9),
             pipeline: "test")
         #expect(GatewayInboxPolicy.shouldOffer(extraction: extraction, entry: blank))
     }
@@ -145,9 +148,9 @@ struct GatewayInboxPolicyTests {
     func mergeFillsBlankOnly() {
         let blank = Self.savedEntryBlankPrice()
         let merged = GatewayInboxPolicy.merged(entry: blank, extraction: Self.answer(), taking: [.unitPrice])
-        #expect(merged.unitPrice == Decimal(string: "1.500")!,
+        #expect(merged.unitPrice == Decimal(string: "1.818")!,
                 "the blank price fills from the receipt")
-        assertOnlyTickedFieldsChanged(merged: merged, original: blank) { $0.unitPrice = Decimal(string: "1.500")! }
+        assertOnlyTickedFieldsChanged(merged: merged, original: blank) { $0.unitPrice = Decimal(string: "1.818")! }
     }
 
     @Test("taking a differing field replaces exactly that field")
@@ -186,10 +189,10 @@ struct GatewayInboxPolicyTests {
         let blank = Self.savedEntryBlankPrice()
         let merged = GatewayInboxPolicy.merged(
             entry: blank, extraction: Self.answer(), taking: [.unitPrice, .volume])
-        #expect(merged.unitPrice == Decimal(string: "1.500")!)
+        #expect(merged.unitPrice == Decimal(string: "1.818")!)
         #expect(merged.volumeL == 55.00)
         assertOnlyTickedFieldsChanged(merged: merged, original: blank) {
-            $0.unitPrice = Decimal(string: "1.500")!
+            $0.unitPrice = Decimal(string: "1.818")!
             $0.volumeL = 55.00
         }
     }
@@ -238,5 +241,76 @@ struct GatewayInboxPolicyTests {
         let blank = Self.savedEntryBlankPrice()
         let merged = GatewayInboxPolicy.merged(entry: blank, extraction: Self.answer(), taking: [.unitPrice])
         #expect(merged.unitPrice != nil)
+    }
+
+    // MARK: - RV.288: the reading's own arithmetic gates its numbers
+
+    /// The owner's reading (2026-09-15, build 1344): 0.56 L x 1.954 EUR/L
+    /// offered beside a total of 0.00 EUR, against a saved 15.00 L / 3.333 /
+    /// 50.00. Three numbers that cannot coexist are one bad read; none of
+    /// them is offered, the non-numeric fields still are, and the card can
+    /// say the reading does not add up.
+    @Test("a self-contradicting trio offers no numeric field")
+    func selfContradictingTrioOffersNoNumbers() {
+        let extraction = GatewayExtraction(
+            total: .init(value: 0, confidence: 0.3),
+            volume: .init(value: 0.56, confidence: 0.5),
+            unitPrice: .init(value: Decimal(string: "1.954")!, confidence: 0.9),
+            currency: .init(value: .usd, confidence: 0.6),
+            pipeline: "test")
+        let entry = Self.savedEntry()
+        let offers = GatewayInboxPolicy.offers(extraction: extraction, entry: entry)
+        #expect(!GatewayInboxPolicy.fuelNumbersAddUp(extraction, entry))
+        #expect(!offers.contains { $0.field == .volume })
+        #expect(!offers.contains { $0.field == .unitPrice })
+        #expect(!offers.contains { $0.field == .total })
+        #expect(offers.map(\.field) == [.currency], "the non-numeric fields are still offered")
+    }
+
+    @Test("a consistent trio is offered as three .differs")
+    func consistentTrioIsOffered() {
+        let extraction = GatewayExtraction(
+            total: .init(value: Decimal(string: "50.02")!, confidence: 0.9),
+            volume: .init(value: 25.60, confidence: 0.9),
+            unitPrice: .init(value: Decimal(string: "1.954")!, confidence: 0.9),
+            pipeline: "test")
+        let entry = Self.savedEntry()
+        #expect(GatewayInboxPolicy.fuelNumbersAddUp(extraction, entry))
+        let offers = GatewayInboxPolicy.offers(extraction: extraction, entry: entry)
+        #expect(Set(offers.map(\.field)) == [.volume, .unitPrice, .total])
+        #expect(offers.allSatisfy { $0.disposition == .differs })
+    }
+
+    @Test("a zero total is a field the model could not read, never an offer")
+    func zeroTotalIsNotOffered() {
+        let extraction = GatewayExtraction(
+            total: .init(value: 0, confidence: 0.3),
+            pipeline: "test")
+        let offers = GatewayInboxPolicy.offers(extraction: extraction, entry: Self.savedEntry())
+        #expect(offers.isEmpty)
+    }
+
+    /// Two read numbers are checked against the user's third: 42.30 L x 1.679
+    /// = 71.02 is the saved entry, so a reading of 42.30 L at 1.679 with no
+    /// total agrees with the saved 71.02 and both are offered against a
+    /// blank-price entry; a reading of 30 L at 1.679 contradicts it and neither is.
+    @Test("two read numbers are offered only when they agree with the user's third")
+    func twoNumbersAreCheckedAgainstTheUsersThird() {
+        let agreeing = GatewayExtraction(
+            volume: .init(value: 42.30, confidence: 0.9),
+            unitPrice: .init(value: Decimal(string: "1.679")!, confidence: 0.9),
+            pipeline: "test")
+        let blankPrice = Self.savedEntryBlankPrice()
+        #expect(GatewayInboxPolicy.fuelNumbersAddUp(agreeing, blankPrice))
+        let agreeingOffers = GatewayInboxPolicy.offers(extraction: agreeing, entry: blankPrice)
+        #expect(agreeingOffers.map(\.field) == [.unitPrice], "the price fills its blank; the volume agrees")
+        #expect(agreeingOffers.first?.disposition == .fillsBlank)
+
+        let contradicting = GatewayExtraction(
+            volume: .init(value: 30.00, confidence: 0.9),
+            unitPrice: .init(value: Decimal(string: "1.679")!, confidence: 0.9),
+            pipeline: "test")
+        #expect(!GatewayInboxPolicy.fuelNumbersAddUp(contradicting, blankPrice))
+        #expect(GatewayInboxPolicy.offers(extraction: contradicting, entry: blankPrice).isEmpty)
     }
 }

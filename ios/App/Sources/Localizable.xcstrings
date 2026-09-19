@@ -4959,6 +4959,23 @@
         }
       }
     },
+    "The reading's numbers don't add up – its litres, price and total are left out. Check the photo before taking anything.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The reading's numbers don't add up – its litres, price and total are left out. Check the photo before taking anything."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Цифры распознавания не сходятся – литры, цена и сумма не предлагаются. Проверьте фото, прежде чем что-то принимать."
+          }
+        }
+      }
+    },
     "Currency": {
       "extractionState": "manual",
       "localizations": {

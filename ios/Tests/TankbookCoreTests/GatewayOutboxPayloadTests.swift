@@ -81,8 +81,11 @@ struct GatewayOutboxPayloadTests {
             captureId: captureId.uuidString,
             fields: #"""
             { "total": { "value": 99.99, "confidence": 0.92 },
-              "unitPrice": { "value": 1.500, "confidence": 0.88 } }
+              "unitPrice": { "value": 2.364, "confidence": 0.88 } }
             """#)
+        // 42.30 L (the entry's own) x 2.364 = 99.99: two read numbers are checked
+        // against the user's third before they are offered (RV.288), so the
+        // reading must agree with itself for the item to exist at all.
 
         // The drain path: decode the payload, look up the entry by captureId,
         // then the SAME `item` policy the inline path uses.

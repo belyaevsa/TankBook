@@ -52,6 +52,9 @@ enum InboxTestSeed {
         if arguments.contains("-seedInboxNothingToChange") {
             seedNothingToChangeItem()
         }
+        if arguments.contains("-seedInboxDoesNotAddUp") {
+            seedDoesNotAddUpItem()
+        }
         if arguments.contains("-seedInboxService") {
             seedServiceItem()
         }
@@ -74,7 +77,7 @@ enum InboxTestSeed {
     /// imperial car (miles, US gallons, MPG) so the comparison's volume values
     /// can be exercised in gallons (RV.271) - the same modifier shape
     /// `ManualFillUpTestSeed` and `HomeTestSeed` use.
-    private static func unitsFromArguments() -> Vehicle.Units {
+    static func unitsFromArguments() -> Vehicle.Units {
         ProcessInfo.processInfo.arguments.contains("-seedInboxMiles")
             ? Vehicle.Units(distance: .mi, volume: .galUS,
                             consumption: .mpgUS, energy: .miPerKWh)
@@ -119,7 +122,9 @@ enum InboxTestSeed {
         let extraction = GatewayExtraction(
             total: .init(value: Decimal(string: "99.99")!, confidence: 0.92),
             volume: .init(value: 55.00, confidence: 0.90),
-            unitPrice: .init(value: Decimal(string: "1.500")!, confidence: 0.88),
+            // 55.00 x 1.818 = 99.99: a reading's own numbers must add up or the
+            // policy withholds them (RV.288) - every seeded reading is consistent.
+            unitPrice: .init(value: Decimal(string: "1.818")!, confidence: 0.88),
             date: .init(value: "17.08.2026", confidence: 0.80),
             fuelKind: .init(value: .diesel, confidence: 0.70),
             currency: .init(value: .rub, confidence: 0.60),
@@ -168,13 +173,14 @@ enum InboxTestSeed {
             stationId: nil, crossCheck: .notApplicable, extraction: nil)
         try? repository.upsertFillUp(fill)
 
-        // volume 30.00 DIFFERS (replaces 40.00); unitPrice 1.800 FILLS the blank.
+        // volume 30.00 DIFFERS (replaces 40.00); unitPrice 3.333 FILLS the blank
+        // (30.00 x 3.333 = 99.99, the reading agrees with its own total - RV.288).
         // total / fuel kind / currency agree; date is unread (nil), so it is not
         // listed - the card must not treat an unread field as a decision.
         let extraction = GatewayExtraction(
             total: .init(value: Decimal(string: "100.00")!, confidence: 0.92),
             volume: .init(value: 30.00, confidence: 0.90),
-            unitPrice: .init(value: Decimal(string: "1.800")!, confidence: 0.88),
+            unitPrice: .init(value: Decimal(string: "3.333")!, confidence: 0.88),
             fuelKind: .init(value: .petrol95, confidence: 0.70),
             currency: .init(value: .eur, confidence: 0.60),
             pipeline: "seed")
@@ -222,10 +228,11 @@ enum InboxTestSeed {
             stationId: nil, crossCheck: .notApplicable, extraction: nil)
         try? repository.upsertFillUp(fill)
 
+        // 40.00 x 2.500 = 100.00: the reading agrees with its own total (RV.288).
         let extraction = GatewayExtraction(
             total: .init(value: Decimal(string: "100.00")!, confidence: 0.92),
             volume: .init(value: 40.00, confidence: 0.90),
-            unitPrice: .init(value: Decimal(string: "1.800")!, confidence: 0.88),
+            unitPrice: .init(value: Decimal(string: "2.500")!, confidence: 0.88),
             fuelKind: .init(value: .petrol95, confidence: 0.70),
             currency: .init(value: .eur, confidence: 0.60),
             pipeline: "seed")

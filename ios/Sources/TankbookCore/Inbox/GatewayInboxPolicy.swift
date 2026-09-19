@@ -234,11 +234,14 @@ public enum GatewayInboxPolicy {
         var out: [FieldOffer] = []
         if let offer = dateOffer(current: entry.date, read: extraction.date?.value) { out.append(offer) }
         if let offer = offer(.fuelKind, current: entry.fuelKind, read: extraction.fuelKind?.value) { out.append(offer) }
-        if let offer = offer(.volume, current: entry.volumeL, read: extraction.volume?.value) { out.append(offer) }
-        if let offer = offer(.unitPrice, current: entry.unitPrice, read: extraction.unitPrice?.value) { out.append(offer) }
-        if let money = entry.money {
-            if let offer = offer(.total, current: money.amount, read: extraction.total?.value) { out.append(offer) }
-            if let offer = offer(.currency, current: money.currency, read: extraction.currency?.value) { out.append(offer) }
+        if let money = entry.money,
+           let offer = offer(.currency, current: money.currency, read: extraction.currency?.value) { out.append(offer) }
+        guard fuelNumbersAddUp(extraction, entry) else { return out }
+        let read = FuelReadingNumbers(extraction)
+        if let offer = offer(.volume, current: entry.volumeL, read: read.volume) { out.append(offer) }
+        if let offer = offer(.unitPrice, current: entry.unitPrice, read: read.unitPrice) { out.append(offer) }
+        if let money = entry.money, let offer = offer(.total, current: money.amount, read: read.total) {
+            out.append(offer)
         }
         return out
     }

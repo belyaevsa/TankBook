@@ -18,10 +18,10 @@ import XCTest
 /// fields), `-seedInboxComparison` (exactly one differing field and one blank),
 /// `-seedInboxNothingToChange` (the reading agrees). The comparison seed writes
 /// total 100.00 / volume 40.00 with the price BLANK, and a receipt reading
-/// volume 30.00 (differs) + price 1.800 (blank fill) - so "took the blank"
-/// (price 1.800, litres still 40.00) is distinguishable from "took the volume"
-/// (litres 30.00, price derived 100/30 = 3.333) by VALUE, never by "a thing
-/// happened".
+/// volume 30.00 (differs) + price 3.333 (blank fill; 30.00 x 3.333 = 99.99, a
+/// reading that agrees with its own total, or RV.288 withholds its numbers) - so
+/// "took the blank" (litres still 40.00, price 3.333) is distinguishable from
+/// "took the volume" (litres 30.00) by VALUE, never by "a thing happened".
 @MainActor
 final class InboxUITests: XCTestCase {
 
@@ -162,6 +162,24 @@ final class InboxUITests: XCTestCase {
                        "an agreeing currency is not a decision - no tick")
     }
 
+    // MARK: - RV.288 a reading whose numbers do not add up offers none of them
+
+    /// The owner's reading: 0.56 L x 1.954 beside a total of 0.00, against a
+    /// saved 15.00 L / 50.00. None of the three is a tick; the card says the
+    /// numbers do not add up and names the photo as the next step; the one
+    /// non-numeric disagreement (the currency) is still offered.
+    func testASelfContradictingReadingOffersNoNumbersAndSaysWhy() {
+        let app = launch(["-seedInboxDoesNotAddUp"])
+        app.buttons["inboxBellButton"].tap()
+
+        XCTAssertTrue(app.staticTexts["inboxDoesNotAddUp"].waitForExistence(timeout: 5),
+                      "the card must say the reading does not add up")
+        XCTAssertFalse(app.buttons["inboxTick_volume"].exists, "0.56 L is not offered")
+        XCTAssertFalse(app.buttons["inboxTick_unitPrice"].exists, "1.954 is not offered")
+        XCTAssertFalse(app.buttons["inboxTick_total"].exists, "0.00 is not offered")
+        XCTAssertTrue(app.buttons["inboxTick_currency"].exists, "the currency is still a decision")
+    }
+
     // MARK: - RV.271 the volume values read in the car's own unit
 
     /// RV.234 made the comparison's LABEL per-unit; RV.271 converts the two
@@ -186,15 +204,15 @@ final class InboxUITests: XCTestCase {
                        "the receipt's litre figure must not be shown on a gallons car")
         // RV.274: the receipt's per-litre price converts under the "Price/gal"
         // label too. The blank user column stays blank (the seed leaves it so).
-        XCTAssertTrue(app.staticTexts["6.814\u{00A0}€"].exists,
-                      "the receipt's 1.800 €/L must read 6.814 per US gallon")
-        XCTAssertFalse(app.staticTexts["1.800\u{00A0}€"].exists,
+        XCTAssertTrue(app.staticTexts["12.617\u{00A0}€"].exists,
+                      "the receipt's 3.333 €/L must read 12.617 per US gallon")
+        XCTAssertFalse(app.staticTexts["3.333\u{00A0}€"].exists,
                        "the stored per-litre price must not be shown on a gallons car")
     }
 
     /// RV.274: a priced comparison on a gallons car - BOTH price columns
     /// convert. The saved 1.500 €/L reads 5.678 per US gallon and the receipt's
-    /// 1.800 €/L reads 6.814; neither per-litre figure appears.
+    /// 2.500 €/L reads 9.464; neither per-litre figure appears.
     func testImperialPricedComparisonReadsPerGallonInBothPriceColumns() {
         let app = launch(["-seedInboxComparisonPriced", "-seedInboxMiles"])
         app.buttons["inboxBellButton"].tap()
@@ -205,11 +223,11 @@ final class InboxUITests: XCTestCase {
                       "the row label must name the car's unit")
         XCTAssertTrue(app.staticTexts["5.678\u{00A0}€"].exists,
                       "the saved 1.500 €/L must read per US gallon")
-        XCTAssertTrue(app.staticTexts["6.814\u{00A0}€"].exists,
-                      "the receipt's 1.800 €/L must read per US gallon")
+        XCTAssertTrue(app.staticTexts["9.464\u{00A0}€"].exists,
+                      "the receipt's 2.500 €/L must read per US gallon")
         XCTAssertFalse(app.staticTexts["1.500\u{00A0}€"].exists,
                        "the saved per-litre price must not be shown on a gallons car")
-        XCTAssertFalse(app.staticTexts["1.800\u{00A0}€"].exists,
+        XCTAssertFalse(app.staticTexts["2.500\u{00A0}€"].exists,
                        "the receipt's per-litre price must not be shown on a gallons car")
     }
 
@@ -229,8 +247,8 @@ final class InboxUITests: XCTestCase {
         app.navigationBars.buttons.element(boundBy: 0).tap()
 
         let values = entryValues(app)
-        XCTAssertEqual(values.price, "1.800",
-                       "the blank price fills from the receipt, not the derived 2.500")
+        XCTAssertEqual(values.price, "3.333",
+                       "the blank price fills from the receipt")
         XCTAssertEqual(values.liters, "40.00",
                        "the differing volume is the user's own - taking only the blank must not move it")
         XCTAssertEqual(values.total, "100.00",
@@ -253,7 +271,7 @@ final class InboxUITests: XCTestCase {
         XCTAssertEqual(values.liters, "30.00",
                        "the receipt's volume replaces the typed 40.00")
         XCTAssertEqual(values.price, "3.333",
-                       "the blank price was NOT taken - it re-derives from 100.00 / 30.00")
+                       "the blank price re-derives from 100.00 / 30.00 - the figure a consistent reading carries")
         XCTAssertEqual(values.total, "100.00",
                        "the typed total is untouched")
     }

@@ -1178,6 +1178,10 @@ capture RV.22-chip-flagged-ru   ru -seedSettingsSignedIn -seedHomeFullHistory -s
 capture RV.38-bell           en -seedSettingsSignedIn -seedInboxItem -inboxReset
 capture RV.38-bell-ru        ru -seedSettingsSignedIn -seedInboxItem -inboxReset
 capture RV.38-inbox-item     en -seedSettingsSignedIn -seedInboxItem -inboxReset -presentScreen inbox
+# RV.288: a reading whose own numbers cannot coexist - the card withholds
+# them and says why; only the currency is offered.
+capture RV.288-inbox-does-not-add-up    en -seedSettingsSignedIn -seedInboxDoesNotAddUp -inboxReset -presentScreen inbox
+capture RV.288-inbox-does-not-add-up-ru ru -seedSettingsSignedIn -seedInboxDoesNotAddUp -inboxReset -presentScreen inbox
 capture RV.38-inbox-item-ru  ru -seedSettingsSignedIn -seedInboxItem -inboxReset -presentScreen inbox
 
 # RV.45: the per-field comparison card. The comparison seed is the "interesting

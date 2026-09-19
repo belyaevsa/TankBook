@@ -62,7 +62,7 @@ struct RV201InboxKindMergeTests {
         .fuel(GatewayExtraction(
             total: .init(value: Decimal(string: "99.99")!, confidence: 0.92),
             volume: .init(value: 55.00, confidence: 0.90),
-            unitPrice: .init(value: Decimal(string: "1.500")!, confidence: 0.88),
+            unitPrice: .init(value: Decimal(string: "1.818")!, confidence: 0.88),   // 55.00 x 1.818 = 99.99 (RV.288 gate)
             fuelKind: .init(value: .diesel, confidence: 0.70),
             currency: .init(value: .eur, confidence: 0.60),
             pipeline: "test"))
