@@ -1,5 +1,11 @@
 # Live Photo pump captures
 
+**Where the media lives (product owner, 2026-09-19): external S3 storage, not git.** The `.mov`
+and `.heic` files are gitignored; this README and its pairing tables are the record. Bucket and
+prefix: _to be filled in when the store is provisioned_; until then the files sit on the
+orchestrator's machine under this folder. Frames regenerate from the movies with the `ffmpeg`
+line below.
+
 Live Photos (HEIC key frame + the paired `.mov`) of pump displays, shared by the product owner on
 2026-09-19 for PU.19 (per-cell fusion over frames). Every one is a fill that is ALREADY in
 `../pump/`, so the still fixture's `windows.json` entry is the oracle and the still-only score is
