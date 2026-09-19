@@ -38,6 +38,22 @@ except Exception:  # pragma: no cover - environment dependent
 
 _SEGMENT_NAMES = list("abcdefg") + ["dp"]
 
+# The strip resolution the harness warps to and the slicer's grid is computed
+# on (PumpReaderHarnessTests -> stripHeight: 96). Scoring at 48 px re-quantised
+# the slicer's normalised rects and cost ~2 per-glyph points (PU.11 F5); one
+# height across harness, scorer and training removes that skew.
+STRIP_HEIGHT = 96
+
+
+def _auc(pos: np.ndarray, neg: np.ndarray) -> float | None:
+    """Rank-based AUC of two score arrays (Mann-Whitney U / (n_pos * n_neg))."""
+    if pos.size == 0 or neg.size == 0:
+        return None
+    total = 0.0
+    for p in pos:
+        total += float((neg < p).sum()) + 0.5 * float((neg == p).sum())
+    return float(total / (pos.size * neg.size))
+
 
 def parse_cells(text: str) -> list[SegmentLabel]:
     """Split a window ``text`` into glyph cells (the naive slicer's truth).
@@ -114,8 +130,8 @@ def slice_cells_from_boxes(
     """
     width, height = _quad_size(quad)
     aspect = width / height if height > 0 else 1.0
-    sw = max(1, int(round(CELL_H * aspect)))
-    sh = CELL_H
+    sw = max(1, int(round(STRIP_HEIGHT * aspect)))
+    sh = STRIP_HEIGHT
 
     dst = np.array([[0, 0], [sw, 0], [sw, sh], [0, sh]], dtype=np.float64)
     hmat = homography_from_corners(dst, quad)
@@ -141,15 +157,15 @@ def slice_cells_from_boxes(
 def slice_cells(
     img: Image.Image, quad: np.ndarray, n_cells: int
 ) -> tuple[list[Image.Image], list[tuple[float, float]]]:
-    """Warp a quad to a 48px strip and slice it into ``n_cells`` equal 32x48 cells.
+    """Warp a quad to a 96px strip and slice it into ``n_cells`` equal 32x48 cells.
 
     Returns the cells and each cell's centre in the original image (for the test
     that checks the centres land inside PU.1's rendered boxes).
     """
     width, height = _quad_size(quad)
     aspect = width / height if height > 0 else 1.0
-    sw = max(1, int(round(CELL_H * aspect)))
-    sh = CELL_H
+    sw = max(1, int(round(STRIP_HEIGHT * aspect)))
+    sh = STRIP_HEIGHT
 
     dst = np.array([[0, 0], [sw, 0], [sw, sh], [0, sh]], dtype=np.float64)
     hmat = homography_from_corners(dst, quad)  # strip -> image
@@ -270,6 +286,8 @@ def main(argv: list[str] | None = None) -> int:
     window_correct = 0
     by_name: dict[str, dict] = {}
     skipped_empty = 0
+    dp_y: list[int] = []
+    dp_score: list[float] = []
 
     for filename, ann in windows.items():
         if filename == "_about":
@@ -308,14 +326,16 @@ def main(argv: list[str] | None = None) -> int:
                 cells = slice_cells_from_boxes(img, quad, cell_boxes)
             else:
                 cells, _ = slice_cells(img, quad, n)
-            pred_bits, _ = classify_cells(model, cells, constrained=not args.threshold_decode)
+            pred_bits, probs = classify_cells(model, cells, constrained=not args.threshold_decode)
 
             truth_bits = [c.bits for c in cells_truth]
             window_total += 1
             all_correct = True
             digits_ok = True
-            for tb, pb in zip(truth_bits, pred_bits):
+            for tb, pb, prob in zip(truth_bits, pred_bits, probs):
                 glyph_total += 1
+                dp_y.append((tb >> 7) & 1)
+                dp_score.append(float(prob[7]))
                 if (pb & 0x7F) == (tb & 0x7F):
                     digit_correct += 1
                 else:
@@ -357,6 +377,9 @@ def main(argv: list[str] | None = None) -> int:
                     )
 
     per_segment = (seg_correct / glyph_total).tolist() if glyph_total else [0.0] * 8
+    dp_pos = np.asarray([s for y, s in zip(dp_y, dp_score) if y == 1])
+    dp_neg = np.asarray([s for y, s in zip(dp_y, dp_score) if y == 0])
+    dp_auc = _auc(dp_pos, dp_neg)
     result = {
         "fixtures": len(windows),
         "windows_scored": window_total,
@@ -369,6 +392,9 @@ def main(argv: list[str] | None = None) -> int:
         "per_digit_accuracy": round(digit_correct / glyph_total, 4) if glyph_total else 0.0,
         "per_window_digits_accuracy": round(window_digits_correct / window_total, 4) if window_total else 0.0,
         "per_window_accuracy": round(window_correct / window_total, 4) if window_total else 0.0,
+        # The dp bit is what keeps per-window near zero (PU.11 F2): its AUC on
+        # real cells was a coin flip (0.52) before the comma re-render.
+        "dp_auc": round(dp_auc, 4) if dp_auc is not None else None,
         "per_make": {
             m: {"windows": v["windows"], "correct": v["correct"]}
             for m, v in sorted(per_make.items())

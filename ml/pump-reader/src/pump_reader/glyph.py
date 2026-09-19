@@ -197,6 +197,7 @@ def _draw_glyph(
     res: Resolved,
     x0: float,
     y0: float,
+    comma: bool = False,
 ) -> None:
     """Draw one glyph's segments into the canvases at ``(x0, y0)``."""
     draw = ImageDraw.Draw(rgb)
@@ -215,7 +216,7 @@ def _draw_glyph(
             draw.polygon(sheared, fill=res.ghost)
             ghost_draw.polygon(sheared, fill=255)
     if label.dp:
-        _draw_dp(draw, on_draw, res, x0, y0)
+        _draw_dp(draw, on_draw, res, x0, y0, comma=comma)
 
 
 def _draw_dp(
@@ -224,13 +225,42 @@ def _draw_dp(
     res: Resolved,
     x0: float,
     y0: float,
+    comma: bool = False,
 ) -> None:
+    """Draw the decimal mark.
+
+    ``comma=False`` is the plain dot in the glyph box's bottom-right corner
+    (LED heads). ``comma=True`` draws the corpus's comma: a dot below the digit
+    baseline in the gap after the glyph, with a short tail whose rightmost ink
+    crosses into the next cell's left edge. The dp bit stays on the host glyph
+    (``label.dp``), so a cell cut from the NEXT position carries the tail at its
+    left edge with dp = 0.
+    """
     d = _dp_diameter(res)
-    cx = min(x0 + CELL_W - MARGIN - d - 1, x0 + CELL_W - d - 1)
-    cy = min(y0 + CELL_H - MARGIN - d - 1, y0 + CELL_H - d - 1)
-    box = [cx, cy, cx + d, cy + d]
-    draw.ellipse(box, fill=res.on)
-    on_draw.ellipse(box, fill=255)
+    if not comma:
+        cx = x0 + CELL_W - d - 1
+        cy = y0 + CELL_H - d - 1
+        box = [cx, cy, cx + d, cy + d]
+        draw.ellipse(box, fill=res.on)
+        on_draw.ellipse(box, fill=255)
+        return
+    baseline = y0 + CELL_H - MARGIN
+    next_x = x0 + res.pitch * CELL_W
+    cx = x0 + CELL_W + res.dp_offset_frac * CELL_H
+    cy = baseline + res.dp_vertical_frac * CELL_H + d / 2.0
+    dot = [cx - d / 2.0, cy - d / 2.0, cx + d / 2.0, cy + d / 2.0]
+    draw.ellipse(dot, fill=res.on)
+    on_draw.ellipse(dot, fill=255)
+    overhang = 2.0
+    tail_end_x = max(cx + d, next_x + overhang)
+    tail_drop = d * 0.8
+    tail = [
+        (cx + d / 2.0, cy - d * 0.25),
+        (tail_end_x, cy + tail_drop),
+        (cx + d / 2.0, cy + d * 0.25),
+    ]
+    draw.polygon(tail, fill=res.on)
+    on_draw.polygon(tail, fill=255)
 
 
 def _apply_bloom(rgb: Image.Image, on_mask: Image.Image, profile: MakeProfile, res: Resolved) -> Image.Image:

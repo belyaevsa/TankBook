@@ -305,6 +305,38 @@ model and decoder as round 3, 320 transaction windows (192 count-correct):
 | all 320 | 0.429 | 0.569 | 0.266 |
 | count-correct 192 | 0.523 | **0.698** | **0.370** |
 
+### Round 4 (PU.17 + PU.18): the comma drawn where displays draw it, cells calibrated on aggregate statistics, one strip resolution
+
+`glyph.py` draws the decimal mark as a **comma** - a dot below the digit baseline
+in the gap after the glyph, with a short tail whose rightmost ink crosses into the
+next cell's left edge - using the dead `dp_offset_frac` plus a new vertical offset
+(`dp_vertical_frac`, 0.05-0.15 x glyph height); LED heads keep the plain corner dot.
+The row's ink band therefore includes the comma, so a dp-carrying cell has its digit
+in the top ~85 %. The dp bit stays on the host glyph; a cell cut from the NEXT
+position carries the tail at its left edge with dp = 0.
+
+`calibrate.py` measures the corpus's aggregate geometry over transaction windows
+only (`src/pump_reader/calibration.json`): cell aspect (pitch/band, p50 **0.875**),
+the right-aligned phase, digit frequency, leading-zero runs, and dp presence rate
+(0.206 overall, comma 52 % of decimal marks). `render_slicer_cell` samples its crop
+aspect from those quantiles (band inflated, one-sided, never below the ink) and
+right-aligns the crop to the segment ink, and the dataset samples dp at the
+calibrated rate instead of 50/50. The Python renderer now draws on the 96-px strip
+and downsampling the cell to 32x48 exactly as `score.py` (which now warps at 96 px
+too, PU.11 F5). Same `SegmentNet`, same 15 000-step / 120 k-sample recipe, spill 0,
+contrast 0:
+
+| | per-glyph | digit only | windows, every digit right |
+|---|---|---|---|
+| all 320 | **0.451** | **0.585** | 0.263 |
+| count-correct 192 | **0.558** | **0.717** | **0.370** |
+
+dp bit on count-correct cells: accuracy **0.793** (was 0.74), AUC **0.548** (was
+0.52, PU.11 F2). The comma re-render moves the dp bit - the number that keeps
+per-window near zero - the most, though `pump-009`'s comma still reads wrong
+(`050,95` -> `05095`) and `pump-004` stays washed out. Committed metrics:
+`runs/2026-09-19/metrics-pu1718.json`.
+
 ## Named mutation: drop the dp bit
 
 In `dataset.py`, the target's dp bit was dropped (7 bits, dp slot padded with a

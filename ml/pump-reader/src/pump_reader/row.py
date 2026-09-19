@@ -106,6 +106,8 @@ def render_row_of_labels(
     augment: bool = True,
     overrides: dict[str, float] | None = None,
     advances: list[float] | None = None,
+    strip_h: int | None = None,
+    comma: bool = False,
 ) -> tuple[Image.Image, list[GlyphBox]]:
     """Render a list of glyph cells as one row; returns (image, true boxes).
 
@@ -114,26 +116,38 @@ def render_row_of_labels(
     neighbour overlaps the centre cell and its edge bleeds into the centre box -
     the way a real slicer's overlapping cells carry the neighbour's edge (PU.7,
     gap 2 "neighbour spill").
+
+    ``strip_h`` renders the glyphs on a taller strip canvas with the glyphs
+    vertically centred (the 96px strip the slicer operates on); the default is
+    the tight ``CELL_H``-plus-margin canvas. ``comma`` draws the decimal mark as
+    the corpus's below-baseline comma (LCD/VFD heads) instead of the corner dot.
     """
     res = profile.resolve(rng)
     if advances is None:
         advances = [_cell_advance(lbl.bits == 0x80, res.pitch) for lbl in cells]
     total_w = int(sum(advances) + 2 * _ROW_MARGIN_X)
-    total_h = CELL_H + 2 * _ROW_MARGIN_Y
+    if strip_h is None:
+        total_h = CELL_H + 2 * _ROW_MARGIN_Y
+        glyph_y = float(_ROW_MARGIN_Y)
+    else:
+        total_h = strip_h
+        glyph_y = float((strip_h - CELL_H) // 2)
 
     rgb = Image.new("RGB", (total_w, total_h), res.ground)
     on_mask = Image.new("L", (total_w, total_h), 0)
     ghost_mask = Image.new("L", (total_w, total_h), 0)
 
+    draw_comma = comma and profile.technology != "led"
+
     x = float(_ROW_MARGIN_X)
     boxes: list[GlyphBox] = []
     for lbl, adv in zip(cells, advances):
         if lbl.bits == 0x80:
-            _draw_glyph(rgb, on_mask, ghost_mask, lbl, profile, res, x, float(_ROW_MARGIN_Y))
-            boxes.append(GlyphBox(lbl, x, float(_ROW_MARGIN_Y), adv, float(CELL_H)))
+            _draw_glyph(rgb, on_mask, ghost_mask, lbl, profile, res, x, glyph_y, comma=draw_comma)
+            boxes.append(GlyphBox(lbl, x, glyph_y, adv, float(CELL_H)))
         else:
-            _draw_glyph(rgb, on_mask, ghost_mask, lbl, profile, res, x, float(_ROW_MARGIN_Y))
-            boxes.append(GlyphBox(lbl, x, float(_ROW_MARGIN_Y), float(CELL_W), float(CELL_H)))
+            _draw_glyph(rgb, on_mask, ghost_mask, lbl, profile, res, x, glyph_y, comma=draw_comma)
+            boxes.append(GlyphBox(lbl, x, glyph_y, float(CELL_W), float(CELL_H)))
         x += adv
 
     rgb = _apply_bloom(rgb, on_mask, profile, res)

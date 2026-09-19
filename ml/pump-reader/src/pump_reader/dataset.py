@@ -29,6 +29,7 @@ import numpy as np
 from PIL import Image
 
 from . import augment as _augment
+from .calibration import Calibration, load_calibration
 from .glyph import CELL_H, CELL_W, MARGIN, BLANK, DP_ONLY, SegmentLabel, render_glyph
 from .profiles import ColorRange, PROFILES, MakeProfile
 from .row import render_row_of_labels
@@ -83,8 +84,8 @@ _SPILL_ADVANCE: float = CELL_W - SPILL_OVERLAP_PX
 # (one glyph wide, CELL_W), shifted by +-8 % of the profile's advance; the y
 # crop is the whole row's ink band (top of the highest lit pixel to the bottom
 # of the lowest, no vertical margin), shifted by +-6 % of the band height.
-SLICER_X_JITTER: float = 0.08
-SLICER_Y_JITTER: float = 0.06
+SLICER_X_JITTER: float = 0.03
+SLICER_Y_JITTER: float = 0.03
 
 
 def _sample_technology(rng: np.random.Generator) -> str:
@@ -143,13 +144,23 @@ def _sample_dataset_label(rng: np.random.Generator) -> SegmentLabel:
     if r < BLANK_PRIOR + DP_ONLY_PRIOR:
         return DP_ONLY
     digit = str(int(rng.integers(0, 10)))
-    return SegmentLabel.from_digit(digit, dp=bool(rng.integers(0, 2)))
+    return SegmentLabel.from_digit(digit, dp=_sample_dp(rng))
+
+
+def _sample_dp(rng: np.random.Generator) -> bool:
+    """Whether a digit carries a decimal point, at the calibrated corpus rate.
+
+    The corpus puts a decimal mark on ~21% of digit cells (``calibration.json``
+    ``dp_rate.all``), not the uniform 50% the renderer used to draw - which
+    double-counted added-dp reads (PU.12 finding 4).
+    """
+    return bool(rng.random() < load_calibration().dp_rate())
 
 
 def _sample_neighbour_label(rng: np.random.Generator) -> SegmentLabel:
     """A random digit neighbour (never blank or dp-only, so it always has edge ink)."""
     digit = str(int(rng.integers(0, 10)))
-    return SegmentLabel.from_digit(digit, dp=bool(rng.integers(0, 2)))
+    return SegmentLabel.from_digit(digit, dp=_sample_dp(rng))
 
 
 def _spill_crop(
@@ -223,6 +234,22 @@ def _row_ink_band(row: Image.Image, profile: MakeProfile) -> tuple[int, int]:
     return int(rows.min()), int(rows.max())
 
 
+def _region_ink_columns(
+    row: Image.Image, profile: MakeProfile, x0: int, x1: int, y0: int, y1: int
+) -> tuple[int | None, int | None]:
+    """Leftmost/rightmost lit column inside a region, or ``(None, None)`` if empty."""
+    arr = np.asarray(row, dtype=np.float32)
+    lum = arr.mean(axis=2)
+    lum_on = sum(profile.on_color.midpoint()) / 3.0
+    lum_ground = sum(profile.ground_color.midpoint()) / 3.0
+    threshold = (lum_on + lum_ground) / 2.0
+    lit = lum < threshold if lum_on < lum_ground else lum > threshold
+    cols = np.where(lit[y0:y1, x0:x1].any(axis=0))[0]
+    if cols.size == 0:
+        return None, None
+    return int(x0 + cols.min()), int(x0 + cols.max())
+
+
 def render_slicer_cell(
     label: SegmentLabel,
     profile: MakeProfile,
@@ -230,40 +257,77 @@ def render_slicer_cell(
     *,
     augment: bool = True,
     overrides: dict[str, float] | None = None,
+    calibration: Calibration | None = None,
+    record: dict | None = None,
 ) -> Image.Image:
-    """Render the target the way the slicer hands it over (PU.9).
+    """Render the target the way the slicer hands it over (PU.9, calibrated PU.18).
 
     A short row of the target plus 1-2 digit neighbours on each side is drawn
-    clean (no augmentation) so the band and boxes are exact. The target's cell
+    clean on the 96px strip, so the band and boxes are exact. The target's cell
     is then cut the slicer's way: horizontally one pitch wide with the glyph
-    somewhere inside the pitch's slack, vertically the whole row's ink band
-    (no vertical margin). Both crops jitter, then the crop is resized
-    to 32x48 with the same ``BILINEAR`` resampling ``score.py`` uses. The
-    neighbours contribute the band and a realistic pitch; they do not bleed into
-    the tight cell. Augmentation runs on the resized cell, as it does for the
-    glyph framing.
+    right-aligned (the slicer anchors cells on run ends, so the ink's right edge
+    is the cell's right edge and the slack is on the left), vertically the whole
+    row's ink band inflated to a cell aspect sampled from the corpus's calibrated
+    quantiles (``calibration.json``). The crop is resized to 32x48 with the same
+    ``BILINEAR`` resampling ``score.py`` uses at its 96px strip. The neighbours
+    contribute the band and a realistic pitch; their commas (drawn below the
+    baseline) bleed their tails into the target's left edge with dp = 0 on the
+    target. Augmentation runs on the resized cell.
     """
+    cal = calibration if calibration is not None else load_calibration()
+    strip_h = cal.strip_height
     n_left = int(rng.integers(1, 3))
     n_right = int(rng.integers(1, 3))
     left = [_sample_neighbour_label(rng) for _ in range(n_left)]
     right = [_sample_neighbour_label(rng) for _ in range(n_right)]
-    row, boxes = render_row_of_labels(left + [label] + right, profile, rng, augment=False)
+    row, boxes = render_row_of_labels(
+        left + [label] + right, profile, rng, augment=False, strip_h=strip_h, comma=True
+    )
 
     band_top, band_bottom = _row_ink_band(row, profile)
-    band_h = band_bottom - band_top + 1
+    tight_h = band_bottom - band_top + 1
     b = boxes[n_left]
     # The left neighbour is always a digit, so its advance is one full pitch.
     pitch_px = boxes[n_left].x - boxes[n_left - 1].x
-    # The slicer's cell is one PITCH wide, not one glyph: the glyph sits inside
-    # it with the pitch's slack around it, and the neighbours' edges reach in
-    # at both sides. The slack is split with a random bias so the glyph is not
-    # always centred - the real grid is phased on run ends, not on centres.
     slack = max(0.0, pitch_px - CELL_W)
-    lead = slack * float(rng.uniform(0.2, 0.8))
+    # Cell aspect (pitch / band) is sampled from the calibrated quantiles; the
+    # band grows (never shrinks below the ink) to reach it, capped at the strip.
+    aspect = cal.sample_aspect(rng)
+    band_h = int(round(min(float(strip_h), max(float(tight_h), pitch_px / aspect))))
+    # Horizontal phase: the slicer anchors cells on run ENDS, so the ink's right
+    # edge is the cell's right edge and all pitch slack sits on the left
+    # (calibration.json phase.right_margin_frac == 0). Right-aligning to the
+    # segment ink - not the glyph box - also keeps a slanted glyph's leaned-over
+    # top segments inside the crop instead of clipping them at the box edge.
+    glyph_y = (strip_h - CELL_H) // 2
+    baseline = glyph_y + CELL_H - MARGIN
+    # The segment ink right edge across the full pitch slot (a slanted glyph
+    # leans past its own box into the gap), above the baseline so the comma tail
+    # - which belongs to the next cell - is not counted.
+    _, ink_right = _region_ink_columns(
+        row, profile, int(round(b.x)), int(round(b.x + pitch_px)), int(band_top), int(baseline)
+    )
+    if ink_right is None:
+        ink_right = int(round(b.x + CELL_W - MARGIN))
+    # A 2px right margin leaves room for the +-phase jitter, so the leaned-over
+    # segment ink is never clipped at the cell's right edge.
+    lead = max(0.0, (b.x + pitch_px) - (ink_right + 2.0))
     dx = float(rng.uniform(-SLICER_X_JITTER, SLICER_X_JITTER)) * pitch_px
     dy = float(rng.uniform(-SLICER_Y_JITTER, SLICER_Y_JITTER)) * band_h
+    # The band slack above the ink is one-sided (a threshold band grows above OR
+    # below, not both) - a comma extends below, a second row or loose quad above.
+    extra = band_h - tight_h
+    above = extra if rng.random() < 0.5 else 0
     x0 = b.x - lead + dx
-    y0 = band_top + dy
+    y0 = band_top - above + dy
+    x0 = max(0.0, min(x0, float(row.width - pitch_px)))
+    # Keep the tight ink band inside the crop despite the phase jitter: the
+    # band is at least the ink, so the glyph must never be clipped vertically.
+    y0 = max(float(band_top - extra), min(float(band_top), y0))
+    if record is not None:
+        record["pitch_px"] = pitch_px
+        record["band_h"] = band_h
+        record["aspect"] = pitch_px / band_h
     crop = row.crop(
         (int(round(x0)), int(round(y0)), int(round(x0 + pitch_px)), int(round(y0 + band_h)))
     )

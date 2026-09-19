@@ -75,6 +75,7 @@ class MakeProfile:
             pitch=float(rng.uniform(*self.pitch)),
             dp_diameter_frac=float(rng.uniform(*self.dp_diameter)),
             dp_offset_frac=float(rng.uniform(*self.dp_offset)),
+            dp_vertical_frac=float(rng.uniform(*_DP_VERTICAL_FRAC)),
             on=on,
             ground=ground,
             ghost=ghost,
@@ -104,12 +105,18 @@ class Resolved:
     pitch: float
     dp_diameter_frac: float
     dp_offset_frac: float
+    dp_vertical_frac: float
     on: tuple[int, int, int]
     ground: tuple[int, int, int]
     ghost: tuple[int, int, int]
 
 
 # --- technology palettes ----------------------------------------------------
+
+# The comma's vertical clearance below the glyph's bottom inset, as a fraction
+# of the glyph height (y ≈ baseline + 0.05-0.15 x glyph height, PU.17). The
+# horizontal offset is the profile's own ``dp_offset`` range.
+_DP_VERTICAL_FRAC = (0.05, 0.15)
 
 _LCD_GROUND = ColorRange((170, 188, 178), (206, 220, 202))
 _LCD_ON = ColorRange((30, 42, 36), (58, 70, 62))
