@@ -1,9 +1,13 @@
 """CLI: ``python -m pump_reader.train --steps N --seed S --out DIR``.
 
-Trains ``SegmentNet`` on ``SyntheticDataset`` renders only, with AdamW and a
-cosine learning-rate schedule, and writes ``DIR/segmentnet.pt`` and
-``DIR/metrics.json``. ``--smoke`` runs 20 steps for the test; validation is a
-fixed 5 000-sample seed range disjoint from the training range.
+Trains ``SegmentNet`` on ``SyntheticDataset`` renders - and, with
+``--real DIR``, on the real glyphs ``pump_reader.realglyphs`` cut from the
+train split (decision 9), mixed in at ``--real-frac`` of every batch with
+light augmentation - with AdamW and a cosine learning-rate schedule, and
+writes ``DIR/segmentnet.pt`` and ``DIR/metrics.json``. ``--smoke`` runs 20
+steps for the test; validation is a fixed 5 000-sample synthetic seed range
+disjoint from the training range (the real set is never validated on here:
+the held-out corpus ratchets are its measurement).
 """
 
 from __future__ import annotations
@@ -19,7 +23,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from .dataset import SyntheticDataset
+from .dataset import SyntheticDataset, bits_to_target
 from .glyph import SEGMENTS
 from .model import SegmentNet
 
@@ -34,6 +38,39 @@ def _collate(batch: list[tuple[np.ndarray, np.ndarray]]) -> tuple[torch.Tensor, 
     xs = torch.from_numpy(np.stack([b[0] for b in batch]))
     ys = torch.from_numpy(np.stack([b[1] for b in batch]))
     return xs, ys
+
+
+class RealGlyphs:
+    """The real-glyph set as a sampler: a random batch of ``n`` cells, each
+    with a small photometric and geometric jitter (the renders get the same
+    kind through ``augment``), as float tensors ready to concatenate with a
+    synthetic batch."""
+
+    def __init__(self, folder: Path, seed: int):
+        data = np.load(folder / "cells.npz")
+        self.x = data["x"]  # [n, 3, 48, 32] uint8
+        self.y = np.stack([bits_to_target(int(b)) for b in data["y"]]).astype(np.float32)
+        self.rng = np.random.default_rng(seed + 7)
+
+    def __len__(self) -> int:
+        return len(self.x)
+
+    def batch(self, n: int) -> tuple[torch.Tensor, torch.Tensor]:
+        idx = self.rng.integers(0, len(self.x), size=n)
+        x = self.x[idx].astype(np.float32) / 255.0
+        # Brightness / contrast jitter per sample, an occasional polarity flip
+        # (dark-on-light and light-on-dark LCDs both exist), and a 1-2 px shift.
+        gain = self.rng.uniform(0.75, 1.25, size=(n, 1, 1, 1)).astype(np.float32)
+        bias = self.rng.uniform(-0.12, 0.12, size=(n, 1, 1, 1)).astype(np.float32)
+        x = np.clip(x * gain + bias, 0.0, 1.0)
+        flip = self.rng.random(n) < 0.15
+        x[flip] = 1.0 - x[flip]
+        dx = self.rng.integers(-2, 3, size=n)
+        dy = self.rng.integers(-2, 3, size=n)
+        for i in range(n):
+            if dx[i] or dy[i]:
+                x[i] = np.roll(x[i], (int(dy[i]), int(dx[i])), axis=(1, 2))
+        return torch.from_numpy(x), torch.from_numpy(self.y[idx])
 
 
 def _predict(model: nn.Module, xs: torch.Tensor) -> torch.Tensor:
@@ -86,6 +123,8 @@ def main(argv: list[str] | None = None) -> int:
     # targets keeps a margin that still ranks (the abstention frontier).
     parser.add_argument("--label-smoothing", type=float, default=0.05)
     parser.add_argument("--framing", type=str, default="slicer", choices=["slicer", "glyph"])
+    parser.add_argument("--real", type=Path, default=None, help="pump_reader.realglyphs output folder")
+    parser.add_argument("--real-frac", type=float, default=0.3, help="share of each batch drawn from --real")
     args = parser.parse_args(argv)
 
     smoke = args.smoke
@@ -113,6 +152,11 @@ def main(argv: list[str] | None = None) -> int:
         val_ds, batch_size=args.batch_size, shuffle=False, collate_fn=_collate, num_workers=0
     )
 
+    real = RealGlyphs(args.real, args.seed) if args.real else None
+    real_n = int(round(args.batch_size * args.real_frac)) if real else 0
+    if real:
+        print(f"real glyphs: {len(real)} cells from {args.real}, {real_n} of every {args.batch_size}")
+
     model = SegmentNet().to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
     loss_fn = nn.BCEWithLogitsLoss()
@@ -136,6 +180,10 @@ def main(argv: list[str] | None = None) -> int:
         except StopIteration:
             train_iter = iter(train_loader)
             xs, ys = next(train_iter)
+        if real and real_n:
+            rx, ry = real.batch(real_n)
+            xs = torch.cat([xs[: args.batch_size - real_n], rx])
+            ys = torch.cat([ys[: args.batch_size - real_n], ry])
         xs = xs.to(device)
         ys = ys.to(device)
         model.train()
@@ -166,6 +214,9 @@ def main(argv: list[str] | None = None) -> int:
     metrics = {
         "steps": steps, "spill_prob": args.spill_prob, "contrast_prob": args.contrast_prob,
         "framing": args.framing,
+        "real": str(args.real) if args.real else None,
+        "real_cells": len(real) if real else 0,
+        "real_frac": args.real_frac if real else 0.0,
         "seed": args.seed,
         "wall_seconds": round(wall, 1),
         "train_size": args.train_size,
