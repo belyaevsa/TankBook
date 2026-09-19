@@ -81,6 +81,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--spill-prob", type=float, default=0.0)
     parser.add_argument("--contrast-prob", type=float, default=0.15)
+    # Synthetic data is separable, so plain BCE drives the logits to saturation
+    # and the model is then confidently wrong on real cells; smoothing the
+    # targets keeps a margin that still ranks (the abstention frontier).
+    parser.add_argument("--label-smoothing", type=float, default=0.05)
     parser.add_argument("--framing", type=str, default="slicer", choices=["slicer", "glyph"])
     args = parser.parse_args(argv)
 
@@ -136,6 +140,8 @@ def main(argv: list[str] | None = None) -> int:
         ys = ys.to(device)
         model.train()
         optimizer.zero_grad()
+        if args.label_smoothing > 0:
+            ys = ys * (1 - args.label_smoothing) + 0.5 * args.label_smoothing
         loss = loss_fn(model(xs), ys)
         loss.backward()
         optimizer.step()

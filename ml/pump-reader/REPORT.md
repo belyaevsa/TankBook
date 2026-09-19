@@ -388,6 +388,31 @@ Final, transaction fields, shipped model:
 | all 320 | 0.469 | **0.609** | 0.213 | 0.763 |
 | count-correct 214 | 0.561 | **0.728** | 0.299 | 0.779 |
 
+### Round 5 (orchestrator, 2026-09-19): the abstention frontier, and the law on real cells
+
+`score.py --frontier`-style output is now in every score: cells sorted by the constrained
+decoder's margin, digit accuracy per coverage decile, and the largest coverage that still
+holds 0.99 / 0.95. On the count-correct transaction cells the curve is NOT flat any more
+(PU.11 F11 measured it flat on an older model):
+
+| model | digit only | 0.99 holds to | 0.95 holds to |
+|---|---|---|---|
+| round 4b, plain | 0.728 | 13 % | 34 % |
+| round 4b, five-crop TTA | 0.753 | 15 % | 45 % |
+| label smoothing 0.05, plain | 0.740 | 10 % | 40 % |
+| label smoothing 0.05 + TTA (**shipped**) | **0.762** | **25 %** | **54 %** |
+
+TTA (`--tta`, the centre crop and four shifted by 6 %) and label smoothing (`train.py
+--label-smoothing 0.05`, now the default) are both on. Neighbour spill stays off.
+
+**The law on real cells** (`PumpReaderPipelineTests`, the gate-mirror: warp → slice → TTA →
+classify → `PumpReadingLaw`, annotated windows, scored on `expected.csv` like the rules arm):
+committed **39**, correct 37, **precision 0.949**, coverage 0.122 of 320; **12 of 114 photos
+with every field right**. Before the law the same cells read 68/320 windows and 3/114 photos
+fully right; the law trades coverage for precision, which is what the gate buys. The wrong
+photo is `pump-106`: liters and total each lost a leading cell in the slicer and 5.1 × 70.31
+= 358.58 multiplies out - the consistent tenfold shrink the arithmetic cannot see.
+
 ## Named mutation: drop the dp bit
 
 In `dataset.py`, the target's dp bit was dropped (7 bits, dp slot padded with a

@@ -16,8 +16,8 @@ struct PumpReaderPipelineTests {
     }
 
     // Measured 2026-09-19; the constants move only upward.
-    private static let committedFloor = 32
-    private static let precisionFloor = 0.93
+    private static let committedFloor = 39
+    private static let precisionFloor = 0.94
 
     private static let modelURL = PumpReaderTestSupport.repoRoot
         .appendingPathComponent("ios/App/Resources/PumpSegments.mlpackage")

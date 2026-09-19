@@ -55,6 +55,34 @@ def _auc(pos: np.ndarray, neg: np.ndarray) -> float | None:
     return float(total / (pos.size * neg.size))
 
 
+def frontier_curve(items: list[tuple[float, bool]]) -> dict:
+    """The abstention frontier over ``(margin, digit_correct)`` cells.
+
+    Sorted by the decoder's margin, most confident first; digit accuracy at
+    coverage deciles, and the largest coverage whose confident prefix still
+    holds 0.99 / 0.95 accuracy - the coverage a commit rule may take at that
+    precision. A ranking signal that works makes the curve fall with coverage;
+    a useless one makes it flat at the overall accuracy.
+    """
+    n = len(items)
+    if n == 0:
+        return {"n": 0, "deciles": [], "coverage_0.99": 0.0, "coverage_0.95": 0.0}
+    ordered = sorted(items, key=lambda t: -t[0])
+    deciles = []
+    for d in range(1, 11):
+        k = max(1, int(round(d * n / 10)))
+        deciles.append((d * 10, round(sum(1 for _, ok in ordered[:k] if ok) / k, 4)))
+    best = {0.99: 0.0, 0.95: 0.0}
+    correct = 0
+    for i, (_, ok) in enumerate(ordered, 1):
+        correct += ok
+        for target in best:
+            if correct / i >= target:
+                best[target] = i / n
+    return {"n": n, "deciles": deciles, "coverage_0.99": round(best[0.99], 3),
+            "coverage_0.95": round(best[0.95], 3)}
+
+
 def parse_cells(text: str) -> list[SegmentLabel]:
     """Split a window ``text`` into glyph cells (the naive slicer's truth).
 
@@ -131,9 +159,17 @@ def _quad_size(quad: np.ndarray) -> tuple[float, float]:
     return float(width), float(height)
 
 
+TTA_OFFSETS: tuple[tuple[float, float], ...] = (
+    (0.0, 0.0), (-0.06, 0.0), (0.06, 0.0), (0.0, -0.06), (0.0, 0.06),
+)
+"""Test-time augmentation: the centre crop and four shifted by 6 % of the cell's
+width / height - the slicer's own placement uncertainty. Probabilities are
+averaged over the crops before decoding."""
+
+
 def slice_cells_from_boxes(
-    img: Image.Image, quad: np.ndarray, cell_boxes: list[dict]
-) -> list[Image.Image]:
+    img: Image.Image, quad: np.ndarray, cell_boxes: list[dict], *, tta: bool = False
+) -> list[Image.Image] | list[list[Image.Image]]:
     """Slice a window from PU.4's slicer rects (normalised [0,1] over the strip).
 
     The strip is warped exactly as ``slice_cells`` warps it, then each cell is
@@ -158,13 +194,18 @@ def slice_cells_from_boxes(
         (sw, sh), Image.Transform.PERSPECTIVE, data=coeffs, resample=Image.BILINEAR, fillcolor=0
     )
 
-    cells: list[Image.Image] = []
+    cells: list = []
     for box in cell_boxes:
-        x0 = max(0, min(sw - 1, int(round(box["x0"] * sw))))
-        x1 = max(x0 + 1, min(sw, int(round(box["x1"] * sw))))
-        y0 = max(0, min(sh - 1, int(round(box["y0"] * sh))))
-        y1 = max(y0 + 1, min(sh, int(round(box["y1"] * sh))))
-        cells.append(strip.crop((x0, y0, x1, y1)).resize((CELL_W, CELL_H), Image.BILINEAR))
+        bw = (box["x1"] - box["x0"]) * sw
+        bh = (box["y1"] - box["y0"]) * sh
+        crops = []
+        for dx, dy in (TTA_OFFSETS if tta else TTA_OFFSETS[:1]):
+            x0 = max(0, min(sw - 1, int(round(box["x0"] * sw + dx * bw))))
+            x1 = max(x0 + 1, min(sw, int(round(box["x1"] * sw + dx * bw))))
+            y0 = max(0, min(sh - 1, int(round(box["y0"] * sh + dy * bh))))
+            y1 = max(y0 + 1, min(sh, int(round(box["y1"] * sh + dy * bh))))
+            crops.append(strip.crop((x0, y0, x1, y1)).resize((CELL_W, CELL_H), Image.BILINEAR))
+        cells.append(crops if tta else crops[0])
     return cells
 
 
@@ -240,8 +281,8 @@ def _read_string(bits_list: list[int]) -> str:
 
 
 def classify_cells(
-    model: SegmentNet, cells: list[Image.Image], *, constrained: bool = True
-) -> tuple[list[int], list[np.ndarray]]:
+    model: SegmentNet, cells: list, *, constrained: bool = True
+) -> tuple[list[int], list[np.ndarray], list[float]]:
     """Classify cells; returns per-cell (bits, 8-probability-vector).
 
     ``constrained`` decodes over the valid seven-segment patterns (the shipped
@@ -250,12 +291,20 @@ def classify_cells(
     model.eval()
     bits: list[int] = []
     probs: list[np.ndarray] = []
+    margins: list[float] = []
     with torch.no_grad():
         for cell in cells:
-            p = torch.sigmoid(model(_to_tensor(cell)))[0].cpu().numpy()
+            crops = cell if isinstance(cell, list) else [cell]
+            batch = torch.cat([_to_tensor(c) for c in crops])
+            p = torch.sigmoid(model(batch)).mean(dim=0).cpu().numpy()
             probs.append(p)
-            bits.append(decode_constrained(p, allow_blank=False)[0] if constrained else target_to_bits(p))
-    return bits, probs
+            if constrained:
+                b, m = decode_constrained(p, allow_blank=False)
+            else:
+                b, m = target_to_bits(p), 0.0
+            bits.append(b)
+            margins.append(m)
+    return bits, probs, margins
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -270,6 +319,8 @@ def main(argv: list[str] | None = None) -> int:
                         type=lambda v: set(v.split(",")),
                         help="window fields in the headline; the grade-price board is NOT in the "
                              "ship gate (product owner, 2026-09-19) - pass 'board' to see it")
+    parser.add_argument("--tta", action="store_true",
+                        help="average the probabilities over five shifted crops per cell")
     parser.add_argument("--threshold-decode", action="store_true",
                         help="per-bit 0.5 threshold instead of the constrained decode (A/B only)")
     parser.add_argument("--only-count-correct", action="store_true",
@@ -294,6 +345,7 @@ def main(argv: list[str] | None = None) -> int:
     seg_correct = np.zeros(8, dtype=np.int64)
     glyph_total = 0
     digit_correct = 0
+    frontier_items: list[tuple[float, bool]] = []
     window_digits_correct = 0
     glyph_correct = 0
     window_total = 0
@@ -335,20 +387,22 @@ def main(argv: list[str] | None = None) -> int:
             if args.only_count_correct and (cell_boxes is None or len(cell_boxes) != n):
                 continue
             if cell_boxes:
-                cells = slice_cells_from_boxes(img, quad, cell_boxes)
+                cells = slice_cells_from_boxes(img, quad, cell_boxes, tta=args.tta)
             else:
                 cells, _ = slice_cells(img, quad, n)
-            pred_bits, probs = classify_cells(model, cells, constrained=not args.threshold_decode)
+            pred_bits, probs, margins = classify_cells(model, cells, constrained=not args.threshold_decode)
 
             truth_bits = [c.bits for c in cells_truth]
             window_total += 1
             all_correct = True
             digits_ok = True
-            for tb, pb, prob in zip(truth_bits, pred_bits, probs):
+            for tb, pb, prob, mg in zip(truth_bits, pred_bits, probs, margins):
                 glyph_total += 1
                 dp_y.append((tb >> 7) & 1)
                 dp_score.append(float(prob[7]))
-                if (pb & 0x7F) == (tb & 0x7F):
+                ok = (pb & 0x7F) == (tb & 0x7F)
+                frontier_items.append((mg, ok))
+                if ok:
                     digit_correct += 1
                 else:
                     digits_ok = False
@@ -405,6 +459,7 @@ def main(argv: list[str] | None = None) -> int:
         # The digit alone (a-g), the dp bit aside: the number PU.5's arithmetic
         # decimal recovery needs, since it places the point itself.
         "per_digit_accuracy": round(digit_correct / glyph_total, 4) if glyph_total else 0.0,
+        "frontier": frontier_curve(frontier_items),
         "per_window_digits_accuracy": round(window_digits_correct / window_total, 4) if window_total else 0.0,
         "per_window_accuracy": round(window_correct / window_total, 4) if window_total else 0.0,
         # The dp bit is what keeps per-window near zero (PU.11 F2): its AUC on
