@@ -125,6 +125,32 @@ def clean_entry(entry: dict) -> dict:
     return out
 
 
+live_stems: dict[str, list[str]] = {}
+
+
+def live_counts() -> dict[str, int]:
+    """Live records per still, from corpus.sqlite; also fills `live_stems`."""
+    import sqlite3  # noqa: PLC0415
+    live_stems.clear()
+    try:
+        with sqlite3.connect(DB) as con:
+            for name, still in con.execute(
+                    "select name, paired_fixture from media where kind = 'live' and paired_fixture is not null"):
+                live_stems.setdefault(still, []).append(Path(name).stem)
+    except sqlite3.DatabaseError:
+        pass
+    return {k: len(v) for k, v in live_stems.items()}
+
+
+def tracked_count(stems: list[str]) -> int:
+    total = 0
+    for stem in stems:
+        tracked = FRAMES / stem / "windows.json"
+        if tracked.exists():
+            total += len(json.loads(tracked.read_text()).get("frames", {}))
+    return total
+
+
 def records_for(still: str) -> list[dict]:
     """The Live records paired to a still (corpus.sqlite media table) with
     their tracked-frame files, when pump_reader.track has run."""
@@ -175,11 +201,15 @@ class Handler(SimpleHTTPRequestHandler):
         if path == "/api/fixtures":
             ann, rows = load_windows(), load_rows()
             names = list(rows) + [n for n in ann if not n.startswith("_") and n not in rows]
+            live = live_counts()
             return self.send_json([{
                 "name": n,
                 "inCsv": n in rows,
                 "windows": len(ann.get(n, {}).get("windows", [])),
                 "reviewed": bool(ann.get(n, {}).get("reviewed")),
+                "tracking": ann.get(n, {}).get("tracking"),
+                "live": live.get(n, 0),
+                "tracked": tracked_count(live_stems.get(n, [])),
             } for n in names])
         if path.startswith("/api/entry/"):
             name = unquote(path[len("/api/entry/"):])

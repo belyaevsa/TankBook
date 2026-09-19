@@ -23,6 +23,9 @@ the ml venv runs it); the converted images are cached under
 - `processed` (`P`) marks the entry as checked by a human - `reviewed: true` in
   the JSON - and `✓ Save & next` (`⏎`) sets it, saves and opens the next one in
   the filtered list; the list filter separates empty / not processed / processed.
+- A `▶` in the list marks a still with a Live record (blue = tracking unreviewed,
+  green = ok, red = bad; `▶?` = not tracked yet); the filter has *with Live record* and
+  *Live, tracking unreviewed*.
 - **Live record / View frames** (shown when the still has a Live record and
   `pump_reader.frames` + `pump_reader.track` have run): steps through the
   record's tracked frames with the carried quads drawn (`←`/`→`, slider,

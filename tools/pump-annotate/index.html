@@ -15,6 +15,7 @@
   #list div { padding:3px 6px; cursor:pointer; border-radius:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
   #list div.sel { background:#2456a5 } #list div .n { color:var(--dim); float:right }
   #list div.todo { color:var(--dim) }
+  #list .live { color:#4cc3ff } #list .live.ok { color:var(--ok) } #list .live.bad { color:var(--bad) }
   main { position:relative; overflow:auto; background:#05070a }
   canvas { display:block; cursor:crosshair }
   .row { display:flex; gap:6px; align-items:center; margin:4px 0; flex-wrap:wrap }
@@ -31,7 +32,7 @@
 <body>
 <aside>
   <div class="row"><input id="filter" placeholder="filter…" style="flex:1">
-    <select id="state"><option value="all">all</option><option value="todo">no windows</option><option value="unreviewed">not processed</option><option value="reviewed">processed</option></select></div>
+    <select id="state"><option value="all">all</option><option value="todo">no windows</option><option value="unreviewed">not processed</option><option value="reviewed">processed</option><option value="live">with Live record</option><option value="liveunchecked">Live, tracking unreviewed</option></select></div>
   <div class="row dim" id="counts"></div>
   <div id="list"></div>
 </aside>
@@ -84,10 +85,11 @@ function renderList() {
   const f = $('#filter').value.toLowerCase(), st = $('#state').value;
   const done = fixtures.filter(x => x.windows).length, rev = fixtures.filter(x => x.reviewed).length;
   $('#counts').textContent = `${rev} processed · ${done} with windows · ${fixtures.length - done} empty`;
-  const pass = x => st === 'all' || (st === 'todo' && !x.windows) || (st === 'reviewed' && x.reviewed) || (st === 'unreviewed' && !x.reviewed);
+  const pass = x => st === 'all' || (st === 'todo' && !x.windows) || (st === 'reviewed' && x.reviewed) || (st === 'unreviewed' && !x.reviewed)
+    || (st === 'live' && x.live) || (st === 'liveunchecked' && x.live && !x.tracking);
   const shown = fixtures.filter(x => x.name.toLowerCase().includes(f) && pass(x));
   $('#list').innerHTML = shown.map(x =>
-    `<div data-n="${x.name}" class="${x.name===current?'sel':''} ${x.windows?'':'todo'}" title="${x.name}">${x.reviewed?'✓ ':''}${x.name.replace(/\.(jpe?g|heic|png)$/i,'')}<span class="n">${x.windows||'·'}</span></div>`).join('');
+    `<div data-n="${x.name}" class="${x.name===current?'sel':''} ${x.windows?'':'todo'}" title="${x.name}">${x.reviewed?'✓ ':''}${x.name.replace(/\.(jpe?g|heic|png)$/i,'')}<span class="n">${x.live ? `<span class="live ${x.tracking||''}" title="${x.live} Live record(s), ${x.tracked} tracked frames${x.tracking ? ', tracking ' + x.tracking : ''}">▶${x.tracked ? '' : '?'}</span> ` : ''}${x.windows||'·'}</span></div>`).join('');
   document.querySelectorAll('#list div').forEach(d => d.onclick = () => openFixture(d.dataset.n));
 }
 async function openFixture(n) {
@@ -156,7 +158,7 @@ async function save() {
   if (!current) return;
   const r = await (await fetch('/api/entry/' + encodeURIComponent(current), {method:'PUT', body: JSON.stringify(collect())})).json();
   entry = r.entry; entry.windows = entry.windows || []; dirty = false; setMsg('saved');
-  const fx = fixtures.find(x => x.name === current); if (fx) { fx.windows = entry.windows.length; fx.reviewed = !!entry.reviewed; }
+  const fx = fixtures.find(x => x.name === current); if (fx) { fx.windows = entry.windows.length; fx.reviewed = !!entry.reviewed; fx.tracking = entry.tracking || null; }
   renderList(); renderWins(); draw();
 }
 async function check() {
