@@ -18,16 +18,21 @@ public struct HeadlineProvenance: Equatable, Sendable {
     /// The span in days the headline claims; nil under the floor, where there
     /// is no headline and no window to name.
     public let spanDays: Int?
+    /// The headline's own honest label ("last 5 months", "first estimate · 2
+    /// fill cycles") - the span as the app already names it; nil under the floor.
+    public let label: Headline.Label?
     /// True when no segment has closed: the car has fills but no average, and
     /// the line says "not enough data yet" with the count it does have -
     /// never a computed number.
     public let underFloor: Bool
 
-    public init(fillCount: Int, fullTankCount: Int, spanDays: Int?, underFloor: Bool) {
+    public init(fillCount: Int, fullTankCount: Int, spanDays: Int?, underFloor: Bool,
+                label: Headline.Label? = nil) {
         self.fillCount = fillCount
         self.fullTankCount = fullTankCount
         self.spanDays = spanDays
         self.underFloor = underFloor
+        self.label = label
     }
 
     /// Derives the line for a headline over `countingFills` (the S2-counted
@@ -44,6 +49,6 @@ public struct HeadlineProvenance: Equatable, Sendable {
         let inSpan = countingFills.filter { $0.date >= start && $0.date <= asOf }
         return HeadlineProvenance(fillCount: inSpan.count,
                                   fullTankCount: inSpan.filter(\.isFull).count,
-                                  spanDays: headline.spanDays, underFloor: false)
+                                  spanDays: headline.spanDays, underFloor: false, label: headline.label)
     }
 }

@@ -187,7 +187,8 @@ struct HomeGuestLayout<LogContent: View>: View {
 
     private func headlineValue(_ stats: HomeStats) -> String {
         guard let headline = stats.headline else { return "" }
-        return ManualFillUpFormat.decimal(headline.value, fractionDigits: 1)
+        return ManualFillUpFormat.decimal(
+            ConsumptionDisplay.value(per100: headline.value, unit: stats.vehicle.headlineUnit), fractionDigits: 1)
     }
 
     private func updatedOrAdded(_ stats: HomeStats) -> String {

@@ -470,8 +470,10 @@ struct HomeRecentEntries: View {
                 .accessibilityIdentifier("logEntryOdometer")
         case .consumption(let per100):
             // RV.142: the segment this fill closes, the engine's own per100
-            // figure - the view formats it and never recomputes it (hard rule 2).
-            Text("\(ManualFillUpFormat.decimal(per100, fractionDigits: 1)) \(consumptionUnitLabel)")
+            // figure - the view converts it to the car's unit (RV.296) and
+            // never recomputes it (hard rule 2).
+            let figure = ConsumptionDisplay.value(per100: per100, unit: vehicle.headlineUnit)
+            Text("\(ManualFillUpFormat.decimal(figure, fractionDigits: 1)) \(consumptionUnitLabel)")
                 .accessibilityIdentifier("logEntryConsumption")
         case .attachment:
             Image(systemName: "paperclip")

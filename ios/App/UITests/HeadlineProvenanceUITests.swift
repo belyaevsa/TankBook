@@ -25,12 +25,12 @@ final class HeadlineProvenanceUITests: XCTestCase {
         let app = launch(["-seedHomeFullHistory"])
         let line = app.staticTexts["homeHeadlineProvenance"]
         XCTAssertTrue(line.waitForExistence(timeout: 10), "the headline carries its provenance line")
-        XCTAssertEqual(line.label, "5 fills · last 90 days · 5 full tanks")
+        XCTAssertEqual(line.label, "last 3 months · 5 fills · 5 full tanks")
 
         app.buttons["tabbar.trends"].tap()
         let tile = app.descendants(matching: .any)["trendsConsumptionTile"]
         XCTAssertTrue(tile.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["5 fills · last 90 days · 5 full tanks"].waitForExistence(timeout: 5),
+        XCTAssertTrue(app.staticTexts["last 3 months · 5 fills · 5 full tanks"].waitForExistence(timeout: 5),
                       "Trends reads the same line off the same derivation")
     }
 
@@ -38,7 +38,7 @@ final class HeadlineProvenanceUITests: XCTestCase {
         let app = launch(["-seedHomeFullHistory"], russian: true)
         let line = app.staticTexts["homeHeadlineProvenance"]
         XCTAssertTrue(line.waitForExistence(timeout: 10))
-        XCTAssertEqual(line.label, "5 заправок · за последние 90 дней · 5 с полным баком")
+        XCTAssertEqual(line.label, "за 3 месяца · 5 заправок · 5 с полным баком")
     }
 
     func testUnderTheFloorTheLineSaysNotEnoughDataWithTheCount() {

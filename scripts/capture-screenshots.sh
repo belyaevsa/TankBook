@@ -315,6 +315,12 @@ capture P1.10-trends-first-estimate en -seedHomeFirstEstimate -selectTrendsTab
 # where the tile's eyebrow and caption run longest beside the arrow.
 capture PJ.30-trends-hero-arrow     en -seedHomeTwoWindows -selectTrendsTab
 capture PJ.30-trends-hero-arrow-ru  ru -seedHomeTwoWindows -selectTrendsTab
+# RV.296: the miles car reads MPG - the hero (44.8 MPG for 5.25 L/100km) and
+# the Trends tile with its arrow following the displayed figure.
+capture RV.296-home-mpg           en -seedSettingsSignedIn -seedHomeFullHistory -seedHomeMiles
+capture RV.296-home-mpg-ru        ru -seedSettingsSignedIn -seedHomeFullHistory -seedHomeMiles
+capture RV.296-trends-mpg-arrow   en -seedHomeTwoWindows -seedHomeMiles -selectTrendsTab
+capture RV.296-trends-mpg-arrow-ru ru -seedHomeTwoWindows -seedHomeMiles -selectTrendsTab
 # PJ.31: price by brand (J8) on the full-history seed - Shell and Neste, four
 # fills each, the sentence naming the gap. RU is where "обходится вам на 1%
 # дороже, чем" runs longest.

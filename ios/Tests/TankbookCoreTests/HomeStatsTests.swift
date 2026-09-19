@@ -302,7 +302,8 @@ struct HeadlineProvenanceTests {
         let stats = HomeStats(vehicle: Self.vehicle(), entries: fills, asOf: Self.asOf)
         let provenance = stats.provenance
         #expect(stats.headline != nil)
-        #expect(provenance == HeadlineProvenance(fillCount: 6, fullTankCount: 4, spanDays: 90, underFloor: false))
+        #expect(provenance == HeadlineProvenance(fillCount: 6, fullTankCount: 4, spanDays: 90, underFloor: false,
+                                                 label: .window(months: 3)))
 
         fills.append(Self.fill(daysAgo: 1, odometer: 104_000, litres: 15, isFull: false))
         let moved = HomeStats(vehicle: Self.vehicle(), entries: fills, asOf: Self.asOf).provenance
@@ -334,6 +335,7 @@ struct HeadlineProvenanceTests {
         let stats = HomeStats(vehicle: Self.vehicle(), entries: fills, asOf: Self.asOf)
         #expect(stats.headline?.windowExtended == true)
         #expect(stats.provenance?.spanDays == 150)
+        #expect(stats.provenance?.label == .window(months: 5), "the honest label the line prints names the real span")
         #expect(stats.provenance?.fillCount == 3, "the opening fill 200 days out is outside the claimed span")
     }
 }

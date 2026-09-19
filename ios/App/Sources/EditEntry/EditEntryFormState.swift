@@ -235,8 +235,12 @@ struct EditEntryNonFillForm: Equatable {
 enum EditConsumptionDelta {
     static func message(before: Headline?, after: Headline?,
                         unit: ConsumptionUnit) -> String? {
-        guard let beforeValue = ConsumptionDelta.displayedValue(before),
-              let afterValue = ConsumptionDelta.displayedValue(after),
+        // RV.296: both figures in the car's own unit before the display-precision
+        // comparison, so an MPG car sees its MPG move and a move too small to
+        // show in MPG shows no toast.
+        let headlineUnit = HeadlineUnit.consumption(unit)
+        guard let beforeValue = ConsumptionDelta.displayedValue(before, in: headlineUnit),
+              let afterValue = ConsumptionDelta.displayedValue(after, in: headlineUnit),
               beforeValue != afterValue else { return nil }
         let format = L10n.localize("Consumption updated: %1$@ → %2$@ %3$@")
         return String(format: format,

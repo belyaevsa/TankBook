@@ -144,16 +144,21 @@ struct TrendsView: View {
         return LazyVGrid(columns: Self.twoColumns, spacing: 10) {
             if let headline = stats.home.headline {
                 StatTile(title: L10n.localize("Consumption"),
-                         value: ManualFillUpFormat.decimal(headline.value, fractionDigits: 1),
+                         value: ManualFillUpFormat.decimal(
+                            ConsumptionDisplay.value(per100: headline.value, unit: stats.vehicle.headlineUnit),
+                            fractionDigits: 1),
                          identifier: "trendsConsumptionTile",
                          unit: TrendsFormat.consumptionUnit(stats.vehicle.headlineUnit),
-                         caption: stats.home.provenance.map(L10n.headlineProvenance)
+                         caption: stats.home.provenance.map { L10n.headlineProvenance($0) }
                              ?? L10n.honestSpanLabel(headline.label),
-                         series: stats.consumptionSeries.map { .some($0.value) },
+                         series: stats.consumptionSeries.map {
+                             .some(ConsumptionDisplay.value(per100: $0.value, unit: stats.vehicle.headlineUnit))
+                         },
                          seriesColor: Self.consumptionColor(stats.vehicle),
                          trend: stats.consumptionTrend,
-                         delta: TrendsFormat.headlineDelta(stats.headlineChange),
-                         deltaSpoken: TrendsFormat.headlineDeltaSpoken(stats.headlineChange))
+                         delta: TrendsFormat.headlineDelta(stats.headlineChange, unit: stats.vehicle.headlineUnit),
+                         deltaSpoken: TrendsFormat.headlineDeltaSpoken(stats.headlineChange,
+                                                                       unit: stats.vehicle.headlineUnit))
             }
             if let costPerKm = stats.home.costPerKm, let spanMonths = stats.costPerKmSpanMonths {
                 StatTile(title: ManualFillUpUnitCopy.costPerDistanceLabel(for: stats.vehicle.units.distance),

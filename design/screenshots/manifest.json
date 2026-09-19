@@ -1576,12 +1576,12 @@
       "runtime": "iOS.26.5"
     },
     "RV.118-home-provenance": {
-      "commit": "881733a5",
+      "commit": "1135cbed",
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },
     "RV.118-home-provenance-ru": {
-      "commit": "881733a5",
+      "commit": "1135cbed",
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },
@@ -2622,6 +2622,26 @@
     },
     "RV.293-sign-in-ru": {
       "commit": "bbacba1f",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.296-home-mpg": {
+      "commit": "1135cbed",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.296-home-mpg-ru": {
+      "commit": "1135cbed",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.296-trends-mpg-arrow": {
+      "commit": "1135cbed",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.296-trends-mpg-arrow-ru": {
+      "commit": "1135cbed",
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },

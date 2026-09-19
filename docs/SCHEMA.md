@@ -732,9 +732,21 @@ HEADLINE   headline(segments, window = 90 days, floor = 3):
              if count < floor: take the `floor` most recent segments overall (window extends)
              value = Σ liters / Σ km × 100        // distance-weighted, not mean of per100s
              label = honest span: "last 3 months" / "last 5 months" / "first estimate · N fill cycles"
+DISPLAY    (RV.296, 2026-09-19) the engine yields per100 and nothing else; every renderer reads the
+           car's figure through ConsumptionDisplay.value(per100:unit:) - L/100 and kWh/100 as is,
+           MPG (US) = 235.215 / per100, MPG (UK) = 282.481 / per100, km/L = 100 / per100. MPG and
+           km/L are INVERTED (higher is better): a trend's meaning ("improving") is unit-free, the
+           glyph follows the displayed figure (an improving MPG car shows ▲), and the percent beside
+           it is the displayed figure's own (a 20% drop in L/100 is a 25% rise in MPG -
+           HeadlineChange.displayedPercent(in:)). The edit toast compares at display precision in
+           the car's unit. Sites: the Home hero and best-this-year, the guest hero, the car switcher
+           vitals, the Trends tile and its sparkline, the Log row's per-fill figure, the month
+           divider, the after-save and edit toasts, the anomaly card, the F9a consumption quote.
 PROVENANCE (RV.118, 2026-09-19) what the headline is MADE OF, beside it on Home and Trends:
              fills inside the headline's own spanDays (the same window, never a second one),
-             and how many of them were full tanks - "6 fills · last 90 days · 4 full tanks".
+             and how many of them were full tanks, led by the headline's honest label so an
+             extended window still names its real span - "last 3 months · 6 fills · 4 full tanks",
+             "last 5 months · 3 fills · 3 full tanks" (RV.296's walk: the label is the feature).
              No closed segment: "Not enough data yet · N fills · M full tanks" with the counts
              the car has, never a computed average. No fills: no line. EV cars: no line (the
              segments are charge sessions, not fills). HeadlineProvenance.derive, read off the

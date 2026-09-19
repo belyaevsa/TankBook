@@ -40,7 +40,8 @@ enum HomeMonthGlanceFormat {
             parts.append("\(OdometerFormat.grouped(distance)) \(L10n.distanceUnit(vehicle.units.distance))")
         }
         if let per100 = glance.per100 {
-            parts.append("\(ManualFillUpFormat.decimal(per100, fractionDigits: 1)) "
+            let figure = ConsumptionDisplay.value(per100: per100, unit: vehicle.headlineUnit)
+            parts.append("\(ManualFillUpFormat.decimal(figure, fractionDigits: 1)) "
                          + L10n.consumptionUnit(vehicle.units.consumption))
         }
         if let cost = glance.costPerKm {

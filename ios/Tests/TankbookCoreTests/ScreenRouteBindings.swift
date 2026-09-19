@@ -45,7 +45,8 @@ extension ScreenRouteScanner {
                 note: "Presented by the fill-up form's tank row and by Edit entry."),
         Binding(screen: "Station brand picker",
                 witnesses: ["StationBrandPickerSheet("],
-                note: "Presented by the station row's Change brand entry (Confirm, Edit entry) and by Station settings' Brand card (RV.115 / RV.180)."),
+                note: "Presented by the station row's Change brand entry (Confirm, Edit entry) "
+                    + "and by Station settings' Brand card (RV.115 / RV.180)."),
         Binding(screen: "Service & expenses",
                 witnesses: ["return .serviceEntry"],
                 note: "Capture's Service mode and Home's Type it menu resolve the form to this sheet."),

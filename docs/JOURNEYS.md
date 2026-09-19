@@ -564,9 +564,9 @@ deleted.
 **Journey:** open Trends → hero consumption metric with trend arrow *(PJ.30, 2026-09-18: the arrow is the current 90-day window against the one before it - "▼20%" - and is absent, never invented, when either window does not stand on its own segments)* → monthly spend bars → price-per-liter line per station brand ("Shell costs you 4% more than Neste") *(PJ.31, 2026-09-18: a card under the tiles, one line per brand over the last year, the sentence from the engine's means - absent below two brands with two fills each; since `RV.115` (2026-09-18) "brand" is the station's matched brand, falling back to its name)*. Feeling sought: *control*, not accounting homework. → Every chart answers a sentence-shaped question; no chart junk. Exit within 60 seconds, satisfied.
 
 **A derived figure says what it is made of (RV.118, 2026-09-19).** Under the headline on Home and
-as the Trends consumption tile's caption: "6 fills · last 90 days · 4 full tanks" - the span is the
-engine's own `spanDays` (an extended window names its real span), the fills and full tanks are
-counted inside it. A car with fills but no closed segment reads "Not enough data yet · 2 fills ·
+as the Trends consumption tile's caption: "last 3 months · 6 fills · 4 full tanks" - the span is the
+headline's own honest label (an extended window still reads "last 5 months"), the fills and full
+tanks are counted inside its `spanDays`. A car with fills but no closed segment reads "Not enough data yet · 2 fills ·
 1 full tank" - the count it has, never an average. It is the difference between a number and a
 claim: a low figure over three fills reads as what it is.
 

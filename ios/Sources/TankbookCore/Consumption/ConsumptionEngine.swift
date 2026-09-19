@@ -402,8 +402,27 @@ public enum ConsumptionEngine {
 /// lower-is-better metric.
 public struct HeadlineChange: Equatable, Sendable {
     public let direction: TrendDirection
-    /// The unsigned size of the change, in percent of the previous window's value.
+    /// The unsigned size of the change, in percent of the previous window's
+    /// per100 value. A renderer in an inverted unit (MPG, km/L) reads
+    /// `displayedPercent(in:)` instead - the display figure's own percent.
     public let percent: Double
+    /// The two windows' per100 values, so a display unit can restate the size.
+    public let previousPer100: Double
+    public let currentPer100: Double
+
+    public init(direction: TrendDirection, percent: Double, previousPer100: Double, currentPer100: Double) {
+        self.direction = direction
+        self.percent = percent
+        self.previousPer100 = previousPer100
+        self.currentPer100 = currentPer100
+    }
+
+    /// The percent the DISPLAYED figure moved by (RV.296): per100's for L/100
+    /// and kWh/100, the inverse's for MPG and km/L.
+    public func displayedPercent(in unit: HeadlineUnit) -> Double {
+        ConsumptionDisplay.displayedPercentChange(fromPer100: previousPer100, toPer100: currentPer100, unit: unit)
+            ?? percent
+    }
 }
 
 extension ConsumptionEngine {
@@ -427,6 +446,7 @@ extension ConsumptionEngine {
         guard let direction = TrendDirection.lowerIsBetter([previous.value, current.value]),
               previous.value > 0 else { return nil }
         let percent = abs(current.value - previous.value) / previous.value * 100
-        return HeadlineChange(direction: direction, percent: percent)
+        return HeadlineChange(direction: direction, percent: percent,
+                              previousPer100: previous.value, currentPer100: current.value)
     }
 }

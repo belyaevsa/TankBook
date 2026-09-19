@@ -14,7 +14,8 @@ enum AfterSaveInsightMessage {
     static func text(for insight: AfterSaveInsight, unit headlineUnit: HeadlineUnit) -> String {
         switch insight {
         case .segmentClosed(let per100, let isBestThisYear):
-            let figure = ManualFillUpFormat.decimal(per100, fractionDigits: 1)
+            let figure = ManualFillUpFormat.decimal(
+                ConsumptionDisplay.value(per100: per100, unit: headlineUnit), fractionDigits: 1)
             let unit = L10n.headlineUnit(headlineUnit)
             let format = L10n.localize(isBestThisYear ? "%1$@ %2$@ – best this year"
                                                       : "%1$@ %2$@ – this tank")

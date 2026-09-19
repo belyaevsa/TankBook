@@ -19,13 +19,18 @@ public enum TrendDirection: Equatable, Sendable {
     /// `nil` with fewer than two points, a flat series, or a negligible
     /// (under 1%) change - a difference that small is rounding noise, not a
     /// direction.
+    /// The relative move below which a change is noise, not a direction - the
+    /// one floor every arrow and caption shares (RV.297: a price caption
+    /// with no floor printed "▲0.0%" for an unchanged price).
+    public static let noiseThreshold = 0.01
+
     public static func lowerIsBetter(_ series: [Double]) -> TrendDirection? {
         guard series.count >= 2 else { return nil }
         let last = series[series.count - 1]
         let previous = series[series.count - 2]
         let delta = last - previous
         let scale = max(abs(previous), abs(last))
-        guard scale > 0, abs(delta) / scale >= 0.01 else { return nil }
+        guard scale > 0, abs(delta) / scale >= noiseThreshold else { return nil }
         return delta < 0 ? .improving : .worsening
     }
 }

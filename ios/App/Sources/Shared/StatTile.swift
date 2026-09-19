@@ -95,10 +95,13 @@ struct StatTile: View {
                     .frame(height: 30)
             }
             if let caption {
+                // Two lines: the provenance caption (RV.118) does not fit one
+                // tile width, and a truncated "4 ful…" is a claim cut short.
                 Text(caption)
                     .font(.caption2)
                     .foregroundStyle(Theme.Palette.inkSoft)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         // Fill the grid cell in BOTH axes: a `LazyVGrid` row is as tall as its

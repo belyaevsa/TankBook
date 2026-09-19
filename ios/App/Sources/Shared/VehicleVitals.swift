@@ -13,7 +13,8 @@ enum VehicleVitals {
             parts.append("\(OdometerFormat.grouped(odometer)) \(L10n.distanceUnit(stats.vehicle.units.distance))")
         }
         if let headline = stats.headline {
-            let value = ManualFillUpFormat.decimal(headline.value, fractionDigits: 1)
+            let value = ManualFillUpFormat.decimal(
+                ConsumptionDisplay.value(per100: headline.value, unit: stats.vehicle.headlineUnit), fractionDigits: 1)
             let unit = L10n.consumptionUnitShort(stats.vehicle.headlineUnit)
             parts.append("\(value) \(unit)")
         }

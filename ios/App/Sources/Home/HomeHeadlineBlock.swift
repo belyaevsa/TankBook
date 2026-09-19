@@ -21,7 +21,9 @@ struct HomeHeadlineBlock: View {
                     .foregroundStyle(Theme.Palette.inkSoft)
                     .accessibilityIdentifier("homeHeadlineEyebrow")
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    Text(ManualFillUpFormat.decimal(headline.value, fractionDigits: 1))
+                    Text(ManualFillUpFormat.decimal(
+                        ConsumptionDisplay.value(per100: headline.value, unit: vehicle.headlineUnit),
+                        fractionDigits: 1))
                         .font(.custom(AppFonts.dinCondensedBold, size: 68))
                         .foregroundStyle(Theme.Palette.ink)
                         .accessibilityIdentifier("homeHeadlineValue")
@@ -49,7 +51,9 @@ struct HomeHeadlineBlock: View {
     @ViewBuilder
     private var provenanceLine: some View {
         if let provenance = stats.provenance {
-            Text(L10n.headlineProvenance(provenance))
+            // The first-estimate label sits on the line above; the span rides
+            // the window form only.
+            Text(L10n.headlineProvenance(provenance, withSpan: !stats.isFirstEstimate))
                 .font(.caption2)
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
@@ -62,7 +66,8 @@ struct HomeHeadlineBlock: View {
     /// as "L one hundred k m") plus the derived trend (docs/DESIGN.md ->
     /// Accessibility floor). A nil trend is omitted, never "steady".
     private func headlineValueVoiceOverLabel(_ headline: Headline) -> String {
-        let value = ManualFillUpFormat.decimal(headline.value, fractionDigits: 1)
+        let value = ManualFillUpFormat.decimal(
+            ConsumptionDisplay.value(per100: headline.value, unit: vehicle.headlineUnit), fractionDigits: 1)
         let unit = L10n.spokenHeadlineUnit(vehicle.headlineUnit)
         var parts = ["\(value) \(unit)"]
         if let trend = stats.headlineTrend { parts.append(L10n.trend(trend)) }
@@ -85,7 +90,8 @@ struct HomeHeadlineBlock: View {
                     .font(.caption2.weight(.bold))
                 Text("Best this year")
                     .font(.caption.weight(.semibold))
-                Text(ManualFillUpFormat.decimal(best, fractionDigits: 1))
+                Text(ManualFillUpFormat.decimal(
+                    ConsumptionDisplay.value(per100: best, unit: vehicle.headlineUnit), fractionDigits: 1))
                     .font(.caption.weight(.bold))
                     .foregroundStyle(Theme.Palette.ink)
             }

@@ -289,6 +289,7 @@ struct HomeView: View {
             let cost = anomalyCost(anomaly)
             AnomalyInsightCard(anomaly: anomaly,
                                unitLabel: L10n.headlineUnit(stats.vehicle.headlineUnit),
+                               headlineUnit: stats.vehicle.headlineUnit,
                                monthlyCostAmount: cost?.amount,
                                monthlyCostCurrency: cost?.currency,
                                onAct: { actOnAnomaly(anomaly) },

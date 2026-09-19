@@ -78,7 +78,7 @@ struct ImportConsumptionDetail: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.warn)
-                Text(OdometerConflict.consumptionQuote(per100: per100,
+                Text(OdometerConflict.consumptionQuote(per100: ConsumptionDisplay.value(per100: per100, unit: unit),
                                                        unit: L10n.headlineUnit(unit),
                                                        volumeUnit: volumeUnit))
                     .font(.caption)
