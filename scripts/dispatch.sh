@@ -3,13 +3,14 @@
 # preamble, launch detached, health-check by log bytes at 60 s, retry ONCE on a dead
 # run (about one dispatch in four comes up with no network and writes nothing).
 #
-#   scripts/dispatch.sh <task-id> [model]      # model defaults to deepseek/deepseek-v4-pro
+#   scripts/dispatch.sh <task-id> [model] [variant]   # model defaults to deepseek/deepseek-v4-pro;
+#   variant is the provider's reasoning effort (high, max, ...) and is omitted when empty
 #   (flash was the default until 2026-09-14, when its endpoint stopped answering at the
 #   banner while pro answered in seconds - product owner; pass flash explicitly to try it)
 #
 # Prints "PID=<pid>" on success so the orchestrator can arm a monitor on it.
 set -u
-id="${1:?task id}"; model="${2:-deepseek/deepseek-v4-pro}"
+id="${1:?task id}"; model="${2:-deepseek/deepseek-v4-pro}"; variant="${3:-}"
 root="$(cd "$(dirname "$0")/.." && pwd)"
 brief="$root/agents/briefs/$id.md"; pre="$root/agents/briefs/PREAMBLE.md"
 [ -f "$brief" ] || { echo "no brief at $brief" >&2; exit 2; }
@@ -17,8 +18,8 @@ mkdir -p /tmp/agentlogs
 launch() {
   local log="/tmp/agentlogs/$id.log"
   [ -f "$log" ] && mv "$log" "$log.$(date +%H%M%S).prev"
-  nohup opencode run --auto --thinking -m "$model" --title "$id" \
-    "$(cat "$brief"; printf '\n\n---\n\n'; cat "$pre")" > "$log" 2>&1 < /dev/null &
+  nohup opencode run --auto --thinking -m "$model" ${variant:+--variant "$variant"} --title "$id" \
+    "$(cat "$brief"; printf '\n\n---\n\n'; sed "s|__REPO_ROOT__|$root|g" "$pre")" > "$log" 2>&1 < /dev/null &
   echo $!
 }
 for attempt in 1 2; do
