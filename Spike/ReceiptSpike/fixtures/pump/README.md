@@ -1114,3 +1114,56 @@ larger version, quads unchanged - and one a tighter crop of the same photo, not 
 | 160 | 00260,86 / 00004,28 / 061,79 | zero-padded all three rows, **does not close** (4.28 x 61.79 = 264.46): every cell is legible, so this is a loyalty discount on the total or a display artefact, like `pump-031`; only the price is asserted, the two other cells are blank |
 
 12 windows (622). Pump cells asserted: 437 → 447.
+
+## Added 2026-09-19 (fifteen third-party stills: the Veeder-Root head in depth, and Australia)
+
+`pump-161` – `pump-175`, **third-party** (pasted by the product owner). Eleven are the Gilbarco
+Veeder-Root keypad head in every condition the web offers; three pasted copies of `pump-153` /
+`pump-154` were declined by dhash.
+
+| id | head / place | shows | note |
+|---|---|---|---|
+| 161 | Veeder-Root, RU | (1619,83) / 24,38 / 66,44 | a TV-news still at 800 px with a channel bug; the blurred total reads 1619,83 where 24.38 x 66.44 = 1619.81 - total unasserted (`partial`) |
+| 162 | Veeder-Root, RU | 666,36 / 14,19 / 46,96 | backlit night panel, four-cell ladder, a lens flare on the price |
+| 163 | Wayne keypad, RU | 1997.93 / 41.00 / 48.73 | a Wayne with `СУММА` / `ЛИТРЫ` on amber LCDs and a keypad at the right, price in the 92 cell |
+| 164 | Wayne keypad, RU | 2894.14 / 46.74 / 61.92 | same head; the total under a reflection (`partial`), a customer's torso below |
+| 165 | Veeder-Root, RU | 3602,16 / 78,41 / 45,94 | 680 px, four-cell ladder, price coincides with the last |
+| 166 | Veeder-Root, RU | 1014,25 / 15,12 / 67,08 | angled 780 px still with a media watermark |
+| 167 | Veeder-Root, Shell RU | 2249,27 / 0042,77 / 52,59 | zero-padded liters only |
+| 168 | Veeder-Root, Lukoil RU | 01500,52 / 00022,51 / 066,66 | zero-padded all rows and ladder, 1000 px, a 2026 notice below |
+| 169 | Veeder-Root, RU | (91225,73) / 00130,72 / 039,90 | a video still; the total shows 91225,73 for 130.72 x 39.90 = 5215.73 - not a misread of a digit but a display artefact or a leading digit from an earlier state; total unasserted (`partial`) |
+| 170 | Veeder-Root, Teboil RU | 00560,89 / 00011,00 / 050,99 | zero-padded; a preset of exactly 11.00 L |
+| 171 | Veeder-Root, RU | 2843,52 / 39,14 / 72,65 | night, two lit ladder cells |
+| 172 | Veeder-Root, Lukoil RU | 3478.82 / 59.99 / 57.99 | **point decimals** on a Veeder-Root; 576 px; two ladder cells legible |
+| 173 | Veeder-Root, Australia (AUD) | 406.75 / 158.95 / 255.9 | **cents per litre** (CSV asserts 2.559); tilted ~20 degrees - the quads are skewed parallelograms, the first non-rectangular annotation; three ladder cells, one cut by the top edge |
+| 174 | Wayne keypad, Lukoil RU | 2834.56 / 68.80 / 41.20 | 680 px; ЭКТО-ДТ |
+| 175 | Veeder-Root, RU | 08038,17 / 00042,53 / 189,00 | zero-padded; 189 per litre |
+
+51 windows (686). Pump cells asserted: 447 → 488.
+
+## Added 2026-09-19 (fourteen third-party stills: Tatsuno, Wayne Pignone, Belarus, Bulgaria, Australia)
+
+`pump-176` – `pump-189`, **third-party** (pasted by the product owner).
+
+| id | head / place | shows | note |
+|---|---|---|---|
+| 176 | Veeder-Root, RU | 5388,93 / 61,21 / 88,04 | diesel at 88; sunlit |
+| 177 | Veeder-Root, Bulgaria (BGN) | 9,99 / 6,89 / 1,45 | `сума` / `литри` / `цена/литър`; 640 px, display ~7 % of the frame |
+| 178 | Veeder-Root, RU | (3539,5) / 50,00 / – | a 670 px forecourt shot, the display 8 % of the frame: total blurred to one decimal (`partial`, unasserted), price cell unreadable (empty text) |
+| 179 | Veeder-Root, Lukoil RU, winter | 3533,58 / 0065,68 / 53,80 | four-cell ladder, the price coincides with the first; angled, a car below |
+| 180 | Veeder-Root, Australia (AUD) | 44.82 / 20.76 / 215.9 | cents per litre (CSV 2.159); a cinema ad above the head, `7` pump number beside the price |
+| 181 | Veeder-Root, RU | 1042,00 / 20,00 / 52,10 | a 20.00 L preset, 577 px square, angled |
+| 182 | **Wayne Pignone**, Belarus (BYN) | 78.54 / 47.60 / 1.65 | `СУММА` / `ЛИТРЫ` / `ЦЕНА ЗА ЛИТР`, a news-site watermark |
+| 183 | Veeder-Root, RU | (0990,88) / (0026,27) / (36,95) | photographed **through a car window** at ~8 % of the frame; all three cells `partial` and unasserted (26.27 x 36.95 = 970.68 does not close either - a misread somewhere) |
+| 184 | Veeder-Root, RU | 2354,41 / 37,13 / 63,41 | 1280x576, three-cell ladder, nozzles at the left |
+| 185 | Veeder-Root, Australia (AUD) | 101.00 / 71.53 / 141.2 | cents per litre (CSV 1.412); a four-grade ladder with two near-identical cells (141.2 / 141.1) |
+| 186 | **Tatsuno**, RU | 887.00 / 22.01 / 40.30 | **amber LED** on black, `СУММА` / `ОБЪЕМ` / `ЦЕНА/Л` with `Руб` / `Л` unit tiles at the left - a head type new to the corpus; night |
+| 187 | Tatsuno, RU | 876.00 / 20.00 / 43.80 | same head, further away; 20.00 L preset |
+| 188 | Wayne Pignone, RU | 941.60 / 20.00 / 47.08 | `СУММА` / `ЛИТРЫ`, 95 / 92 board, 20.00 L preset |
+| 189 | Veeder-Root, RU | 858.20 / 20.00 / 42.91 | point decimals; 20.00 L preset; ladder unlit |
+
+53 windows (739). Pump cells asserted: 490 → 527.
+
+**Row assignment on the ladder heads.** With 30 Veeder-Root panels in the corpus the geometry
+pass reads **707/739 (0.957)** - 24 of its 32 misses are the price ladder taken for the board.
+`PU.30` is the rule that fixes it; the floor sits at 0.95 until then.

@@ -7,7 +7,7 @@ paper before any station extractor existed, cross-checked against the OCR text (
 INPUT, never its output). Where the two cannot agree the cell is empty and the reason is here - a
 blank for any other reason is a miss hiding, which is the RV.161 trap.
 
-Asserted: 63 of 77 receipts. Blank, with the reason:
+Asserted: 64 of 78 receipts. Blank, with the reason:
 
 | fixture | why the cell is blank |
 |---|---|

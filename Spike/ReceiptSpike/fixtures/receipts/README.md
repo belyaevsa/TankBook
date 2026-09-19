@@ -1046,3 +1046,8 @@ entity - a miss here is the extractor's to earn. Receipt cells: 355 → 359.
 five cells; the paper prints the unit price with a **three-decimal Euro and a `/l` suffix**, and
 the labels (`Volume` / `Prijs` / `TOTAAL`) sit one line ABOVE their values - a layout the parser
 has not seen. Station `total|totalenergies`. Receipt cells: 359 → 364.
+
+`receipt-078` (same day): АЗС ИП Киселев Д.К., ул. Судостроительная - an independent station,
+АИ-92-К5, `10 X 59.00 = 590.00`, cash, dated 2025-09-09; **two receipts in one photo** (the
+right one is an unrelated ATOL online-till receipt for 496.00), the paper flat on a tiled floor.
+Third-party. Station `kiselev`. Receipt cells: 364 → 369.

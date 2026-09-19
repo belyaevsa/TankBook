@@ -1,11 +1,11 @@
 {
   "receipts": {
     "hits": 286,
-    "total": 364
+    "total": 369
   },
   "pump": {
     "hits": 53,
-    "total": 447
+    "total": 527
   },
   "fiscal": {
     "hits": 5,
@@ -34,5 +34,7 @@
   "_note_2026_09_19e": "Ten more third-party stills pump-131..140 - the corpus's first heads outside EE/RU/KZ: Lithuania (EUR), Iceland (ISK, a 5000 total with no decimals), Turkmenistan (TMT, a display too small to read its total), Norway (NOK), the UK (GBP, price in pence 182.8), France (EUR), plus a far forecourt shot with the display at 2% of the frame, a total cut by the top edge, a monochrome Talvine display with no price, and one LT photo whose 1.849 x 33.69 does not close to the 62.30 shown (price unasserted, csvDisagrees). Totals only (+27), hits untouched (macOS 27).",
   "_note_2026_09_19f": "Seven more third-party stills pump-141..147 (Sweden SEK with the price cell cut by the left edge, a RU display whose 1600.11 does not close with 48.49 x 33.00 - total unasserted, a RU 3921.62, the pump-117 fill at a wider framing, a Tokheim UK stock photo with comma pence 162,9, a Gazpromneft 1100.26, an EE 66.17) and the corpus's first third-party receipt receipt-076 (Rosneft RU, 2013, no unit price printed: 4 cells). Two of the owner's ten were copies (pump-118 at dhash distance 1; the stock photo's thumbnail) and were not added. Totals only (pump +20, receipts +4), hits untouched (macOS 27).",
   "_note_2026_09_19g": "Nine more third-party stills pump-148..156 - four Gilbarco Veeder-Root heads with a keypad and a price ladder at the left (RU, a head type the corpus lacked), a Finnish Wayne with EUROA/LITRAA and four grades under glare (total and liters partial, confirmed by 16.20 x 1.454), a zero-padded Circle K Gilbarco with a graphic overlay, three RU/EE Waynes - and receipt-077, a TotalEnergies Belgium diesel receipt (22.10 x 1.810 = 40.00, all five cells). Every arithmetic closes. Totals only (pump +27, receipts +5), hits untouched (macOS 27).",
-  "_note_2026_09_19h": "Four more Gilbarco Veeder-Root heads pump-157..160 (third-party): a ladder cut by the left edge, a wet panel showing 9900,0 for 146.84 x 67.42 = 9899.95 (csvDisagrees, the pump-003 display-rounding case), a 20.00 L preset, and a zero-padded 00260,86 / 00004,28 / 061,79 that does not close (4.28 x 61.79 = 264.46) - only the price asserted. pump-153's file replaced by the same photo at 1920 px (dhash distance 0); quads are normalised and unchanged. Totals only (+10), hits untouched (macOS 27)."
+  "_note_2026_09_19h": "Four more Gilbarco Veeder-Root heads pump-157..160 (third-party): a ladder cut by the left edge, a wet panel showing 9900,0 for 146.84 x 67.42 = 9899.95 (csvDisagrees, the pump-003 display-rounding case), a 20.00 L preset, and a zero-padded 00260,86 / 00004,28 / 061,79 that does not close (4.28 x 61.79 = 264.46) - only the price asserted. pump-153's file replaced by the same photo at 1920 px (dhash distance 0); quads are normalised and unchanged. Totals only (+10), hits untouched (macOS 27).",
+  "_note_2026_09_19i": "Fifteen third-party stills pump-161..175 (eleven Gilbarco Veeder-Root keypad heads incl. a TV still at 800 px, a backlit night panel, Shell/Lukoil/Teboil zero-padded rows, an 8038.17 total at 189.00/L, an Australian panel in cents per litre - AUD, tilted 20 degrees, skewed quads - and two Wayne keypad heads with СУММА/ЛИТРЫ), plus receipt-078 (an independent RU station, 10 x 59.00 = 590.00, two receipts in one photo). Two totals unasserted: pump-161 (blurry 1619,83 vs 24.38 x 66.44 = 1619.81) and pump-169 (91225,73 for 130.72 x 39.90 = 5215.73 - a display artefact or a leading digit from a previous state). Three pasted copies of pump-153/154 declined. Totals only (pump +43, receipts +5), hits untouched (macOS 27).",
+  "_note_2026_09_19j": "Fourteen third-party stills pump-176..189: two Tatsuno amber-LED panels (a head type new to the corpus), two Wayne Pignone (RU, and Belarus in BYN), two more Australian Veeder-Root panels in cents per litre, a Bulgarian one in BGN, six RU Veeder-Root incl. two far shots (a forecourt and one through a car window) whose cells are partial and unasserted. Totals only (+37), hits untouched (macOS 27)."
 }
