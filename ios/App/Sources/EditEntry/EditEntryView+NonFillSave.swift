@@ -15,6 +15,9 @@ struct HeldReceiptPhoto {
     let image: UIImage
     let ocrLines: [OCRLine]
     let extraction: FuelExtraction?
+    /// PU.29: the attach's classification - a pump display is marked on the
+    /// attachment by its pipeline name, whatever the entry's own provenance.
+    var isPumpDisplay: Bool = false
 }
 
 extension EditEntryView {
@@ -106,15 +109,21 @@ extension EditEntryView {
         var target = entry
         var outcome = ReceiptWriteOutcome.nothingToWrite
         if let heldPhoto {
-            let source = ConfirmPrefill(extraction: heldPhoto.extraction,
+            var source = ConfirmPrefill(extraction: heldPhoto.extraction,
                                         ocrLines: heldPhoto.ocrLines,
                                         sourceImage: heldPhoto.image)
+            if heldPhoto.isPumpDisplay { source.provenance = .pumpPhoto }
             // A typed entry that gains a photo stays `.manual` provenance (the
             // entry was typed, not scanned); the extraction record is the
             // attach's own OCR so the viewer's recognised page works (RV.48).
             let plan = ScannedSavePlan(
                 attachmentID: UUID.v7(), provenance: .manual,
-                extraction: heldPhoto.extraction.flatMap { ScannedSavePlanner.assignment(from: $0) })
+                extraction: heldPhoto.extraction.flatMap {
+                    ScannedSavePlanner.assignment(
+                        from: $0,
+                        pipeline: heldPhoto.isPumpDisplay
+                            ? ScannedSavePlanner.pumpReaderPipeline : ScannedSavePlanner.onDevicePipeline)
+                })
             outcome = attemptReceiptPhotoWrite(scanned: plan, source: source,
                                                repository: repository)
             target.attachments = entry.attachments + outcome.sharedIDs

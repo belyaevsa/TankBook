@@ -57,19 +57,25 @@ struct PumpPhotoCaptureTests {
                                             total: dec("4593.46"),
                                             currency: .rub, date: "17.08.2026")
 
-    @Test("off degrades to the manual form with nothing pre-filled")
-    func offProducesNoPrefill() {
-        #expect(PumpPhotoCapture.prefill(pumpPhotoEnabled: false, extraction: nil) == nil)
+    @Test("off still offers the reading, framed as alpha (decision 7)")
+    func offOffersTheReadingAsAlpha() {
+        let outcome = PumpPhotoCapture.outcome(pumpPhotoEnabled: false, extraction: extraction)
+        #expect(outcome.extraction == extraction)
+        #expect(outcome.alpha)
     }
 
-    @Test("off produces no prefill even when the parser resolved fields")
-    func offDiscardsTheExtraction() {
-        #expect(PumpPhotoCapture.prefill(pumpPhotoEnabled: false, extraction: extraction) == nil)
+    @Test("off with nothing read is the empty form, still alpha")
+    func offWithNothingReadIsEmpty() {
+        let outcome = PumpPhotoCapture.outcome(pumpPhotoEnabled: false, extraction: nil)
+        #expect(outcome.extraction == nil)
+        #expect(outcome.alpha)
     }
 
-    @Test("on pre-fills the extraction as a default input")
+    @Test("on pre-fills the extraction as an ordinary default input")
     func onPrefills() {
-        #expect(PumpPhotoCapture.prefill(pumpPhotoEnabled: true, extraction: extraction) == extraction)
+        let outcome = PumpPhotoCapture.outcome(pumpPhotoEnabled: true, extraction: extraction)
+        #expect(outcome.extraction == extraction)
+        #expect(!outcome.alpha)
     }
 
     @Test("on with no extraction still yields an empty form")

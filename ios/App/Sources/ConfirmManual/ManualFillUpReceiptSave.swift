@@ -70,7 +70,7 @@ extension ManualFillUpView {
         guard let vehicle else { return }
         Task {
             let prefill = await CapturePipeline.process(
-                image, source: .receipt,
+                image,
                 bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle.id))
             attachedPrefill = prefill
             guard let extraction = prefill.extraction else { return }
@@ -105,7 +105,8 @@ extension ManualFillUpView {
                 qrAnchor: nil,
                 declaredProvenance: .manual,
                 hasPhoto: attach.sourceImage != nil,
-                saved: saved)
+                saved: saved,
+                pipeline: Self.pipelineName(for: attach))
         }
         return ScannedSavePlanner.plan(
             extraction: prefill?.extraction,
@@ -113,7 +114,15 @@ extension ManualFillUpView {
             qrAnchor: prefill?.qrAnchor,
             declaredProvenance: prefill?.provenance ?? .manual,
             hasPhoto: prefill?.sourceImage != nil,
-            saved: saved)
+            saved: saved,
+            pipeline: prefill.map(Self.pipelineName(for:)) ?? ScannedSavePlanner.onDevicePipeline)
+    }
+
+    /// PU.29: a photo read as a pump display is marked as such on the
+    /// extraction record it leaves behind, on every path that writes one.
+    static func pipelineName(for prefill: ConfirmPrefill) -> String {
+        prefill.provenance == .pumpPhoto
+            ? ScannedSavePlanner.pumpReaderPipeline : ScannedSavePlanner.onDevicePipeline
     }
 
     /// The photo the save writes: the attached one on the typed path, else the
@@ -256,7 +265,12 @@ func writeReceiptPhoto(id: AttachmentID,
         kind: .photo, file: LocalFileRef(sha256: sha256, relativePath: relativePath),
         extractedTimestamp: timestamp, ocrText: ocrText, thumbnailBase64: thumbnail,
         // A parse that assigned nothing stores no container at all, never an
-        // empty one (RV.48).
-        extractionMeta: extraction?.assignmentOnly)
+        // empty one (RV.48). A pump display's reading is marked by its
+        // pipeline name so the attachment says what kind of photo it is.
+        extractionMeta: extraction?.assignmentOnly.map { meta in
+            source.provenance == .pumpPhoto
+                ? ExtractionMeta(fields: meta.fields, pipeline: ScannedSavePlanner.pumpReaderPipeline)
+                : meta
+        })
     try repository.upsertAttachment(attachment)
 }

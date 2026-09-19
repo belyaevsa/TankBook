@@ -96,6 +96,7 @@ struct EditEntryView: View {
     @State var attachImage: UIImage?
     @State private var attachOcrLines: [OCRLine] = []
     @State private var attachExtraction: FuelExtraction?
+    @State private var attachIsPumpDisplay = false
     @State var attachProcessing = false
 
     var currentEntry: (any Entry)? { fillUp ?? charge ?? service ?? expense }
@@ -393,7 +394,7 @@ struct EditEntryView: View {
             // earlier failed write (RV.208) - is not silently dropped.
             let held = attachImage.map {
                 HeldReceiptPhoto(image: $0, ocrLines: attachOcrLines,
-                                 extraction: attachExtraction)
+                                 extraction: attachExtraction, isPumpDisplay: attachIsPumpDisplay)
             }
             let saved = ScannedSaveValues(total: derived.total, volumeL: derived.volumeL,
                                           unitPrice: derived.unitPrice, currency: fillForm.currency,
@@ -422,7 +423,7 @@ struct EditEntryView: View {
             // rule 8, docs/ERRORS.md -> Confirm, RV.149).
             let held = attachImage.map {
                 HeldReceiptPhoto(image: $0, ocrLines: attachOcrLines,
-                                 extraction: attachExtraction)
+                                 extraction: attachExtraction, isPumpDisplay: attachIsPumpDisplay)
             }
             let receiptWrite = try Self.writeNonFillWithHeldReceipt(
                 entry, vehicle: vehicle, form: nonFillForm,
@@ -673,9 +674,10 @@ extension EditEntryView {
         attachProcessing = true
         Task {
             let prefill = await CapturePipeline.process(
-                image, source: .receipt,
+                image,
                 bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle.id))
             attachOcrLines = prefill.ocrLines
+            attachIsPumpDisplay = prefill.provenance == .pumpPhoto
             let extraction = prefill.extraction ?? FuelExtraction()
             attachExtraction = extraction
             if let fillUp {

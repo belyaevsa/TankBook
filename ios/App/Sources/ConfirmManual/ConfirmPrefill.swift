@@ -41,6 +41,10 @@ struct ConfirmPrefill {
     /// time (`ScannedSavePlanner`), so this is only the declared kind, never a
     /// final provenance.
     var provenance: Provenance = .receiptScan
+    /// PU.29: the frame was read as a pump display while the build is below
+    /// the pump-photo gate - the sheet shows the alpha notice beside the
+    /// reading (decision 7, docs/EXTRACTION.md). False on every other path.
+    var pumpAlpha: Bool = false
     /// P2.5: the extraction's currency is uncertain - the sheet must ask, never
     /// silently convert (docs/ERRORS.md -> Confirm). False by default; the real
     /// OCR-confidence signal lands with the Foundation-models work (P2.8).
@@ -228,20 +232,20 @@ enum ConfirmPrefillSeed {
                               crops: crops(for: [.volume, .unitPrice]))
     }
 
-    /// P2.7: a pump detection, routed through the accuracy gate. Off (the
-    /// shipped state) yields nil - the ordinary empty manual form, never an
-    /// error (hard rule 15). On (once the gate clears) the extraction pre-fills
-    /// as default input the user edits. The simulated reading is pump-007's
-    /// labelled triple (Spike/ReceiptSpike/fixtures/pump).
+    /// P2.7 / PU.29: a pump detection, framed by the accuracy gate. Below the
+    /// gate (the shipped state) the reading pre-fills WITH the alpha notice
+    /// (decision 7); at or above it as an ordinary default input the user
+    /// edits. The simulated reading is pump-007's labelled triple
+    /// (Spike/ReceiptSpike/fixtures/pump).
     private static func pumpPrefill(from arguments: [String]) -> ConfirmPrefill? {
         guard arguments.contains("-seedPumpCapture") else { return nil }
         let extraction = FuelExtraction(liters: 60.25, unitPrice: 76.24, total: 4593.46,
                                         currency: .rub, date: "17.08.2026")
-        return ConfirmPrefill(
-            extraction: PumpPhotoCapture.prefill(
-                pumpPhotoEnabled: PumpPhotoGate.allowsPumpPhoto,
-                extraction: extraction),
-            provenance: .pumpPhoto)
+        let outcome = PumpPhotoCapture.outcome(
+            pumpPhotoEnabled: PumpPhotoGate.allowsPumpPhoto, extraction: extraction)
+        var prefill = ConfirmPrefill(extraction: outcome.extraction, provenance: .pumpPhoto)
+        prefill.pumpAlpha = outcome.alpha
+        return prefill
     }
 
     /// P2.5: the three foreign-currency seeds (converted / rate-pending /

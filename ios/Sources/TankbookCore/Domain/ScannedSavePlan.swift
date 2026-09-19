@@ -80,6 +80,9 @@ public enum ScannedSavePlanner {
     /// The pipeline id recorded in `ExtractionMeta` for the on-device
     /// vision+rules pipeline (the canonical label, docs/LOGGING.md).
     public static let onDevicePipeline = "vision+rules v3"
+    /// The pump reader's pipeline name: the mark on an attachment (and on the
+    /// entry that carries it) that the photo was read as a pump display.
+    public static let pumpReaderPipeline = "pump-reader v1"
     /// The schema-required per-field confidence slot. The on-device pipeline
     /// does not propagate Vision's per-line confidence to the assembler today,
     /// so this documented default fills the slot; a caller that has a real

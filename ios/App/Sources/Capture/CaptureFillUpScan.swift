@@ -25,7 +25,7 @@ extension CaptureView {
         #endif
         let vehicle = try? currentVehicle()
         let prefill = await CapturePipeline.process(
-            image, source: .receipt,
+            image,
             bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle?.id))
         activeSheet = .scanned(prefill)
     }

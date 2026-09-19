@@ -164,6 +164,7 @@ struct ManualFillUpView: View {
                                            currency: form.currency)
                     ManualFillUpFuelFullCard(form: $form, fuelKinds: vehicle!.fuelKinds)
                     FuelKindMismatchNotice(scannedKind: prefill?.extraction?.fuelKind, fuelKinds: vehicle!.fuelKinds)
+                    PumpDisplayAlphaNotice(shown: prefill?.pumpAlpha ?? false)
                     if !form.isFull {
                         TankLevelRow(isFull: form.isFull,
                                      tankLevelAfterPct: form.tankLevelAfterPct,
@@ -447,7 +448,9 @@ struct ManualFillUpView: View {
               let transport = GatewayScanStarter.makeTransport() else { return }
         guard let jpeg = GatewayRendition.jpegData(from: cgImage) else { return }
         let request = GatewayExtractRequest(
-            kind: "receipt",
+            // The backend's ledger records the kind; a pump display gets the
+            // registered `pump` prompt, never the receipt one (PU.29).
+            kind: prefill.provenance == .pumpPhoto ? "pump" : "receipt",
             imageJPEG: jpeg,
             hints: gatewayHints(),
             captureId: entryId.uuidString)

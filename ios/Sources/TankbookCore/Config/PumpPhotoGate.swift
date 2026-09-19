@@ -118,26 +118,29 @@ public enum PumpPhotoGate {
 // MARK: - The pump capture path, honestly degraded
 
 /// Decides what a pump capture produces, once at capture time
-/// (docs/TASKS.md P2.7 -> "The capture path, honestly degraded").
+/// (docs/EXTRACTION.md -> "The pump reader", decision 7).
 ///
-/// The decision is passed the already-resolved flag state (the caller owns
-/// whether that is `PumpPhotoGate.allowsPumpPhoto`, or a `ConfigStore`'s
-/// `isEnabled(.pumpPhoto)` once config is wired into the app), so this type
-/// stays a pure function of that input.
+/// The reading is offered either way - a capture is a head start the user
+/// edits (hard rules 13 and 15) - and the gate decides only how it is
+/// FRAMED: below the gate the Confirm sheet carries the alpha notice ("pump
+/// displays are read in alpha - check every field"), at or above it the
+/// reading is an ordinary pre-fill. The decision is passed the already
+/// resolved flag state so this type stays a pure function of that input.
 public enum PumpPhotoCapture {
-    /// Off: nil - the ordinary manual form, pre-filled with nothing and with no
-    /// message. The feature is simply not offered (hard rule 15): a pump
-    /// capture degrades to "correct a couple of fields", never to a dead end or
-    /// an error state.
-    ///
-    /// On: the extraction, which the Confirm sheet treats as default input the
-    /// user edits (hard rule 13). A pump volume in particular must stay visible
-    /// and editable - the Confirm sheet dims an unconfirmed value to 60% opacity
-    /// and never writes one the user has not seen, because the factor-of-ten
-    /// ambiguity (Spike/ReceiptSpike/fixtures/pump/README.md) is otherwise
-    /// invisible on a Confirm screen and corrupts consumption silently.
+    public struct Outcome: Sendable, Equatable {
+        public let extraction: FuelExtraction?
+        /// True while the build's measured accuracy is below the ship gate:
+        /// the sheet shows the alpha notice next to the reading.
+        public let alpha: Bool
+    }
+
+    public static func outcome(pumpPhotoEnabled: Bool, extraction: FuelExtraction?) -> Outcome {
+        Outcome(extraction: extraction, alpha: !pumpPhotoEnabled)
+    }
+
+    /// The reading itself; never withheld. Kept for callers that only need
+    /// the extraction.
     public static func prefill(pumpPhotoEnabled: Bool, extraction: FuelExtraction?) -> FuelExtraction? {
-        guard pumpPhotoEnabled else { return nil }
-        return extraction
+        outcome(pumpPhotoEnabled: pumpPhotoEnabled, extraction: extraction).extraction
     }
 }

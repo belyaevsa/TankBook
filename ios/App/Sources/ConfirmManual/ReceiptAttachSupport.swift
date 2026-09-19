@@ -29,7 +29,8 @@ import TankbookCore
 /// (`thirdReceiptBuilder`).
 enum ReceiptAttachmentWriter {
     static func write(id: AttachmentID, image: UIImage, ocrLines: [OCRLine],
-                      extraction: FuelExtraction) throws -> Attachment {
+                      extraction: FuelExtraction,
+                      pipeline: String = ScannedSavePlanner.onDevicePipeline) throws -> Attachment {
         guard let jpeg = image.jpegData(compressionQuality: 0.8) else {
             throw ReceiptAttachmentError.notEncodable
         }
@@ -44,7 +45,7 @@ enum ReceiptAttachmentWriter {
             extractedTimestamp: timestamp, ocrText: ocrText, thumbnailBase64: thumbnail,
             // RV.48: the parse's per-field assignment, so the recognised page
             // shows meaning. nil when the parse assigned nothing.
-            extractionMeta: ScannedSavePlanner.assignment(from: extraction))
+            extractionMeta: ScannedSavePlanner.assignment(from: extraction, pipeline: pipeline))
     }
 }
 
