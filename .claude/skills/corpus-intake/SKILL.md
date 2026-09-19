@@ -65,7 +65,13 @@ scripts/pump-windows-check.py --check      # strings vs expected.csv, arithmetic
 
 ```
 scripts/corpus-sync.py push                # the movies to the bucket; size+MD5 skip what is there
+                                           # - also rebuilds corpus.sqlite and uploads it with the
+                                           #   annotation files under index/
+scripts/corpus_db.py sql "select name, present, in_bucket, paired_fixture from media where paired_fixture is null"
+                                           # what is still unpaired, straight from the database
 ```
+`corpus.sqlite` is derived (gitignored) from the git files - never edit it; edit the CSV / JSON /
+README and rebuild (`scripts/corpus_db.py build`; the annotator does it on save).
 Access (a static key for `tankbook-corpus-rw`, kept in `~/.config/tankbook/corpus-s3.env`) is
 described in `fixtures/pump-live/README.md` → Access. Extract frames locally with the `ffmpeg`
 line there; `frames/` is gitignored.

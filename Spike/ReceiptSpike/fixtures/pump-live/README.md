@@ -16,8 +16,15 @@
 - Sync: `scripts/corpus-sync.py pull` (a fresh machine), `push` (after new captures land),
   `list`. It compares size and MD5, so a re-run moves nothing already there. Needs `boto3`
   (`ml/pump-reader/.venv/bin/pip install boto3`, or any Python with it).
-- `../pump/` (the still corpus, its annotations and truth) stays in git; only the large media
-  is in the bucket. Frames regenerate from the movies with the `ffmpeg` line below.
+- `../pump/` (the still corpus, its annotations and truth) stays in git - the source of truth
+  the ratchets read. `push` also uploads a copy of it under `index/`: `corpus.sqlite` (the whole
+  corpus as one database, built by `scripts/corpus_db.py` - fixtures with truth and size,
+  annotation entries and windows, the media with their bucket keys and pairings, the matched
+  pairs) plus the CSVs, `windows.json`, the station ledger and this README, so the bucket is a
+  complete copy and not only the bytes git refuses. The database is derived and gitignored;
+  `scripts/corpus_db.py build` rebuilds it, `tools/pump-annotate` rebuilds it on every save,
+  `scripts/corpus_db.py sql "…"` queries it. Frames regenerate from the movies with the
+  `ffmpeg` line below.
 
 Live Photos (HEIC key frame + the paired `.mov`) of pump displays, shared by the product owner on
 2026-09-19 for PU.19 (per-cell fusion over frames). Every one is a fill that is ALREADY in

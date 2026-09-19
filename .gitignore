@@ -109,3 +109,7 @@ Spike/ReceiptSpike/fixtures/pump-live/frames/
 # the pairing table are tracked.
 Spike/ReceiptSpike/fixtures/pump-live/*.mov
 Spike/ReceiptSpike/fixtures/pump-live/*.heic
+
+# Derived from the corpus files by scripts/corpus_db.py; rebuilt on every annotator save and push
+Spike/ReceiptSpike/fixtures/corpus.sqlite
+Spike/ReceiptSpike/fixtures/corpus.sqlite.tmp

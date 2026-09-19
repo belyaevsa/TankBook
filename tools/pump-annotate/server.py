@@ -90,6 +90,17 @@ def oriented_jpeg(name: str) -> bytes:
     return cached.read_bytes()
 
 
+def rebuild_db() -> None:
+    """Every save refreshes `corpus.sqlite` (scripts/corpus_db.py) so the
+    database never lags the JSON it is derived from."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    try:
+        import corpus_db  # noqa: PLC0415
+        corpus_db.build()
+    except Exception:  # noqa: BLE001 - the JSON is saved; the DB is derived
+        traceback.print_exc()
+
+
 def clean_entry(entry: dict) -> dict:
     """Only the documented keys, in the file's order, empties dropped."""
     out: dict = {"windows": []}
@@ -171,6 +182,7 @@ class Handler(SimpleHTTPRequestHandler):
         ann = load_windows()
         ann[name] = clean_entry(entry)
         save_windows(ann)
+        rebuild_db()
         return self.send_json({"ok": True, "entry": ann[name]})
 
     def do_POST(self):

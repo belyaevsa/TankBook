@@ -10,6 +10,10 @@ way, by content: an object is skipped when its size and MD5 already match.
     scripts/corpus-sync.py push            # working tree -> bucket (after new captures land)
     scripts/corpus-sync.py list
 
+`push` also rebuilds `corpus.sqlite` (`scripts/corpus_db.py`) and uploads it
+with the annotation files under `index/`, so the bucket carries the whole
+corpus - media and truth - and not only the bytes git refuses.
+
 Credentials: a static access key for the `tankbook-corpus-rw` service account,
 read from `~/.config/tankbook/corpus-s3.env` (AWS_ACCESS_KEY_ID /
 AWS_SECRET_ACCESS_KEY) or from the environment. Never in the repo
@@ -31,6 +35,17 @@ ROOT = Path(__file__).resolve().parent.parent
 # (bucket prefix, local folder, glob patterns) - extend as more media leaves git.
 SETS = [
     ("pump-live/", ROOT / "Spike/ReceiptSpike/fixtures/pump-live", ("*.mov", "*.heic", "*.MOV", "*.HEIC")),
+]
+# The annotated data, pushed beside the media so the bucket is a complete copy.
+FIX = ROOT / "Spike/ReceiptSpike/fixtures"
+INDEX = [
+    ("index/corpus.sqlite", FIX / "corpus.sqlite"),
+    ("index/pump/windows.json", FIX / "pump/windows.json"),
+    ("index/pump/expected.csv", FIX / "pump/expected.csv"),
+    ("index/receipts/expected.csv", FIX / "receipts/expected.csv"),
+    ("index/receipts/stations.md", FIX / "receipts/stations.md"),
+    ("index/pump-live/README.md", FIX / "pump-live/README.md"),
+    ("index/high-water.json", FIX / "high-water.json"),
 ]
 
 
@@ -91,6 +106,24 @@ def push(s3) -> None:
         print(f"{prefix}: {sent} uploaded, {skipped} already there")
 
 
+def push_index(s3) -> None:
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import corpus_db  # noqa: PLC0415
+
+    corpus_db.build(with_s3=True)
+    remote = remote_index(s3, "index/")
+    sent = skipped = 0
+    for key, path in INDEX:
+        size = path.stat().st_size
+        if key in remote and remote[key][0] == size and remote[key][1] == md5(path):
+            skipped += 1
+            continue
+        s3.upload_file(str(path), BUCKET, key)
+        sent += 1
+        print(f"  up {key} ({size // 1024} KB)")
+    print(f"index/: {sent} uploaded, {skipped} already there")
+
+
 def pull(s3) -> None:
     for prefix, folder, _ in SETS:
         folder.mkdir(parents=True, exist_ok=True)
@@ -113,11 +146,12 @@ def main() -> int:
     credentials()
     s3 = client()
     if sys.argv[1] == "list":
-        for prefix, _, _ in SETS:
+        for prefix in [p for p, _, _ in SETS] + ["index/"]:
             index = remote_index(s3, prefix)
             print(f"{prefix}: {len(index)} objects, {sum(s for s, _ in index.values()) // (1 << 20)} MB")
     elif sys.argv[1] == "push":
         push(s3)
+        push_index(s3)
     else:
         pull(s3)
     return 0
