@@ -91,8 +91,8 @@ def oriented_jpeg(name: str) -> bytes:
 
 
 def rebuild_db() -> None:
-    """Every save refreshes `corpus.sqlite` (scripts/corpus_db.py) so the
-    database never lags the JSON it is derived from."""
+    """Startup and every save refresh `corpus.sqlite` (scripts/corpus_db.py)
+    so the committed database never lags the JSON it is derived from."""
     sys.path.insert(0, str(ROOT / "scripts"))
     try:
         import corpus_db  # noqa: PLC0415
@@ -196,7 +196,8 @@ class Handler(SimpleHTTPRequestHandler):
 def main() -> None:
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    print(f"pump annotator: http://127.0.0.1:{port}/  ({WINDOWS.relative_to(ROOT)})")
+    rebuild_db()
+    print(f"pump annotator: http://127.0.0.1:{port}/  ({WINDOWS.relative_to(ROOT)}; corpus.sqlite rebuilt)")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

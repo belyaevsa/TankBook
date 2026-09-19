@@ -24,7 +24,7 @@ the ml venv runs it); the converted images are cached under
   the JSON - and `✓ Save & next` (`⏎`) sets it, saves and opens the next one in
   the filtered list; the list filter separates empty / not processed / processed.
 - `Save` (`⌘S`) writes the entry back in the file's own formatting and rebuilds
-  `fixtures/corpus.sqlite` (`scripts/corpus_db.py`), which is committed with it; `Check`
+  `fixtures/corpus.sqlite` (also rebuilt at startup) (`scripts/corpus_db.py`), which is committed with it; `Check`
   runs `scripts/pump-windows-check.py --check` and shows the verdict.
 
 Loopback only. Nothing is committed - stage the JSON by path when the batch
