@@ -1024,3 +1024,10 @@ already absent, committed byte-for-byte after a strip). Two two-slip pairs and t
 Receipts move **270/315 -> 286/345** with RV.291 in: 16 of the 30 new cells resolve. The
 diagnostic Spike harness reads 070..073 fully (its band ladder places the Gazpromneft operands)
 and nothing on the two sideways slips.
+
+## Added 2026-09-19 (two Sikupilli pairs, EXIF stripped)
+
+`receipt-074` and `receipt-075`: Circle K Sikupilli, 98 miles+ at 1.979 EUR/L, KOKKU 30.02 (15.17 L,
+pump 7) and 55.13 (27.86 L, pump 8), both held in hand in front of the dispenser. **Matched pairs**
+with `../pump/pump-115` / `pump-116`; both have Live records in `../pump-live/` (`live-6282`,
+`live-6284`). JPEG, orientation baked in, every EXIF field stripped (product owner, 2026-09-19).

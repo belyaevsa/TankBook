@@ -980,3 +980,14 @@ mode stays off. The diagnostic Spike harness reads `pump-112` (4.60 / 2.199 / 10
 hundredth short) and commits confident-wrong values on two others - `102049.000` on `pump-107`,
 the zero-padded total with a stray leading `1`, and `0.5` litres on `pump-114` - harness findings,
 not production commits.
+
+## Added 2026-09-19 (two Sikupilli pairs, EXIF stripped)
+
+`pump-115` and `pump-116`: Circle K Sikupilli, Gilbarco heads, 98 miles+ at 1.979 EUR/L - 15.17 L
+= 30.02 EUR (pump 7) and 27.86 L = 55.13 EUR (pump 8). Each is a **matched pair** with
+`../receipts/receipt-074` / `receipt-075` (the receipts print the same triple, KOKKU 30.02 and
+55.13), and each has a Live record and a 4K angle-and-flicker video in `../pump-live/`
+(`live-6281`/`6280`, `live-6283`/`6285`). Both stills are JPEG with the orientation baked in and
+**every EXIF field stripped** (product owner, 2026-09-19: no GPS, device or timestamp in the
+corpus from here on; earlier fixtures keep what they were committed with). Windows annotated in
+`windows.json` (+6 windows, 462).
