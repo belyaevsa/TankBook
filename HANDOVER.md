@@ -28,6 +28,12 @@ in `excluded:`), `scripts/pump-windows-check.py --check` 0.
 | PU.7 | render realism, ablated | bold + slant help, spill + contrast HURT (both are real on the corpus); shipped bold + slant |
 | PU.8 | slicer robustness | count agreement **0.598** (259/433); seams load-bearing on the corpus (259 vs 187 off) |
 | PU.9 | train on the slicer's own framing | held-out per-glyph **0.215** on count-correct, 0.177 on all 433; dp bit 0.74 |
+| PU.10 | training material reviewed against the real cells (ghost, pitch-wide cells, 6 LCD palettes, augmentation tamed) | per-glyph **0.400** |
+| PU.11-15 | five read-only reviews on `qwen3.8-max --variant high` (`agents/reviews/`): implementation, data, annotations, decode design, lifecycle | the findings below |
+| PU.16 | decode to valid seven-segment patterns (review F1) | digit-only 0.532 → **0.666**, no retraining |
+| PU.17/18 | the comma drawn where displays draw it; cells calibrated on aggregate corpus geometry; one strip resolution | 0.698 → 0.717 (transaction fields) |
+| PU.27 | contrast collapse on under the calibrated framing; interior blank cells kept; `PumpSegmentsModel.swift` validated against the Python model (246/247, 100 % agreement) | 0.732 |
+| PU.28 | oracle second pass (3 strings), rotation the consumers never applied | count agreement **282/433**, digit-only **0.609 all / 0.728 count-correct** |
 
 **The five lessons of this tranche**
 
@@ -44,6 +50,17 @@ in `excluded:`), `scripts/pump-windows-check.py --check` 0.
    until one changed a renderer the other's test replayed. Name the shared seam in both briefs.
 5. **The corpus has cells that score the wrong artefact**: `pump-031`'s `expected.csv` total is
    the receipt's, not the display's. PU.6 decides.
+
+**Decisions the product owner made 2026-09-19:** the gate scores total/volume/price only (boards
+out); capture is a Live Photo (16 captures in `Spike/ReceiptSpike/fixtures/pump-live/`, 13 paired
+with still fixtures, 2 new fills); synthetic geometry may be calibrated on the corpus's aggregate
+statistics; the locator question is open; the shoot list stands.
+
+**The lifecycle review's headline (PU.15), verified by grep:** no production code ever sets
+`ExtractionSource.pump` - all five capture call sites hardcode `.receipt` and the gateway is always
+called with `kind: "receipt"`. Every pump rule, the gate, `DigitRepair` and the ratchet guard a door
+nobody walks through, while a user's real pump photo runs the receipt parser ungated. Rows to file
+once the owner says what the off-gate behaviour should be (review G1-G3).
 
 **What is still not there, in order:** (a) per-glyph 0.215 on count-correct windows is far from
 the gate - the next levers are the weakest segments d/g (~0.58) and the per-make gap (Scheidt
