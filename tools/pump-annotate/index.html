@@ -281,8 +281,9 @@ canvas.onmouseup = e => {
 $('#zoom').oninput = e => { zoom = +e.target.value; draw(); };
 $('#rot').onchange = () => { touch(); fit(); draw(); };
 $('#add').onclick = () => addWindow();
-$('#framesToggle').onclick = () => frameMode ? leaveFrames() : enterFrames();
+$('#framesToggle').onclick = e => { e.target.blur(); frameMode ? leaveFrames() : enterFrames(); };
 $('#frameSlider').oninput = e => { frameIdx = +e.target.value; showFrame(); };
+$('#frameSlider').onchange = e => e.target.blur();
 $('#rec').onchange = () => { frameIdx = 0; showRecordInfo(); if (frameMode) showFrame(); };
 document.querySelectorAll('[name=tracking]').forEach(r => r.onchange = touch);
 $('#save').onclick = save; $('#check').onclick = check;
@@ -292,7 +293,7 @@ $('#savenext').onclick = async () => { $('#reviewed').checked = true; await save
 $('#filter').oninput = renderList; $('#state').onchange = renderList;
 document.querySelectorAll('[data-nod],[data-dis]').forEach(i => i.oninput = touch);
 document.addEventListener('keydown', e => {
-  const typing = ['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName);
+  const t = e.target; const typing = t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !['range','checkbox','radio'].includes(t.type));
   if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); save(); return; }
   if (typing) return;
   if (frameMode && e.key === 'ArrowRight') { e.preventDefault(); frameIdx = Math.min(frameIdx + 1, currentRecord().tracked.length - 1); showFrame(); return; }
