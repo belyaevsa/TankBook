@@ -4,8 +4,7 @@
 read type"); the fix is on `main` (`RV.293`, `2055a926`) and build 1368 is being uploaded.** This is
 a **fresh machine** (macOS 27.0, Xcode 27.0, iOS 27.0 simulator) set up 2026-09-18. Measured on the
 tree as left: **iOS 2150 + 45 tests / 267 suites** (27 s + 43 s), **backend 480 / 480** (Docker
-works here), lint 0 errors / 670 warnings from the repo ROOT, Release build 0. **38 ticked rows sit
-in `TASKS.md` awaiting the sweep.** `main` is **32 commits ahead of `origin/main`** - push it.
+works here), lint 0 errors / 670 warnings from the repo ROOT, Release build 0. **88 open rows, 463 closed** (the 38 ticked rows were swept to `TASKS-DONE.md`). `main` is **32 commits ahead of `origin/main`** - push it.
 Nothing is running; the queue is empty. Read this, then `CLAUDE.md`, then
 `docs/DEVELOPMENT-TIMELINE.md`, then `docs/TASKS.md`'s index.*
 
@@ -156,7 +155,7 @@ earlier** (`RV.118`-`RV.120`, `RV.296`/`RV.297`). Both await a `REVIEW-SCENARIO`
    key path) so `release.sh` runs without a hand-typed environment.
 4. The journeys walk ran twice on 2026-09-19 (`diagnostics/REVIEW-JOURNEYS-2026-09-19.md`,
    `-2026-09-19b.md`: 0 new rows). `J8` and `F7` are unreviewed and await a `REVIEW-SCENARIO` each.
-   The ticked rows number thirty-eight: sweep them to `TASKS-DONE.md`. Enable Push Notifications on
+   Enable Push Notifications on
    the App ID (above). The 1.1 rows the owner queued are all shipped; pick the next from the open
    `[v1.1]` rows in `TASKS.md` (the launch-triage tier 3 list names them).
 5. Unchanged from 09-15: deploy the backend so migrations 023–025 run; `RV.283` decision; `RV.203`,
