@@ -228,7 +228,17 @@ def track_video(stem: str, entry: dict, min_inliers: int) -> dict | None:
     out: dict = {"_video": stem, "_reference": entry["reference"], "_anchors": [a["frame"] for a in anchors],
                  "_split": "train", "frames": {}}
     kept = dropped = 0
+    exact = {a["frame"]: a["windows"] for a in anchors}
     for frame in frames:
+        # A frame the owner placed by hand is written back verbatim - never
+        # re-registered, so a retrack cannot move what a human verified.
+        if frame.name in exact:
+            out["frames"][frame.name] = {"windows": [{"field": w["field"],
+                                                     "text": entry["unitPrice"] if w["field"] == "unitPrice" else "",
+                                                     "quad": w["quad"]} for w in exact[frame.name]],
+                                        "inliers": -1, "anchor": int(frame.stem), "verified": True}
+            kept += 1
+            continue
         gray = cv2.imread(str(frame), cv2.IMREAD_GRAYSCALE)
         fh, fw = gray.shape
         index = int(frame.stem)

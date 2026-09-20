@@ -33,6 +33,7 @@
   #frameStrip span.attention { background:var(--bad) } #frameStrip span.prefill { background:#6b5a1e }
   #frameStrip span.cur { outline:2px solid #fff; outline-offset:-1px }
   #frameStrip span.runstart { margin-left:3px }
+  #frameStrip span.anchor { box-shadow: inset 0 0 0 1px #fff }
   #frameStrip span.nextrun { position:relative } #frameStrip span.nextrun::after { content:'▲'; position:absolute; top:13px; left:-3px; color:#fff; font-size:10px }
   #frameStrip .legend { width:auto; height:auto; background:none; color:var(--dim); font-size:11px; margin-left:8px; cursor:default }
   kbd { border:1px solid var(--line); border-radius:3px; padding:0 4px; font-size:11px; color:var(--dim) }
@@ -207,7 +208,7 @@ function renderStrip() {
   const runStart = new Set((r.runs || []).map(run => run[0]));
   const curRun = runOf(r, cur); const runs = r.runs || []; const ri = runs.findIndex(run => run === curRun);
   const nextRunFirst = runs[ri + 1] ? runs[ri + 1][0] : null;
-  strip.innerHTML = r.tracked.map((n, i) => `<span class="${states[n]} ${n === cur ? 'cur' : ''} ${runStart.has(n) ? 'runstart' : ''} ${n === nextRunFirst ? 'nextrun' : ''}" data-i="${i}" title="${n} ${states[n]}${runStart.has(n) ? ' · new value' : ''}"></span>`).join('')
+  strip.innerHTML = r.tracked.map((n, i) => `<span class="${states[n]} ${n === cur ? 'cur' : ''} ${runStart.has(n) ? 'runstart' : ''} ${n === nextRunFirst ? 'nextrun' : ''} ${r.frames[n].verified ? 'anchor' : ''}" data-i="${i}" title="${n} ${states[n]}${runStart.has(n) ? ' · new value' : ''}${r.frames[n].verified ? ' · anchor (quads placed by hand)' : ''}"></span>`).join('')
     + `<span class="legend">red = needs you (unlabelled or breaks the sequence) · yellow = reader pre-fill to confirm · green = labelled · ▲ next unique value (<kbd>⇧→</kbd>) · gap = value changes</span>`;
   strip.querySelectorAll('span[data-i]').forEach(el => el.onclick = () => { frameIdx = +el.dataset.i; showFrame(); });
 }
@@ -226,10 +227,12 @@ function showVideoLabel() {
   $('#vlTotal').value = get('total') || pre('total'); $('#vlLiters').value = get('liters') || pre('liters'); $('#vlPrice').value = get('unitPrice');
   $('#vlTotal').classList.toggle('prefill', !get('total') && !!pre('total')); $('#vlLiters').classList.toggle('prefill', !get('liters') && !!pre('liters'));
   const run = runOf(r, name); renderStrip();
-  $('#vlSource').textContent = (f.source ? `(${f.source})` : (pre('total') ? '(reader pre-fill – confirm)' : '(unlabelled)')) + ` · run of ${run.length}`;
+  $('#vlSource').textContent = (f.source ? `(${f.source})` : (pre('total') ? '(reader pre-fill – confirm)' : '(unlabelled)')) + ` · run of ${run.length}` + (f.verified ? ' · ⚓ hand-placed quads' : '');
 }
+let frameQuadsEdited = false;
 async function saveVideoLabel() {
   const r = currentRecord(); const name = r.tracked[frameIdx];
+  if (frameQuadsEdited) { await saveAnchor(); }
   const run = $('#vlRun').checked ? runOf(r, name) : [name];
   const body = {total: $('#vlTotal').value.trim(), liters: $('#vlLiters').value.trim(), unitPrice: $('#vlPrice').value.trim(), frames: run};
   await fetch('/api/video-label/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name), {method:'PUT', body: JSON.stringify(body)});
@@ -255,6 +258,7 @@ async function copyPrevious() {
 function nextUnlabelled() { nextAttention(); }
 function showFrame() {
   if (!frameMode) return;
+  frameQuadsEdited = false;
   const r = currentRecord(); const name = r && r.tracked[frameIdx]; if (!name) return;
   showVideoLabel();
   const movie = r.movie, still = current;
@@ -385,10 +389,10 @@ canvas.onmousedown = e => {
 canvas.onmousemove = e => {
   if (!drag) return; const [x, y] = mouse(e);
   if (drag.kind === 'new') { drag.x = x; drag.y = y; }
-  else if (drag.kind === 'corner') { editable()[sel].quad[drag.c] = toImg([x, y]); if (!(frameMode && isVideo)) touch(); }
+  else if (drag.kind === 'corner') { editable()[sel].quad[drag.c] = toImg([x, y]); if (frameMode && isVideo) frameQuadsEdited = true; else touch(); }
   else if (drag.kind === 'move') {
     const d0 = toImg([drag.x, drag.y]), d1 = toImg([x, y]);
-    editable()[sel].quad = drag.quad.map(p => [Math.min(1, Math.max(0, p[0] + d1[0] - d0[0])), Math.min(1, Math.max(0, p[1] + d1[1] - d0[1]))]); if (!(frameMode && isVideo)) touch();
+    editable()[sel].quad = drag.quad.map(p => [Math.min(1, Math.max(0, p[0] + d1[0] - d0[0])), Math.min(1, Math.max(0, p[1] + d1[1] - d0[1]))]); if (frameMode && isVideo) frameQuadsEdited = true; else touch();
   }
   draw();
 };
@@ -418,11 +422,13 @@ document.querySelectorAll('[name=tracking]').forEach(r => r.onchange = touch);
 $('#save').onclick = save; $('#check').onclick = check;
 $('#reviewed').onchange = touch;
 $('#vlSave').onclick = saveVideoLabel;
-$('#vlAnchor').onclick = async () => {
+async function saveAnchor() {
   const r = currentRecord(); const name = r.tracked[frameIdx];
   const res = await (await fetch('/api/video-anchor/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name), {method:'PUT', body: JSON.stringify({windows: r.frames[name].windows})})).json();
+  r.frames[name].verified = true; frameQuadsEdited = false;
   setMsg(`anchor at ${name} (${res.anchors.length} anchors), retracking`); watchRetrack(r.movie);
-};
+}
+$('#vlAnchor').onclick = saveAnchor;
 $('#vlCopy').onclick = copyPrevious; $('#vlSkip').onclick = nextUnlabelled;
 function next() { const names = [...document.querySelectorAll('#list div')].map(d => d.dataset.n); const n = names[names.indexOf(current) + 1]; if (n) openFixture(n); }
 $('#savenext').onclick = async () => { $('#reviewed').checked = true; await save(); next(); };
