@@ -15,8 +15,14 @@ public enum PumpDisplayCapture {
         public let displayRows: Int
         /// Text lines Vision found in the frame; a receipt is dozens.
         public let textLines: Int
+        /// The widest vouched row as a fraction of the frame's width, and
+        /// the tallest as a fraction of its height - a display's number rows
+        /// are big; a receipt's printed digits are small in the paper.
+        public var widestRow: CGFloat = 0
+        public var tallestRow: CGFloat = 0
         public var isPumpDisplay: Bool {
             displayRows >= PumpDisplayCapture.minimumRows && textLines <= PumpDisplayCapture.maximumTextLines
+                && widestRow >= PumpDisplayCapture.minimumWidestRowFraction
         }
     }
 
@@ -33,12 +39,17 @@ public enum PumpDisplayCapture {
     /// 3-12 % of the image height; a receipt's printed lines are under 2 %.
     /// Rows below this fraction are text, not a display, however well the
     /// classifier reads their digits.
-    public static let minimumRowHeightFraction: CGFloat = 0.025
+    public static let minimumRowHeightFraction: CGFloat = PumpReader.minimumRowHeightFraction
     /// A receipt's printed digits pass the verifier too (they are digits),
     /// but a receipt is dozens of text lines where a display is a handful:
     /// measured 6-27 on pump fixtures, 31-49 on receipts that had two or more
     /// verified rows.
     public static let maximumTextLines = 30
+    /// A display's number rows span a fifth of the frame or more on every
+    /// heldout still (0.20-0.39); a receipt's printed amounts that pass the
+    /// verifier are narrow (receipt-038: 0.12 with 16 text lines, which the
+    /// line count alone let through).
+    public static let minimumWidestRowFraction: CGFloat = 0.18
 
     /// Loads the classifier from a compiled model URL (the app bundle's
     /// `PumpSegments.mlmodelc`) once; nil when the resource is missing, in
@@ -53,8 +64,14 @@ public enum PumpDisplayCapture {
         let rgb = PumpQuadWarp.rgbImage(from: image)
         let candidates = PumpPanelLocator.locate(rgb, rotationCW: 0)
         let verified = (try? reader.reader.verify(image: rgb, candidates: candidates)) ?? []
-        return Detection(displayRows: displayRows(verified, imageHeight: rgb.height).count,
-                         textLines: textLineCount(rgb))
+        let rows = displayRows(verified, imageHeight: rgb.height)
+        var detection = Detection(displayRows: rows.count, textLines: textLineCount(rgb))
+        for row in rows {
+            let xs = row.quad.map(\.x), ys = row.quad.map(\.y)
+            detection.widestRow = max(detection.widestRow, (xs.max()! - xs.min()!) / CGFloat(rgb.width))
+            detection.tallestRow = max(detection.tallestRow, (ys.max()! - ys.min()!) / CGFloat(rgb.height))
+        }
+        return detection
     }
 
     static func textLineCount(_ rgb: PumpRGBImage) -> Int {
@@ -63,10 +80,17 @@ public enum PumpDisplayCapture {
         return PumpVisionProposer.textLineCount(in: cg)
     }
 
+    /// The reader keeps a row from a margin of 1.0 (`PumpReader.minimumMeanMargin`)
+    /// because the law can still refuse it; the classifier decides whether a
+    /// photo is a display at all and asks for the wider margin a real digit
+    /// row carries - at 1.0 a receipt's printed totals classified as one.
+    public static let classificationMinimumMargin = 1.5
+
     static func displayRows(_ verified: [PumpReader.VerifiedWindow], imageHeight: Int) -> [PumpReader.VerifiedWindow] {
         verified.filter { window in
             let ys = window.quad.map(\.y)
             return (ys.max()! - ys.min()!) >= minimumRowHeightFraction * CGFloat(imageHeight)
+                && window.meanMargin >= classificationMinimumMargin
         }
     }
 

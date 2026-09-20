@@ -31,7 +31,9 @@ struct PumpReaderHarnessTests {
     // local-contrast normalisation and the Otsu threshold absorb a few more than
     // PU.4's fixed-fraction pass - so the column-projection slicer cannot see it;
     // that gap is the classifier's dp bit, and PU.6 owns closing it.
-    private static let countAgreementFloor = 0.65
+    // Heldout split (decision 9): 184/238 on 2026-09-20 after the slicer
+    // learned to prefer the fundamental pitch over its harmonic (177 before).
+    private static let countAgreementFloor = 0.75
     private static let dpAgreementFloor = 0.0
     private static let locatorMedianIoUFloor = 0.0
 

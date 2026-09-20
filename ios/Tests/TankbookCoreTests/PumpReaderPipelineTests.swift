@@ -20,11 +20,18 @@ struct PumpReaderPipelineTests {
     // train split): committed 44 at 0.955, 12/64 photos every field right;
     // the shipped synthetic-only model read 18 at 0.944, 4/64. The constants
     // move only upward.
-    private static let committedFloor = 44
-    private static let precisionFloor = 0.95
-    // The live path (no annotation): measured 2026-09-19, moves only upward.
-    private static let liveCommittedFloor = 0
-    private static let livePrecisionFloor = 0.0
+    // 52 at 0.962, 14/64 photos, once the slicer preferred the fundamental
+    // pitch (PU.4 round of 2026-09-20).
+    private static let committedFloor = 52
+    private static let precisionFloor = 0.96
+    // The live path (no annotation): measured on the heldout split on
+    // 2026-09-20 after PU.24's verifier round - every candidate verified, a
+    // height floor, the frame's edge and a per-cell aspect rule, the margin
+    // at 1.0 and duplicate rows suppressed: committed 7, all correct
+    // (0 the day before); 4 once the slicer preferred the fundamental pitch,
+    // which lifted the annotated path 44 -> 52. Moves only upward.
+    private static let liveCommittedFloor = 4
+    private static let livePrecisionFloor = 0.99
 
     private static let modelURL = PumpReaderTestSupport.repoRoot
         .appendingPathComponent("ios/App/Resources/PumpSegments.mlpackage")

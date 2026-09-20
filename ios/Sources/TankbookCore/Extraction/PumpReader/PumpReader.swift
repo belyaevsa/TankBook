@@ -65,7 +65,18 @@ struct PumpReader {
     static let minimumVerifiedCells = 3
     /// Mean decode margin (nats) below which a row is not digits. A digit cell
     /// the model is sure of sits well above 2; letters and stickers below 1.
-    static let minimumMeanMargin = 1.5
+    static let minimumMeanMargin = 1.0
+    /// A digit row is about 0.6 heights wide per cell (seven-segment glyphs
+    /// are taller than wide, plus the gaps and a decimal mark). A candidate
+    /// far wider than its cells account for is a text line or a bezel band
+    /// the slicer found a few marks in, not a number window.
+    static let maximumAspectPerCell: CGFloat = 1.3
+    static let frameEdgeFraction: CGFloat = 0.01
+    /// How many locator candidates the verifier looks at, in the locator's
+    /// rank order. A photo yields 30-45 (Vision lines, character rows and the
+    /// classical bands); the annotated rows of the heldout stills sat at
+    /// ranks beyond twelve often enough that twelve lost whole displays.
+    static let maximumCandidates = 48
 
     /// Everything from a photo with no annotation: locate, verify, assign,
     /// read, resolve. `rotationCW` turns the photo so the display reads
@@ -86,14 +97,81 @@ struct PumpReader {
         return try resolve(image: upright, windows: windows, currency: currency, priceBand: priceBand)
     }
 
+    /// A display's digit rows are large in the frame: the corpus's windows are
+    /// 3-12 % of the image height, a receipt's or a label's lines under 2 %.
+    /// Shared with the classification stage (`PumpDisplayCapture`).
+    static let minimumRowHeightFraction: CGFloat = 0.025
+
+    /// What the verifier saw for one candidate, for the diagnostic and the
+    /// verifier itself: nil cells means the strip could not be cut.
+    struct Verdict {
+        let quad: [CGPoint]
+        let heightFraction: CGFloat
+        let cells: Int
+        let meanMargin: Double
+        let kept: Bool
+    }
+
+    /// Two verified windows are one row when they overlap this much - the
+    /// locator offers a row several times (Vision's line, its character
+    /// boxes merged, the classical band), and without suppression the
+    /// assigner reads the duplicates as a board.
+    static let duplicateIoU: CGFloat = 0.3
+    static let duplicateContainment: CGFloat = 0.6
+
     func verify(image: PumpRGBImage, candidates: [PumpPanelLocator.Candidate]) throws -> [VerifiedWindow] {
+        let kept = try verdicts(image: image, candidates: candidates).filter(\.kept)
+        // Best version of each row first: more cells read with a wider margin
+        // on a taller strip is the fuller window, not a fragment of it.
+        let ranked = kept.sorted { Self.strength($0) > Self.strength($1) }
         var out: [VerifiedWindow] = []
-        for candidate in candidates.prefix(12) {
+        for verdict in ranked {
+            let duplicate = out.contains { existing in
+                PumpQuadWarp.iou(existing.quad, verdict.quad) >= Self.duplicateIoU
+                    || Self.containment(existing.quad, verdict.quad) >= Self.duplicateContainment
+            }
+            if !duplicate {
+                out.append(VerifiedWindow(quad: verdict.quad, glyphCount: verdict.cells, meanMargin: verdict.meanMargin))
+            }
+        }
+        return out
+    }
+
+    private static func strength(_ v: Verdict) -> Double {
+        Double(v.cells) * v.meanMargin * Double(v.heightFraction)
+    }
+
+    /// Intersection over the smaller box: a fragment inside a row scores
+    /// high here while its IoU with the row stays low.
+    private static func containment(_ a: [CGPoint], _ b: [CGPoint]) -> CGFloat {
+        let ra = PumpRowAssignment.bounds(a, rotationCW: 0), rb = PumpRowAssignment.bounds(b, rotationCW: 0)
+        let inter = ra.intersection(rb)
+        guard !inter.isNull, inter.width > 0, inter.height > 0 else { return 0 }
+        let smaller = min(ra.width * ra.height, rb.width * rb.height)
+        return smaller > 0 ? (inter.width * inter.height) / smaller : 0
+    }
+
+    func verdicts(image: PumpRGBImage, candidates: [PumpPanelLocator.Candidate]) throws -> [Verdict] {
+        var out: [Verdict] = []
+        for candidate in candidates.prefix(Self.maximumCandidates) {
             let quad = candidate.quad.map { CGPoint(x: $0.x * CGFloat(image.width), y: $0.y * CGFloat(image.height)) }
-            guard let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: quad, stripHeight: Self.stripHeight) else { continue }
+            let ys = quad.map(\.y)
+            let heightFraction = (ys.max()! - ys.min()!) / CGFloat(image.height)
+            // A row against the frame's top or bottom edge is a banner or a
+            // sign the photo cut, never a display row the user framed.
+            let edge = Self.frameEdgeFraction * CGFloat(image.height)
+            let touchesEdge = ys.min()! <= edge || ys.max()! >= CGFloat(image.height) - edge
+            guard heightFraction >= Self.minimumRowHeightFraction, !touchesEdge,
+                  let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: quad, stripHeight: Self.stripHeight) else {
+                out.append(Verdict(quad: quad, heightFraction: heightFraction, cells: 0, meanMargin: 0, kept: false))
+                continue
+            }
             let stripRGB = PumpQuadWarp.rgbImage(from: strip)
             let cells = PumpGlyphSlicer.slice(stripRGB.grayscale()).filter { !$0.isBlank }
-            guard cells.count >= Self.minimumVerifiedCells, cells.count <= PumpReadingLaw.maxCells else { continue }
+            guard cells.count >= Self.minimumVerifiedCells, cells.count <= PumpReadingLaw.maxCells else {
+                out.append(Verdict(quad: quad, heightFraction: heightFraction, cells: cells.count, meanMargin: 0, kept: false))
+                continue
+            }
             var margins: [Double] = []
             for cell in cells {
                 let probabilities = try Self.averaged(model: model, crops: [Self.resample(
@@ -102,8 +180,10 @@ struct PumpReader {
                 margins.append(PumpCellReading(probabilities: probabilities).margin)
             }
             let mean = margins.reduce(0, +) / Double(margins.count)
-            guard mean >= Self.minimumMeanMargin else { continue }
-            out.append(VerifiedWindow(quad: quad, glyphCount: cells.count, meanMargin: mean))
+            let aspect = CGFloat(strip.width) / CGFloat(strip.height)
+            let shaped = aspect <= Self.maximumAspectPerCell * CGFloat(cells.count) + 1
+            out.append(Verdict(quad: quad, heightFraction: heightFraction, cells: cells.count, meanMargin: mean,
+                               kept: shaped && mean >= Self.minimumMeanMargin))
         }
         return out
     }

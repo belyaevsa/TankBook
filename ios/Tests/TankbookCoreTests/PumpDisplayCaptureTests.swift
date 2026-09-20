@@ -14,13 +14,11 @@ struct PumpDisplayCaptureTests {
         .appendingPathComponent("Spike/ReceiptSpike/fixtures/receipts")
 
     /// Six heldout stills (decision 9) that the owner shot the way a user
-    /// will: frontal, at arm's length. Measured 2026-09-19: four of the six
-    /// classify - pump-032 yields one verified row, pump-035 sits at 31
-    /// Vision text lines (the receipt discriminator's ceiling is 30). Of
-    /// eleven heldout stills tried that day, four classified; the five that
-    /// did were the previous list, all of which the split then put in the
-    /// train part. The floor is the measurement; raising recall is the
-    /// locator's next round (docs/TASKS.md PU.24, PU.30).
+    /// will: frontal, at arm's length. Measured 2026-09-20 after PU.24's
+    /// verifier round: four of the six classify - pump-032 yields no verified
+    /// row at the classification margin, pump-035 sits at 31 Vision text
+    /// lines against the 30-line receipt ceiling. The floor is the
+    /// measurement; the text-line ceiling is the next thing to replace.
     private static let heldoutPumps = ["pump-032-gilbarco-circlek-ee-clean.jpg",
                                        "pump-035-dresser-wayne-circlek-ee-rain-pump8.jpg",
                                        "pump-042-dresser-wayne-circlek-ee-preset-20eur.jpg",
@@ -40,14 +38,16 @@ struct PumpDisplayCaptureTests {
             let url = PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent(name)
             let image = try #require(PumpQuadWarp.loadOrientedImage(from: url))
             let detection = PumpDisplayCapture.detect(image: image, reader: reader)
-            print("PU.29 \(name.prefix(8)): \(detection.displayRows) display rows, \(detection.textLines) text lines")
+            print("PU.29 \(name.prefix(8)): \(detection.displayRows) display rows, \(detection.textLines) text lines, "
+                  + "widest \(String(format: "%.2f", detection.widestRow)) tallest \(String(format: "%.3f", detection.tallestRow))")
             if detection.isPumpDisplay { pumpHits += 1 }
         }
         var receiptMisses = 0
         for name in receipts {
             let image = try #require(PumpQuadWarp.loadOrientedImage(from: Self.receipts.appendingPathComponent(name)))
             let detection = PumpDisplayCapture.detect(image: image, reader: reader)
-            print("PU.29 \(name.prefix(11)): \(detection.displayRows) display rows, \(detection.textLines) text lines")
+            print("PU.29 \(name.prefix(11)): \(detection.displayRows) display rows, \(detection.textLines) text lines, "
+                  + "widest \(String(format: "%.2f", detection.widestRow)) tallest \(String(format: "%.3f", detection.tallestRow))")
             if detection.isPumpDisplay { receiptMisses += 1 }
         }
         print("PU.29 heldout classification: \(pumpHits)/\(pumps.count)")
