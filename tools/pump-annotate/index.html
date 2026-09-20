@@ -11,7 +11,7 @@
   aside, section.right { background:var(--panel); border-right:1px solid var(--line); overflow:auto; padding:8px }
   section.right { border-right:0; border-left:1px solid var(--line) }
   input, select, button, textarea { font:inherit; background:#0b0e13; color:var(--fg); border:1px solid var(--line); border-radius:4px; padding:3px 6px }
-  button { cursor:pointer; background:#222833 } button:hover { background:#2c3442 } button.primary { background:#2456a5 }
+  button { cursor:pointer; background:#222833 } button.quick { padding:1px 6px; font-size:12px } button:hover { background:#2c3442 } button.primary { background:#2456a5 }
   #list div { padding:3px 6px; cursor:pointer; border-radius:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
   #list div.sel { background:#2456a5 } #list div .n { color:var(--dim); float:right }
   #list div.todo { color:var(--dim) }
@@ -32,7 +32,8 @@
 <body>
 <aside>
   <div class="row"><input id="filter" placeholder="filter…" style="flex:1">
-    <select id="state"><option value="all">all</option><option value="todo">no windows</option><option value="unreviewed">not processed</option><option value="reviewed">processed</option><option value="live">with Live record</option><option value="liveunchecked">Live, tracking unreviewed</option><option value="video">videos</option></select></div>
+    <select id="state"><option value="all">all</option><option value="todo">no windows</option><option value="unreviewed">not processed</option><option value="reviewed">processed</option><option value="live">with Live record</option><option value="liveunchecked">Live, tracking unreviewed</option><option value="video">videos</option><option value="work">to do: unprocessed, Live unchecked, videos</option></select></div>
+  <div class="row"><button class="quick" data-q="work">to do</button><button class="quick" data-q="unreviewed">unprocessed</button><button class="quick" data-q="liveunchecked">frames</button><button class="quick" data-q="video">videos</button><button class="quick" data-q="all">all</button></div>
   <div class="row dim" id="counts"></div>
   <div id="list"></div>
 </aside>
@@ -89,7 +90,8 @@ function renderList() {
   const done = fixtures.filter(x => x.windows).length, rev = fixtures.filter(x => x.reviewed).length;
   $('#counts').textContent = `${rev} processed · ${done} with windows · ${fixtures.length - done} empty`;
   const pass = x => st === 'all' || (st === 'todo' && !x.windows) || (st === 'reviewed' && x.reviewed) || (st === 'unreviewed' && !x.reviewed)
-    || (st === 'live' && x.live) || (st === 'liveunchecked' && x.live && !x.tracking) || (st === 'video' && x.video);
+    || (st === 'live' && x.live) || (st === 'liveunchecked' && x.live && !x.tracking && !x.video) || (st === 'video' && x.video)
+    || (st === 'work' && (x.video || (!x.video && !x.reviewed) || (x.live && x.tracked && !x.tracking)));
   const shown = fixtures.filter(x => x.name.toLowerCase().includes(f) && pass(x));
   $('#list').innerHTML = shown.map(x =>
     `<div data-n="${x.name}" class="${x.name===current?'sel':''} ${x.windows?'':'todo'}" title="${x.name}">${x.reviewed?'✓ ':''}${x.video?'🎞 ':''}${x.name.replace(/\.(jpe?g|heic|png)$/i,'')}<span class="n">${x.live ? `<span class="live ${x.tracking||''}" title="${x.live} Live record(s), ${x.tracked} tracked frames${x.tracking ? ', tracking ' + x.tracking : ''}">▶${x.tracked ? '' : '?'}</span> ` : ''}${x.windows||'·'}</span></div>`).join('');
@@ -325,6 +327,7 @@ $('#vlSave').onclick = saveVideoLabel;
 function next() { const names = [...document.querySelectorAll('#list div')].map(d => d.dataset.n); const n = names[names.indexOf(current) + 1]; if (n) openFixture(n); }
 $('#savenext').onclick = async () => { $('#reviewed').checked = true; await save(); next(); };
 $('#filter').oninput = renderList; $('#state').onchange = renderList;
+document.querySelectorAll('.quick').forEach(b => b.onclick = () => { $('#state').value = b.dataset.q; renderList(); });
 document.querySelectorAll('[data-nod],[data-dis]').forEach(i => i.oninput = touch);
 document.addEventListener('keydown', e => {
   const t = e.target; const typing = t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !['range','checkbox','radio'].includes(t.type));
