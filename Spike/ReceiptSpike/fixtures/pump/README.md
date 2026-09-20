@@ -1301,3 +1301,8 @@ below) that Gazpromneft's post-pay forecourts run - the corpus had none. All **t
   the price `35.15` in the 95 board cell.
 
 Pump cells asserted: 612 → 672 (twenty triples, `pump-226` none), totals only (macOS 27).
+
+`pump-240` (same day, later): Gilbarco Veeder-Root at a Lukoil column (`ЭКТО` / `95` on the
+nozzle boots), Cyrillic, `4693,50` / `90,00` at `52,15` - a 90-litre preset, unpadded, the
+`МИНИМАЛЬНАЯ ДОЗА ОТПУСКА 5Л` legend and the keypad in frame, a Kia Soul on the wet forecourt
+behind. Train; three windows (903). Pump cells: 672 → 675.
