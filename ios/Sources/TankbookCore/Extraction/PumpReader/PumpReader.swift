@@ -88,6 +88,8 @@ struct PumpReader {
         let quad: [CGPoint]
         let glyphCount: Int
         let meanMargin: Double
+        /// From the row detector (PU.33) rather than the Vision proposals.
+        var detected: Bool = false
     }
 
     static let minimumVerifiedCells = 3
@@ -137,6 +139,7 @@ struct PumpReader {
         let cells: Int
         let meanMargin: Double
         let kept: Bool
+        var detected: Bool = false
     }
 
     /// Two verified windows are one row when they overlap this much - the
@@ -158,7 +161,8 @@ struct PumpReader {
                     || Self.containment(existing.quad, verdict.quad) >= Self.duplicateContainment
             }
             if !duplicate {
-                out.append(VerifiedWindow(quad: verdict.quad, glyphCount: verdict.cells, meanMargin: verdict.meanMargin))
+                out.append(VerifiedWindow(quad: verdict.quad, glyphCount: verdict.cells, meanMargin: verdict.meanMargin,
+                                          detected: verdict.detected))
             }
         }
         return out
@@ -220,7 +224,8 @@ struct PumpReader {
             // confidence already vouched for it, and gating it on the
             // classifier's margin coupled the live number to every retrain.
             let kept = candidate.detected ? shaped : (shaped && mean >= Self.minimumMeanMargin)
-            out.append(Verdict(quad: quad, heightFraction: heightFraction, cells: cells.count, meanMargin: mean, kept: kept))
+            out.append(Verdict(quad: quad, heightFraction: heightFraction, cells: cells.count, meanMargin: mean, kept: kept,
+                               detected: candidate.detected))
         }
         return out
     }

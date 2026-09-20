@@ -90,8 +90,11 @@ public enum PumpDisplayCapture {
     static func displayRows(_ verified: [PumpReader.VerifiedWindow], imageHeight: Int) -> [PumpReader.VerifiedWindow] {
         verified.filter { window in
             let ys = window.quad.map(\.y)
+            // A row the detector vouched for counts on size alone; a Vision
+            // row still needs the classifier's wider margin (a receipt's
+            // printed totals passed the verifier at 1.0).
             return (ys.max()! - ys.min()!) >= minimumRowHeightFraction * CGFloat(imageHeight)
-                && window.meanMargin >= classificationMinimumMargin
+                && (window.detected || window.meanMargin >= classificationMinimumMargin)
         }
     }
 
