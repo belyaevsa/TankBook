@@ -370,14 +370,22 @@ class Handler(SimpleHTTPRequestHandler):
             labels = video_labels()
             entry = {k: body[k] for k in ("total", "liters", "unitPrice") if k in body}
             # `frames` lists every frame of the run the label applies to.
+            # The frame itself always takes the label; the rest of its run only
+            # where no human label exists yet - a glitched frame inside a run
+            # that the owner labelled by hand keeps its own reading.
             targets = body.get("frames") or [frame]
+            per = labels.setdefault(stem, {})
+            written = []
             for target in targets:
+                if target != frame and per.get(target, {}).get("source") == "owner":
+                    continue
                 if any(entry.values()):
-                    labels.setdefault(stem, {})[target] = dict(entry, source="owner")
+                    per[target] = dict(entry, source="owner")
                 else:
-                    labels.get(stem, {}).pop(target, None)
+                    per.pop(target, None)
+                written.append(target)
             VIDEO_LABELS.write_text(json.dumps(labels, indent=1, sort_keys=True))
-            return self.send_json({"ok": True})
+            return self.send_json({"ok": True, "written": written})
         if not path.startswith("/api/entry/"):
             return self.send_error(HTTPStatus.NOT_FOUND)
         name = unquote(path[len("/api/entry/"):])

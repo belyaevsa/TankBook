@@ -235,9 +235,11 @@ async function saveVideoLabel() {
   if (frameQuadsEdited) { await saveAnchor(); }
   const run = $('#vlRun').checked ? runOf(r, name) : [name];
   const body = {total: $('#vlTotal').value.trim(), liters: $('#vlLiters').value.trim(), unitPrice: $('#vlPrice').value.trim(), frames: run};
-  await fetch('/api/video-label/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name), {method:'PUT', body: JSON.stringify(body)});
-  for (const fr of run) { const f = r.frames[fr]; for (const w of f.windows) if (body[w.field] !== undefined) w.text = body[w.field]; f.source = (body.total || body.liters) ? 'owner' : null; }
-  setMsg(`label saved to ${run.length} frame(s)`); showVideoLabel(); draw();
+  const res = await (await fetch('/api/video-label/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name), {method:'PUT', body: JSON.stringify(body)})).json();
+  const written = res.written || [name];
+  for (const fr of written) { const f = r.frames[fr]; for (const w of f.windows) if (body[w.field] !== undefined) w.text = body[w.field]; f.source = (body.total || body.liters) ? 'owner' : null; }
+  const kept = run.length - written.length;
+  setMsg(`label saved to ${written.length} frame(s)` + (kept ? `, ${kept} hand-labelled frame(s) in the run kept their own` : '')); showVideoLabel(); draw();
 }
 function stepRun(dir) {
   const r = currentRecord(); const name = r.tracked[frameIdx]; const runs = r.runs || [];
