@@ -36,6 +36,7 @@ struct PumpVideoReadTests {
                   let frames = tracked["frames"] as? [String: Any] else { continue }
             let comma = priceText.contains(",")
             var perVideo = labels[stem] as? [String: Any] ?? [:]
+            var readings: [String: Any] = [:]
             var closed = 0, read = 0
             for (frameName, frameValue) in frames.sorted(by: { Int($0.key.dropLast(4)) ?? 0 < Int($1.key.dropLast(4)) ?? 0 }) {
                 if let existing = perVideo[frameName] as? [String: Any], existing["source"] as? String == "owner" { continue }
@@ -58,14 +59,20 @@ struct PumpVideoReadTests {
                     }.joined()
                     strings[r.field] = digits
                 }
-                guard let t = strings[.total], let l = strings[.liters], !t.contains("?"), !l.contains("?"),
-                      let total = Double(t.replacingOccurrences(of: ",", with: ".")),
-                      let liters = Double(l.replacingOccurrences(of: ",", with: ".")), liters > 0,
-                      abs(total - (liters * price * 100).rounded() / 100) < 0.011 || abs(total - (liters * price * 10).rounded() / 10) < 0.06 else { continue }
+                let t = strings[.total] ?? "", l = strings[.liters] ?? ""
+                let total = Double(t.replacingOccurrences(of: ",", with: "."))
+                let liters = Double(l.replacingOccurrences(of: ",", with: "."))
+                let closes = !t.contains("?") && !l.contains("?") && total != nil && liters != nil && liters! > 0
+                    && (abs(total! - (liters! * price * 100).rounded() / 100) < 0.011 || abs(total! - (liters! * price * 10).rounded() / 10) < 0.06)
+                // Every reading is kept for the annotator's pre-fill; only a closing one is a label.
+                readings[frameName] = ["total": t, "liters": l, "closes": closes]
+                guard closes else { continue }
                 closed += 1
                 perVideo[frameName] = ["total": t, "liters": l, "unitPrice": priceText, "source": "arithmetic"]
             }
             labels[stem] = perVideo
+            let readingsData = try JSONSerialization.data(withJSONObject: readings, options: [.sortedKeys])
+            try readingsData.write(to: Self.live.appendingPathComponent("frames/\(stem)/readings.json"))
             summary.append("\(stem.prefix(9)): \(closed) of \(read) frames closed (\(perVideo.count) labelled)")
         }
         let data = try JSONSerialization.data(withJSONObject: labels, options: [.prettyPrinted, .sortedKeys])

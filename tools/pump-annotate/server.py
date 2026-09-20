@@ -170,18 +170,37 @@ def video_labels() -> dict:
 
 
 def video_record(stem: str) -> dict:
-    """A running-display video as one record: its tracked frames plus the
-    per-frame labels (arithmetic or owner) merged into each frame's windows."""
+    """A running-display video as one record: its tracked frames, the
+    per-frame labels (arithmetic or owner) merged into each frame's windows,
+    the reader's raw reading of every frame as a pre-fill (source `reader`,
+    never a label until saved), and the RUNS - consecutive frames the reader
+    read as the same value - so a label is typed once per value."""
     tracked = FRAMES / stem / "windows.json"
     frames = json.loads(tracked.read_text()).get("frames", {}) if tracked.exists() else {}
     labels = video_labels().get(stem, {})
+    readings_path = FRAMES / stem / "readings.json"
+    readings = json.loads(readings_path.read_text()) if readings_path.exists() else {}
+    order = sorted(frames, key=lambda n: int(n[:-4]))
     for name, frame in frames.items():
         lab = labels.get(name, {})
+        rd = readings.get(name, {})
         for w in frame["windows"]:
             if w["field"] in lab:
                 w["text"] = lab[w["field"]]
+            elif w["field"] in ("total", "liters") and rd.get(w["field"]) and "?" not in rd[w["field"]]:
+                w["prefill"] = rd[w["field"]]
         frame["source"] = lab.get("source")
-    return {"movie": stem, "tracked": sorted(frames, key=lambda n: int(n[:-4])), "frames": frames,
+    runs: list[list[str]] = []
+    prev = None
+    for name in order:
+        rd = readings.get(name)
+        key = (rd["total"], rd["liters"]) if rd else None
+        if key is None or key != prev or not runs:
+            runs.append([name])
+        else:
+            runs[-1].append(name)
+        prev = key
+    return {"movie": stem, "tracked": order, "frames": frames, "runs": runs,
             "extracted": len(list((FRAMES / stem).glob("*.jpg"))) if (FRAMES / stem).exists() else 0,
             "labelled": sum(1 for n in frames if n in labels)}
 
@@ -329,11 +348,13 @@ class Handler(SimpleHTTPRequestHandler):
             body = json.loads(self.rfile.read(length))
             labels = video_labels()
             entry = {k: body[k] for k in ("total", "liters", "unitPrice") if k in body}
-            if any(entry.values()):
-                entry["source"] = "owner"
-                labels.setdefault(stem, {})[frame] = entry
-            else:
-                labels.get(stem, {}).pop(frame, None)
+            # `frames` lists every frame of the run the label applies to.
+            targets = body.get("frames") or [frame]
+            for target in targets:
+                if any(entry.values()):
+                    labels.setdefault(stem, {})[target] = dict(entry, source="owner")
+                else:
+                    labels.get(stem, {}).pop(target, None)
             VIDEO_LABELS.write_text(json.dumps(labels, indent=1, sort_keys=True))
             return self.send_json({"ok": True})
         if not path.startswith("/api/entry/"):

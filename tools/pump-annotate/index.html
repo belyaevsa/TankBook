@@ -26,6 +26,7 @@
   #status { position:sticky; bottom:0; background:var(--panel); padding:6px 0; border-top:1px solid var(--line) }
   pre { white-space:pre-wrap; font-size:11px; max-height:200px; overflow:auto; margin:4px 0 }
   .ok { color:var(--ok) } .bad { color:var(--bad) }
+  input.prefill { color:#ffc857; font-style:italic }
   kbd { border:1px solid var(--line); border-radius:3px; padding:0 4px; font-size:11px; color:var(--dim) }
 </style>
 </head>
@@ -40,7 +41,7 @@
 <main><canvas id="c"></canvas></main>
 <section class="right">
   <div class="row"><b id="name" style="flex:1">–</b> <label title="reviewed by a human; P toggles"><input type="checkbox" id="reviewed"> processed</label></div>
-  <div class="row dim">Drag = new window · click = select · drag corner = adjust · <kbd>⌫</kbd> delete · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> field · <kbd>⌘S</kbd> save · <kbd>P</kbd> processed · <kbd>⏎</kbd> save &amp; next · <kbd>J</kbd>/<kbd>K</kbd> next/prev</div>
+  <div class="row dim">Drag = new window · click = select · drag corner = adjust · <kbd>⌫</kbd> delete · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> field · <kbd>⌘S</kbd> save · <kbd>+</kbd>/<kbd>-</kbd>/<kbd>0</kbd> zoom · <kbd>P</kbd> processed · <kbd>⏎</kbd> save &amp; next · <kbd>J</kbd>/<kbd>K</kbd> next/prev</div>
   <div class="row">Zoom <input id="zoom" type="range" min="0.25" max="4" step="0.05" value="1" style="flex:1">
     Rotate <select id="rot"><option>0</option><option>90</option><option>180</option><option>270</option></select></div>
   <div class="row mono" id="csv"></div>
@@ -57,7 +58,9 @@
       total <input id="vlTotal" class="mono" style="width:80px"> liters <input id="vlLiters" class="mono" style="width:70px"> price <input id="vlPrice" class="mono" style="width:60px">
       <span id="vlSource" class="dim"></span> <button id="vlSave">Save label</button> <span class="dim"><kbd>⇧⏎</kbd></span>
       <button id="vlCopy" title="copy the previous labelled frame's numbers here and save">← same as previous</button> <span class="dim"><kbd>⇧←</kbd></span>
-      <button id="vlSkip" title="jump to the next frame without a label">next unlabelled ▸</button></div>
+      <button id="vlSkip" title="jump to the next frame without a label">next unlabelled ▸</button>
+      <label title="the reader read these frames as one value; the label applies to all of them"><input type="checkbox" id="vlRun" checked> whole run</label>
+      <span class="dim"><kbd>⇧→</kbd> next run</span></div>
   </div>
   <div id="wins"></div>
   <div class="row"><button id="add">+ window</button> <span class="dim">or drag on the image</span></div>
@@ -164,20 +167,31 @@ function leaveFrames() {
   frameMode = false; img = stillImg; $('#videoLabel').style.display = 'none'; $('#frameSlider').style.display = 'none'; $('#framesToggle').textContent = 'View frames';
   $('#frameName').textContent = ''; fit(); draw();
 }
+function runOf(r, name) { return (r.runs || []).find(run => run.includes(name)) || [name]; }
 function showVideoLabel() {
   $('#videoLabel').style.display = (isVideo && frameMode) ? '' : 'none';
   if (!isVideo || !frameMode) return;
   const r = currentRecord(); const name = r.tracked[frameIdx]; const f = r.frames[name];
-  const get = k => (f.windows.find(w => w.field === k) || {}).text || '';
-  $('#vlTotal').value = get('total'); $('#vlLiters').value = get('liters'); $('#vlPrice').value = get('unitPrice');
-  $('#vlSource').textContent = f.source ? `(${f.source})` : '(unlabelled)';
+  const win = k => f.windows.find(w => w.field === k) || {};
+  const get = k => win(k).text || '';
+  const pre = k => win(k).prefill || '';
+  $('#vlTotal').value = get('total') || pre('total'); $('#vlLiters').value = get('liters') || pre('liters'); $('#vlPrice').value = get('unitPrice');
+  $('#vlTotal').classList.toggle('prefill', !get('total') && !!pre('total')); $('#vlLiters').classList.toggle('prefill', !get('liters') && !!pre('liters'));
+  const run = runOf(r, name);
+  $('#vlSource').textContent = (f.source ? `(${f.source})` : (pre('total') ? '(reader pre-fill – confirm)' : '(unlabelled)')) + ` · run of ${run.length}`;
 }
 async function saveVideoLabel() {
-  const r = currentRecord(); const name = r.tracked[frameIdx]; const f = r.frames[name];
-  const body = {total: $('#vlTotal').value.trim(), liters: $('#vlLiters').value.trim(), unitPrice: $('#vlPrice').value.trim()};
+  const r = currentRecord(); const name = r.tracked[frameIdx];
+  const run = $('#vlRun').checked ? runOf(r, name) : [name];
+  const body = {total: $('#vlTotal').value.trim(), liters: $('#vlLiters').value.trim(), unitPrice: $('#vlPrice').value.trim(), frames: run};
   await fetch('/api/video-label/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name), {method:'PUT', body: JSON.stringify(body)});
-  for (const w of f.windows) if (body[w.field] !== undefined) w.text = body[w.field];
-  f.source = (body.total || body.liters) ? 'owner' : null; setMsg('label saved'); showVideoLabel(); draw();
+  for (const fr of run) { const f = r.frames[fr]; for (const w of f.windows) if (body[w.field] !== undefined) w.text = body[w.field]; f.source = (body.total || body.liters) ? 'owner' : null; }
+  setMsg(`label saved to ${run.length} frame(s)`); showVideoLabel(); draw();
+}
+function stepRun(dir) {
+  const r = currentRecord(); const name = r.tracked[frameIdx]; const runs = r.runs || [];
+  const i = runs.findIndex(run => run.includes(name)); const next = runs[i + dir];
+  if (next) { frameIdx = r.tracked.indexOf(next[0]); showFrame(); } else setMsg('no more runs');
 }
 function previousLabelled() {
   const r = currentRecord();
@@ -287,8 +301,11 @@ function draw() {
     const pts = win.quad.map(toDisp);
     ctx.lineWidth = (i === sel ? 3 : 2) / zoom; ctx.strokeStyle = COLORS[win.field] || '#fff';
     ctx.beginPath(); pts.forEach((p, k) => k ? ctx.lineTo(...p) : ctx.moveTo(...p)); ctx.closePath(); ctx.stroke();
-    ctx.fillStyle = ctx.strokeStyle; ctx.font = `${14 / zoom}px system-ui`;
-    ctx.fillText(`${win.field} ${win.text || ''}`, pts[0][0], pts[0][1] - 4 / zoom);
+    ctx.font = `${14 / zoom}px system-ui`;
+    const label = `${win.field} ${win.text || win.prefill || ''}`;
+    const tw = ctx.measureText(label).width, th = 16 / zoom;
+    ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(pts[0][0] - 2 / zoom, pts[0][1] - th - 4 / zoom, tw + 4 / zoom, th + 2 / zoom);
+    ctx.fillStyle = ctx.strokeStyle; ctx.fillText(label, pts[0][0], pts[0][1] - 4 / zoom);
     if (i === sel) pts.forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 6 / zoom, 0, 7); ctx.fill(); });
   });
   if (drag && drag.kind === 'new') {
@@ -363,6 +380,11 @@ document.addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); save(); return; }
   if (typing && frameMode && isVideo && e.key === 'Enter' && e.shiftKey) { e.preventDefault(); saveVideoLabel(); return; }
   if (frameMode && isVideo && e.key === 'ArrowLeft' && e.shiftKey) { e.preventDefault(); copyPrevious(); return; }
+  if (frameMode && isVideo && e.key === 'ArrowRight' && e.shiftKey) { e.preventDefault(); stepRun(1); return; }
+  if (!typing && (e.key === '+' || e.key === '=')) { zoom = Math.min(4, zoom * 1.2); $('#zoom').value = zoom; draw(); return; }
+  if (!typing && e.key === '-') { zoom = Math.max(0.25, zoom / 1.2); $('#zoom').value = zoom; draw(); return; }
+  if (!typing && e.key === '0') { fit(); draw(); return; }
+  if (typing && frameMode && isVideo && e.key === 'ArrowRight' && e.shiftKey) { e.preventDefault(); stepRun(1); return; }
   if (typing && frameMode && isVideo && (e.key === 'ArrowRight' || e.key === 'ArrowLeft') && e.altKey) { e.preventDefault(); frameIdx = Math.max(0, Math.min(currentRecord().tracked.length - 1, frameIdx + (e.key === 'ArrowRight' ? 1 : -1))); showFrame(); return; }
   if (typing) return;
   if (frameMode && e.key === 'ArrowRight') { e.preventDefault(); frameIdx = Math.min(frameIdx + 1, currentRecord().tracked.length - 1); showFrame(); return; }
