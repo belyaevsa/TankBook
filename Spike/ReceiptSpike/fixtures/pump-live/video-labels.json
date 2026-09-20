@@ -4611,7 +4611,26 @@
    "unitPrice": "103.03"
   }
  },
- "video-006-shelf-running-display-preset-ends-ru": {},
+ "video-006-shelf-running-display-preset-ends-ru": {
+  "205.jpg": {
+   "liters": "50.00",
+   "source": "owner",
+   "total": "8000.00",
+   "unitPrice": "160.00"
+  },
+  "206.jpg": {
+   "liters": "50.00",
+   "source": "owner",
+   "total": "8000.00",
+   "unitPrice": "160.00"
+  },
+  "207.jpg": {
+   "liters": "50.00",
+   "source": "owner",
+   "total": "8000.00",
+   "unitPrice": "160.00"
+  }
+ },
  "video-007-adast-running-display-kz": {},
  "video-008-gilbarco-veederroot-running-display-ru": {},
  "video-009-adast-running-display-slow-fill-kz": {},

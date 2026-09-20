@@ -42,25 +42,34 @@ def probe(movie: Path) -> dict:
             "frames": int(stream["nb_read_frames"]), "fps": int(num) / int(den)}
 
 
-def first_frame(stem: str) -> int:
-    """The first usable frame of a video (`firstFrame` in videos.json, e.g.
-    "047.jpg"): a clip whose opening frames are corrupt or show no display
-    drops them at extraction, so nothing downstream ever sees them."""
+def frame_range(stem: str) -> tuple[int, int | None]:
+    """The usable frames of a video (`firstFrame` / `lastFrame` in videos.json,
+    e.g. "047.jpg"): a clip whose opening frames are corrupt or show no
+    display, or whose tail is a frozen display after the fill ended, drops them
+    at extraction, so nothing downstream ever sees them."""
     videos = LIVE / "videos.json"
     if not videos.exists():
-        return 1
+        return 1, None
     entry = json.loads(videos.read_text()).get(stem, {})
-    name = entry.get("firstFrame") if isinstance(entry, dict) else None
-    return int(name[:-4]) if name else 1
+    if not isinstance(entry, dict):
+        return 1, None
+    first, last = entry.get("firstFrame"), entry.get("lastFrame")
+    return (int(first[:-4]) if first else 1), (int(last[:-4]) if last else None)
+
+
+def in_range(name: str, start: int, end: int | None) -> bool:
+    n = int(name[:-4]) if name[:-4].isdigit() else 0
+    return n >= start and (end is None or n <= end)
 
 
 def extract(movie: Path, force: bool = False) -> tuple[Path, int, bool]:
     """Returns (folder, frame count, extracted-now)."""
     folder = FRAMES / movie.stem
     info = probe(movie)
-    start = first_frame(movie.stem)
+    start, end = frame_range(movie.stem)
+    expected = min(info["frames"], end) - (start - 1) if end else info["frames"] - (start - 1)
     have = len(list(folder.glob("*.jpg"))) if folder.exists() else 0
-    if info["frames"] == 0 or (have == info["frames"] - (start - 1) and not force):
+    if info["frames"] == 0 or (have == expected and not force):
         return folder, have, False
     if folder.exists():
         for old in folder.glob("*.jpg"):
@@ -70,10 +79,11 @@ def extract(movie: Path, force: bool = False) -> tuple[Path, int, bool]:
         ["ffmpeg", "-v", "error", "-y", "-i", str(movie), "-fps_mode", "passthrough", "-q:v", "2",
          str(folder / "%03d.jpg")],
         check=True)
-    for early in folder.glob("*.jpg"):
-        if early.stem.isdigit() and int(early.stem) < start:
-            early.unlink()
-    (folder / "movie.json").write_text(json.dumps({"movie": movie.name, "firstFrame": start, **info}, indent=1))
+    for outside in folder.glob("*.jpg"):
+        if not in_range(outside.name, start, end):
+            outside.unlink()
+    (folder / "movie.json").write_text(
+        json.dumps({"movie": movie.name, "firstFrame": start, "lastFrame": end, **info}, indent=1))
     return folder, len(list(folder.glob("*.jpg"))), True
 
 

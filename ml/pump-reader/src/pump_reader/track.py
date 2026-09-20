@@ -210,7 +210,9 @@ def track_video(stem: str, entry: dict, min_inliers: int) -> dict | None:
     `PumpVideoReadTests` fills the rest where the arithmetic closes."""
     folder = FRAMES / stem
     start = int(entry["firstFrame"][:-4]) if entry.get("firstFrame") else 1
-    frames = sorted((p for p in folder.glob("*.jpg") if p.stem.isdigit() and int(p.stem) >= start),
+    end = int(entry["lastFrame"][:-4]) if entry.get("lastFrame") else None
+    frames = sorted((p for p in folder.glob("*.jpg")
+                     if p.stem.isdigit() and int(p.stem) >= start and (end is None or int(p.stem) <= end)),
                     key=lambda p: int(p.stem))
     if not frames:
         return None

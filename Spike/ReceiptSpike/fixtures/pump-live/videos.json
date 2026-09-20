@@ -493,7 +493,9 @@
     ]
    }
   ],
-  "reviewed": true
+  "reviewed": false,
+  "lastFrame": "207.jpg",
+  "anchors": []
  },
  "video-007-adast-running-display-kz": {
   "reference": "180.jpg",
