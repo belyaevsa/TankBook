@@ -200,11 +200,68 @@ def sheet(folder: Path, tracked: dict, cols: int = 6, rows: int = 2, tile: int =
     canvas.save(folder / "sheet.jpg", quality=80)
 
 
+VIDEOS = LIVE / "videos.json"
+
+
+def track_video(stem: str, entry: dict, min_inliers: int) -> dict | None:
+    """A running-display video has no still: its reference is one of its own
+    frames (`videos.json`), annotated by hand, and the quads are carried from
+    it exactly as a still's are. Texts stay empty except the constant price;
+    `PumpVideoReadTests` fills the rest where the arithmetic closes."""
+    folder = FRAMES / stem
+    frames = sorted(folder.glob("*.jpg"), key=lambda p: int(p.stem))
+    if not frames:
+        return None
+    ref = folder / entry["reference"]
+    ref_gray = cv2.imread(str(ref), cv2.IMREAD_GRAYSCALE)
+    sh, sw = ref_gray.shape
+    quads_px = [np.array(w["quad"], dtype=np.float64) * [sw, sh] for w in entry["windows"]]
+    reg = Registrar(ref_gray, quads_px)
+    out: dict = {"_video": stem, "_reference": entry["reference"], "_split": "train", "frames": {}}
+    kept = dropped = 0
+    for frame in frames:
+        gray = cv2.imread(str(frame), cv2.IMREAD_GRAYSCALE)
+        fh, fw = gray.shape
+        H, inliers, _ = reg.homography(gray)
+        if H is None or inliers < min_inliers:
+            dropped += 1
+            continue
+        windows = []
+        ok = True
+        for w, q in zip(entry["windows"], quads_px):
+            m = map_quad(H, q)
+            if not plausible(m, q, (fw, fh), (sw, sh)):
+                ok = False
+                break
+            windows.append({"field": w["field"], "text": entry["unitPrice"] if w["field"] == "unitPrice" else "",
+                            "quad": [[round(float(x) / fw, 4), round(float(y) / fh, 4)] for x, y in m]})
+        if not ok:
+            dropped += 1
+            continue
+        out["frames"][frame.name] = {"windows": windows, "inliers": inliers}
+        kept += 1
+    out["_kept"] = kept
+    out["_dropped"] = dropped
+    (folder / "windows.json").write_text(json.dumps(out, indent=1))
+    sheet(folder, out)
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="pump_reader.track")
     parser.add_argument("--only", action="append", default=[])
     parser.add_argument("--min-inliers", type=int, default=30)
+    parser.add_argument("--videos", action="store_true", help="track the running-display videos from videos.json")
     args = parser.parse_args(argv)
+    if args.videos:
+        videos = json.loads(VIDEOS.read_text())
+        for stem, entry in videos.items():
+            if stem.startswith("_") or (args.only and stem not in args.only):
+                continue
+            result = track_video(stem, entry, args.min_inliers)
+            if result:
+                print(f"{stem}: {result['_kept']} kept, {result['_dropped']} dropped")
+        return 0
     ann = load_windows()
     records = paired_records()
     if args.only:

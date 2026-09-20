@@ -32,7 +32,7 @@
 <body>
 <aside>
   <div class="row"><input id="filter" placeholder="filter…" style="flex:1">
-    <select id="state"><option value="all">all</option><option value="todo">no windows</option><option value="unreviewed">not processed</option><option value="reviewed">processed</option><option value="live">with Live record</option><option value="liveunchecked">Live, tracking unreviewed</option></select></div>
+    <select id="state"><option value="all">all</option><option value="todo">no windows</option><option value="unreviewed">not processed</option><option value="reviewed">processed</option><option value="live">with Live record</option><option value="liveunchecked">Live, tracking unreviewed</option><option value="video">videos</option></select></div>
   <div class="row dim" id="counts"></div>
   <div id="list"></div>
 </aside>
@@ -52,6 +52,9 @@
       <label><input type="radio" name="tracking" value="ok"> ok</label>
       <label><input type="radio" name="tracking" value="bad"> bad – skip this record</label>
       <span class="dim">(<kbd>←</kbd>/<kbd>→</kbd> step frames, <kbd>Esc</kbd> back to the still)</span></div>
+    <div class="row" id="videoLabel" style="display:none"><b>frame label</b>
+      total <input id="vlTotal" class="mono" style="width:80px"> liters <input id="vlLiters" class="mono" style="width:70px"> price <input id="vlPrice" class="mono" style="width:60px">
+      <span id="vlSource" class="dim"></span> <button id="vlSave">Save label</button> <span class="dim"><kbd>⇧⏎</kbd></span></div>
   </div>
   <div id="wins"></div>
   <div class="row"><button id="add">+ window</button> <span class="dim">or drag on the image</span></div>
@@ -74,7 +77,7 @@ const $ = s => document.querySelector(s);
 const canvas = $('#c'), ctx = canvas.getContext('2d');
 let fixtures = [], current = null, entry = null, row = null, img = null, dirty = false;
 let sel = -1, zoom = 1, drag = null;
-let records = [], frameMode = false, frameIdx = 0, frameImg = null, stillImg = null;
+let records = [], frameMode = false, frameIdx = 0, frameImg = null, stillImg = null, isVideo = false;
 
 // ---- data ----
 async function loadList() {
@@ -86,10 +89,10 @@ function renderList() {
   const done = fixtures.filter(x => x.windows).length, rev = fixtures.filter(x => x.reviewed).length;
   $('#counts').textContent = `${rev} processed · ${done} with windows · ${fixtures.length - done} empty`;
   const pass = x => st === 'all' || (st === 'todo' && !x.windows) || (st === 'reviewed' && x.reviewed) || (st === 'unreviewed' && !x.reviewed)
-    || (st === 'live' && x.live) || (st === 'liveunchecked' && x.live && !x.tracking);
+    || (st === 'live' && x.live) || (st === 'liveunchecked' && x.live && !x.tracking) || (st === 'video' && x.video);
   const shown = fixtures.filter(x => x.name.toLowerCase().includes(f) && pass(x));
   $('#list').innerHTML = shown.map(x =>
-    `<div data-n="${x.name}" class="${x.name===current?'sel':''} ${x.windows?'':'todo'}" title="${x.name}">${x.reviewed?'✓ ':''}${x.name.replace(/\.(jpe?g|heic|png)$/i,'')}<span class="n">${x.live ? `<span class="live ${x.tracking||''}" title="${x.live} Live record(s), ${x.tracked} tracked frames${x.tracking ? ', tracking ' + x.tracking : ''}">▶${x.tracked ? '' : '?'}</span> ` : ''}${x.windows||'·'}</span></div>`).join('');
+    `<div data-n="${x.name}" class="${x.name===current?'sel':''} ${x.windows?'':'todo'}" title="${x.name}">${x.reviewed?'✓ ':''}${x.video?'🎞 ':''}${x.name.replace(/\.(jpe?g|heic|png)$/i,'')}<span class="n">${x.live ? `<span class="live ${x.tracking||''}" title="${x.live} Live record(s), ${x.tracked} tracked frames${x.tracking ? ', tracking ' + x.tracking : ''}">▶${x.tracked ? '' : '?'}</span> ` : ''}${x.windows||'·'}</span></div>`).join('');
   document.querySelectorAll('#list div').forEach(d => d.onclick = () => openFixture(d.dataset.n));
 }
 async function openFixture(n) {
@@ -98,8 +101,9 @@ async function openFixture(n) {
   let r;
   try { r = await (await fetch('/api/entry/' + encodeURIComponent(n))).json(); }
   catch (err) { setMsg('load failed: ' + err); return; }
-  entry = r.entry; row = r.row;
+  entry = r.entry; row = r.row; isVideo = !!r.video;
   entry.windows = entry.windows || [];
+  $('#reviewed').parentElement.style.display = isVideo ? 'none' : '';
   $('#name').textContent = n;
   $('#rot').value = String(entry.rotationCW || 0);
   $('#reviewed').checked = !!entry.reviewed;
@@ -111,7 +115,7 @@ async function openFixture(n) {
   document.querySelectorAll('[data-use]').forEach(b => b.onclick = () => addWindow(b.dataset.use, row[b.dataset.use]));
   img = new Image();
   img.onload = () => { fit(); draw(); };
-  img.src = '/image/' + encodeURIComponent(n) + '?t=' + Date.now();
+  img.src = isVideo ? '/frame/' + encodeURIComponent(n) + '/' + encodeURIComponent(entry.reference) : '/image/' + encodeURIComponent(n) + '?t=' + Date.now();
   stillImg = img; resetFrames();
   document.querySelectorAll('[name=tracking]').forEach(r => r.checked = (entry.tracking || '') === r.value);
   recordsLoaded = loadRecords(n);
@@ -144,12 +148,28 @@ async function enterFrames() {
   $('#framesToggle').textContent = 'Back to still'; showFrame();
 }
 function leaveFrames() {
-  frameMode = false; img = stillImg; $('#frameSlider').style.display = 'none'; $('#framesToggle').textContent = 'View frames';
+  frameMode = false; img = stillImg; $('#videoLabel').style.display = 'none'; $('#frameSlider').style.display = 'none'; $('#framesToggle').textContent = 'View frames';
   $('#frameName').textContent = ''; fit(); draw();
+}
+function showVideoLabel() {
+  $('#videoLabel').style.display = (isVideo && frameMode) ? '' : 'none';
+  if (!isVideo || !frameMode) return;
+  const r = currentRecord(); const name = r.tracked[frameIdx]; const f = r.frames[name];
+  const get = k => (f.windows.find(w => w.field === k) || {}).text || '';
+  $('#vlTotal').value = get('total'); $('#vlLiters').value = get('liters'); $('#vlPrice').value = get('unitPrice');
+  $('#vlSource').textContent = f.source ? `(${f.source})` : '(unlabelled)';
+}
+async function saveVideoLabel() {
+  const r = currentRecord(); const name = r.tracked[frameIdx]; const f = r.frames[name];
+  const body = {total: $('#vlTotal').value.trim(), liters: $('#vlLiters').value.trim(), unitPrice: $('#vlPrice').value.trim()};
+  await fetch('/api/video-label/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name), {method:'PUT', body: JSON.stringify(body)});
+  for (const w of f.windows) if (body[w.field] !== undefined) w.text = body[w.field];
+  f.source = (body.total || body.liters) ? 'owner' : null; setMsg('label saved'); showVideoLabel(); draw();
 }
 function showFrame() {
   if (!frameMode) return;
   const r = currentRecord(); const name = r && r.tracked[frameIdx]; if (!name) return;
+  showVideoLabel();
   const movie = r.movie, still = current;
   $('#frameSlider').value = frameIdx; $('#frameName').textContent = `${name} · inliers ${r.frames[name].inliers} · ${frameIdx + 1}/${r.tracked.length}`;
   frameImg = new Image();
@@ -166,7 +186,7 @@ function collect() {
   return entry;
 }
 async function save() {
-  if (!current) return;
+  if (!current || isVideo) return;
   const r = await (await fetch('/api/entry/' + encodeURIComponent(current), {method:'PUT', body: JSON.stringify(collect())})).json();
   entry = r.entry; entry.windows = entry.windows || []; dirty = false; setMsg('saved');
   const fx = fixtures.find(x => x.name === current); if (fx) { fx.windows = entry.windows.length; fx.reviewed = !!entry.reviewed; fx.tracking = entry.tracking || null; }
@@ -301,6 +321,7 @@ $('#rec').onchange = () => { frameIdx = 0; showRecordInfo(); if (frameMode) show
 document.querySelectorAll('[name=tracking]').forEach(r => r.onchange = touch);
 $('#save').onclick = save; $('#check').onclick = check;
 $('#reviewed').onchange = touch;
+$('#vlSave').onclick = saveVideoLabel;
 function next() { const names = [...document.querySelectorAll('#list div')].map(d => d.dataset.n); const n = names[names.indexOf(current) + 1]; if (n) openFixture(n); }
 $('#savenext').onclick = async () => { $('#reviewed').checked = true; await save(); next(); };
 $('#filter').oninput = renderList; $('#state').onchange = renderList;
@@ -308,10 +329,13 @@ document.querySelectorAll('[data-nod],[data-dis]').forEach(i => i.oninput = touc
 document.addEventListener('keydown', e => {
   const t = e.target; const typing = t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !['range','checkbox','radio'].includes(t.type));
   if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); save(); return; }
+  if (typing && frameMode && isVideo && e.key === 'Enter' && e.shiftKey) { e.preventDefault(); saveVideoLabel(); return; }
+  if (typing && frameMode && isVideo && (e.key === 'ArrowRight' || e.key === 'ArrowLeft') && e.altKey) { e.preventDefault(); frameIdx = Math.max(0, Math.min(currentRecord().tracked.length - 1, frameIdx + (e.key === 'ArrowRight' ? 1 : -1))); showFrame(); return; }
   if (typing) return;
   if (frameMode && e.key === 'ArrowRight') { e.preventDefault(); frameIdx = Math.min(frameIdx + 1, currentRecord().tracked.length - 1); showFrame(); return; }
   if (frameMode && e.key === 'ArrowLeft') { e.preventDefault(); frameIdx = Math.max(frameIdx - 1, 0); showFrame(); return; }
   if (frameMode && e.key === 'Escape') { leaveFrames(); return; }
+  if (frameMode && isVideo && e.key === 'Enter' && e.shiftKey) { e.preventDefault(); saveVideoLabel(); return; }
   if (frameMode) return;
   if ((e.key === 'Backspace' || e.key === 'Delete') && sel >= 0) { e.preventDefault(); removeWindow(sel); }
   if (e.key === 'p') { $('#reviewed').checked = !$('#reviewed').checked; touch(); }

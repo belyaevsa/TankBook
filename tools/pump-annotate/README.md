@@ -32,6 +32,13 @@ the ml venv runs it); the converted images are cached under
   `Esc` back). Mark **tracking ok / bad** on the still; `bad` makes the glyph
   extractor skip that record. Frames are read-only - a wrong quad is fixed on
   the still and the record re-tracked.
+- **Videos** (`🎞`, filter *videos*): the running-display clips from
+  `pump-live/videos.json`. Their "still" is the hand-annotated reference frame;
+  *View frames* steps the tracked frames, and a **frame label** row shows the
+  frame's total / liters / price - filled by the reader where the arithmetic
+  closed (`arithmetic`), empty otherwise. Correct or fill it and **Save label**
+  (`⇧⏎`; `⌥←`/`⌥→` step frames from the input); owner labels are kept by every
+  re-run of the reader. Stored in `pump-live/video-labels.json`.
 - `Save` (`⌘S`) writes the entry back in the file's own formatting and rebuilds
   `fixtures/corpus.sqlite` (also rebuilt at startup) (`scripts/corpus_db.py`), which is committed with it; `Check`
   runs `scripts/pump-windows-check.py --check` and shows the verdict.

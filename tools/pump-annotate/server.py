@@ -40,6 +40,9 @@ IMAGE_EDGE = 2000
 ENTRY_KEYS = ("windows", "rotationCW", "notOnDisplay", "csvDisagrees", "reviewed", "tracking")
 FRAMES = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "pump-live" / "frames"
 DB = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "corpus.sqlite"
+LIVE = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "pump-live"
+VIDEOS = LIVE / "videos.json"
+VIDEO_LABELS = LIVE / "video-labels.json"
 WINDOW_KEYS = ("field", "text", "quad", "legibility")
 
 
@@ -151,6 +154,37 @@ def tracked_count(stems: list[str]) -> int:
     return total
 
 
+def video_entries() -> dict:
+    try:
+        return {k: v for k, v in json.loads(VIDEOS.read_text()).items() if not k.startswith("_")}
+    except (OSError, ValueError):
+        return {}
+
+
+def video_labels() -> dict:
+    try:
+        return json.loads(VIDEO_LABELS.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def video_record(stem: str) -> dict:
+    """A running-display video as one record: its tracked frames plus the
+    per-frame labels (arithmetic or owner) merged into each frame's windows."""
+    tracked = FRAMES / stem / "windows.json"
+    frames = json.loads(tracked.read_text()).get("frames", {}) if tracked.exists() else {}
+    labels = video_labels().get(stem, {})
+    for name, frame in frames.items():
+        lab = labels.get(name, {})
+        for w in frame["windows"]:
+            if w["field"] in lab:
+                w["text"] = lab[w["field"]]
+        frame["source"] = lab.get("source")
+    return {"movie": stem, "tracked": sorted(frames, key=lambda n: int(n[:-4])), "frames": frames,
+            "extracted": len(list((FRAMES / stem).glob("*.jpg"))) if (FRAMES / stem).exists() else 0,
+            "labelled": sum(1 for n in frames if n in labels)}
+
+
 def records_for(still: str) -> list[dict]:
     """The Live records paired to a still (corpus.sqlite media table) with
     their tracked-frame files, when pump_reader.track has run."""
@@ -202,7 +236,8 @@ class Handler(SimpleHTTPRequestHandler):
             ann, rows = load_windows(), load_rows()
             names = list(rows) + [n for n in ann if not n.startswith("_") and n not in rows]
             live = live_counts()
-            return self.send_json([{
+            labels = video_labels()
+            out = [{
                 "name": n,
                 "inCsv": n in rows,
                 "windows": len(ann.get(n, {}).get("windows", [])),
@@ -210,13 +245,26 @@ class Handler(SimpleHTTPRequestHandler):
                 "tracking": ann.get(n, {}).get("tracking"),
                 "live": live.get(n, 0),
                 "tracked": tracked_count(live_stems.get(n, [])),
-            } for n in names])
+            } for n in names]
+            for stem, v in video_entries().items():
+                out.append({"name": stem, "video": True, "inCsv": True, "windows": len(v["windows"]),
+                            "reviewed": False, "tracking": None, "live": 1,
+                            "tracked": tracked_count([stem]), "labelled": len(labels.get(stem, {}))})
+            return self.send_json(out)
         if path.startswith("/api/entry/"):
             name = unquote(path[len("/api/entry/"):])
+            videos = video_entries()
+            if name in videos:
+                v = videos[name]
+                return self.send_json({"video": True, "entry": {"windows": [dict(w, text=v["unitPrice"] if w["field"] == "unitPrice" else "") for w in v["windows"]],
+                                                                "reference": v["reference"]},
+                                       "row": {"liters": "", "unitPrice": v["unitPrice"], "total": "", "currency": v["currency"]}})
             ann, rows = load_windows(), load_rows()
             return self.send_json({"entry": ann.get(name, {"windows": []}), "row": rows.get(name)})
         if path.startswith("/api/records/"):
             name = unquote(path[len("/api/records/"):])
+            if name in video_entries():
+                return self.send_json([video_record(name)])
             return self.send_json(records_for(name))
         if path.startswith("/frame/"):
             rel = unquote(path[len("/frame/"):])
@@ -240,6 +288,21 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_PUT(self):
         path = urlparse(self.path).path
+        if path.startswith("/api/video-label/"):
+            # /api/video-label/<stem>/<frame>: the owner's texts for one frame.
+            rel = unquote(path[len("/api/video-label/"):])
+            stem, _, frame = rel.partition("/")
+            length = int(self.headers.get("Content-Length", "0"))
+            body = json.loads(self.rfile.read(length))
+            labels = video_labels()
+            entry = {k: body[k] for k in ("total", "liters", "unitPrice") if k in body}
+            if any(entry.values()):
+                entry["source"] = "owner"
+                labels.setdefault(stem, {})[frame] = entry
+            else:
+                labels.get(stem, {}).pop(frame, None)
+            VIDEO_LABELS.write_text(json.dumps(labels, indent=1, sort_keys=True))
+            return self.send_json({"ok": True})
         if not path.startswith("/api/entry/"):
             return self.send_error(HTTPStatus.NOT_FOUND)
         name = unquote(path[len("/api/entry/"):])

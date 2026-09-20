@@ -1,0 +1,283 @@
+{
+ "_about": "Reference annotations for the running-display videos (pump-live/video-*.mp4): one frame per video annotated by hand, the quads tracked into every frame by pump_reader.track --videos, the total and liters of each frame read by the reader and kept only when total == round(liters x price) (PumpVideoReadTests), the price a constant. The per-frame texts live in video-labels.json; the product owner corrects them in the annotator's Frames view.",
+ "video-001-wayne-circlek-running-display-ee": {
+  "reference": "106.jpg",
+  "currency": "EUR",
+  "unitPrice": "1.729",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.44,
+      0.385
+     ],
+     [
+      0.745,
+      0.385
+     ],
+     [
+      0.745,
+      0.452
+     ],
+     [
+      0.44,
+      0.452
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.53,
+      0.448
+     ],
+     [
+      0.745,
+      0.448
+     ],
+     [
+      0.745,
+      0.503
+     ],
+     [
+      0.53,
+      0.503
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.595,
+      0.625
+     ],
+     [
+      0.75,
+      0.625
+     ],
+     [
+      0.75,
+      0.665
+     ],
+     [
+      0.595,
+      0.665
+     ]
+    ]
+   }
+  ]
+ },
+ "video-002-wayne-running-display-slow-fill-ru": {
+  "reference": "408.jpg",
+  "currency": "RUB",
+  "unitPrice": "73.60",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.235,
+      0.225
+     ],
+     [
+      0.62,
+      0.225
+     ],
+     [
+      0.62,
+      0.355
+     ],
+     [
+      0.235,
+      0.355
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.405,
+      0.365
+     ],
+     [
+      0.62,
+      0.365
+     ],
+     [
+      0.62,
+      0.475
+     ],
+     [
+      0.405,
+      0.475
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.44,
+      0.725
+     ],
+     [
+      0.57,
+      0.725
+     ],
+     [
+      0.57,
+      0.8
+     ],
+     [
+      0.44,
+      0.8
+     ]
+    ]
+   }
+  ]
+ },
+ "video-003-wayne-circlek-fill-ends-ee": {
+  "reference": "395.jpg",
+  "currency": "EUR",
+  "unitPrice": "2.059",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.29,
+      0.23
+     ],
+     [
+      0.68,
+      0.23
+     ],
+     [
+      0.68,
+      0.31
+     ],
+     [
+      0.29,
+      0.31
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.42,
+      0.305
+     ],
+     [
+      0.68,
+      0.305
+     ],
+     [
+      0.68,
+      0.375
+     ],
+     [
+      0.42,
+      0.375
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.08,
+      0.448
+     ],
+     [
+      0.23,
+      0.448
+     ],
+     [
+      0.23,
+      0.492
+     ],
+     [
+      0.08,
+      0.492
+     ]
+    ]
+   }
+  ]
+ },
+ "video-004-gilbarco-veederroot-running-display-fill-ends-som-kg": {
+  "reference": "296.jpg",
+  "currency": "KGS",
+  "unitPrice": "99,9",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.345,
+      0.34
+     ],
+     [
+      0.76,
+      0.34
+     ],
+     [
+      0.76,
+      0.41
+     ],
+     [
+      0.345,
+      0.41
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.5,
+      0.405
+     ],
+     [
+      0.735,
+      0.405
+     ],
+     [
+      0.735,
+      0.46
+     ],
+     [
+      0.5,
+      0.46
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.5,
+      0.535
+     ],
+     [
+      0.68,
+      0.535
+     ],
+     [
+      0.68,
+      0.578
+     ],
+     [
+      0.5,
+      0.578
+     ]
+    ]
+   }
+  ]
+ }
+}
