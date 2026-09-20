@@ -75,9 +75,26 @@ struct PumpReader {
                 if probabilities.count > 7 { probabilities[7] = cell.hasDecimalPoint ? max(probabilities[7], 0.5) : probabilities[7] }
                 readings.append(PumpCellReading(probabilities: probabilities))
             }
-            out.append(WindowRead(field: window.field, cells: readings, glyphCount: cells.count))
+            out.append(WindowRead(field: window.field, cells: Self.singleDecimalMark(readings), glyphCount: cells.count))
         }
         return out
+    }
+
+    /// A number row shows one decimal mark. When the classifier (or the slicer's
+    /// mark detection) fires on two cells - a segment gap, a bezel speck or a
+    /// comma-shaped digit tail reads as a second mark - only the strongest mark
+    /// stands; the others are cleared so the law's placement hint and the
+    /// displayed string ("1.9.09") do not carry the false one.
+    static func singleDecimalMark(_ readings: [PumpCellReading]) -> [PumpCellReading] {
+        let marked = readings.indices.filter { readings[$0].decimalPoint }
+        guard marked.count > 1 else { return readings }
+        let keep = marked.max { readings[$0].probabilities[7] < readings[$1].probabilities[7] }!
+        return readings.enumerated().map { index, reading in
+            guard index != keep, reading.decimalPoint else { return reading }
+            var probabilities = reading.probabilities
+            probabilities[7] = min(probabilities[7], 0.49)
+            return PumpCellReading(probabilities: probabilities)
+        }
     }
 
     /// A located candidate the reader vouches for: the slicer found a row of
