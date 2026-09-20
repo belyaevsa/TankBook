@@ -71,7 +71,7 @@
       <button id="vlSkip" title="jump to the next frame that needs you">next attention ▸</button>
       <label title="the reader read these frames as one value; the label applies to all of them"><input type="checkbox" id="vlRun" checked> whole run</label>
       <span class="dim"><kbd>⇧→</kbd> next run</span>
-      <button id="vlAnchor" title="drag the quads on this frame into place, then make it an anchor: the clip is retracked from the nearest anchor">⚓ save quads as anchor</button></div>
+      <span class="dim" title="a dragged quad on a frame is saved as an anchor by itself; the clip retracks from its anchors and never moves an anchored frame">⚓ dragging a quad anchors the frame</span><button id="vlAnchor" style="display:none"></button></div>
   </div>
   <div id="wins"></div>
   <div class="row"><button id="add">+ window</button> <span class="dim">or drag on the image</span></div>
@@ -407,8 +407,13 @@ canvas.onmouseup = e => {
       document.querySelector(`[data-t="${sel}"]`)?.focus();
     } else { sel = -1; renderWins(); }
   } else renderWins();
+  const wasEdit = drag && drag.kind !== 'new';
   drag = null; draw();
+  // A dragged quad on a video frame is a human placement: it persists as an
+  // anchor at once (debounced), and the retrack leaves the frame verbatim.
+  if (wasEdit && frameMode && isVideo && frameQuadsEdited) { clearTimeout(anchorTimer); anchorTimer = setTimeout(saveAnchor, 600); }
 };
+let anchorTimer = null;
 
 // ---- controls ----
 $('#zoom').oninput = e => { zoom = +e.target.value; draw(); };
