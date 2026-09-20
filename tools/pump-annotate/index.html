@@ -27,6 +27,12 @@
   pre { white-space:pre-wrap; font-size:11px; max-height:200px; overflow:auto; margin:4px 0 }
   .ok { color:var(--ok) } .bad { color:var(--bad) }
   input.prefill { color:#ffc857; font-style:italic }
+  #frameStrip { display:flex; flex-wrap:wrap; gap:1px; margin:4px 0 }
+  #frameStrip span { width:6px; height:14px; background:#2a303a; cursor:pointer; border-radius:1px }
+  #frameStrip span.owner { background:var(--ok) } #frameStrip span.arithmetic { background:#2e8b57 }
+  #frameStrip span.attention { background:var(--bad) } #frameStrip span.prefill { background:#6b5a1e }
+  #frameStrip span.cur { outline:2px solid #fff; outline-offset:-1px }
+  #frameStrip .legend { width:auto; height:auto; background:none; color:var(--dim); font-size:11px; margin-left:8px; cursor:default }
   kbd { border:1px solid var(--line); border-radius:3px; padding:0 4px; font-size:11px; color:var(--dim) }
 </style>
 </head>
@@ -54,11 +60,12 @@
       <label><input type="radio" name="tracking" value="ok"> ok</label>
       <label><input type="radio" name="tracking" value="bad"> bad – skip this record</label>
       <span class="dim">(<kbd>←</kbd>/<kbd>→</kbd> step frames, <kbd>Esc</kbd> back to the still)</span></div>
+    <div id="frameStrip" style="display:none"></div>
     <div class="row" id="videoLabel" style="display:none"><b>frame label</b>
       total <input id="vlTotal" class="mono" style="width:80px"> liters <input id="vlLiters" class="mono" style="width:70px"> price <input id="vlPrice" class="mono" style="width:60px">
       <span id="vlSource" class="dim"></span> <button id="vlSave">Save label</button> <span class="dim"><kbd>⇧⏎</kbd></span>
       <button id="vlCopy" title="copy the previous labelled frame's numbers here and save">← same as previous</button> <span class="dim"><kbd>⇧←</kbd></span>
-      <button id="vlSkip" title="jump to the next frame without a label">next unlabelled ▸</button>
+      <button id="vlSkip" title="jump to the next frame that needs you">next attention ▸</button>
       <label title="the reader read these frames as one value; the label applies to all of them"><input type="checkbox" id="vlRun" checked> whole run</label>
       <span class="dim"><kbd>⇧→</kbd> next run</span></div>
   </div>
@@ -164,10 +171,44 @@ async function enterFrames() {
   $('#framesToggle').textContent = 'Back to still'; showFrame();
 }
 function leaveFrames() {
-  frameMode = false; img = stillImg; $('#videoLabel').style.display = 'none'; $('#frameSlider').style.display = 'none'; $('#framesToggle').textContent = 'View frames';
+  frameMode = false; img = stillImg; $('#videoLabel').style.display = 'none'; $('#frameStrip').style.display = 'none'; $('#frameSlider').style.display = 'none'; $('#framesToggle').textContent = 'View frames';
   $('#frameName').textContent = ''; fit(); draw();
 }
 function runOf(r, name) { return (r.runs || []).find(run => run.includes(name)) || [name]; }
+// A frame needs attention when it has no label, or when its value breaks the
+// fill's order: total and liters never decrease between labelled frames, and
+// total / liters stays at the price.
+function frameStates(r) {
+  const num = t => parseFloat((t || '').replace(',', '.'));
+  const price = num((r.frames[r.tracked[0]].windows.find(w => w.field === 'unitPrice') || {}).text);
+  const states = {}; let lastT = -1, lastL = -1;
+  for (const name of r.tracked) {
+    const f = r.frames[name]; const get = k => (f.windows.find(w => w.field === k) || {}).text;
+    const t = num(get('total')), l = num(get('liters'));
+    let st = f.source || ((f.windows.some(w => w.prefill)) ? 'prefill' : 'none');
+    if (f.source && get('total') !== 'skip') {
+      const bad = (isFinite(t) && t < lastT - 0.005) || (isFinite(l) && l < lastL - 0.005)
+        || (isFinite(t) && isFinite(l) && isFinite(price) && l > 0 && Math.abs(t - Math.round(l * price * 100) / 100) > 0.06);
+      if (bad) st = 'attention';
+      if (isFinite(t)) lastT = Math.max(lastT, t); if (isFinite(l)) lastL = Math.max(lastL, l);
+    } else if (!f.source) { st = st === 'prefill' ? 'prefill' : 'attention'; }
+    states[name] = st;
+  }
+  return states;
+}
+function renderStrip() {
+  const strip = $('#frameStrip'); strip.style.display = (isVideo && frameMode) ? '' : 'none';
+  if (!isVideo || !frameMode) return;
+  const r = currentRecord(); const states = frameStates(r); const cur = r.tracked[frameIdx];
+  strip.innerHTML = r.tracked.map((n, i) => `<span class="${states[n]} ${n === cur ? 'cur' : ''}" data-i="${i}" title="${n} ${states[n]}"></span>`).join('')
+    + `<span class="legend">red = needs you (unlabelled or breaks the sequence) · yellow = reader pre-fill to confirm · green = labelled</span>`;
+  strip.querySelectorAll('span[data-i]').forEach(el => el.onclick = () => { frameIdx = +el.dataset.i; showFrame(); });
+}
+function nextAttention() {
+  const r = currentRecord(); const states = frameStates(r);
+  for (let i = frameIdx + 1; i < r.tracked.length; i++) if (states[r.tracked[i]] === 'attention' || states[r.tracked[i]] === 'prefill') { frameIdx = i; showFrame(); return; }
+  setMsg('nothing left that needs attention');
+}
 function showVideoLabel() {
   $('#videoLabel').style.display = (isVideo && frameMode) ? '' : 'none';
   if (!isVideo || !frameMode) return;
@@ -177,7 +218,7 @@ function showVideoLabel() {
   const pre = k => win(k).prefill || '';
   $('#vlTotal').value = get('total') || pre('total'); $('#vlLiters').value = get('liters') || pre('liters'); $('#vlPrice').value = get('unitPrice');
   $('#vlTotal').classList.toggle('prefill', !get('total') && !!pre('total')); $('#vlLiters').classList.toggle('prefill', !get('liters') && !!pre('liters'));
-  const run = runOf(r, name);
+  const run = runOf(r, name); renderStrip();
   $('#vlSource').textContent = (f.source ? `(${f.source})` : (pre('total') ? '(reader pre-fill – confirm)' : '(unlabelled)')) + ` · run of ${run.length}`;
 }
 async function saveVideoLabel() {
@@ -204,11 +245,7 @@ async function copyPrevious() {
   $('#vlTotal').value = get('total'); $('#vlLiters').value = get('liters'); $('#vlPrice').value = get('unitPrice') || $('#vlPrice').value;
   await saveVideoLabel();
 }
-function nextUnlabelled() {
-  const r = currentRecord();
-  for (let i = frameIdx + 1; i < r.tracked.length; i++) { const f = r.frames[r.tracked[i]]; if (!f.windows.some(w => w.field !== 'unitPrice' && w.text)) { frameIdx = i; showFrame(); return; } }
-  setMsg('every later frame is labelled');
-}
+function nextUnlabelled() { nextAttention(); }
 function showFrame() {
   if (!frameMode) return;
   const r = currentRecord(); const name = r && r.tracked[frameIdx]; if (!name) return;
