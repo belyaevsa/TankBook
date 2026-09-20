@@ -42,12 +42,25 @@ def probe(movie: Path) -> dict:
             "frames": int(stream["nb_read_frames"]), "fps": int(num) / int(den)}
 
 
+def first_frame(stem: str) -> int:
+    """The first usable frame of a video (`firstFrame` in videos.json, e.g.
+    "047.jpg"): a clip whose opening frames are corrupt or show no display
+    drops them at extraction, so nothing downstream ever sees them."""
+    videos = LIVE / "videos.json"
+    if not videos.exists():
+        return 1
+    entry = json.loads(videos.read_text()).get(stem, {})
+    name = entry.get("firstFrame") if isinstance(entry, dict) else None
+    return int(name[:-4]) if name else 1
+
+
 def extract(movie: Path, force: bool = False) -> tuple[Path, int, bool]:
     """Returns (folder, frame count, extracted-now)."""
     folder = FRAMES / movie.stem
     info = probe(movie)
+    start = first_frame(movie.stem)
     have = len(list(folder.glob("*.jpg"))) if folder.exists() else 0
-    if info["frames"] == 0 or (have == info["frames"] and not force):
+    if info["frames"] == 0 or (have == info["frames"] - (start - 1) and not force):
         return folder, have, False
     if folder.exists():
         for old in folder.glob("*.jpg"):
@@ -57,7 +70,10 @@ def extract(movie: Path, force: bool = False) -> tuple[Path, int, bool]:
         ["ffmpeg", "-v", "error", "-y", "-i", str(movie), "-fps_mode", "passthrough", "-q:v", "2",
          str(folder / "%03d.jpg")],
         check=True)
-    (folder / "movie.json").write_text(json.dumps({"movie": movie.name, **info}, indent=1))
+    for early in folder.glob("*.jpg"):
+        if early.stem.isdigit() and int(early.stem) < start:
+            early.unlink()
+    (folder / "movie.json").write_text(json.dumps({"movie": movie.name, "firstFrame": start, **info}, indent=1))
     return folder, len(list(folder.glob("*.jpg"))), True
 
 
