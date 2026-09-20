@@ -31,7 +31,19 @@ struct PumpTrainSliceExportTests {
     @Test("exports the train split's windows as slicer cells with labels",
           .enabled(if: enabled && PumpReaderTestSupport.fixturesPresent, "PUMP_TRAIN_EXPORT=1 with the corpus"))
     func export() throws {
-        let sources = try Self.collect()
+        try Self.export(sources: Self.collect(), manifest: "train-slices.json", stripPrefix: "s")
+    }
+
+    /// The running-display videos' labelled frames (`video-labels.json`: the
+    /// owner's and the arithmetic's, never a `skip`), as a second export the
+    /// extractor merges with the stills'. Opt-in by `PUMP_TRAIN_EXPORT_VIDEOS=1`.
+    @Test("exports the labelled video frames as slicer cells",
+          .enabled(if: ProcessInfo.processInfo.environment["PUMP_TRAIN_EXPORT_VIDEOS"] == "1", "PUMP_TRAIN_EXPORT_VIDEOS=1"))
+    func exportVideos() throws {
+        try Self.export(sources: Self.collectVideos(), manifest: "train-videos.json", stripPrefix: "v")
+    }
+
+    private static func export(sources: [Source], manifest name: String, stripPrefix: String) throws {
         let stripsDir = Self.outRoot.appendingPathComponent("strips")
         try FileManager.default.createDirectory(at: stripsDir, withIntermediateDirectories: true)
         var records: [[String: Any]] = []
@@ -53,7 +65,7 @@ struct PumpTrainSliceExportTests {
             let cells = PumpGlyphSlicer.slice(PumpQuadWarp.rgbImage(from: strip).grayscale())
             let expected = PumpReaderTestSupport.glyphCount(source.text)
             if cells.count == expected { countOK += 1 }
-            let stripName = String(format: "%06d.png", index)
+            let stripName = stripPrefix + String(format: "%06d.png", index)
             _ = PumpQuadWarp.writePNG(image: strip, to: stripsDir.appendingPathComponent(stripName))
             records.append([
                 "fixture": source.fixture,
@@ -74,9 +86,34 @@ struct PumpTrainSliceExportTests {
         }
         let manifest: [String: Any] = ["windows": records, "countAgreement": countOK, "total": records.count]
         let data = try JSONSerialization.data(withJSONObject: manifest, options: [.sortedKeys])
-        try data.write(to: Self.outRoot.appendingPathComponent("train-slices.json"))
-        print("PU.31 export: \(records.count) windows, slicer count agrees on \(countOK)")
+        try data.write(to: Self.outRoot.appendingPathComponent(name))
+        print("PU.31 export \(name): \(records.count) windows, slicer count agrees on \(countOK)")
         #expect(!records.isEmpty)
+    }
+
+    private static func collectVideos() throws -> [Source] {
+        let live = PumpReaderTestSupport.repoRoot.appendingPathComponent("Spike/ReceiptSpike/fixtures/pump-live")
+        let labels = try JSONSerialization.jsonObject(with: Data(contentsOf: live.appendingPathComponent("video-labels.json"))) as? [String: Any] ?? [:]
+        var out: [Source] = []
+        for (stem, value) in labels.sorted(by: { $0.key < $1.key }) {
+            guard let frames = value as? [String: Any] else { continue }
+            let trackedURL = live.appendingPathComponent("frames/\(stem)/windows.json")
+            guard let tracked = try? JSONSerialization.jsonObject(with: Data(contentsOf: trackedURL)) as? [String: Any],
+                  let trackedFrames = tracked["frames"] as? [String: Any] else { continue }
+            for (frameName, labelValue) in frames.sorted(by: { $0.key < $1.key }) {
+                guard let label = labelValue as? [String: String], label["total"] != "skip",
+                      let frame = trackedFrames[frameName] as? [String: Any],
+                      let windows = frame["windows"] as? [[String: Any]] else { continue }
+                let url = live.appendingPathComponent("frames/\(stem)/\(frameName)")
+                for window in windows {
+                    guard let field = window["field"] as? String, let text = label[field], !text.isEmpty,
+                          let quad = (window["quad"] as? [[NSNumber]])?.map({ $0.map(\.doubleValue) }), quad.count == 4 else { continue }
+                    out.append(Source(fixture: stem, frame: "\(stem)/\(frameName)", field: field, text: text, quad: quad,
+                                      rotationCW: 0, imageURL: url))
+                }
+            }
+        }
+        return out
     }
 
     /// Train stills' windows, then tracked frames of train records whose still

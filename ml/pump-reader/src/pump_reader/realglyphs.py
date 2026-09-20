@@ -58,12 +58,16 @@ def crop_cell(strip: Image.Image, box: dict) -> np.ndarray:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="pump_reader.realglyphs")
     parser.add_argument("--export", type=Path, default=EXPORT / "train-slices.json")
+    parser.add_argument("--also", type=Path, action="append", default=[],
+                        help="further export manifests to merge (the videos': train-videos.json)")
     parser.add_argument("--out", type=Path, default=ROOT / "ml" / "pump-reader" / ".out" / "real")
     args = parser.parse_args(argv)
     if not args.export.exists():
         print(f"{args.export} missing - run PUMP_TRAIN_EXPORT=1 swift test --filter PumpTrainSliceExportTests")
         return 1
     export = json.loads(args.export.read_text())
+    for extra in args.also:
+        export["windows"].extend(json.loads(extra.read_text())["windows"])
     heldout = heldout_names()
     xs: list[np.ndarray] = []
     ys: list[int] = []
@@ -74,6 +78,7 @@ def main(argv: list[str] | None = None) -> int:
         fixture = window["fixture"]
         if fixture in heldout:
             raise SystemExit(f"heldout fixture in the train export: {fixture}")
+        # A video is its own fixture; the split does not list it (every video is train).
         stats = per_fixture[fixture]
         stats["offered"] += 1
         if window["frame"]:
