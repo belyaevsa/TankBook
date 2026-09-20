@@ -494,6 +494,30 @@ number means anything; (b) the verifier margin threshold is fitted to round 6, a
 model's margin distribution sits differently against it - the live number is a verifier number,
 not a classifier number. Round 6 stays shipped; the next round runs the seed check first.
 
+### The row detector (PU.33, 2026-09-20)
+
+PU.32's two reviews (`agents/reviews/PU.32-REVIEW-STEP-CHANGE-*.md`) named the same step:
+a learned locator on the boxes the corpus already holds, and a verifier that stops using the
+classifier's margin. Built the same day:
+
+- `pump_reader.detdata`: 153 train stills, every 5th tracked frame of the 46 train records, the
+  labelled video frames, 91 receipt/screenshot/fiscal negatives - 692 images, 2 455 boxes of one
+  class `digit-row`; the 64 heldout stills in their own folder, and the builder asserts no
+  heldout still or record reaches the train set.
+- `detector/train.swift`: Create ML `MLObjectDetector`, 3 000 iterations, 59 min on this Mac,
+  a 31 MB model (already half-precision; the 8-bit quantiser trips on its anchor constants).
+- `detector/measure.swift` on the heldout stills at confidence 0.3: rows found on 59/64 photos,
+  every row on 49/64, recall 0.86 at IoU 0.5 and 0.72 at 0.7, median IoU 0.80, 0.7 false rows a
+  photo. The misses are the heads it never saw (both Tatsuno amber LED, a Topaz overlay) and two
+  Tokheim stills.
+- Wired as the locator's first source with the verifier keeping a detected row on count and
+  size: **live path 11 → 22 committed, all correct, 3 → 5 photos, 15 s → 2.4 s a photo**;
+  annotated path unchanged at 66. The funnel over all 64: candidate on a true row 61, verified
+  60, two rows 50, roles right 45, committing 9 - the loss is now the read stage, which the
+  diagnostic prints per row (33/40 counted right, 23/40 exact; PU.34).
+- `PumpBoxRefiner` (tighten a detected box to its ink band before slicing) measured 22 → 21 and
+  is parked behind `PumpReader.refineDetectedBoxes`.
+
 ## Named mutation: drop the dp bit
 
 In `dataset.py`, the target's dp bit was dropped (7 bits, dp slot padded with a

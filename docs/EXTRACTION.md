@@ -883,10 +883,25 @@ only thing a model-scored ratchet may measure (`PumpReaderHarnessTests`,
 assignment, the windows checker - still walk the whole corpus. A heldout number is therefore
 what a user's phone sees; a train number is memorisation and is never written into a mark.
 
+**Decision 10 (orchestrator, 2026-09-20, from PU.32's two reviews): the locator is a learned
+row detector, and the verifier no longer judges by the classifier.** Both reviewers found the
+same thing in the funnel: the law commits 526/611 on perfect strings, the read commits 66/175
+on human quads, the live path committed 11 - the locator and verifier owned a sixfold drop, and
+the verifier's margin threshold was fitted to one classifier, so every retrain moved the live
+number without the classifier changing. The detector (`PumpRowDetector`, a Create ML object
+detector trained on the train split's annotated windows and their tracked Live frames - no new
+capture, no new annotation) proposes rows first; a detected row is kept on its cell count and
+size alone; Vision's text boxes and the classical projection stay as the fallback under two
+rows. Measured: live path 11 → 22 committed on the heldout split, all correct, at 2.4 s a photo
+instead of 15. The three-tier ladder (oracle strings / annotated windows / live) is the way the
+reader's numbers are read from here: a change is judged by which tier it moves.
+
 **Where it lives.** Training, rendering, export and scoring are Python under `ml/pump-reader/`
 (PyTorch → coremltools), outside every gate except their own `pytest`; the exported `.mlpackage` is
-an app resource and the locator, slicer, decoder and Core ML wrapper are Swift in
-`TankbookCore/Extraction/PumpReader/`, on the ordinary iOS gate. A trained reader is the second
+an app resource (`PumpSegments.mlpackage`, the cell classifier; `DigitRows.mlmodel`, the row
+detector) and the locator, detector wrapper, slicer, decoder and Core ML wrappers are Swift in
+`TankbookCore/Extraction/PumpReader/`, on the ordinary iOS gate. The detector's data, trainer and
+heldout measurement are `ml/pump-reader/src/pump_reader/detdata.py` and `ml/pump-reader/detector/`. A trained reader is the second
 non-rule producer of a field after the cloud model, and the same sentence governs both: it
 suggests, it never trusts.
 
