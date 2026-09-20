@@ -21,11 +21,13 @@ enum CapturePipeline {
     /// `CGImage`, or OCR that resolves nothing, produces an all-nil extraction -
     /// which the Confirm sheet renders as the ordinary empty manual form, never
     /// an error and never a dead end (hard rule 15).
-    /// The classifier the pump reader runs on; loaded once from the bundle's
-    /// compiled model, nil when the resource is missing (every frame then
-    /// classifies as a receipt, as before PU.29).
+    /// The classifier the pump reader runs on and the row detector that finds
+    /// its windows (PU.33); loaded once from the bundle's compiled models. A
+    /// missing classifier means every frame classifies as a receipt, as before
+    /// PU.29; a missing detector leaves the Vision + classical locator alone.
     nonisolated(unsafe) static var pumpReader: PumpReaderHandle? = PumpDisplayCapture.makeReader(
-        modelURL: Bundle.main.url(forResource: "PumpSegments", withExtension: "mlmodelc"))
+        modelURL: Bundle.main.url(forResource: "PumpSegments", withExtension: "mlmodelc"),
+        detectorURL: Bundle.main.url(forResource: "DigitRows", withExtension: "mlmodelc"))
 
     /// The whole path: image in, a `ConfirmPrefill` out. With `source` nil the
     /// frame is CLASSIFIED first - a pump display (the reader vouches for rows

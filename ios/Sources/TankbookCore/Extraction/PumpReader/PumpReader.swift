@@ -37,6 +37,7 @@ struct PumpReader {
     /// Fewer detector rows than this and the frame falls back to the Vision +
     /// classical proposals: a display has at least total and volume.
     static let detectorMinimumRows = 2
+    static let refineDetectedBoxes = false
 
     /// The locator's candidates for an upright frame: the detector's rows
     /// first (ranked by confidence, each flagged as detected so the verifier
@@ -180,7 +181,14 @@ struct PumpReader {
     func verdicts(image: PumpRGBImage, candidates: [PumpPanelLocator.Candidate]) throws -> [Verdict] {
         var out: [Verdict] = []
         for candidate in candidates.prefix(Self.maximumCandidates) {
-            let quad = candidate.quad.map { CGPoint(x: $0.x * CGFloat(image.width), y: $0.y * CGFloat(image.height)) }
+            var quad = candidate.quad.map { CGPoint(x: $0.x * CGFloat(image.width), y: $0.y * CGFloat(image.height)) }
+            // A detected box carries panel around the digits; PumpBoxRefiner
+            // tightens it to the ink, measured on the heldout split as no
+            // gain (22 -> 21 committed), so it stays off until the read
+            // stage's losses are understood (PumpLivePathDiagnosticTests).
+            if candidate.detected && Self.refineDetectedBoxes {
+                quad = PumpBoxRefiner.refine(quad: quad, in: image)
+            }
             let ys = quad.map(\.y)
             let heightFraction = (ys.max()! - ys.min()!) / CGFloat(image.height)
             // A row against the frame's top or bottom edge is a banner or a

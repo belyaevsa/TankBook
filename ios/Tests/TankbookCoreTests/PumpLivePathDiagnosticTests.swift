@@ -89,6 +89,18 @@ struct PumpLivePathDiagnosticTests {
             let want = expected[name]
             let reading = try reader.readPhoto(image: image, rotationCW: rotation, currency: want?.currency,
                                                priceBand: want?.currency.flatMap { pack.currencyBand(currency: $0) })
+            // The read stage on the rows the assigner named right: cells found
+            // vs the annotation's, and the string read, per field.
+            for (v, role) in zip(verified, assignment.roles) {
+                guard let role, role != .board else { continue }
+                let (field, iou) = bestTruth(v.quad)
+                guard iou >= 0.5, field == role.rawValue,
+                      let truthText = (ann["windows"] as? [[String: Any]])?.first(where: { ($0["field"] as? String) == field })?["text"] as? String else { continue }
+                let reads = (try? reader.read(image: upright, windows: [PumpReader.Window(field: role, quad: v.quad)])) ?? []
+                let got = reads.first.map { r in r.cells.map { c in c.ranked.first.map { String($0.digit) } ?? "?" }.joined() } ?? "(dropped)"
+                let expectedCells = PumpReaderTestSupport.glyphCount(truthText)
+                print(String(format: "      READ %@ truth '%@' (%d cells) -> '%@' (%d cells) margin %.1f", field, truthText, expectedCells, got, reads.first?.cells.count ?? 0, v.meanMargin))
+            }
             if reading.committedCount > 0 { stage.committed += 1 }
             print("DIAG \(name.prefix(40)): candidates \(candidates.count) (hits \(candHits.count) \(candHitFields.sorted()) "
                   + "at ranks \(candRank)), verified \(verified.count), "
