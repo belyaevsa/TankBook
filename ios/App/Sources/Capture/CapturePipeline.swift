@@ -54,11 +54,24 @@ enum CapturePipeline {
         // resolution ladder's steps 3 and 4 are dead without it).
         if let cgImage = image.cgImage {
             let box = CGImageBox(image: cgImage, orientation: cgImagePropertyOrientation(of: image))
-            if source == nil || source == .pump, let reader = pumpReader,
-               let upright = uprightCGImage(of: image) {
-                pumpReading = await readPumpDisplay(UprightBox(image: upright), reader: reader,
-                                                    bandProvider: bandProvider)
-                if pumpReading != nil { resolvedSource = .pump }
+            if source == nil || source == .pump {
+                if let reader = pumpReader, let upright = uprightCGImage(of: image) {
+                    let classifyStartedAt = Date()
+                    let classified = await readPumpDisplay(UprightBox(image: upright), reader: reader,
+                                                           bandProvider: bandProvider)
+                    pumpReading = classified.reading
+                    if pumpReading != nil { resolvedSource = .pump }
+                    let detection = classified.detection
+                    AppLog.shared.emit(CaptureClassify(
+                        reader: "loaded", display: detection.isPumpDisplay, rows: detection.displayRows,
+                        textLines: detection.textLines, widestRow: detection.widestRow, tallestRow: detection.tallestRow,
+                        durationMs: Int(Date().timeIntervalSince(classifyStartedAt) * 1000)))
+                } else {
+                    // The models are missing from the bundle: every frame is a receipt, and
+                    // the line says so rather than leaving the pump path silently dead.
+                    AppLog.shared.emit(CaptureClassify(reader: "missing", display: false, rows: 0, textLines: 0,
+                                                       widestRow: 0, tallestRow: 0, durationMs: 0))
+                }
             }
             (assembly, lines) = await recognize(box: box, source: resolvedSource, bandProvider: bandProvider)
             if let pumpReading {
@@ -90,12 +103,14 @@ enum CapturePipeline {
     }
 
     /// The pump reader, off the main actor: the locator, the classifier and
-    /// the law are CPU-bound. `nil` when the frame is not a display.
-    private static func readPumpDisplay(_ box: UprightBox, reader: PumpReaderHandle,
-                                        bandProvider: (any FuelPriceBandProvider)?) async -> PumpDisplayCapture.Reading? {
+    /// the law are CPU-bound. The reading is `nil` when the frame is not a
+    /// display; the detection says what was counted either way.
+    private static func readPumpDisplay(
+        _ box: UprightBox, reader: PumpReaderHandle, bandProvider: (any FuelPriceBandProvider)?
+    ) async -> (detection: PumpDisplayCapture.Detection, reading: PumpDisplayCapture.Reading?) {
         await Task.detached(priority: .userInitiated) {
             let currency: CurrencyCode? = Locale.current.currency.flatMap { CurrencyCode(rawValue: $0.identifier) }
-            return PumpDisplayCapture.read(
+            return PumpDisplayCapture.classify(
                 image: box.image, reader: reader, currency: currency,
                 priceBand: bandProvider?.currencyBand(currency: currency))
         }.value

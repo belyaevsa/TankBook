@@ -102,11 +102,25 @@ public enum PumpDisplayCapture {
     /// law's committed fields; an abstained field is nil, never a guess.
     public static func read(image: CGImage, reader: PumpReaderHandle, currency: CurrencyCode?,
                             priceBand: FuelPriceBand?) -> Reading? {
+        classify(image: image, reader: reader, currency: currency, priceBand: priceBand).reading
+    }
+
+    /// `read` with the detection kept when the frame is NOT a display, so the
+    /// caller can log what the classifier counted and why it declined.
+    public static func classify(image: CGImage, reader: PumpReaderHandle, currency: CurrencyCode?,
+                                priceBand: FuelPriceBand?) -> (detection: Detection, reading: Reading?) {
         let rgb = PumpQuadWarp.rgbImage(from: image)
-        guard let all = try? reader.reader.verify(image: rgb, candidates: reader.reader.candidates(for: rgb)) else { return nil }
+        guard let all = try? reader.reader.verify(image: rgb, candidates: reader.reader.candidates(for: rgb)) else {
+            return (Detection(displayRows: 0, textLines: 0), nil)
+        }
         let verified = displayRows(all, imageHeight: rgb.height)
-        let detection = Detection(displayRows: verified.count, textLines: textLineCount(rgb))
-        guard detection.isPumpDisplay else { return nil }
+        var detection = Detection(displayRows: verified.count, textLines: textLineCount(rgb))
+        for row in verified {
+            let xs = row.quad.map(\.x), ys = row.quad.map(\.y)
+            detection.widestRow = max(detection.widestRow, (xs.max()! - xs.min()!) / CGFloat(rgb.width))
+            detection.tallestRow = max(detection.tallestRow, (ys.max()! - ys.min()!) / CGFloat(rgb.height))
+        }
+        guard detection.isPumpDisplay else { return (detection, nil) }
         let assignment = PumpRowAssignment.assign(
             windows: verified.map { PumpRowAssignment.Window(quad: $0.quad, glyphCount: $0.glyphCount) },
             rotationCW: 0)
@@ -125,14 +139,14 @@ public enum PumpDisplayCapture {
             }
         }
         guard let reading = try? reader.reader.resolve(image: rgb, windows: windows, currency: currency,
-                                                        priceBand: priceBand) else { return nil }
+                                                        priceBand: priceBand) else { return (detection, nil) }
         var extraction = FuelExtraction(
             liters: reading.liters.value.map { NSDecimalNumber(decimal: $0).doubleValue },
             unitPrice: reading.unitPrice.value,
             total: reading.total.value,
             currency: currency)
         extraction.crossCheck = reading.committedCount == 3 ? .lock : .notApplicable
-        return Reading(detection: detection, extraction: extraction, cropRects: rects)
+        return (detection, Reading(detection: detection, extraction: extraction, cropRects: rects))
     }
 }
 
