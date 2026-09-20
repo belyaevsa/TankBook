@@ -10,9 +10,12 @@ import Testing
 /// is the oracle, no annotation exists. Written to
 /// `pump-live/video-labels.json` (committed) with `source: "arithmetic"`; the
 /// product owner's corrections in the annotator overwrite entries with
-/// `source: "owner"` and are never touched by a re-run.
+/// `source: "owner"` and are never touched by a re-run; nor is a video marked
+/// `reviewed` in `videos.json` or a frame the owner anchored by hand
+/// (`verified` in the tracked `windows.json`).
 ///
-/// Opt-in (`PUMP_VIDEO_READ=1`): four thousand frames through the reader.
+/// Opt-in (`PUMP_VIDEO_READ=1`; `PUMP_VIDEO_READ_ONLY=video-002` for one clip):
+/// four thousand frames through the reader.
 @Suite("PU.19 video labels by arithmetic")
 struct PumpVideoReadTests {
     private static var enabled: Bool { ProcessInfo.processInfo.environment["PUMP_VIDEO_READ"] == "1" }
@@ -27,8 +30,13 @@ struct PumpVideoReadTests {
         let labelsURL = Self.live.appendingPathComponent("video-labels.json")
         var labels = (try? JSONSerialization.jsonObject(with: Data(contentsOf: labelsURL)) as? [String: Any]) ?? [:]
         var summary: [String] = []
+        let only = ProcessInfo.processInfo.environment["PUMP_VIDEO_READ_ONLY"]
         for (stem, value) in videos.sorted(by: { $0.key < $1.key }) {
+            if let only, !stem.hasPrefix(only) { continue }
             guard !stem.hasPrefix("_"), let video = value as? [String: Any],
+                  // A video the owner marked processed is finished: its labels and
+                  // pre-fills are not regenerated.
+                  (video["reviewed"] as? Bool) != true,
                   let priceText = video["unitPrice"] as? String,
                   let price = Double(priceText.replacingOccurrences(of: ",", with: ".")) else { continue }
             let trackedURL = Self.live.appendingPathComponent("frames/\(stem)/windows.json")
@@ -41,6 +49,9 @@ struct PumpVideoReadTests {
             for (frameName, frameValue) in frames.sorted(by: { Int($0.key.dropLast(4)) ?? 0 < Int($1.key.dropLast(4)) ?? 0 }) {
                 if let existing = perVideo[frameName] as? [String: Any], existing["source"] as? String == "owner" { continue }
                 guard let frame = frameValue as? [String: Any], let windows = frame["windows"] as? [[String: Any]],
+                      // A frame whose quads the owner placed by hand (a tracking anchor)
+                      // is human-reviewed; it keeps whatever it has.
+                      (frame["verified"] as? Bool) != true,
                       let image = PumpReaderTestSupport.loadRGB(url: Self.live.appendingPathComponent("frames/\(stem)/\(frameName)")) else { continue }
                 var located: [PumpReader.Window] = []
                 for w in windows {
