@@ -99,3 +99,48 @@ a blank cell is skipped, never guessed. A `none` category is an assertion (the
 vocabulary must abstain) and is scored, unlike a blank cell. A `none` fixture is
 as load-bearing as the rest: a vocabulary that always answers is a vocabulary
 that guesses.
+
+## Added 2026-09-21 (three Russian parts / accessory documents)
+
+- `accessory-gorunov-roof-rack-invoice-ru.jpg` - a `Расходная накладная` (delivery note) from ИП
+  Горюнов, 09.07.2022: four LUX roof-rack lines (adapters, base kit, aero bars, lock set) totalling
+  `11 850.00 руб.`, in a plastic sleeve under a window reflection, a blue stamp over the signature.
+  Truth `accessory` / 11850.00 / RUB / 2022-07-09. The vocabulary has no roof-rack stem (`ДУГ`,
+  `БАГАЖ`, `АДАПТЕР`) and the invoice prints its total as `Всего :` / `На сумму :`, neither a
+  receipt total word - the diagnostic sweep abstains on both, which is the finding.
+- `parts-ponyatov-bosch-plugs-lecar-grease-ru.jpg` - a fiscal receipt from ИП Понятов
+  (Краснотурьинск), 09.09.26: `Смазка для суппортов "LECAR" 1 x 145.00` and `Свеча зажигания
+  Bosch 0241135520 4 x 595.00`, ИТОГ 2525.00, НДС 5%, laid on denim with a screwdriver across it.
+  **No currency printed** - the cell is blank. Truth `parts` / 2525.00 / - / 2026-09-09.
+- `parts-akhmadullin-kumho-tires-invoice-ru.jpg` - a `Расходная накладная` from ИП Ахмадуллин
+  (Tyumen), 09.09.2026: `Автошина Kumho Ecsta PS71 285/45 R20 112Y 4 x 21 900,00 = 87 600,00`
+  and six zero-priced fitting lines (weights, disassembly/balancing, removal, and
+  `Технологическая мойка колеса`), the fiscal slip stapled on top at a right angle. Truth `parts` /
+  87600.00 / RUB / 2026-09-09 - tyres have no category of their own on the expense form
+  (`TireSet` is the entity), so `parts` is what a user would pick. Two findings: the **wash rule
+  runs first** and reads the wheel-wash line as `other:wash`, and the total is printed with a
+  **space thousands separator** (`87 600,00`) after `Итого:`.
+
+Their `.txt` files are Vision dumps taken on macOS 27 (the measured runtime is 26 - the first
+26 run regenerates them if they drift). Class cells: 33 → 44, totals only; hits stand.
+
+Three more parts documents the same day:
+
+- `parts-avtozapchasti-mobiletron-filters-act-ru.jpg` - an `Акт сверки № 90065` from ООО
+  "Автомобильные запчасти" dated **in words** (`10 августа 2023 19:08:20`): two filter lines (air
+  751, oil 1 015), `Итого: 1 766,00`, `В том числе НДС: 294,34`, the buyer's name and phone
+  blacked out on the paper. Truth `parts` / 1766.00 / RUB / 2023-08-10. Findings: the diagnostic
+  sweep commits the VAT as the total and misses the worded date.
+- `parts-avtostart-vologda-28-lines-tovarny-chek-ru.jpg` - a `Товарный чек № 00000001660` from
+  ООО "Авто-старт" (Вологда), 31 марта 2026: **28 lines** (a battery, wipers, oils, a timing belt
+  kit, a water pump, filters, seals, bolts), `Итого: 73 147,30`, a warranty text block at the
+  foot. Truth `parts` / 73147.30 / RUB / 2026-03-31. Finding: the kind reads as `toll` - the
+  boilerplate's `БЕСПЛАТНЫЙ` contains the toll stem `ПЛАТН` (RV.301's second declared miss).
+- `parts-vag-invoice-page-two-screenshot-ru.jpg` - a **screenshot of the second page** of a
+  VAG parts invoice (lines 9-28: DSG oil, a timing kit with a discount column, a water pump,
+  filters, brake fluid), `Итого: 4 152,00 | 108 173,00`, then `Сумма документа: 159 373,00` and
+  `В том числе скидка: 4 152,00`. The document total is the truth; no date, no currency word on
+  the page - both blank. Truth `parts` / 159373.00 / - / -. Finding: the sweep commits the
+  discount as the total.
+
+Class cells: 44 → 54 (four + four + two), totals only.

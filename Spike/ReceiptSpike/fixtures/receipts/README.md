@@ -1051,3 +1051,30 @@ has not seen. Station `total|totalenergies`. Receipt cells: 359 → 364.
 АИ-92-К5, `10 X 59.00 = 590.00`, cash, dated 2025-09-09; **two receipts in one photo** (the
 right one is an unrelated ATOL online-till receipt for 496.00), the paper flat on a tiled floor.
 Third-party. Station `kiselev`. Receipt cells: 364 → 369.
+
+## Added 2026-09-21 (four Russian receipts from the owner's batch)
+
+`receipt-079`: АО "ТрансАЗС" / АЗС-2122 Татнефть, MKAD 93 km, `ТРК 3 АИ-92 Е-К3 94.40*55 л =5192.00`,
+a MIR Premium contactless slip printed INSIDE the fiscal receipt (the card block sits between the
+fuel line and the ИТОГ), НДС 22%, 13.09.26. Flat scan-like photo. Station `tatneft` - the brand is
+on the second line, the legal entity on the first. Five cells: 369 → 374.
+
+`receipt-080` and `receipt-081`: one station, two fills - Сеть АЗС "Газпромнефть" / ООО "Альфа
+Ойл" АЗС 33088 (Бедарево, Kemerovo region), АИ-92-К5, both **62.37 L**: `62.37*30.090 л =1876.71`
+and `62.37*39.720 л =2477.34` (the latter dated 09.09.26 19:46; the former's date is on the fold). Two prices for the same litres on the same day is
+what the paper says; a reader that "corrects" one from the other is wrong. `receipt-080` is a
+**folded strip unrolled by hand with three receipts in frame** - the top one upside down and
+mirrored through the paper, the bottom one a different fill (`=2401.25`) partly covered by a thumb;
+the asserted receipt is the middle one, and its `Газпромнефть` header is on the fold, so the
+station cell is `alfa oyl|gazpromneft` (the legal entity is the only brand line visible).
+`receipt-081` is the same shape held in hand, header visible, station `gazpromneft`. Ten cells:
+374 → 384.
+
+`receipt-082`: ООО "Лукойл-Центрнефтепродукт" АЗС 77202, Киевское шоссе 42 km, `ТРК №4 ... ЭКТО
+Plus (АИ-95-К5) 25 X 67.40 =1685.00`, with `В ТОМ ЧИСЛЕ ВАША СКИДКА = 146.25` and a loyalty
+points block (16 earned, 146 spent) between the fuel line and the ИТОГ - a crumpled paper on a
+sofa, the OFD header half-printed. The discount line is informational: the unit price and total
+printed are the paid ones. Station `lukoil|lukoyl`. Five cells: 384 → 389.
+
+All four are JPEG with the orientation baked in and every EXIF field stripped. Measured on
+macOS 27 - totals only in `../high-water.json`; hits stand until the measured runtime runs.

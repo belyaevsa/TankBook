@@ -1244,3 +1244,60 @@ poster is furniture. All four **train** (decision 9). Twenty windows, drawn by h
 stills (837). Pump cells asserted: 599 → 611, totals only (measured on macOS 27 - hits and commits stand
 until the measured runtime runs). Beside them, `../pump-live/video-004`: the Kyrgyz cousin of this
 head counting up through a fill (see that README).
+
+## Added 2026-09-21 (an unbranded diesel head under glare - a declared-unreadable still)
+
+`pump-218`: a three-window Cyrillic head (`Итого ... Рублей` / `Количество ... Литров` / `Цена за Л
+... Рублей`) at an unnamed Russian forecourt, a `ТКК` sticker on the glass, `ДТ` on the nozzle
+rack, an orange Peugeot passing behind. Six-digit zero-padded windows, and the whole face under
+sky glare. Only the **price** is asserted: `069.75`. The litres window reads `0007.70` at a
+glance, but 7.70 x 69.75 = 537.08 and the total's readable cells are `0054 1_`, which closes only
+if the litres' last glyph is a `6` (7.76 x 69.75 = 541.26) - glare has washed a segment out, so
+litres and total are **blank, not guessed** (both windows drawn, `legibility: partial`, empty
+text). The still is the corpus's cleanest example of a segment lost to glare turning a 6 into a 0
+at the digit level. **Train** (decision 9). Three windows (840). Pump cells asserted: 611 → 612,
+totals only (macOS 27).
+
+## Added 2026-09-21 (twenty-one pasted stills: the Topaz face, and its neighbours)
+
+Pasted by the product owner in one sitting (sources unstated unless named); PNGs transcoded to
+JPEG with no EXIF. The batch's centre of gravity is the **Топаз** three-window face (`СУММА РУБ`
+/ `ОБЪЁМ ЛИТР` / `ЦЕНА РУБ/ЛИТР`, a keypad on the right, `СНАЧАЛА ЗАПРАВЬТЕСЬ ПОТОМ ОПЛАТИТЕ`
+below) that Gazpromneft's post-pay forecourts run - the corpus had none. All **train**
+(decision 9); windows drawn from the stills, none `reviewed`. Every triple closes unless said.
+
+- `pump-219` Gilbarco Veeder-Root, Cyrillic, zero-padded `01984,80` / `00030,00` at `066,16`,
+  the keypad's `Рубли` key in frame.
+- `pump-220` Topaz at a G-Drive column, dusk, `3011.50` / `45.90` at `65.61`, a `ПИСТОЛЕТ НЕ
+  РАБОТАЕТ` sign under the head. `pump-221` Topaz, `2281.02` / `38.24` at `59.65`, the pump
+  number `4` lit in red, a `ПОСТОПЛАТА` poster above. `pump-222` Topaz at a truck forecourt,
+  **mid-count**: `1078.38` / `17.88` at `60.39` does not close (17.88 x 60.39 = 1079.77) - the
+  total window lags the litres by a pulse; transcribed as shown, `csvDisagrees` says why.
+  `pump-223` a Gilbarco-style G-Drive head under heavy glare, `2872.57` / `55.03` with the
+  price `52.20` in a small cell right of the sum - litres and price `partial`; the triple closes
+  to the cent, which is how the litres were confirmed. `pump-224` Topaz at a Gazprom (not
+  Gazpromneft) column, a **truck fill**: `34999.72` / `714.28` at `49.00` - five-digit total,
+  three-digit litres. `pump-225` Topaz, `3392.47` / `49.01` at `69.22`, the photographer's phone
+  reflected in the glass. `pump-226` Topaz in **service mode**: `d732441` / `б-1` / `P-1` - a
+  code in the sum window, no fill; every cell blank, no windows.
+- `pump-227` Topaz, dusk, `3230.58` / `46.82` at `69.00` - **third-party** (pikabu.ru, the owner
+  pasted the link). `pump-228` Topaz at a `DEKO АЗС`, `250.38` / `3.21` at `78.00` - a
+  three-litre fill, single-digit litres. `pump-229` Dresser Wayne at Gazpromneft, `1698.00` /
+  `40.00`, the price `42.45` in the **92 board cell** under the litres (the other three cells
+  dark) - the board IS the price here. `pump-230` Topaz, `2364.43` / `36.17` at `65.37`, a
+  taxi reflected. `pump-231` Topaz at G-Drive, a **frame of `../pump-live/video-016`**
+  (`2579.70` / `37.07` at `69.59`) - third-party (YouTube). `pump-232` Tokheim at G-Drive,
+  `977,0` / `20,46` at `47,75` - a **one-decimal total** (20.46 x 47.75 = 976.97; the CSV carries
+  the display's 977.00, `csvDisagrees` says so). `pump-233` Topaz, autumn, `2535.19` / `33.49`
+  at `75.70`. `pump-234` Topaz, a **360 px frame of `../pump-live/video-017`** with a QR and a
+  red caption band burned in (`409.52` / `5.90` at `69.41`) - third-party (VK).
+- `pump-235` Dresser Wayne, **night, Belarus** (`35.84` / `14.75`, the price `2.43` in the ДТ
+  board cell; `BYN`) - the corpus's first Belarusian rubles and first sub-10 price on a Cyrillic
+  head. `pump-236` Dresser Wayne at Gazpromneft, night, snow on the housing, the blue backlit
+  face: `3006.25` / `65.00`, the price `46.25` in a small cell beside the sum. `pump-237`
+  Tokheim (Omsk, a `ПОВЕРЕНО 07.06.2018` sticker): `1000,07` / `20,62` at `48,50`. `pump-238`
+  Gilbarco Veeder-Root, **France**: `71,82 €` / `39,70 L` at `1,809 €/L` - a three-decimal Euro
+  price with comma decimals, `EUR`. `pump-239` Dresser Wayne at G-Drive, `300.18` / `8.54`,
+  the price `35.15` in the 95 board cell.
+
+Pump cells asserted: 612 → 672 (twenty triples, `pump-226` none), totals only (macOS 27).
