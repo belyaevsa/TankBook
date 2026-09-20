@@ -197,6 +197,15 @@ right when `total == round(liters x 1.729, 2)`. That is a self-check no still ca
 material for the running-display behaviour (`docs/EXTRACTION.md`: a pump mid-fill is not a
 transaction until the numbers stop). Frames extract with the `ffmpeg` line above.
 
+## Batch 7 (2026-09-20, product owner): a second running display, Cyrillic head
+
+Same kind of medium as Batch 5, cut the same way (the 4.5 s forecourt pan removed, no audio, no
+metadata); the still cousins of this head are `pump-214`..`pump-216`.
+
+| video | frames | what | truth |
+|---|---|---|---|
+| `video-004-gilbarco-veederroot-running-display-fill-ends-som-kg` | 1407 (720x1280, 30 fps, 46.9 s) | Gilbarco Veeder-Root, Kyrgyzstan (`СОМ`, `ЦЕНА ЗА 1 ЛИТР`), **display counting up through a 66 L diesel fill and then holding** - the last 5.5 s show the final state; a 4.5 s pan to the forecourt (a car, no display) was cut out and the two halves joined; a person's back is in the lower frame throughout, no face | price `99,9` constant; total/liters run 2955.04 / 29.58 → 6618.38 / 66.25 (`29.58 x 99.9 = 2955.04`, `66.25 x 99.9 = 6618.38` close). Read at 5 s steps by the orchestrator: 3356.64/33.60, 3763.23/37.67, 4155.84/41.60, 4562.43/45.67, 4962.03/49.67, 5361.63/53.67, 5762.23/57.68, 6155.84/61.62. Owner-sourced, second-hand (a caption `Дизель 100 сом за литр` is burned in for the first seconds) |
+
 ## Frames and tracking (2026-09-20)
 
 Two scripts in `ml/pump-reader` turn the records into labelled training frames without a

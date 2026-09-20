@@ -5,8 +5,9 @@
   },
   "pump": {
     "hits": 53,
-    "total": 599
+    "total": 611
   },
+  "_note_2026_09_20b": "pump-214..216 - three owner captures of the Cyrillic-labelled Gilbarco Veeder-Root head: pump-214 3478,52 / 67,14 at 51,81 (RUB, day, no padding); pump-215 a Lukoil head, zero-padded 00809,59 / 00015,11 at 053,58 with the four-grade board lit (053,58 / 045,08 / 048,16 / 053,89 - the first cell IS the transaction price); pump-216 the same head at night, 1042,00 / 20,00 at 52,10, board unlit. Every triple closes exactly. Telegram-routed PNGs transcoded to JPEG with the APP1 stripped; all three train (decision 9); windows drawn by hand (13). Beside them video-004 in pump-live: the Kyrgyz Veeder-Root display counting up through a 66 L diesel fill at 99,9 som/L. Plus pump-217, an Australian Veeder-Root in cents per litre: $277.42 / 196.89 L at 140.9 (CSV 1.409, AUD), E85 lit on a four-grade ladder (diesel 125.7, ethanol 85 140.9, unleaded E10 136.7, unleaded 142.7). Pump cells 599 -> 611, totals only: measured on macOS 27, so hits 53 / committed 56 / committed-correct 53 stand until the measured runtime runs.",
   "fiscal": {
     "hits": 5,
     "total": 5

@@ -1222,3 +1222,25 @@ The product owner walked the annotator through 108 entries the same day (`review
 tightening quads corpus-wide, and read `pump-015`'s D price cell as **1.884** where the CSV holds
 the arithmetic's 1.889 (15.89 x 1.889 = 30.02; 1.884 gives 29.94) - declared in `csvDisagrees`,
 window `partial`, until a sharper look settles which digit is which.
+
+## Added 2026-09-20 (four owner captures: the Cyrillic Gilbarco Veeder-Root head, day and night, and an Australian one)
+
+`pump-214`: Gilbarco Veeder-Root at a Russian forecourt (station not named on the head), the
+two-line main display `3478,52 РУБЛИ` / `67,14 ЛИТРЫ` with the unit price on its own window
+`ЦЕНА/ЛИТР 51,81` - 67.14 x 51.81 = 3478.52 exactly; no zero padding, comma decimals. `pump-215`:
+the same head at a Lukoil forecourt, **zero-padded** `00809,59` / `00015,11` at `053,58`, the
+four-grade board lit down the left (`053,58` / `045,08` / `048,16` / `053,89` - the first cell is
+the transaction's price, so a reader that takes the board's top cell for the price is right here
+by accident and wrong on `pump-072`). `pump-216`: the same head **at night**, `1042,00` / `20,00`
+at `52,10`, the board unlit, the nozzle rack (ДТ / 95 / 92) in frame. What they add: the
+Cyrillic-labelled Veeder-Root face (the corpus's Veeder-Root heads were Estonian and third-party),
+the `МИНИМАЛЬНАЯ ДОЗА ОТПУСКА 5Л` legend and the keypad as furniture, one padded and one unpadded
+read of the same face, and a night exposure. Telegram-routed PNGs transcoded to JPEG with the APP1
+stripped. `pump-217`: the Australian sibling - `$ 277.42` / `196.89 Litres` at `140.9` **cents per
+litre** (CSV asserts 1.409, AUD), a four-grade ladder (diesel 125.7, ethanol 85 140.9, unleaded
+E10 136.7, unleaded 142.7) with the E85 cell equal to the transaction price, a `1` pump number
+beside the `$`, and an ad poster with a face below the head - the head fills the frame, the
+poster is furniture. All four **train** (decision 9). Twenty windows, drawn by hand from the
+stills (837). Pump cells asserted: 599 → 611, totals only (measured on macOS 27 - hits and commits stand
+until the measured runtime runs). Beside them, `../pump-live/video-004`: the Kyrgyz cousin of this
+head counting up through a fill (see that README).
