@@ -518,6 +518,96 @@ classifier's margin. Built the same day:
 - `PumpBoxRefiner` (tighten a detected box to its ink band before slicing) measured 22 → 21 and
   is parked behind `PumpReader.refineDetectedBoxes`.
 
+### The read stage behind the detector (PU.34, 2026-09-20)
+
+With the rows located, the loss is the read. The diagnostic's READ lines
+(`PumpLivePathDiagnosticTests`, `PUMP_LIVE_DIAG=1`) print, for every detected row the assigner
+named right, the annotation's string and the string the slicer + classifier read. The before run
+(64 heldout stills): on the photos with the transaction roles right (45 of 64), 117 rows print;
+66 read exactly, 15 are one cell wrong, 4 two, 3 three, 1 five, and 28 are miscounted (count
+differs from the annotation). The READ strings are unchanged by this row's fixes, so this table
+is both the before and the after. The two hypotheses the row carried were checked at their line
+and one was refuted.
+
+**A. The miscounted rows are not mostly dropped leading zeros - and the ones that are do not
+matter.** Classified by value:
+
+| class | rows | examples |
+|---|---|---|
+| value-preserving (only leading zeros lost) | 3 | `0025,51 → 2551` (25.51), `0044,85 → 4485` (44.85), `00011,00 → 1100` (11.00) |
+| value-changing (a real digit lost or a split glyph) | 25 | `0049,08 → 908`, `0067,05 → 706`, `70.70 → 111111` |
+
+The three value-preserving reads are numerically right, and each is blocked by a *different*
+field on its own photo (`pump-028` total `908`, `pump-095` price `111`, `pump-170` total `188`),
+so no law change recovers them. The leading-blank logic the row named is already doing its job:
+on `pump-095`'s total the slicer emits cells `0,1` blank and `2–5` occupied, so `4485` is 44.85
+with the currency's two decimals. `PumpReader.read` drops blank cells before the law, so a
+leading blank can never change the digits the law sees - a slicer "leading-blank recovery" is a
+no-op for the read by construction. The 25 value-changing rows are split glyphs (two runs merged
+into a phantom cell) and grids collapsed onto a subset of the glyphs; the largest group is the
+leading glyph cut by a detector box a few percent narrower than the row (`0077,56` read
+`707756`: cell 0 is a 25 px sliver of a 66 px `0`, classified `7`). That cut is the detector's,
+not the slicer's, and expanding the crop in the reader measured **22 → 17** with precision
+0.71 (it pulls in the neighbouring row), so it was reverted.
+
+**B. The one-cell-wrong rows.** For each, which of the four cases holds (wrong cell in the
+total / truth digit outside the beam / the confusion table lacks the pair / another row also
+wrong). `pair` is whether the read→truth digit change is in the seven-segment table
+(`DigitRepair`).
+
+| photo | field | truth | read | pair | other fields | case |
+|---|---|---|---|---|---|---|
+| pump-030 | total | 3695,76 | 569576 | no (5→3) | exact | already repaired (main tier) |
+| pump-055 | total | 108.68 | 10808 | no (0→6) | exact | 2+3 (0 outside beam, pair absent) |
+| pump-056 | total | 72.00 | 3200 | no (3→7) | exact | 2+3 (7 outside beam, pair absent) |
+| pump-061 | liters | 33.84 | 1384 | no (1→3) | exact | 4 (discount: no board price closes) |
+| pump-065 | total | 3765,7 | 37697 | no (9→5) | exact | 3 (5↔9 is single-segment and absent; already derived) |
+| pump-076 | liters | 0077,56 | 707756 | no (7→0) | total also wrong | 2+4 |
+| pump-076 | total | 0150,00 | 715000 | no (7→0) | liters also wrong | 2+4 |
+| pump-091 | total | 1427.0 | 74270 | yes (7→1) | liters and price also wrong | 4 |
+| pump-091 | liters | 20.00 | 3000 | no (3→2) | total and price also wrong | 4 |
+| pump-091 | unitPrice | 71.35 | 7138 | no (8→5) | total and liters also wrong | 4 |
+| pump-104 | liters | 0026,50 | 002850 | yes (8→6) | total and price also wrong | 4 |
+| pump-167 | liters | 0042,77 | 704277 | no (7→0) | total also wrong | 2+4 |
+| pump-170 | unitPrice | 050,99 | 75099 | no (7→0) | liters and total also wrong | 2+4 |
+| pump-175 | liters | 00042,53 | 7004253 | no (7→0) | total also wrong | 2+4 |
+| pump-201 | liters | 24,97 | 2491 | yes (7→1) | exact, but the price window is a 0.37-IoU fragment | window, not the table |
+
+Reading: no one-cell row is a case the *repair tier* can fix on its own. Where the pair is in
+the table (`pump-091`, `104`, `201`), a second field is also wrong or the price window barely
+exists; where only the total is wrong (`pump-055`, `056`), the correct digit is outside the beam
+and the pair (0↔6, 3↔7) is not a seven-segment neighbour. The missing single-segment pair is
+5↔9, and it is in `DigitRepair`'s table's domain, but that file is outside this row's write set;
+`pump-065` (the only row it would touch) already commits via the truncated-total tier.
+
+**What was built, measured separately.** Three law changes in `PumpReadingLaw`, each on the
+heldout split:
+
+1. **The repair tier now tries the total too** (the row's case 1). A wrong total cell is as
+   likely as a wrong volume or price, and the arithmetic still has to close to the cent. Measured
+   alone: live **22 → 22**, annotated **66 → 66** - no heldout row has its only error in the
+   total with the true digit a confusion partner, so the capability is a correctness gain with a
+   unit test (`totalCellRepairs`) rather than a corpus number.
+2. **An exact close beats a slack-only close** (found while measuring 1, not named by the row).
+   `closingSlack` is 0.011 so a head that floors its product still closes, but the slack also let
+   a beam neighbour one cent away masquerade as a close and abstain a field. `commit` now drops a
+   slack-only competitor that reaches the *same* total (an operand is a cent off; the exact
+   operand is the read) while a competitor with a *different* total still abstains (the display's
+   total itself is ambiguous). Measured alone: live **22 → 23**, annotated **66 → 67**, precision
+   unchanged.
+3. The oracle strings stay at **526 committed / 0.998 precision** and the fragility pass at
+   **0.059** (≤ 0.10), so neither change widens the beam or the tolerance.
+
+| tier | before | after |
+|---|---|---|
+| oracle strings | 526 / 0.998 | 526 / 0.998 |
+| annotated windows | 66 committed, 0.970, 18/64 photos | **67**, 0.970, 19/64 |
+| live (detector) | 22 committed, 1.000, 5/64 photos | **23**, 1.000, 6/64 |
+
+The READ strings are **identical before and after**: the gain is the law committing a field it
+already read, not a better read. The per-head live table (`PumpReaderPipelineTests`) is now
+printed: `gilbarco 11/11`, `tokheim 6/6`, `wayne 5/5`, `tatsuno 1/1`, `other` none committed.
+
 ## Named mutation: drop the dp bit
 
 In `dataset.py`, the target's dp bit was dropped (7 bits, dp slot padded with a

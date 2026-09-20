@@ -23,7 +23,7 @@ struct PumpReaderPipelineTests {
     // 52 at 0.962, 14/64 photos, once the slicer preferred the fundamental
     // pitch; 66 at 0.970, 18/64, once it checked the pitch against the glyph
     // body (PU.4 round of 2026-09-20).
-    private static let committedFloor = 66
+    private static let committedFloor = 67
     private static let precisionFloor = 0.96
     // The live path (no annotation): measured on the heldout split on
     // 2026-09-20 after PU.24's verifier round - every candidate verified, a
@@ -33,11 +33,22 @@ struct PumpReaderPipelineTests {
     // which lifted the annotated path 44 -> 52; 11 with the pitch-to-body
     // check (annotated 66); 22 with the learned row detector as the locator's
     // first source and the verifier keeping detected rows on count and size
-    // alone (PU.33). Moves only upward; a run without the detector file
-    // (ml/pump-reader/.out/det/DigitRows.mlmodel) falls back to Vision and
-    // reads 11 - the floor assumes the detector is present.
-    private static let liveCommittedFloor = PumpReaderTestSupport.detectorURL == nil ? 11 : 22
+    // alone (PU.33); 23 with PU.34's law arbitration, which stops a slack-only
+    // operand close from making an exact read abstain. Moves only upward; a run
+    // without the detector file (ml/pump-reader/.out/det/DigitRows.mlmodel)
+    // falls back to Vision and reads 11 - the floor assumes the detector is
+    // present.
+    private static let liveCommittedFloor = PumpReaderTestSupport.detectorURL == nil ? 11 : 23
     private static let livePrecisionFloor = 0.99
+
+    /// The make a fixture's file name names, for the per-head read table. The
+    /// prefixes are the corpus's own naming; anything else is `other`.
+    static func head(_ name: String) -> String {
+        for make in ["wayne", "gilbarco", "tokheim", "scheidt", "tatsuno"] where name.contains(make) {
+            return make
+        }
+        return "other"
+    }
 
     private static let modelURL = PumpReaderTestSupport.repoRoot
         .appendingPathComponent("ios/App/Resources/PumpSegments.mlpackage")
@@ -54,6 +65,7 @@ struct PumpReaderPipelineTests {
         var numericTotal = 0, committed = 0, committedCorrect = 0
         var fixturesAllRight = 0, fixturesScored = 0
         var wrong: [String] = []
+        var perHead: [String: (committed: Int, correct: Int)] = [:]
         let start = Date()
         for (name, value) in root.sorted(by: { $0.key < $1.key }) {
             guard name != "_about", let ann = value as? [String: Any], let want = expected[name],
@@ -72,14 +84,17 @@ struct PumpReaderPipelineTests {
                 ScoredCell(field: .total, reading: reading.total, want: want.total),
             ]
             var fixtureTotal = 0, fixtureRight = 0
+            let head = Self.head(name)
             for cell in cells {
                 guard let wantValue = cell.want else { continue }
                 numericTotal += 1; fixtureTotal += 1
                 guard let got = cell.reading.value.map({ NSDecimalNumber(decimal: $0).doubleValue }) else { continue }
                 committed += 1
+                perHead[head, default: (0, 0)].committed += 1
                 let derived: Bool = { if case .derived? = cell.reading.provenance { return true }; return false }()
                 if abs(got - wantValue) < (derived ? 0.1 : CorpusScorer.tolerance) {
                     committedCorrect += 1; fixtureRight += 1
+                    perHead[head]!.correct += 1
                 } else {
                     wrong.append("\(name.prefix(8)) \(cell.field.rawValue) got \(got) want \(wantValue)")
                 }
@@ -91,6 +106,9 @@ struct PumpReaderPipelineTests {
               + "precision \(String(format: "%.3f", precision)), coverage \(String(format: "%.3f", Double(committed) / Double(max(numericTotal, 1)))) "
               + "of \(numericTotal); photos with every field right \(fixturesAllRight)/\(fixturesScored); "
               + "\(String(format: "%.1f", Date().timeIntervalSince(start)))s")
+        for (head, score) in perHead.sorted(by: { $0.key < $1.key }) {
+            print("  \(head): \(score.committed) committed, \(score.correct) correct")
+        }
         for line in wrong { print("  WRONG \(line)") }
         #expect(committed >= Self.liveCommittedFloor)
         #expect(precision >= Self.livePrecisionFloor)

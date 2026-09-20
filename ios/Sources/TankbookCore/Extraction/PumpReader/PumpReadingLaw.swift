@@ -104,9 +104,16 @@ public enum PumpReadingLaw {
             return commit(preset, repair: nil)
         }
 
-        // The repair tier: one substituted cell in liters or price.
+        // The repair tier: one substituted cell in any of the three fields.
+        // The main tier above already tries one beam alternative per cell, so
+        // this tier is for a cell whose true digit the beam does not carry at
+        // all - a seven-segment confusion the classifier ranked fourth or
+        // lower. The total is included: a wrong total cell is as likely as a
+        // wrong volume or price, and the arithmetic still has to close to the
+        // cent (no tolerance widening), so a total-side repair is held to the
+        // same judge as the read.
         var repairs: [(Triple, PumpFieldProvenance, PumpField)] = []
-        for (field, window) in [(PumpField.liters, literWindow), (.unitPrice, priceWindow)] {
+        for (field, window) in [(PumpField.liters, literWindow), (.unitPrice, priceWindow), (.total, totalWindow!)] {
             for (index, cell) in window.cells.enumerated() {
                 let read = cell.top.digit
                 for partner in DigitRepair.confusablePartners(of: read) {
@@ -121,8 +128,10 @@ public enum PumpReadingLaw {
                     let pc = (field == .unitPrice
                         ? candidates(repaired, decimals: conventions.priceDecimals).filter(plausiblePrice)
                         : priceCands).filter { $0.substitutions == 0 }
-                    let found = closingTriples(liters: lc, prices: pc,
-                                               totals: totalCands.filter { $0.substitutions == 0 },
+                    let tc = (field == .total
+                        ? candidates(repaired, decimals: conventions.totalDecimals).filter(plausibleTotal)
+                        : totalCands).filter { $0.substitutions == 0 }
+                    let found = closingTriples(liters: lc, prices: pc, totals: tc,
                                                truncated: truncatedCands.filter { $0.substitutions == 0 })
                     for triple in found {
                         repairs.append((triple, .repaired(cellIndex: index, fromDigit: read, toDigit: partner), field))
@@ -169,6 +178,11 @@ public enum PumpReadingLaw {
         let totalDerived: Bool
         let logPosterior: Double
         let substitutions: Int
+        /// Whether the product reproduces the shown total at the cent, rather
+        /// than only inside `closingSlack`. The slack exists for a head that
+        /// floors its own product; a triple that needs the slack is a cent off
+        /// the shown total and must not block a triple that hits it exactly.
+        let exactClosing: Bool
     }
 
     /// The exact tier: the top read, or the top read with ONE cell substituted
@@ -238,11 +252,13 @@ public enum PumpReadingLaw {
                     // the head's rounding mode). The Confirm cross-check's 0.5 %
                     // tolerance is for receipts and would let a misread digit
                     // "close"; here it would only manufacture ambiguity.
-                    if abs(product - t.value) <= slack {
+                    let miss = abs(product - t.value)
+                    if miss <= slack {
                         out.append(Triple(liters: l.value, price: p.value, total: t.value,
                                           totalDerived: false,
                                           logPosterior: l.logPosterior + p.logPosterior + t.logPosterior,
-                                          substitutions: l.substitutions + p.substitutions + t.substitutions))
+                                          substitutions: l.substitutions + p.substitutions + t.substitutions,
+                                          exactClosing: miss < 0.0005))
                     }
                 }
                 for t in truncated where t.value > 0 {
@@ -253,7 +269,8 @@ public enum PumpReadingLaw {
                         out.append(Triple(liters: l.value, price: p.value, total: product,
                                           totalDerived: true,
                                           logPosterior: l.logPosterior + p.logPosterior + t.logPosterior,
-                                          substitutions: l.substitutions + p.substitutions + t.substitutions))
+                                          substitutions: l.substitutions + p.substitutions + t.substitutions,
+                                          exactClosing: true))
                     }
                 }
             }
@@ -265,7 +282,16 @@ public enum PumpReadingLaw {
     /// abstains. Exactly one triple commits all three.
     static func commit(_ all: [Triple], repair: (PumpFieldProvenance, PumpField)?) -> PumpDisplayReading {
         guard let best = all.max(by: { $0.logPosterior < $1.logPosterior }) else { return .abstained }
-        let triples = all.filter { best.logPosterior - $0.logPosterior <= ambiguityWindow }
+        // The total is the anchor. When the best close reproduces the shown
+        // total exactly, a competing triple that reaches the SAME total inside
+        // the truncation slack is a false close of an operand: its price or
+        // volume is a cent off and the exact operand is the read. A competitor
+        // whose TOTAL differs means the display's total itself is ambiguous, so
+        // it stays and the field abstains.
+        let contenders = best.exactClosing
+            ? all.filter { $0.exactClosing || abs($0.total - best.total) >= 0.0005 }
+            : all
+        let triples = contenders.filter { best.logPosterior - $0.logPosterior <= ambiguityWindow }
         func field(_ values: [Double], derived: Bool, role: PumpField) -> PumpFieldReading {
             guard let first = values.first, values.allSatisfy({ abs($0 - first) < 0.0005 }) else {
                 return .abstained

@@ -103,6 +103,45 @@ struct PumpReadingLawTests {
         }
     }
 
+    @Test("a total cell the beam does not carry is repaired from a seven-segment partner")
+    func totalCellRepairs() {
+        // 12.50 x 4.30 = 53.75; the total's leading `5` read as `6`, and the
+        // beam for that cell is [6, 8, 0] - the true `5` is a confusion
+        // partner of `6` but ranks fourth, so only the repair tier can close
+        // it, and the total is the field the substitution has to land in.
+        let reading = PumpReadingLaw.resolve(
+            windows: [
+                Self.window(.total, "63,75", leadingRanked: [6, 8, 0, 5]),
+                Self.window(.liters, "12,50"),
+                Self.window(.unitPrice, "4,30")
+            ], currency: CurrencyCode(rawValue: "RUB"))
+        #expect(reading.total.value == Decimal(string: "53.75"))
+        #expect(reading.liters.value == Decimal(string: "12.5"))
+        #expect(reading.unitPrice.value == Decimal(string: "4.30"))
+        if case .repaired(let index, let from, let to)? = reading.total.provenance {
+            #expect(index == 0 && from == 6 && to == 5)
+        } else {
+            Issue.record("expected a repaired total, got \(String(describing: reading.total.provenance))")
+        }
+    }
+
+    @Test("an operand that only reaches the total inside the truncation slack does not make the exact read abstain")
+    func exactOperandBeatsSlackOperand() {
+        // 10.00 x 2.009 = 20.09 exactly; the price's `9` has `8` as a beam
+        // neighbour, and 10.00 x 2.008 = 20.08 is one cent off - inside
+        // `closingSlack`, because a head may floor its product. The exact
+        // price must still commit: a slack-only operand close is not evidence
+        // that the display's price is ambiguous.
+        let reading = PumpReadingLaw.resolve(
+            windows: [
+                Self.window(.total, "20,09"),
+                Self.window(.liters, "10,00"),
+                Self.window(.unitPrice, "2,009", ranked: [9, 8], at: 3)
+            ], currency: CurrencyCode(rawValue: "EUR"))
+        #expect(reading.liters.value == Decimal(string: "10"))
+        #expect(reading.unitPrice.value == Decimal(string: "2.009"))
+    }
+
     @Test("roles never swap to close the arithmetic")
     func rolesNeverSwap() {
         // Liters and price swapped on the display would still multiply out;
@@ -221,6 +260,28 @@ struct PumpReadingLawTests {
 
     static func window(_ field: PumpField, _ text: String) -> PumpLocatedWindow {
         PumpLocatedWindow(field: field, cells: cells(for: text))
+    }
+
+    /// A window whose leading cell carries an explicit ranking, so a test can
+    /// put the true digit outside the beam (`beamWidth`) and exercise the
+    /// repair tier. The remaining cells are certain.
+    static func window(_ field: PumpField, _ text: String, leadingRanked: [Int]) -> PumpLocatedWindow {
+        window(field, text, ranked: leadingRanked, at: 0)
+    }
+
+    /// The same, with the ranking on any cell and a controlled posterior gap,
+    /// so a test can put a runner-up inside the ambiguity window.
+    static func window(_ field: PumpField, _ text: String, ranked: [Int], at index: Int) -> PumpLocatedWindow {
+        var cells = cells(for: text)
+        guard !ranked.isEmpty, cells.indices.contains(index) else {
+            return PumpLocatedWindow(field: field, cells: cells)
+        }
+        let candidates = ranked.enumerated().map { rank, digit in
+            PumpGlyphCandidate(digit: digit, logPosterior: -Double(rank))
+        }
+        cells[index] = PumpCellReading(probabilities: [], ranked: candidates,
+                                       decimalPoint: cells[index].decimalPoint)
+        return PumpLocatedWindow(field: field, cells: cells)
     }
 
     /// Cells from an annotation string: digits are cells, a separator marks
