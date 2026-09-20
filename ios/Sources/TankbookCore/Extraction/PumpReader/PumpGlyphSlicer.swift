@@ -73,6 +73,12 @@ enum PumpGlyphSlicer {
         var splitMerge: Bool = true
         /// A second pass at half the threshold when the snapped count is short.
         var shortCountRetry: Bool = true
+        /// The pitch-to-body check: a glyph body (the widest ink run) is at
+        /// least this fraction of the band height to count as a body rather
+        /// than a `1`, and the pitch must lie within [minimum, maximum) bodies.
+        var bodyMinimumFraction: Float = 0.35
+        var pitchToBodyMaximum: Float = 2.2
+        var pitchToBodyMinimum: Float = 0.9
     }
 
     private struct Run {
@@ -163,8 +169,27 @@ enum PumpGlyphSlicer {
 
         let minPitch = Int(options.minPitchFraction * Float(bandHeight))
         let maxPitch = Int(options.maxPitchFraction * Float(bandHeight))
-        guard let pitch = Self.autocorrelationPitch(profile, minLag: max(1, minPitch), maxLag: maxPitch),
+        guard var pitch = Self.autocorrelationPitch(profile, minLag: max(1, minPitch), maxLag: maxPitch),
               pitch > 0 else { return nil }
+
+        // The autocorrelation can still land on a harmonic when the row is
+        // half `1`s (a thin glyph every other cell leaves the fundamental no
+        // peak). The widest ink run is one glyph's body - an 8 or a 0 - and a
+        // glyph is never narrower than half its pitch nor wider than it: a
+        // pitch of two bodies or more is doubled, a pitch under a body is
+        // halved. Guarded by the run being a real body, not a `1`.
+        let threshold = options.adaptiveThreshold ? Self.otsuThreshold(profile) : options.runThresholdFraction * maxCol
+        let mergeGap = max(1, Int(options.mergeGapFraction * Float(bandHeight)))
+        let widest = Self.runs(in: profile, threshold: threshold, mergeGap: mergeGap)
+            .map { $0.end - $0.start + 1 }.max() ?? 0
+        if Float(widest) >= options.bodyMinimumFraction * Float(bandHeight) {
+            while pitch >= Int(options.pitchToBodyMaximum * Float(widest)), pitch / 2 >= max(1, minPitch) {
+                pitch /= 2
+            }
+            while Float(pitch) < options.pitchToBodyMinimum * Float(widest), pitch * 2 <= maxPitch {
+                pitch *= 2
+            }
+        }
 
         return Context(profile: profile, ink: ink, width: width,
                        bandTop: bandTop, bandBottom: bandBottom, bandHeight: bandHeight, pitch: pitch)

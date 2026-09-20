@@ -21,16 +21,18 @@ struct PumpReaderPipelineTests {
     // the shipped synthetic-only model read 18 at 0.944, 4/64. The constants
     // move only upward.
     // 52 at 0.962, 14/64 photos, once the slicer preferred the fundamental
-    // pitch (PU.4 round of 2026-09-20).
-    private static let committedFloor = 52
+    // pitch; 66 at 0.970, 18/64, once it checked the pitch against the glyph
+    // body (PU.4 round of 2026-09-20).
+    private static let committedFloor = 66
     private static let precisionFloor = 0.96
     // The live path (no annotation): measured on the heldout split on
     // 2026-09-20 after PU.24's verifier round - every candidate verified, a
     // height floor, the frame's edge and a per-cell aspect rule, the margin
     // at 1.0 and duplicate rows suppressed: committed 7, all correct
     // (0 the day before); 4 once the slicer preferred the fundamental pitch,
-    // which lifted the annotated path 44 -> 52. Moves only upward.
-    private static let liveCommittedFloor = 4
+    // which lifted the annotated path 44 -> 52; 11 with the pitch-to-body
+    // check (annotated 66). Moves only upward.
+    private static let liveCommittedFloor = 11
     private static let livePrecisionFloor = 0.99
 
     private static let modelURL = PumpReaderTestSupport.repoRoot
