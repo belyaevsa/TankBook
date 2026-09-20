@@ -308,6 +308,15 @@ class Handler(SimpleHTTPRequestHandler):
         name = unquote(path[len("/api/entry/"):])
         length = int(self.headers.get("Content-Length", "0"))
         entry = json.loads(self.rfile.read(length))
+        videos = json.loads(VIDEOS.read_text()) if VIDEOS.exists() else {}
+        if name in videos:
+            # The reference quads of a video: skew them to the display's tilt,
+            # then re-run pump_reader.track --videos to carry them into the frames.
+            videos[name]["windows"] = [{"field": w["field"], "quad": [[round(float(x), 4), round(float(y), 4)] for x, y in w["quad"]]}
+                                       for w in entry.get("windows", []) if w["field"] in ("total", "liters", "unitPrice")]
+            VIDEOS.write_text(json.dumps(videos, indent=1))
+            return self.send_json({"ok": True, "entry": {"windows": videos[name]["windows"], "reference": videos[name]["reference"]},
+                                   "retrack": f"PYTHONPATH=src .venv/bin/python -m pump_reader.track --videos --only {name}"})
         ann = load_windows()
         ann[name] = clean_entry(entry)
         save_windows(ann)

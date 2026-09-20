@@ -188,8 +188,9 @@ function collect() {
   return entry;
 }
 async function save() {
-  if (!current || isVideo) return;
+  if (!current) return;
   const r = await (await fetch('/api/entry/' + encodeURIComponent(current), {method:'PUT', body: JSON.stringify(collect())})).json();
+  if (isVideo) { dirty = false; setMsg('reference saved – retrack: ' + r.retrack); $('#out').textContent = 'Reference quads saved. Re-run in ml/pump-reader:\n' + r.retrack; return; }
   entry = r.entry; entry.windows = entry.windows || []; dirty = false; setMsg('saved');
   const fx = fixtures.find(x => x.name === current); if (fx) { fx.windows = entry.windows.length; fx.reviewed = !!entry.reviewed; fx.tracking = entry.tracking || null; }
   renderList(); renderWins(); draw();
