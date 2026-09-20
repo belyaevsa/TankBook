@@ -191,6 +191,8 @@ was **not kept** - the file in the bucket is the 7 s cut, re-encoded without aud
 |---|---|---|---|
 | `live-4386` | 73 (1920x1440) | `pump-212` | Dresser Wayne, Circle K EE; the HEIC became the still |
 
+| `video-005-gilbarco-veederroot-running-display-social-third-party-ru` | 334 (360x640, 30 fps, 11 s) | Gilbarco Veeder-Root, RU, a social-media clip pasted by the product owner - **third-party**, a caption overlay at the bottom (not over the display), the camera walks to the nozzle and back | price `66,10` constant; 605 → 797,83 / 12,09; the display 8-10 % of a 360 px frame - the smallest display material in the corpus |
+
 Why it is worth having: every frame shows a *different* number, so there is no single truth
 row - but the display's own arithmetic is a per-frame oracle for free: a frame's reading is
 right when `total == round(liters x 1.729, 2)`. That is a self-check no still can offer and the
