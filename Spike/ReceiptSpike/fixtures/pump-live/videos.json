@@ -2066,8 +2066,8 @@
       0.5005
      ],
      [
-      0.3357,
-      0.509
+      0.3106,
+      0.5109
      ]
     ]
    },
@@ -2231,6 +2231,269 @@
      [
       0.51,
       0.44
+     ]
+    ]
+   }
+  ],
+  "reviewed": false
+ },
+ "video-020-unknown-petro-held-display-dm3-third-party-pl": {
+  "reference": "040.jpg",
+  "currency": "PLN",
+  "unitPrice": "9.18",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.15,
+      0.21
+     ],
+     [
+      0.75,
+      0.21
+     ],
+     [
+      0.75,
+      0.32
+     ],
+     [
+      0.15,
+      0.32
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.28,
+      0.43
+     ],
+     [
+      0.75,
+      0.43
+     ],
+     [
+      0.75,
+      0.53
+     ],
+     [
+      0.28,
+      0.53
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.38,
+      0.655
+     ],
+     [
+      0.73,
+      0.655
+     ],
+     [
+      0.73,
+      0.76
+     ],
+     [
+      0.38,
+      0.76
+     ]
+    ]
+   }
+  ],
+  "reviewed": false
+ },
+ "video-021-wayne-orlen-held-display-price-unlit-pl": {
+  "reference": "090.jpg",
+  "currency": "PLN",
+  "unitPrice": "8.39",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.34,
+      0.305
+     ],
+     [
+      0.72,
+      0.305
+     ],
+     [
+      0.72,
+      0.385
+     ],
+     [
+      0.34,
+      0.385
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.34,
+      0.48
+     ],
+     [
+      0.7,
+      0.48
+     ],
+     [
+      0.7,
+      0.55
+     ],
+     [
+      0.34,
+      0.55
+     ]
+    ]
+   }
+  ],
+  "reviewed": false
+ },
+ "video-022-gilbarco-veederroot-orlen-caption-diesel-running-display-pl": {
+  "reference": "090.jpg",
+  "currency": "PLN",
+  "unitPrice": "8.84",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.35,
+      0.31
+     ],
+     [
+      0.76,
+      0.31
+     ],
+     [
+      0.76,
+      0.375
+     ],
+     [
+      0.35,
+      0.375
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.4,
+      0.365
+     ],
+     [
+      0.73,
+      0.365
+     ],
+     [
+      0.73,
+      0.42
+     ],
+     [
+      0.4,
+      0.42
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.5,
+      0.505
+     ],
+     [
+      0.65,
+      0.505
+     ],
+     [
+      0.65,
+      0.55
+     ],
+     [
+      0.5,
+      0.55
+     ]
+    ]
+   }
+  ],
+  "reviewed": false
+ },
+ "video-023-gilbarco-veederroot-orlen-night-oblique-running-display-pl": {
+  "reference": "150.jpg",
+  "currency": "PLN",
+  "unitPrice": "7.34",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.385,
+      0.243
+     ],
+     [
+      0.515,
+      0.243
+     ],
+     [
+      0.515,
+      0.268
+     ],
+     [
+      0.385,
+      0.268
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.415,
+      0.265
+     ],
+     [
+      0.505,
+      0.265
+     ],
+     [
+      0.505,
+      0.283
+     ],
+     [
+      0.415,
+      0.283
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.415,
+      0.298
+     ],
+     [
+      0.475,
+      0.298
+     ],
+     [
+      0.475,
+      0.318
+     ],
+     [
+      0.415,
+      0.318
      ]
     ]
    }

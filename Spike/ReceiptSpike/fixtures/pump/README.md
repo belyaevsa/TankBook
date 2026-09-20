@@ -1306,3 +1306,9 @@ Pump cells asserted: 612 → 672 (twenty triples, `pump-226` none), totals only 
 nozzle boots), Cyrillic, `4693,50` / `90,00` at `52,15` - a 90-litre preset, unpadded, the
 `МИНИМАЛЬНАЯ ДОЗА ОТПУСКА 5Л` legend and the keypad in frame, a Kia Soul on the wet forecourt
 behind. Train; three windows (903). Pump cells: 672 → 675.
+
+`pump-241` (same day): Dresser Wayne Pignone, **Poland**, the dm³ face (`zł` / `dm³` / `zł/dm³`,
+`LICZYDŁO POWINNO WSKAZYWAĆ ZERO`): `24.98` / `5.2?` at `4.69`, under a canopy on a wet day. The
+triple **does not close** with the litres read as 5.28 (x 4.69 = 24.76; 24.98 / 4.69 = 5.33), so
+the litres' second glyph is a 2 or a 3 and that cell is **blank** (`csvDisagrees` says so). `PLN`,
+train; three windows (909). Pump cells: 675 → 677.
