@@ -196,7 +196,8 @@ struct SchemaFieldWriterGuardTests {
             "ChargeSession.chargeType",
             "ChargeSession.createdAt",
             "ChargeSession.durationMin",
-            "ChargeSession.provenance",
+            // ChargeSession.provenance left this list with PU.29: the capture
+            // provenance writer covers every entry kind.
             "ChargeSession.socEndPct",
             "ChargeSession.socStartPct",
             "ChargeSession.tariffId",

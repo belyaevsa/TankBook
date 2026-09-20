@@ -54,7 +54,11 @@ struct CorpusABTests {
     @Test("the rules arm scores identically to the live AccuracyRatchet run")
     func rulesArmMatchesTheLiveRatchet() throws {
         #expect(try Self.scoreClass("receipts", engine: "rules") == ScoredClass(name: "receipts", hits: 46, total: 96))
-        #expect(try Self.scoreClass("pump", engine: "rules") == ScoredClass(name: "pump", hits: 1, total: 46))
+        // 46 -> 45 on 2026-09-20: pump-013's unit price was an inference
+        // (13.06 / 7.34), never on its display, and the owner's review blanked
+        // the cell; the sweep's own records are untouched, the denominator is
+        // the corpus fact.
+        #expect(try Self.scoreClass("pump", engine: "rules") == ScoredClass(name: "pump", hits: 1, total: 45))
         #expect(try Self.scoreClass("fiscal", engine: "rules") == ScoredClass(name: "fiscal", hits: 1, total: 3))
         #expect(
             try Self.scoreClass("screenshots", engine: "rules")
@@ -65,7 +69,7 @@ struct CorpusABTests {
     @Test("the LLM arm scores over the committed sweep, per class")
     func llmArmScores() throws {
         #expect(try Self.scoreClass("receipts", engine: "llm") == ScoredClass(name: "receipts", hits: 84, total: 96))
-        #expect(try Self.scoreClass("pump", engine: "llm") == ScoredClass(name: "pump", hits: 31, total: 46))
+        #expect(try Self.scoreClass("pump", engine: "llm") == ScoredClass(name: "pump", hits: 31, total: 45))
         #expect(try Self.scoreClass("fiscal", engine: "llm") == ScoredClass(name: "fiscal", hits: 2, total: 3))
         #expect(
             try Self.scoreClass("screenshots", engine: "llm")

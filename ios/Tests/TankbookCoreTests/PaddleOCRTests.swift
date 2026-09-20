@@ -17,7 +17,7 @@ struct PaddleOCRTests {
     @Test("Arm A (PP-OCRv5 -> FuelExtractor) scores over the committed sweep, per class")
     func armAScores() throws {
         #expect(try Self.scoreClass("receipts", engine: "paddleocr-a") == ScoredClass(name: "receipts", hits: 29, total: 96))
-        #expect(try Self.scoreClass("pump", engine: "paddleocr-a") == ScoredClass(name: "pump", hits: 2, total: 46))
+        #expect(try Self.scoreClass("pump", engine: "paddleocr-a") == ScoredClass(name: "pump", hits: 2, total: 45))
         #expect(try Self.scoreClass("fiscal", engine: "paddleocr-a") == ScoredClass(name: "fiscal", hits: 1, total: 3))
         #expect(try Self.scoreClass("screenshots", engine: "paddleocr-a") == ScoredClass(name: "screenshots", hits: 7, total: 24))
     }
