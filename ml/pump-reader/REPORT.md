@@ -413,6 +413,37 @@ fully right; the law trades coverage for precision, which is what the gate buys.
 photo is `pump-106`: liters and total each lost a leading cell in the slicer and 5.1 × 70.31
 = 358.58 multiplies out - the consistent tenfold shrink the arithmetic cannot see.
 
+### Round 6 (orchestrator, 2026-09-20): real glyphs from the train split - PU.31, decision 9
+
+The corpus was split 70/30 by the product owner (decision 9, `pump/split.csv`, 64 heldout
+stills frozen). The train part - 148 stills and the 46 Live records paired to them, 1 906 frames
+carrying their still's quads through `pump_reader.track` - was exported by the production
+slicer (`PumpTrainSliceExportTests`, 8 527 windows, the slicer's cell count agreeing with the
+label on 5 677) and cut into **25 085 labelled real cells** (`pump_reader.realglyphs`; a window
+the slicer miscounts is skipped whole). `train.py --real .out/real --real-frac 0.3` mixes 38 of
+every 128 batch cells from that set with brightness / contrast / polarity / shift jitter; the
+recipe is otherwise the shipped one (15 000 steps, 120 000 renders, label smoothing 0.05,
+contrast collapse 0.15, slicer framing).
+
+Measured where the model has seen nothing - the heldout split, annotated windows, the law on
+top, `PumpReaderPipelineTests`:
+
+| classifier | committed | correct | precision | coverage of 175 | photos every field right |
+|---|---|---|---|---|---|
+| round 5, synthetic only (shipped 2026-09-19) | 18 | 17 | 0.944 | 0.103 | 4 / 64 |
+| **round 6, + 30 % real glyphs (shipped)** | **44** | **42** | **0.955** | **0.251** | **12 / 64** |
+
+Coverage x2.4 at higher precision. The synthetic validation set reads lower (digit 0.813 vs
+0.846) because the batches now carry real cells the validator never sees; it is not the
+measurement. The live path (locator -> reader, no annotation) stays at 0 committed on the
+heldout split: the row assignment and the verifier are what block it (PU.24, PU.30), not the
+classifier. Floors moved: `committedFloor` 39 -> 44 (now a heldout number), `precisionFloor`
+0.94 -> 0.95.
+
+Acceptance by the slicer, which is the other half of this round's story: six train fixtures
+under glare gave the extractor almost nothing (`pump-021` 3/185 windows, `pump-022` 5/310) -
+the frames are there, the slicer cannot count them, and that is the slicer round's material.
+
 ## Named mutation: drop the dp bit
 
 In `dataset.py`, the target's dp bit was dropped (7 bits, dp slot padded with a

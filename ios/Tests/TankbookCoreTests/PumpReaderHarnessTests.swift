@@ -110,10 +110,12 @@ struct PumpReaderHarnessTests {
 
     // MARK: - The locator
 
+    // The locator runs no trained model, so the split does not apply and the
+    // train still it was measured on stays its fixture.
     @Test("the locator's best candidate on pump-078 clears the 0.5 IoU floor")
     func locatorPump078() throws {
         let name = try Self.findFixture(containing: "pump-078")
-        let windows = try Self.loadWindows()
+        let windows = try Self.loadWindows(heldoutOnly: false)
         guard let ann = windows[name], let image = Self.loadFixtureImage(name) else {
             Issue.record("\(name) could not be loaded")
             return
@@ -310,13 +312,16 @@ struct PumpReaderHarnessTests {
 
     // MARK: - Loading
 
-    private static func loadWindows() throws -> [String: PumpFixtureAnnotation] {
+    /// The heldout split by default (decision 9): the harness's slicer and
+    /// classifier numbers are measured there. `heldoutOnly: false` is for
+    /// checks that run no trained model.
+    private static func loadWindows(heldoutOnly: Bool = true) throws -> [String: PumpFixtureAnnotation] {
         let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)
         let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
         var result: [String: PumpFixtureAnnotation] = [:]
         for (name, value) in root {
             guard name != "_about", let ann = value as? [String: Any],
-                  PumpReaderTestSupport.isHeldout(name) else { continue }
+                  !heldoutOnly || PumpReaderTestSupport.isHeldout(name) else { continue }
             let rotationCW = (ann["rotationCW"] as? NSNumber)?.intValue ?? 0
             let raw = ann["windows"] as? [[String: Any]] ?? []
             let windows = raw.compactMap { entry -> PumpWindowAnnotation? in

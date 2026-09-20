@@ -1,0 +1,760 @@
+{
+ "source": "ios/.build/pump-reader-out/train/train-slices.json",
+ "cells": 25085,
+ "windows_offered": 8527,
+ "windows_used": 5677,
+ "labels": {
+  "0": 4450,
+  "1": 4226,
+  "2": 1992,
+  "3": 1644,
+  "4": 2182,
+  "5": 1429,
+  "6": 879,
+  "7": 1350,
+  "8": 2568,
+  "9": 4365
+ },
+ "fixtures": {
+  "pump-001.heic": {
+   "offered": 177,
+   "used": 109,
+   "frames": 174
+  },
+  "pump-002-lukoil-spb-ru.png": {
+   "offered": 3,
+   "used": 1,
+   "frames": 0
+  },
+  "pump-003-kz-95-kzt.jpg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-004-kz-95-kzt-tokheim.jpg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-005-dresser-wayne-four-prices-ru.png": {
+   "offered": 6,
+   "used": 6,
+   "frames": 0
+  },
+  "pump-006-kz-adast-92-kzt.png": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-007-lukoil-spb-comma-decimals-ru.png": {
+   "offered": 7,
+   "used": 6,
+   "frames": 0
+  },
+  "pump-009-gilbarco-zero-padded-ru.png": {
+   "offered": 7,
+   "used": 7,
+   "frames": 0
+  },
+  "pump-010-scheidt-preset-amount-ru.png": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-011-gilbarco-circlek-ee-zero-padded.heic": {
+   "offered": 162,
+   "used": 135,
+   "frames": 159
+  },
+  "pump-012-gilbarco-circlek-ee-glare-total.heic": {
+   "offered": 54,
+   "used": 16,
+   "frames": 51
+  },
+  "pump-013-dresser-wayne-ee-four-prices.heic": {
+   "offered": 264,
+   "used": 231,
+   "frames": 258
+  },
+  "pump-015-dresser-wayne-ee-diesel.heic": {
+   "offered": 280,
+   "used": 198,
+   "frames": 275
+  },
+  "pump-016-wayne-ee-idle-zero.heic": {
+   "offered": 275,
+   "used": 239,
+   "frames": 270
+  },
+  "pump-017-wayne-ee-idle-zero-angled.heic": {
+   "offered": 140,
+   "used": 94,
+   "frames": 135
+  },
+  "pump-018-gilbarco-tatneft-tver-98-ru.jpeg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-020-gilbarco-circlek-sikupilli-pump7-ee.jpg": {
+   "offered": 111,
+   "used": 3,
+   "frames": 108
+  },
+  "pump-021-wayne-circlek-sun-glare-ee.jpg": {
+   "offered": 185,
+   "used": 3,
+   "frames": 180
+  },
+  "pump-022-wayne-circlek-pump1-glare-ee.jpg": {
+   "offered": 310,
+   "used": 5,
+   "frames": 305
+  },
+  "pump-024-wayne-neste-ee-three-grade-prices.jpg": {
+   "offered": 300,
+   "used": 196,
+   "frames": 295
+  },
+  "pump-025-wayne-neste-ee-glare-obscured-total.jpg": {
+   "offered": 300,
+   "used": 253,
+   "frames": 295
+  },
+  "pump-026-gilbarco-circlek-ee-comma-decimal.jpg": {
+   "offered": 159,
+   "used": 134,
+   "frames": 156
+  },
+  "pump-027-gilbarco-circlek-ee-comma-glare.jpg": {
+   "offered": 168,
+   "used": 112,
+   "frames": 165
+  },
+  "pump-029-dresser-wayne-gpn-okulovka-ru-glare-total.jpg": {
+   "offered": 3,
+   "used": 1,
+   "frames": 0
+  },
+  "pump-033-dresser-wayne-circlek-ee-fourprice-95.jpg": {
+   "offered": 390,
+   "used": 214,
+   "frames": 384
+  },
+  "pump-034-dresser-wayne-circlek-tallinn-ee-db0-pair.jpg": {
+   "offered": 216,
+   "used": 115,
+   "frames": 210
+  },
+  "pump-036-dresser-wayne-circlek-ee-pump4-95.jpg": {
+   "offered": 240,
+   "used": 156,
+   "frames": 234
+  },
+  "pump-037-dresser-wayne-circlek-ee-pump3-diesel.jpg": {
+   "offered": 6,
+   "used": 4,
+   "frames": 0
+  },
+  "pump-039-gilbarco-circlek-ee-1839-clean.jpg": {
+   "offered": 123,
+   "used": 82,
+   "frames": 120
+  },
+  "pump-040-gilbarco-circlek-ee-pump4-wide.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-043-dresser-wayne-circlek-ee-pump8-95.jpg": {
+   "offered": 6,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-044-rn-tver-chkalovskaya-95-comma-truncated-price-ru.jpeg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-045-gilbarco-circlek-ee-1799-zeropad.jpg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-047-gilbarco-circlek-ee-pump8-outdoor.jpg": {
+   "offered": 87,
+   "used": 58,
+   "frames": 84
+  },
+  "pump-048-gilbarco-circlek-ee-1889-near-preset.jpg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-049-gilbarco-circlek-ee-faint-lcd-small-fill.jpg": {
+   "offered": 84,
+   "used": 53,
+   "frames": 81
+  },
+  "pump-051-wayne-circlek-ee-fourprice-none-matches.jpg": {
+   "offered": 6,
+   "used": 4,
+   "frames": 0
+  },
+  "pump-052-wayne-circlek-ee-glare-total-lost.jpg": {
+   "offered": 5,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-053-wayne-circlek-ee-pump1-glare-total-digit.jpg": {
+   "offered": 190,
+   "used": 152,
+   "frames": 185
+  },
+  "pump-054-wayne-circlek-jarvevana-pump7-diesel-flare.jpg": {
+   "offered": 6,
+   "used": 1,
+   "frames": 0
+  },
+  "pump-057-gilbarco-circlek-sikupilli-pump5-db0-pair.jpg": {
+   "offered": 96,
+   "used": 91,
+   "frames": 93
+  },
+  "pump-058-gilbarco-circlek-ee-dirty-lcd-1969.jpg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-059-gilbarco-circlek-ee-pump3-1899.jpg": {
+   "offered": 153,
+   "used": 123,
+   "frames": 150
+  },
+  "pump-060-gilbarco-circlek-ee-1894.jpg": {
+   "offered": 111,
+   "used": 94,
+   "frames": 108
+  },
+  "pump-064-wayne-circlek-ee-4645l-1834.jpg": {
+   "offered": 204,
+   "used": 118,
+   "frames": 198
+  },
+  "pump-066-rn-tver-budovo-95-exact-total-pair-ru.jpeg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-067-circlek-jarvevana-95miles-4837l-glare-pair-ee.jpg": {
+   "offered": 325,
+   "used": 294,
+   "frames": 320
+  },
+  "pump-069-circlek-gilbarco-2914l-rotated90-ee.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-071-circlek-gilbarco-1898l-midsegment-ee.jpg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-072-circlek-wayne-1001l-loyalty-price-off-board-ee.jpg": {
+   "offered": 6,
+   "used": 4,
+   "frames": 0
+  },
+  "pump-073-wayne-gazpromneft-tver-truncated-total-pair-ru.jpeg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-074-gpn-tver-95-ru.jpg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-075-gilbarco-circlek-ee-95.jpg": {
+   "offered": 114,
+   "used": 82,
+   "frames": 111
+  },
+  "pump-077-gilbarco-ee-2054.jpg": {
+   "offered": 39,
+   "used": 27,
+   "frames": 36
+  },
+  "pump-078-gilbarco-circlek-peetri-pump7-3143l-ee.jpg": {
+   "offered": 99,
+   "used": 76,
+   "frames": 96
+  },
+  "pump-081-gilbarco-circlek-peetri-pump3-2496l-ee.jpg": {
+   "offered": 162,
+   "used": 108,
+   "frames": 159
+  },
+  "pump-082-gilbarco-circlek-peetri-1315l-ee.jpg": {
+   "offered": 186,
+   "used": 185,
+   "frames": 183
+  },
+  "pump-084-dresser-wayne-gpn-okulovka-exact-total-pair-ru.jpeg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-085-tokheim-rn-tver-chkalovskaya-3000l-pair-ru.jpeg": {
+   "offered": 3,
+   "used": 0,
+   "frames": 0
+  },
+  "pump-086-tokheim-rn-tver-chkalovskaya-1000l-pair-ru.jpeg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-087-scheidt-bachmann-rn-3000l-6830-reflection-a-ru.jpeg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-088-scheidt-bachmann-rn-3000l-6830-reflection-b-ru.jpeg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-090-scheidt-bachmann-rn-3000l-6830-reflection-c-ru.jpeg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-093-scheidt-bachmann-rn-2000l-6385-faded-ru.jpeg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-094-gilbarco-circlek-ee-4325l-1944.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-097-dresser-wayne-circlek-ee-2285l-1899.jpg": {
+   "offered": 198,
+   "used": 188,
+   "frames": 192
+  },
+  "pump-098-dresser-wayne-circlek-ee-969l-2039.jpg": {
+   "offered": 234,
+   "used": 161,
+   "frames": 228
+  },
+  "pump-099-dresser-wayne-circlek-ee-pump1-1064l-1899.jpg": {
+   "offered": 294,
+   "used": 249,
+   "frames": 288
+  },
+  "pump-100-dresser-wayne-circlek-jarvevana-pump4-6404l-2024-pair-ee.jpg": {
+   "offered": 300,
+   "used": 190,
+   "frames": 294
+  },
+  "pump-101-gilbarco-circlek-ee-1765l-2034-closeup.jpg": {
+   "offered": 78,
+   "used": 30,
+   "frames": 75
+  },
+  "pump-102-gilbarco-circlek-ee-1022l-1954.jpg": {
+   "offered": 108,
+   "used": 105,
+   "frames": 105
+  },
+  "pump-103-gilbarco-circlek-ee-4858l-1954.jpg": {
+   "offered": 102,
+   "used": 74,
+   "frames": 99
+  },
+  "pump-105-gilbarco-circlek-ee-2555l-1899.jpg": {
+   "offered": 129,
+   "used": 51,
+   "frames": 126
+  },
+  "pump-107-scheidt-bachmann-rn-tver-azk15-3000l-6830-night-zero-padded-pair-ru.jpeg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-108-scheidt-bachmann-rn-3249l-6830-reflection-ru.jpeg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-109-tokheim-gazpromneft-edrovo-4800l-7105-pair-ru.jpeg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-110-wayne-gazpromneft-gdrive95-4200l-7031-truncated-total-pair-ru.jpeg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-111-gilbarco-circlek-ee-5046l-1999.jpg": {
+   "offered": 84,
+   "used": 49,
+   "frames": 81
+  },
+  "pump-113-gilbarco-circlek-ee-522l-2014.jpg": {
+   "offered": 87,
+   "used": 53,
+   "frames": 84
+  },
+  "pump-114-gilbarco-circlek-ee-6987l-2074-price-glare.jpg": {
+   "offered": 60,
+   "used": 40,
+   "frames": 57
+  },
+  "pump-115-gilbarco-circlek-sikupilli-pump7-98miles-1517l-1979-pair-ee.jpg": {
+   "offered": 354,
+   "used": 182,
+   "frames": 351
+  },
+  "pump-117-wayne-alexela-98-press-err-third-party-ee.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-118-wayne-circlek-98-glare-total-instagram-third-party-ee.jpg": {
+   "offered": 2,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-121-wayne-neste-1422-drive2-third-party-ee.jpg": {
+   "offered": 4,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-122-wayne-circlek-98milesplus-1419-drive2-third-party-ee.jpg": {
+   "offered": 4,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-124-unknown-zero-padded-comma-price-cut-drive2-third-party-ru.jpg": {
+   "offered": 2,
+   "used": 1,
+   "frames": 0
+  },
+  "pump-126-gilbarco-circlek-zero-padded-price-out-of-frame-drive2-third-party-ee.jpg": {
+   "offered": 2,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-127-wayne-idle-zero-three-prices-lounaleht-third-party-ee.jpg": {
+   "offered": 5,
+   "used": 5,
+   "frames": 0
+  },
+  "pump-128-wayne-gazpromneft-idle-zero-five-prices-third-party-ru.jpg": {
+   "offered": 7,
+   "used": 7,
+   "frames": 0
+  },
+  "pump-129-wayne-circlek-98milesplus-1402-third-party-ee.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-130-wayne-1000-rub-six-cells-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-131-wayne-circlek-forecourt-far-display-third-party-lt.jpg": {
+   "offered": 2,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-132-wayne-circlek-1399-third-party-lt.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-133-wayne-circlek-total-cut-at-top-four-prices-third-party-ee.jpg": {
+   "offered": 5,
+   "used": 1,
+   "frames": 0
+  },
+  "pump-135-tokheim-manat-tiny-display-third-party-tm.jpg": {
+   "offered": 2,
+   "used": 0,
+   "frames": 0
+  },
+  "pump-136-wayne-kroner-717-third-party-no.jpg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-137-wayne-pence-this-sale-third-party-gb.jpg": {
+   "offered": 4,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-138-wayne-talvine-monochrome-no-price-third-party-ee.jpg": {
+   "offered": 2,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-141-wayne-kronor-957-price-cut-left-third-party-se.jpg": {
+   "offered": 2,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-143-wayne-3921-95-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 1,
+   "frames": 0
+  },
+  "pump-144-wayne-alexela-98-same-fill-as-117-wider-third-party-ee.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-145-tokheim-pence-comma-stock-photo-third-party-gb.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-146-wayne-gazpromneft-1100-92-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-147-wayne-eur-1494-third-party-ee.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-148-wayne-1634-95-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 1,
+   "frames": 0
+  },
+  "pump-149-wayne-circlek-diesel-1272-third-party-ee.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-150-wayne-euroa-four-prices-glare-third-party-fi.jpg": {
+   "offered": 4,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-151-gilbarco-circlek-zero-padded-2044-graphic-overlay-third-party-ee.jpg": {
+   "offered": 6,
+   "used": 5,
+   "frames": 0
+  },
+  "pump-153-gilbarco-veeder-root-keypad-three-prices-third-party-ru.jpg": {
+   "offered": 6,
+   "used": 6,
+   "frames": 0
+  },
+  "pump-154-gilbarco-veeder-root-keypad-1494-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-155-gilbarco-veeder-root-keypad-four-prices-third-party-ru.jpg": {
+   "offered": 7,
+   "used": 7,
+   "frames": 0
+  },
+  "pump-156-gilbarco-veeder-root-keypad-backlit-three-prices-third-party-ru.jpg": {
+   "offered": 6,
+   "used": 5,
+   "frames": 0
+  },
+  "pump-157-gilbarco-veeder-root-ladder-cut-left-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-158-gilbarco-veeder-root-wet-9900-one-decimal-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 1,
+   "frames": 0
+  },
+  "pump-159-gilbarco-veeder-root-preset-20-litres-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-162-gilbarco-veeder-root-backlit-four-prices-666-third-party-ru.jpg": {
+   "offered": 7,
+   "used": 7,
+   "frames": 0
+  },
+  "pump-163-wayne-keypad-1997-92-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-164-wayne-keypad-diesel-glare-total-third-party-ru.jpg": {
+   "offered": 2,
+   "used": 1,
+   "frames": 0
+  },
+  "pump-168-gilbarco-veeder-root-lukoil-zero-padded-four-prices-third-party-ru.jpg": {
+   "offered": 7,
+   "used": 4,
+   "frames": 0
+  },
+  "pump-171-gilbarco-veeder-root-night-two-prices-third-party-ru.jpg": {
+   "offered": 5,
+   "used": 5,
+   "frames": 0
+  },
+  "pump-172-gilbarco-veeder-root-lukoil-point-decimals-576px-third-party-ru.jpg": {
+   "offered": 5,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-173-gilbarco-veeder-root-cents-per-litre-tilted-third-party-au.jpg": {
+   "offered": 6,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-176-gilbarco-veeder-root-5388-diesel-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 1,
+   "frames": 0
+  },
+  "pump-177-gilbarco-veeder-root-leva-640px-third-party-bg.jpg": {
+   "offered": 3,
+   "used": 1,
+   "frames": 0
+  },
+  "pump-178-gilbarco-veeder-root-forecourt-far-670px-third-party-ru.jpg": {
+   "offered": 1,
+   "used": 0,
+   "frames": 0
+  },
+  "pump-181-gilbarco-veeder-root-preset-20-litres-577px-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 1,
+   "frames": 0
+  },
+  "pump-182-wayne-pignone-belarus-rubles-third-party-by.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-184-gilbarco-veeder-root-three-prices-1280x576-third-party-ru.jpg": {
+   "offered": 6,
+   "used": 4,
+   "frames": 0
+  },
+  "pump-185-gilbarco-veeder-root-cents-per-litre-four-grades-third-party-au.jpg": {
+   "offered": 7,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-188-wayne-pignone-preset-20-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 1,
+   "frames": 0
+  },
+  "pump-189-gilbarco-veeder-root-point-decimals-preset-20-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-191-tokheim-preset-500-rub-one-decimal-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-192-tokheim-3602-one-decimal-reflection-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-193-tokheim-3686-one-decimal-reflection-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-195-tokheim-lukoil-night-481-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-196-tokheim-lukoil-snow-night-1895-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-197-tokheim-amber-backlight-lamp-glare-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 1,
+   "frames": 0
+  },
+  "pump-200-tokheim-preset-990-litres-cash-litres-keypad-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 1,
+   "frames": 0
+  },
+  "pump-202-tokheim-preset-1000-rub-one-decimal-night-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-203-unknown-three-rows-photographer-reflection-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-204-tokheim-bashneft-small-display-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-205-tokheim-364-tilted-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 1,
+   "frames": 0
+  },
+  "pump-206-tokheim-1499-one-decimal-blur-third-party-ru.jpg": {
+   "offered": 2,
+   "used": 2,
+   "frames": 0
+  },
+  "pump-207-dresser-wayne-summa-1136-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-210-wayne-pignone-gazpromneft-summa-1610-third-party-ru.jpg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  },
+  "pump-211-wayne-reais-three-grades-600px-third-party-br.jpg": {
+   "offered": 2,
+   "used": 0,
+   "frames": 0
+  },
+  "pump-212-dresser-wayne-circlek-diesel-6300l-2069-ee.jpg": {
+   "offered": 420,
+   "used": 277,
+   "frames": 414
+  },
+  "pump-213-gilbarco-circlek-zero-padded-6300l-1789-ee.jpg": {
+   "offered": 3,
+   "used": 3,
+   "frames": 0
+  }
+ }
+}

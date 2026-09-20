@@ -85,7 +85,7 @@ def main(argv: list[str] | None = None) -> int:
         for ci, (box, label) in enumerate(zip(window["cells"], expected)):
             xs.append(crop_cell(strip, box))
             ys.append(label.bits)
-            labels[label.digit() or ("dp" if label.dp else "blank")] += 1
+            labels[label.digit or ("dp" if label.dp else "blank")] += 1
             cells_meta.append({"fixture": fixture, "frame": window["frame"], "field": window["field"],
                                "window": wi, "cell": ci, "bits": label.bits})
         stats["used"] += 1
