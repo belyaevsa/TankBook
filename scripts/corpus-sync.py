@@ -48,6 +48,8 @@ INDEX = [
     ("index/receipts/expected.csv", FIX / "receipts/expected.csv"),
     ("index/receipts/stations.md", FIX / "receipts/stations.md"),
     ("index/pump-live/README.md", FIX / "pump-live/README.md"),
+    ("index/pump-live/videos.json", FIX / "pump-live/videos.json"),
+    ("index/pump-live/video-labels.json", FIX / "pump-live/video-labels.json"),
     ("index/high-water.json", FIX / "high-water.json"),
 ]
 
