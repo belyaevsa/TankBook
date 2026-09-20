@@ -85,10 +85,26 @@ if let windows = request.windows, !windows.isEmpty {
                                      currency: currency, priceBand: nil)
     reply["committed"] = committed(law)
 } else {
-    let reading = try reader.readPhoto(image: image, rotationCW: request.rotationCW, currency: currency, priceBand: nil)
+    // Stage timings ride along so the annotator (and a latency question) can
+    // see where the live path spends its time.
+    var timings: [String: Int] = [:]
+    func timed<T>(_ key: String, _ body: () throws -> T) rethrows -> T {
+        let started = Date()
+        defer { timings[key] = Int(Date().timeIntervalSince(started) * 1000) }
+        return try body()
+    }
+    let reading = try timed("readPhoto") {
+        try reader.readPhoto(image: image, rotationCW: request.rotationCW, currency: currency, priceBand: nil)
+    }
     reply["committed"] = committed(reading)
     let upright = PumpPanelLocator.rotatedRGB(image, rotationCW: request.rotationCW)
-    let verified = try reader.verify(image: upright, candidates: reader.candidates(for: upright))
+    if let detector, let cg = PumpQuadWarp.makeImage(upright.pixels, width: upright.width, height: upright.height) {
+        timings["detectorOnly"] = timed("detectorOnly") { detector.detect(in: cg).count }
+    }
+    let candidates = timed("candidates") { reader.candidates(for: upright) }
+    let verified = try timed("verify") { try reader.verify(image: upright, candidates: candidates) }
+    timings["textLines"] = timed("textLines") { PumpDisplayCapture.textLineCount(upright) }
+    reply["timingsMs"] = timings
     let assignment = PumpRowAssignment.assign(
         windows: verified.map { PumpRowAssignment.Window(quad: $0.quad, glyphCount: $0.glyphCount) }, rotationCW: 0)
     reply["rows"] = zip(verified, assignment.roles).map { window, role -> [String: Any] in

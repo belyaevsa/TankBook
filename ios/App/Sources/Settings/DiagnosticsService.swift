@@ -65,12 +65,14 @@ enum DiagnosticsService {
         let crumbLines = (AppLog.shared.breadcrumbs?.snapshot() ?? []).map(\.rendered)
         let counts = rowCounts()
         let sync = syncSummary()
+        let build = Bundle.main.object(forInfoDictionaryKey: "TankbookBuildCommit") as? String
         let bundle = await Task.detached(priority: .userInitiated) {
             DiagnosticsExport.assemble(breadcrumbLines: crumbLines,
                                        context: context,
                                        osLog: OSLogStoreEntryReader(),
                                        sync: sync,
-                                       rowCounts: counts)
+                                       rowCounts: counts,
+                                       build: build)
         }.value
         return bundle.rendered()
     }

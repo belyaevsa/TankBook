@@ -9,6 +9,11 @@ import Foundation
 public struct DiagnosticsBundle: Sendable, Equatable {
     public let generatedAt: Date
     public let appVersion: String
+    /// The commit the binary was built from (`TankbookBuildCommit` in the
+    /// bundle's Info.plist, stamped by the app target's post-build script);
+    /// nil when the plist has none. `appVersion` alone cannot tell two
+    /// development builds of the same version apart.
+    public let build: String?
     public let platform: String
     public let deviceId: String?
     /// The redacted breadcrumb-ring lines, oldest first. The ring is the
@@ -31,6 +36,7 @@ public struct DiagnosticsBundle: Sendable, Equatable {
 
     public init(generatedAt: Date,
                 appVersion: String,
+                build: String? = nil,
                 platform: String,
                 deviceId: String?,
                 breadcrumbs: [String],
@@ -40,6 +46,7 @@ public struct DiagnosticsBundle: Sendable, Equatable {
                 rowCounts: [String: Int] = [:]) {
         self.generatedAt = generatedAt
         self.appVersion = appVersion
+        self.build = build
         self.platform = platform
         self.deviceId = deviceId
         self.breadcrumbs = breadcrumbs
@@ -57,6 +64,9 @@ public struct DiagnosticsBundle: Sendable, Equatable {
         lines.append("Tankbook diagnostics")
         lines.append("generatedAt=\(LogRenderer.timestamp(generatedAt))")
         lines.append("appVersion=\(appVersion)")
+        if let build {
+            lines.append("build=\(build)")
+        }
         lines.append("platform=\(platform)")
         if let deviceId {
             lines.append("deviceId=\(deviceId)")
@@ -187,6 +197,7 @@ public enum DiagnosticsExport {
                                 osLog: (any OSLogEntryReading)?,
                                 sync: DiagnosticsSyncSummary?,
                                 rowCounts: [String: Int],
+                                build: String? = nil,
                                 now: Date = Date()) -> DiagnosticsBundle {
         var logStore = LogStoreState.unavailable
         var osLogLines: [String] = []
@@ -204,6 +215,7 @@ public enum DiagnosticsExport {
         }
         return DiagnosticsBundle(generatedAt: now,
                                  appVersion: context.appVersion,
+                                 build: build,
                                  platform: context.platform,
                                  deviceId: context.deviceId,
                                  breadcrumbs: breadcrumbLines,
