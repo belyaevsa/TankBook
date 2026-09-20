@@ -212,23 +212,40 @@ def track_video(stem: str, entry: dict, min_inliers: int) -> dict | None:
     frames = sorted((p for p in folder.glob("*.jpg") if p.stem.isdigit()), key=lambda p: int(p.stem))
     if not frames:
         return None
-    ref = folder / entry["reference"]
-    ref_gray = cv2.imread(str(ref), cv2.IMREAD_GRAYSCALE)
-    sh, sw = ref_gray.shape
-    quads_px = [np.array(w["quad"], dtype=np.float64) * [sw, sh] for w in entry["windows"]]
-    reg = Registrar(ref_gray, quads_px)
-    out: dict = {"_video": stem, "_reference": entry["reference"], "_split": "train", "frames": {}}
+    # Anchors: the reference frame plus every frame the owner corrected in the
+    # annotator (`anchors`); each frame is registered to the anchors nearest
+    # in time and takes the one with the most inliers, so a correction fixes
+    # the stretch of the clip around it.
+    anchors = [{"frame": entry["reference"], "windows": entry["windows"]}] + [
+        a for a in entry.get("anchors", []) if a["frame"] != entry["reference"]]
+    regs = []
+    for a in anchors:
+        gray = cv2.imread(str(folder / a["frame"]), cv2.IMREAD_GRAYSCALE)
+        sh, sw = gray.shape
+        quads_px = [np.array(w["quad"], dtype=np.float64) * [sw, sh] for w in a["windows"]]
+        regs.append({"index": int(a["frame"][:-4]), "reg": Registrar(gray, quads_px), "quads": quads_px,
+                     "size": (sw, sh), "windows": a["windows"]})
+    out: dict = {"_video": stem, "_reference": entry["reference"], "_anchors": [a["frame"] for a in anchors],
+                 "_split": "train", "frames": {}}
     kept = dropped = 0
     for frame in frames:
         gray = cv2.imread(str(frame), cv2.IMREAD_GRAYSCALE)
         fh, fw = gray.shape
-        H, inliers, _ = reg.homography(gray)
-        if H is None or inliers < min_inliers:
+        index = int(frame.stem)
+        nearest = sorted(regs, key=lambda r: abs(r["index"] - index))[:2]
+        best = None
+        for r in nearest:
+            H, inliers, _ = r["reg"].homography(gray)
+            if H is not None and inliers >= min_inliers and (best is None or inliers > best[1]):
+                best = (H, inliers, r)
+        if best is None:
             dropped += 1
             continue
+        H, inliers, r = best
+        sw, sh = r["size"]
         windows = []
         ok = True
-        for w, q in zip(entry["windows"], quads_px):
+        for w, q in zip(r["windows"], r["quads"]):
             m = map_quad(H, q)
             if not plausible(m, q, (fw, fh), (sw, sh)):
                 ok = False
@@ -238,7 +255,7 @@ def track_video(stem: str, entry: dict, min_inliers: int) -> dict | None:
         if not ok:
             dropped += 1
             continue
-        out["frames"][frame.name] = {"windows": windows, "inliers": inliers}
+        out["frames"][frame.name] = {"windows": windows, "inliers": inliers, "anchor": r["index"]}
         kept += 1
     out["_kept"] = kept
     out["_dropped"] = dropped

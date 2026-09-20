@@ -340,6 +340,27 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_PUT(self):
         path = urlparse(self.path).path
+        if path.startswith("/api/video-anchor/"):
+            # /api/video-anchor/<stem>/<frame>: the owner's corrected quads on one
+            # frame become an anchor the tracker registers its neighbours to.
+            rel = unquote(path[len("/api/video-anchor/"):])
+            stem, _, frame = rel.partition("/")
+            length = int(self.headers.get("Content-Length", "0"))
+            body = json.loads(self.rfile.read(length))
+            videos = json.loads(VIDEOS.read_text())
+            if stem not in videos:
+                return self.send_error(HTTPStatus.NOT_FOUND)
+            windows = [{"field": w["field"], "quad": [[round(float(x), 4), round(float(y), 4)] for x, y in w["quad"]]}
+                       for w in body.get("windows", []) if w["field"] in ("total", "liters", "unitPrice")]
+            anchors = [a for a in videos[stem].get("anchors", []) if a["frame"] != frame]
+            if frame == videos[stem]["reference"]:
+                videos[stem]["windows"] = windows
+            else:
+                anchors.append({"frame": frame, "windows": windows})
+            videos[stem]["anchors"] = sorted(anchors, key=lambda a: int(a["frame"][:-4]))
+            VIDEOS.write_text(json.dumps(videos, indent=1))
+            start_retrack(stem)
+            return self.send_json({"ok": True, "anchors": [a["frame"] for a in videos[stem]["anchors"]]})
         if path.startswith("/api/video-label/"):
             # /api/video-label/<stem>/<frame>: the owner's texts for one frame.
             rel = unquote(path[len("/api/video-label/"):])

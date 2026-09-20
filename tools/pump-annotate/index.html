@@ -69,7 +69,8 @@
       <button id="vlCopy" title="copy the previous labelled frame's numbers here and save">← same as previous</button> <span class="dim"><kbd>⇧←</kbd></span>
       <button id="vlSkip" title="jump to the next frame that needs you">next attention ▸</button>
       <label title="the reader read these frames as one value; the label applies to all of them"><input type="checkbox" id="vlRun" checked> whole run</label>
-      <span class="dim"><kbd>⇧→</kbd> next run</span></div>
+      <span class="dim"><kbd>⇧→</kbd> next run</span>
+      <button id="vlAnchor" title="drag the quads on this frame into place, then make it an anchor: the clip is retracked from the nearest anchor">⚓ save quads as anchor</button></div>
   </div>
   <div id="wins"></div>
   <div class="row"><button id="add">+ window</button> <span class="dim">or drag on the image</span></div>
@@ -318,6 +319,9 @@ function windowsToDraw() {
   const r = currentRecord(); const name = r && r.tracked[frameIdx];
   return name ? r.frames[name].windows : [];
 }
+// The windows the mouse edits: the still's, or in a video's frames view the
+// frame's own (which 'save as anchor' turns into a tracking anchor).
+function editable() { return (frameMode && isVideo) ? windowsToDraw() : entry.windows; }
 function dispSize() { const r = rot(); return (r === 90 || r === 270) ? [img.naturalHeight, img.naturalWidth] : [img.naturalWidth, img.naturalHeight]; }
 function toDisp([nx, ny]) {           // normalised image -> unscaled display px
   const W = img.naturalWidth, H = img.naturalHeight, x = nx * W, y = ny * H;
@@ -360,30 +364,31 @@ function draw() {
 }
 function mouse(e) { const r = canvas.getBoundingClientRect(); return [(e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom]; }
 function hitCorner(p) {
-  if (sel < 0) return -1;
-  const pts = entry.windows[sel].quad.map(toDisp);
+  if (sel < 0 || !editable()[sel]) return -1;
+  const pts = editable()[sel].quad.map(toDisp);
   return pts.findIndex(q => Math.hypot(q[0] - p[0], q[1] - p[1]) < 10 / zoom);
 }
 function hitWindow(p) {
   const [nx, ny] = toImg(p);
-  return entry.windows.findIndex(w => { const xs = w.quad.map(q => q[0]), ys = w.quad.map(q => q[1]);
+  return editable().findIndex(w => { const xs = w.quad.map(q => q[0]), ys = w.quad.map(q => q[1]);
     return nx >= Math.min(...xs) && nx <= Math.max(...xs) && ny >= Math.min(...ys) && ny <= Math.max(...ys); });
 }
 canvas.onmousedown = e => {
-  if (!img || frameMode) return; const [x, y] = mouse(e);
+  if (!img || (frameMode && !isVideo)) return; const [x, y] = mouse(e);
   const c = hitCorner([x, y]);
   if (c >= 0) { drag = {kind:'corner', c}; return; }
   const w = hitWindow([x, y]);
-  if (w >= 0 && !e.shiftKey) { sel = w; drag = {kind:'move', x, y, quad: entry.windows[w].quad.map(p => [...p])}; renderWins(); draw(); return; }
+  if (w >= 0 && !e.shiftKey) { sel = w; drag = {kind:'move', x, y, quad: editable()[w].quad.map(p => [...p])}; renderWins(); draw(); return; }
+  if (frameMode && isVideo) return;   // no new windows on a frame; a video has exactly its three
   drag = {kind:'new', x0:x, y0:y, x, y};
 };
 canvas.onmousemove = e => {
   if (!drag) return; const [x, y] = mouse(e);
   if (drag.kind === 'new') { drag.x = x; drag.y = y; }
-  else if (drag.kind === 'corner') { entry.windows[sel].quad[drag.c] = toImg([x, y]); touch(); }
+  else if (drag.kind === 'corner') { editable()[sel].quad[drag.c] = toImg([x, y]); if (!(frameMode && isVideo)) touch(); }
   else if (drag.kind === 'move') {
     const d0 = toImg([drag.x, drag.y]), d1 = toImg([x, y]);
-    entry.windows[sel].quad = drag.quad.map(p => [Math.min(1, Math.max(0, p[0] + d1[0] - d0[0])), Math.min(1, Math.max(0, p[1] + d1[1] - d0[1]))]); touch();
+    editable()[sel].quad = drag.quad.map(p => [Math.min(1, Math.max(0, p[0] + d1[0] - d0[0])), Math.min(1, Math.max(0, p[1] + d1[1] - d0[1]))]); if (!(frameMode && isVideo)) touch();
   }
   draw();
 };
@@ -413,6 +418,11 @@ document.querySelectorAll('[name=tracking]').forEach(r => r.onchange = touch);
 $('#save').onclick = save; $('#check').onclick = check;
 $('#reviewed').onchange = touch;
 $('#vlSave').onclick = saveVideoLabel;
+$('#vlAnchor').onclick = async () => {
+  const r = currentRecord(); const name = r.tracked[frameIdx];
+  const res = await (await fetch('/api/video-anchor/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name), {method:'PUT', body: JSON.stringify({windows: r.frames[name].windows})})).json();
+  setMsg(`anchor at ${name} (${res.anchors.length} anchors), retracking`); watchRetrack(r.movie);
+};
 $('#vlCopy').onclick = copyPrevious; $('#vlSkip').onclick = nextUnlabelled;
 function next() { const names = [...document.querySelectorAll('#list div')].map(d => d.dataset.n); const n = names[names.indexOf(current) + 1]; if (n) openFixture(n); }
 $('#savenext').onclick = async () => { $('#reviewed').checked = true; await save(); next(); };

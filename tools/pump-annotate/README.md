@@ -39,6 +39,10 @@ the ml venv runs it); the converted images are cached under
   closed (`arithmetic`), empty otherwise. Correct or fill it and **Save label**
   (`⇧⏎`; `⌥←`/`⌥→` step frames from the input); owner labels are kept by every
   re-run of the reader. Stored in `pump-live/video-labels.json`.
+- **Anchors**: on any video frame the quads can be dragged (corners and body);
+  **⚓ save quads as anchor** stores that frame's quads in `videos.json` and
+  retracks the clip - every frame registers to its nearest anchors and takes
+  the best - so one corrected frame fixes the stretch of the clip around it.
 - `Save` (`⌘S`) writes the entry back in the file's own formatting and rebuilds
   `fixtures/corpus.sqlite` (also rebuilt at startup) (`scripts/corpus_db.py`), which is committed with it; `Check`
   runs `scripts/pump-windows-check.py --check` and shows the verdict.
