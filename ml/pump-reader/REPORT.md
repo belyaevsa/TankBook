@@ -460,6 +460,21 @@ the bundle because it clears the floors it set (52 / 0.96) and round 7 would mov
 floor down; the checkpoint and metrics are kept in `runs/2026-09-20/` for the next round to
 start from. The live path reads 4 / 4 with either.
 
+### Round 8 (orchestrator, 2026-09-20): the recipe on the body-checked slicer's export
+
+Same recipe again after the slicer's pitch-to-body check: 6 462 of 8 550 windows agree, 28 428
+real cells. Heldout, both models through the same (body-checked) slicer:
+
+| classifier | annotated: committed / correct / precision | photos | live: committed / correct |
+|---|---|---|---|
+| round 6 (shipped) | 66 / 64 / 0.970 | 18 / 64 | **11 / 11** |
+| round 8 | 69 / 67 / 0.971 | 17 / 64 | 4 / 4 |
+
+Annotated is a wash; the live path - what the phone runs - drops from 11 to 4, because the
+verifier's margin threshold (1.0) was tuned against round 6's margins and round 8 sits
+differently around it. Round 6 stays shipped. The lesson for the next round: the verifier's
+margin and the classifier are one system, and a retrain needs the verifier re-measured with it.
+
 ## Named mutation: drop the dp bit
 
 In `dataset.py`, the target's dp bit was dropped (7 bits, dp slot padded with a
