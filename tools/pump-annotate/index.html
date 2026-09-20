@@ -55,7 +55,9 @@
       <span class="dim">(<kbd>←</kbd>/<kbd>→</kbd> step frames, <kbd>Esc</kbd> back to the still)</span></div>
     <div class="row" id="videoLabel" style="display:none"><b>frame label</b>
       total <input id="vlTotal" class="mono" style="width:80px"> liters <input id="vlLiters" class="mono" style="width:70px"> price <input id="vlPrice" class="mono" style="width:60px">
-      <span id="vlSource" class="dim"></span> <button id="vlSave">Save label</button> <span class="dim"><kbd>⇧⏎</kbd></span></div>
+      <span id="vlSource" class="dim"></span> <button id="vlSave">Save label</button> <span class="dim"><kbd>⇧⏎</kbd></span>
+      <button id="vlCopy" title="copy the previous labelled frame's numbers here and save">← same as previous</button> <span class="dim"><kbd>⇧←</kbd></span>
+      <button id="vlSkip" title="jump to the next frame without a label">next unlabelled ▸</button></div>
   </div>
   <div id="wins"></div>
   <div class="row"><button id="add">+ window</button> <span class="dim">or drag on the image</span></div>
@@ -167,6 +169,22 @@ async function saveVideoLabel() {
   await fetch('/api/video-label/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name), {method:'PUT', body: JSON.stringify(body)});
   for (const w of f.windows) if (body[w.field] !== undefined) w.text = body[w.field];
   f.source = (body.total || body.liters) ? 'owner' : null; setMsg('label saved'); showVideoLabel(); draw();
+}
+function previousLabelled() {
+  const r = currentRecord();
+  for (let i = frameIdx - 1; i >= 0; i--) { const f = r.frames[r.tracked[i]]; if (f.windows.some(w => w.field !== 'unitPrice' && w.text)) return f; }
+  return null;
+}
+async function copyPrevious() {
+  const p = previousLabelled(); if (!p) { setMsg('no labelled frame before this one'); return; }
+  const get = k => (p.windows.find(w => w.field === k) || {}).text || '';
+  $('#vlTotal').value = get('total'); $('#vlLiters').value = get('liters'); $('#vlPrice').value = get('unitPrice') || $('#vlPrice').value;
+  await saveVideoLabel();
+}
+function nextUnlabelled() {
+  const r = currentRecord();
+  for (let i = frameIdx + 1; i < r.tracked.length; i++) { const f = r.frames[r.tracked[i]]; if (!f.windows.some(w => w.field !== 'unitPrice' && w.text)) { frameIdx = i; showFrame(); return; } }
+  setMsg('every later frame is labelled');
 }
 function showFrame() {
   if (!frameMode) return;
@@ -325,6 +343,7 @@ document.querySelectorAll('[name=tracking]').forEach(r => r.onchange = touch);
 $('#save').onclick = save; $('#check').onclick = check;
 $('#reviewed').onchange = touch;
 $('#vlSave').onclick = saveVideoLabel;
+$('#vlCopy').onclick = copyPrevious; $('#vlSkip').onclick = nextUnlabelled;
 function next() { const names = [...document.querySelectorAll('#list div')].map(d => d.dataset.n); const n = names[names.indexOf(current) + 1]; if (n) openFixture(n); }
 $('#savenext').onclick = async () => { $('#reviewed').checked = true; await save(); next(); };
 $('#filter').oninput = renderList; $('#state').onchange = renderList;
@@ -334,6 +353,7 @@ document.addEventListener('keydown', e => {
   const t = e.target; const typing = t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !['range','checkbox','radio'].includes(t.type));
   if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); save(); return; }
   if (typing && frameMode && isVideo && e.key === 'Enter' && e.shiftKey) { e.preventDefault(); saveVideoLabel(); return; }
+  if (frameMode && isVideo && e.key === 'ArrowLeft' && e.shiftKey) { e.preventDefault(); copyPrevious(); return; }
   if (typing && frameMode && isVideo && (e.key === 'ArrowRight' || e.key === 'ArrowLeft') && e.altKey) { e.preventDefault(); frameIdx = Math.max(0, Math.min(currentRecord().tracked.length - 1, frameIdx + (e.key === 'ArrowRight' ? 1 : -1))); showFrame(); return; }
   if (typing) return;
   if (frameMode && e.key === 'ArrowRight') { e.preventDefault(); frameIdx = Math.min(frameIdx + 1, currentRecord().tracked.length - 1); showFrame(); return; }
