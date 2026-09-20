@@ -475,6 +475,25 @@ verifier's margin threshold (1.0) was tuned against round 6's margins and round 
 differently around it. Round 6 stays shipped. The lesson for the next round: the verifier's
 margin and the classifier are one system, and a retrain needs the verifier re-measured with it.
 
+### Round 9 (orchestrator, 2026-09-20): the first video labels
+
+The product owner labelled 120 frames of `video-001` in the annotator (the arithmetic pass had
+closed 76 more across the other clips): 591 video windows, 567 count-agreeing, on top of round
+8's export - 30 559 real cells. Same recipe. Heldout:
+
+| classifier | annotated: committed / correct / precision | photos | live |
+|---|---|---|---|
+| round 6 (shipped) | 66 / 64 / 0.970 | 18 / 64 | 11 / 11 |
+| round 8 | 69 / 67 / 0.971 | 17 / 64 | 4 / 4 |
+| round 9 | 62 / 60 / 0.968 | 15 / 64 | 2 / 2 |
+
+No gain, and the live path keeps sliding with every retrain since round 6. Two readings, both
+to be tested rather than assumed: (a) the seed-0 runs differ by more than the data does - three
+recipes within 7 cells on 175 is inside run-to-run noise, and a retrain needs 3 seeds before a
+number means anything; (b) the verifier margin threshold is fitted to round 6, and each new
+model's margin distribution sits differently against it - the live number is a verifier number,
+not a classifier number. Round 6 stays shipped; the next round runs the seed check first.
+
 ## Named mutation: drop the dp bit
 
 In `dataset.py`, the target's dp bit was dropped (7 bits, dp slot padded with a
