@@ -31,8 +31,12 @@ struct PumpReaderPipelineTests {
     // at 1.0 and duplicate rows suppressed: committed 7, all correct
     // (0 the day before); 4 once the slicer preferred the fundamental pitch,
     // which lifted the annotated path 44 -> 52; 11 with the pitch-to-body
-    // check (annotated 66). Moves only upward.
-    private static let liveCommittedFloor = 11
+    // check (annotated 66); 22 with the learned row detector as the locator's
+    // first source and the verifier keeping detected rows on count and size
+    // alone (PU.33). Moves only upward; a run without the detector file
+    // (ml/pump-reader/.out/det/DigitRows.mlmodel) falls back to Vision and
+    // reads 11 - the floor assumes the detector is present.
+    private static let liveCommittedFloor = PumpReaderTestSupport.detectorURL == nil ? 11 : 22
     private static let livePrecisionFloor = 0.99
 
     private static let modelURL = PumpReaderTestSupport.repoRoot
@@ -41,7 +45,7 @@ struct PumpReaderPipelineTests {
     @Test("the live path: locate, verify, assign, read, resolve - no annotation used", .pumpFixturesPresent)
     func livePath() throws {
         let model = try PumpSegmentsModel(contentsOf: Self.modelURL)
-        let reader = PumpReader(model: model)
+        let reader = PumpReader(model: model, detector: PumpReaderTestSupport.makeDetector())
         let expected = try CorpusScorer.loadExpected(
             PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent("expected.csv"))
         let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)
@@ -95,7 +99,7 @@ struct PumpReaderPipelineTests {
     @Test("the reader over the annotated windows: committed cells, precision, coverage", .pumpFixturesPresent)
     func gateMirror() throws {
         let model = try PumpSegmentsModel(contentsOf: Self.modelURL)
-        let reader = PumpReader(model: model)
+        let reader = PumpReader(model: model, detector: PumpReaderTestSupport.makeDetector())
         let expected = try CorpusScorer.loadExpected(
             PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent("expected.csv"))
         let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)

@@ -21,6 +21,17 @@ enum PumpReaderTestSupport {
     static let outRoot = repoRoot
         .appendingPathComponent("ios/.build/pump-reader-out")
 
+    /// The row detector trained by ml/pump-reader/detector/train.swift (PU.33),
+    /// when a training has produced it; the live path runs without it otherwise.
+    static let detectorURL: URL? = {
+        let url = repoRoot.appendingPathComponent("ml/pump-reader/.out/det/DigitRows.mlmodel")
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }()
+
+    static func makeDetector() -> PumpRowDetector? {
+        detectorURL.flatMap { try? PumpRowDetector(contentsOf: $0) }
+    }
+
     static var fixturesPresent: Bool {
         FileManager.default.fileExists(atPath: windowsURL.path)
     }

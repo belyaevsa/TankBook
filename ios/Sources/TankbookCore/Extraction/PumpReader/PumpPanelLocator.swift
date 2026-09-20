@@ -14,6 +14,8 @@ enum PumpPanelLocator {
     struct Candidate: Sendable, Equatable {
         let quad: [CGPoint]
         let glyphCount: Int
+        /// From the learned row detector (PU.33), which vouches for the row itself.
+        var detected: Bool = false
     }
 
     /// Vision's text rectangles first (a display row is a row of same-height

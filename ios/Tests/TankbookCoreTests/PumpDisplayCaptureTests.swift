@@ -29,7 +29,7 @@ struct PumpDisplayCaptureTests {
 
     @Test("heldout pump displays classify at the measured recall and no receipt does", .pumpFixturesPresent)
     func classifies() throws {
-        let reader = try #require(PumpDisplayCapture.makeReader(modelURL: Self.modelURL))
+        let reader = try #require(PumpDisplayCapture.makeReader(modelURL: Self.modelURL, detectorURL: PumpReaderTestSupport.detectorURL))
         let pumps = Self.heldoutPumps
         let receiptFiles = (try? FileManager.default.contentsOfDirectory(atPath: Self.receipts.path)) ?? []
         let receipts = receiptFiles.filter { $0.hasSuffix(".jpg") }.sorted().prefix(8)

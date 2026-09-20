@@ -19,7 +19,7 @@ struct PumpLivePathDiagnosticTests {
     func diagnose() throws {
         let only = ProcessInfo.processInfo.environment["PUMP_LIVE_DIAG_ONLY"]
         let model = try PumpSegmentsModel(contentsOf: Self.modelURL)
-        let reader = PumpReader(model: model)
+        let reader = PumpReader(model: model, detector: PumpReaderTestSupport.makeDetector())
         let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)
         let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
         let expected = try CorpusScorer.loadExpected(
@@ -41,7 +41,7 @@ struct PumpLivePathDiagnosticTests {
                                                    rotationCW: rotation)
                 truth.append((field, px))
             }
-            let candidates = PumpPanelLocator.locate(upright, rotationCW: 0)
+            let candidates = reader.candidates(for: upright)
             let verified = try reader.verify(image: upright, candidates: candidates)
             let assignment = PumpRowAssignment.assign(
                 windows: verified.map { PumpRowAssignment.Window(quad: $0.quad, glyphCount: $0.glyphCount) }, rotationCW: 0)

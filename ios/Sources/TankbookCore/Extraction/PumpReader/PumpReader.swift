@@ -25,6 +25,33 @@ struct PumpReader {
     }
 
     let model: PumpSegmentsModel
+    /// The learned row detector (PU.33); nil runs the Vision + classical
+    /// locator alone, which is the fallback either way.
+    let detector: PumpRowDetector?
+
+    init(model: PumpSegmentsModel, detector: PumpRowDetector? = nil) {
+        self.model = model
+        self.detector = detector
+    }
+
+    /// Fewer detector rows than this and the frame falls back to the Vision +
+    /// classical proposals: a display has at least total and volume.
+    static let detectorMinimumRows = 2
+
+    /// The locator's candidates for an upright frame: the detector's rows
+    /// first (ranked by confidence, each flagged as detected so the verifier
+    /// keeps it on count and size alone), then the Vision + classical
+    /// proposals when the detector found fewer than two rows.
+    func candidates(for upright: PumpRGBImage) -> [PumpPanelLocator.Candidate] {
+        var out: [PumpPanelLocator.Candidate] = []
+        if let detector, let cg = PumpQuadWarp.makeImage(upright.pixels, width: upright.width, height: upright.height) {
+            out = detector.detect(in: cg).map { PumpPanelLocator.Candidate(quad: $0.quad, glyphCount: 0, detected: true) }
+        }
+        if out.count < Self.detectorMinimumRows {
+            out += PumpPanelLocator.locate(upright, rotationCW: 0)
+        }
+        return out
+    }
 
     /// Classifies every window's cells. Windows the slicer finds nothing in
     /// are dropped, so the law sees only what was read.
@@ -84,8 +111,7 @@ struct PumpReader {
     func readPhoto(image: PumpRGBImage, rotationCW: Int = 0, currency: CurrencyCode?,
                    priceBand: FuelPriceBand?) throws -> PumpDisplayReading {
         let upright = PumpPanelLocator.rotatedRGB(image, rotationCW: rotationCW)
-        let candidates = PumpPanelLocator.locate(upright, rotationCW: 0)
-        let verified = try verify(image: upright, candidates: candidates)
+        let verified = try verify(image: upright, candidates: candidates(for: upright))
         let assignment = PumpRowAssignment.assign(
             windows: verified.map { PumpRowAssignment.Window(quad: $0.quad, glyphCount: $0.glyphCount) },
             rotationCW: 0)
@@ -182,8 +208,11 @@ struct PumpReader {
             let mean = margins.reduce(0, +) / Double(margins.count)
             let aspect = CGFloat(strip.width) / CGFloat(strip.height)
             let shaped = aspect <= Self.maximumAspectPerCell * CGFloat(cells.count) + 1
-            out.append(Verdict(quad: quad, heightFraction: heightFraction, cells: cells.count, meanMargin: mean,
-                               kept: shaped && mean >= Self.minimumMeanMargin))
+            // A detected row is kept on count and size alone: the detector's
+            // confidence already vouched for it, and gating it on the
+            // classifier's margin coupled the live number to every retrain.
+            let kept = candidate.detected ? shaped : (shaped && mean >= Self.minimumMeanMargin)
+            out.append(Verdict(quad: quad, heightFraction: heightFraction, cells: cells.count, meanMargin: mean, kept: kept))
         }
         return out
     }

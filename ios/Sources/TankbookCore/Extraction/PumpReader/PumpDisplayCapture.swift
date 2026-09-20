@@ -55,14 +55,15 @@ public enum PumpDisplayCapture {
     /// `PumpSegments.mlmodelc`) once; nil when the resource is missing, in
     /// which case every frame classifies as not-a-display and the receipt path
     /// runs as before.
-    public static func makeReader(modelURL: URL?) -> PumpReaderHandle? {
+    public static func makeReader(modelURL: URL?, detectorURL: URL? = nil) -> PumpReaderHandle? {
         guard let modelURL, let model = try? PumpSegmentsModel(contentsOf: modelURL) else { return nil }
-        return PumpReaderHandle(reader: PumpReader(model: model))
+        let detector = detectorURL.flatMap { try? PumpRowDetector(contentsOf: $0) }
+        return PumpReaderHandle(reader: PumpReader(model: model, detector: detector))
     }
 
     public static func detect(image: CGImage, reader: PumpReaderHandle) -> Detection {
         let rgb = PumpQuadWarp.rgbImage(from: image)
-        let candidates = PumpPanelLocator.locate(rgb, rotationCW: 0)
+        let candidates = reader.reader.candidates(for: rgb)
         let verified = (try? reader.reader.verify(image: rgb, candidates: candidates)) ?? []
         let rows = displayRows(verified, imageHeight: rgb.height)
         var detection = Detection(displayRows: rows.count, textLines: textLineCount(rgb))
@@ -99,8 +100,7 @@ public enum PumpDisplayCapture {
     public static func read(image: CGImage, reader: PumpReaderHandle, currency: CurrencyCode?,
                             priceBand: FuelPriceBand?) -> Reading? {
         let rgb = PumpQuadWarp.rgbImage(from: image)
-        let candidates = PumpPanelLocator.locate(rgb, rotationCW: 0)
-        guard let all = try? reader.reader.verify(image: rgb, candidates: candidates) else { return nil }
+        guard let all = try? reader.reader.verify(image: rgb, candidates: reader.reader.candidates(for: rgb)) else { return nil }
         let verified = displayRows(all, imageHeight: rgb.height)
         let detection = Detection(displayRows: verified.count, textLines: textLineCount(rgb))
         guard detection.isPumpDisplay else { return nil }
