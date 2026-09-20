@@ -297,7 +297,7 @@ class Handler(SimpleHTTPRequestHandler):
             } for n in names]
             for stem, v in video_entries().items():
                 out.append({"name": stem, "video": True, "inCsv": True, "windows": len(v["windows"]),
-                            "reviewed": False, "tracking": None, "live": 1,
+                            "reviewed": bool(v.get("reviewed")), "tracking": None, "live": 1,
                             "tracked": tracked_count([stem]), "labelled": len(labels.get(stem, {}))})
             return self.send_json(out)
         if path.startswith("/api/entry/"):
@@ -306,7 +306,7 @@ class Handler(SimpleHTTPRequestHandler):
             if name in videos:
                 v = videos[name]
                 return self.send_json({"video": True, "entry": {"windows": [dict(w, text=v["unitPrice"] if w["field"] == "unitPrice" else "") for w in v["windows"]],
-                                                                "reference": v["reference"]},
+                                                                "reference": v["reference"], "reviewed": bool(v.get("reviewed"))},
                                        "row": {"liters": "", "unitPrice": v["unitPrice"], "total": "", "currency": v["currency"]}})
             ann, rows = load_windows(), load_rows()
             return self.send_json({"entry": ann.get(name, {"windows": []}), "row": rows.get(name)})
@@ -366,13 +366,17 @@ class Handler(SimpleHTTPRequestHandler):
         if name in videos:
             # The reference quads of a video: skew them to the display's tilt,
             # then re-run pump_reader.track --videos to carry them into the frames.
-            videos[name]["windows"] = [{"field": w["field"], "quad": [[round(float(x), 4), round(float(y), 4)] for x, y in w["quad"]]}
-                                       for w in entry.get("windows", []) if w["field"] in ("total", "liters", "unitPrice")]
+            new_windows = [{"field": w["field"], "quad": [[round(float(x), 4), round(float(y), 4)] for x, y in w["quad"]]}
+                           for w in entry.get("windows", []) if w["field"] in ("total", "liters", "unitPrice")]
+            quads_changed = new_windows != videos[name].get("windows")
+            videos[name]["windows"] = new_windows
+            videos[name]["reviewed"] = bool(entry.get("reviewed"))
             VIDEOS.write_text(json.dumps(videos, indent=1))
-            start_retrack(name)
+            if quads_changed:
+                start_retrack(name)
             return self.send_json({"ok": True,
-                                   "entry": {"windows": videos[name]["windows"], "reference": videos[name]["reference"]},
-                                   "retrack": "started"})
+                                   "entry": {"windows": videos[name]["windows"], "reference": videos[name]["reference"], "reviewed": videos[name]["reviewed"]},
+                                   "retrack": "started" if quads_changed else "unchanged"})
         ann = load_windows()
         ann[name] = clean_entry(entry)
         save_windows(ann)

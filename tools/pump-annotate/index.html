@@ -105,7 +105,7 @@ function renderList() {
   $('#counts').textContent = `${rev} processed · ${done} with windows · ${fixtures.length - done} empty`;
   const pass = x => st === 'all' || (st === 'todo' && !x.windows) || (st === 'reviewed' && x.reviewed) || (st === 'unreviewed' && !x.reviewed)
     || (st === 'live' && x.live) || (st === 'liveunchecked' && x.live && !x.tracking && !x.video) || (st === 'video' && x.video)
-    || (st === 'work' && (x.video || (!x.video && !x.reviewed) || (x.live && x.tracked && !x.tracking)));
+    || (st === 'work' && ((x.video && !x.reviewed) || (!x.video && !x.reviewed) || (x.live && x.tracked && !x.tracking && !x.video)));
   const shown = fixtures.filter(x => x.name.toLowerCase().includes(f) && pass(x));
   $('#list').innerHTML = shown.map(x =>
     `<div data-n="${x.name}" class="${x.name===current?'sel':''} ${x.windows?'':'todo'}" title="${x.name}">${x.reviewed?'✓ ':''}${x.video?'🎞 ':''}${x.name.replace(/\.(jpe?g|heic|png)$/i,'')}<span class="n">${x.live ? `<span class="live ${x.tracking||''}" title="${x.live} Live record(s), ${x.tracked} tracked frames${x.tracking ? ', tracking ' + x.tracking : ''}">▶${x.tracked ? '' : '?'}</span> ` : ''}${x.windows||'·'}</span></div>`).join('');
@@ -119,7 +119,8 @@ async function openFixture(n) {
   catch (err) { setMsg('load failed: ' + err); return; }
   entry = r.entry; row = r.row; isVideo = !!r.video;
   entry.windows = entry.windows || [];
-  $('#reviewed').parentElement.style.display = isVideo ? 'none' : '';
+  $('#reviewed').parentElement.style.display = '';
+  if (isVideo) $('#reviewed').checked = !!entry.reviewed;
   $('#name').textContent = n;
   $('#rot').value = String(entry.rotationCW || 0);
   $('#reviewed').checked = !!entry.reviewed;
@@ -139,7 +140,7 @@ async function openFixture(n) {
 }
 let recordsLoaded = Promise.resolve();
 function resetFrames() {
-  frameMode = false; frameIdx = 0; records = [];
+  frameMode = false; frameIdx = 0; records = []; $('#frameStrip').style.display = 'none'; $('#frameStrip').innerHTML = '';
   $('#frameSlider').style.display = 'none'; $('#frameSlider').value = 0; $('#frameSlider').max = 0;
   $('#framesToggle').textContent = 'View frames'; $('#frameName').textContent = ''; $('#recinfo').textContent = '';
 }
@@ -273,7 +274,8 @@ function collect() {
 async function save() {
   if (!current) return;
   const r = await (await fetch('/api/entry/' + encodeURIComponent(current), {method:'PUT', body: JSON.stringify(collect())})).json();
-  if (isVideo) { dirty = false; setMsg('reference saved, retracking in the background'); watchRetrack(current); return; }
+  if (isVideo) { dirty = false; const fx = fixtures.find(x => x.name === current); if (fx) fx.reviewed = !!entry.reviewed; renderList();
+    if (r.retrack === 'started') { setMsg('reference saved, retracking in the background'); watchRetrack(current); } else setMsg('saved'); return; }
   entry = r.entry; entry.windows = entry.windows || []; dirty = false; setMsg('saved');
   const fx = fixtures.find(x => x.name === current); if (fx) { fx.windows = entry.windows.length; fx.reviewed = !!entry.reviewed; fx.tracking = entry.tracking || null; }
   renderList(); renderWins(); draw();
