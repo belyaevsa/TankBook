@@ -44,6 +44,18 @@ the ml venv runs it); the converted images are cached under
   retracks in the background - every other frame registers to its nearest
   anchors and takes the best, an anchored frame is written back verbatim and
   never re-registered - so one corrected frame fixes the stretch around it.
+- **▶ read** (`r`): runs the app's own reader on what is on
+  screen and fills the fields as a prefill - the annotated windows (or a video
+  frame's carried quads) are sliced, classified and judged by the law, and the
+  still's empty texts / the frame label take what came back (yellow = unsaved
+  prefill; `Save` / `⇧⏎` accepts it, or correct it first). Shift-`R` runs the
+  **live path** instead - detector, verifier, row assignment, law, with no
+  windows at all, the way the phone reads a photo - and draws the rows it
+  located as dashed boxes (white = the detector's, grey = Vision/classical)
+  with their assigned role and cell count. The read is `ios/.build/debug/pump-read`
+  (`swift build --product pump-read` in `ios/`, built on first use) with the
+  models from `ios/App/Resources`; the per-cell digits and margins print under
+  the buttons. Nothing is written until you save.
 - `Save` (`⌘S`) writes the entry back in the file's own formatting and rebuilds
   `fixtures/corpus.sqlite` (also rebuilt at startup) (`scripts/corpus_db.py`), which is committed with it; `Check`
   runs `scripts/pump-windows-check.py --check` and shows the verdict.

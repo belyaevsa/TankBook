@@ -45,6 +45,9 @@ LIVE = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "pump-live"
 VIDEOS = LIVE / "videos.json"
 VIDEO_LABELS = LIVE / "video-labels.json"
 WINDOW_KEYS = ("field", "text", "quad", "legibility")
+READ_TOOL = ROOT / "ios" / ".build" / "debug" / "pump-read"
+CLASSIFIER = ROOT / "ios" / "App" / "Resources" / "PumpSegments.mlpackage"
+DETECTOR = ROOT / "ios" / "App" / "Resources" / "DigitRows.mlmodel"
 
 
 def load_windows() -> dict:
@@ -417,6 +420,33 @@ class Handler(SimpleHTTPRequestHandler):
         if path == "/api/check":
             r = subprocess.run([sys.executable, str(CHECK), "--check"], capture_output=True, text=True)
             return self.send_json({"exit": r.returncode, "output": (r.stdout + r.stderr).strip()})
+        if path == "/api/read":
+            # The reader on the current still or frame: with the page's windows it
+            # slices and classifies each and lets the law commit; with `live` it
+            # runs the app's path (detector -> verify -> assign -> law) instead.
+            # A prefill for the owner to accept or correct - nothing is written.
+            length = int(self.headers.get("Content-Length", "0"))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            image = body.get("image", "")
+            if image.startswith("frame/"):
+                _, stem, file = image.split("/", 2)
+                target = FRAMES / stem / file
+            else:
+                target = FIX / image
+            if "/" in target.name or not target.exists():
+                return self.send_json({"error": f"no such image: {image}"}, HTTPStatus.NOT_FOUND)
+            if not READ_TOOL.exists():
+                build = subprocess.run(["swift", "build", "--product", "pump-read"], cwd=ROOT / "ios",
+                                       capture_output=True, text=True)
+                if build.returncode:
+                    return self.send_json({"error": "pump-read did not build", "output": build.stderr[-2000:]}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            request = {"rotationCW": body.get("rotationCW", 0), "currency": body.get("currency") or None,
+                       "windows": None if body.get("live") else body.get("windows") or None}
+            r = subprocess.run([str(READ_TOOL), str(target), "--classifier", str(CLASSIFIER), "--detector", str(DETECTOR)],
+                               input=json.dumps(request), capture_output=True, text=True, timeout=120)
+            if r.returncode or not r.stdout.strip():
+                return self.send_json({"error": "pump-read failed", "output": (r.stderr or r.stdout)[-2000:]}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return self.send_json(json.loads(r.stdout))
         return self.send_error(HTTPStatus.NOT_FOUND)
 
 

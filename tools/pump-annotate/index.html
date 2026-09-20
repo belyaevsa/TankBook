@@ -69,6 +69,7 @@
       <span id="vlSource" class="dim"></span> <button id="vlSave">Save label</button> <span class="dim"><kbd>⇧⏎</kbd></span>
       <button id="vlCopy" title="copy the previous labelled frame's numbers here and save">← same as previous</button> <span class="dim"><kbd>⇧←</kbd></span>
       <button id="vlSkip" title="jump to the next frame that needs you">next attention ▸</button>
+      <button id="vlRead" title="run the reader on this frame's windows and fill the label (nothing saved)">▶ read</button> <span class="dim"><kbd>r</kbd> / <kbd>R</kbd> live path</span>
       <label title="the reader read these frames as one value; the label applies to all of them"><input type="checkbox" id="vlRun" checked> whole run</label>
       <span class="dim"><kbd>⇧→</kbd> next run</span>
       <span class="dim" title="a dragged quad on a frame is saved as an anchor by itself; the clip retracks from its anchors and never moves an anchored frame">⚓ dragging a quad anchors the frame</span><button id="vlAnchor" style="display:none"></button></div>
@@ -83,7 +84,8 @@
     <div class="row">unitPrice <input data-dis="unitPrice" style="flex:1"></div>
   </div>
   <div id="status">
-    <div class="row"><button id="save" class="primary">Save</button><button id="savenext" title="mark processed, save, open the next">✓ Save &amp; next</button><button id="check">Check</button><span id="msg" class="dim"></span></div>
+    <div class="row"><button id="save" class="primary">Save</button><button id="savenext" title="mark processed, save, open the next">✓ Save &amp; next</button><button id="check">Check</button>
+      <button id="read" title="run the reader on the annotated windows and fill empty texts (r); R runs the app's live path - detector, verifier, law - on the photo with no windows">▶ read</button><span id="msg" class="dim"></span></div>
     <pre id="out"></pre>
   </div>
 </section>
@@ -115,7 +117,7 @@ function renderList() {
 }
 async function openFixture(n) {
   if (dirty && !confirm('Discard unsaved changes?')) return;
-  current = n; sel = -1; dirty = false;
+  current = n; sel = -1; dirty = false; readRows = null;
   let r;
   try { r = await (await fetch('/api/entry/' + encodeURIComponent(n))).json(); }
   catch (err) { setMsg('load failed: ' + err); return; }
@@ -362,6 +364,19 @@ function draw() {
     ctx.fillStyle = ctx.strokeStyle; ctx.fillText(label, pts[0][0], pts[0][1] - 4 / zoom);
     if (i === sel) pts.forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 6 / zoom, 0, 7); ctx.fill(); });
   });
+  // The live path's located rows, in the upright image's normalised coordinates.
+  if (readRows && readRows.image === readImageKey()) {
+    ctx.setLineDash([6 / zoom, 4 / zoom]); ctx.lineWidth = 1.5 / zoom; ctx.font = `${13 / zoom}px system-ui`;
+    for (const rr of readRows.rows) {
+      const pts = rr.quad.map(([nx, ny]) => [nx * w, ny * h]);
+      ctx.strokeStyle = rr.detected ? '#fff' : '#aaa';
+      ctx.beginPath(); pts.forEach((p, k) => k ? ctx.lineTo(...p) : ctx.moveTo(...p)); ctx.closePath(); ctx.stroke();
+      const label = `${rr.field || '–'} ·${rr.cells}${rr.detected ? ' det' : ''}`;
+      ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(pts[3][0], pts[3][1] + 2 / zoom, ctx.measureText(label).width + 4 / zoom, 16 / zoom);
+      ctx.fillStyle = '#fff'; ctx.fillText(label, pts[3][0] + 2 / zoom, pts[3][1] + 14 / zoom);
+    }
+    ctx.setLineDash([]);
+  }
   if (drag && drag.kind === 'new') {
     ctx.strokeStyle = '#fff'; ctx.setLineDash([4 / zoom, 4 / zoom]); ctx.lineWidth = 1 / zoom;
     ctx.strokeRect(drag.x0, drag.y0, drag.x - drag.x0, drag.y - drag.y0);
@@ -437,6 +452,48 @@ async function saveAnchor() {
 }
 $('#vlAnchor').onclick = saveAnchor;
 $('#vlCopy').onclick = copyPrevious; $('#vlSkip').onclick = nextUnlabelled;
+// The reader on what is on screen (POST /api/read): with the windows it slices
+// and classifies each and the law commits; `live` runs the app's own path with
+// no windows. The result is a prefill for the owner - nothing is written until Save.
+let readRows = null;
+function readImageKey() {
+  if (frameMode) { const r = currentRecord(); const name = r && r.tracked[frameIdx]; return name ? `frame/${r.movie}/${name}` : null; }
+  return current;
+}
+async function runReader(live) {
+  const image = readImageKey(); if (!image) return;
+  const wins = (frameMode && isVideo) ? windowsToDraw() : (entry ? entry.windows : []);
+  const body = {image, rotationCW: rot(), live: !!live, currency: row && row.currency,
+                windows: wins.filter(w => w.field !== 'board').map(w => ({field: w.field, quad: w.quad}))};
+  setMsg(live ? 'reading (live path)…' : 'reading…');
+  let res;
+  try { res = await (await fetch('/api/read', {method: 'POST', body: JSON.stringify(body)})).json(); }
+  catch (err) { setMsg('read failed: ' + err); return; }
+  if (res.error) { $('#out').textContent = res.error + '\n' + (res.output || ''); setMsg('read failed'); return; }
+  const c = res.committed || {};
+  const lines = [`reader${live ? ' (live path)' : ''}: total ${c.total ?? '–'}  liters ${c.liters ?? '–'}  price ${c.unitPrice ?? '–'}`];
+  for (const w of res.windows || []) lines.push(`  ${w.field.padEnd(9)} ${w.text.padEnd(10)} margins ${w.cells.map(x => x.margin.toFixed(1)).join(' ')}`);
+  for (const r of res.rows || []) lines.push(`  row ${(r.field || '–').padEnd(9)} ${r.cells} cells${r.detected ? ' (detector)' : ''}`);
+  $('#out').textContent = lines.join('\n');
+  readRows = {image, rows: res.rows || []};
+  const raw = f => { const w = (res.windows || []).find(x => x.field === f); return w ? w.text : ''; };
+  const fill = f => c[f] ?? raw(f);
+  if (frameMode && isVideo) {
+    for (const [f, id] of [['total', '#vlTotal'], ['liters', '#vlLiters'], ['unitPrice', '#vlPrice']]) {
+      const v = fill(f); if (!v) continue;
+      $(id).value = v; $(id).classList.add('prefill');
+    }
+    $('#vlSource').textContent = '(reader – confirm with ⇧⏎)';
+  } else if (entry) {
+    let touched = false;
+    for (const w of entry.windows) { const v = fill(w.field); if (v && !w.text) { w.text = v; touched = true; } }
+    if (touched) { touch(); renderWins(); }
+  }
+  draw();
+  setMsg('read done');
+}
+$('#read').onclick = () => runReader(false);
+$('#vlRead').onclick = () => runReader(false);
 function next() { const names = [...document.querySelectorAll('#list div')].map(d => d.dataset.n); const n = names[names.indexOf(current) + 1]; if (n) openFixture(n); }
 $('#savenext').onclick = async () => { $('#reviewed').checked = true; await save(); next(); };
 $('#filter').oninput = renderList; $('#state').onchange = renderList;
@@ -448,6 +505,8 @@ document.addEventListener('keydown', e => {
   if (typing && frameMode && isVideo && e.key === 'Enter' && e.shiftKey) { e.preventDefault(); saveVideoLabel(); return; }
   if (frameMode && isVideo && e.key === 'ArrowLeft' && e.shiftKey) { e.preventDefault(); copyPrevious(); return; }
   if (frameMode && isVideo && e.key === 'ArrowRight' && e.shiftKey) { e.preventDefault(); stepRun(1); return; }
+  if (!typing && e.key === 'r') { runReader(false); return; }
+  if (!typing && e.key === 'R') { runReader(true); return; }
   if (!typing && (e.key === '+' || e.key === '=')) { zoom = Math.min(4, zoom * 1.2); $('#zoom').value = zoom; draw(); return; }
   if (!typing && e.key === '-') { zoom = Math.max(0.25, zoom / 1.2); $('#zoom').value = zoom; draw(); return; }
   if (!typing && e.key === '0') { fit(); draw(); return; }

@@ -16,6 +16,8 @@ let package = Package(
         // P0.3: the pseudo-localization gate. Runs in CI as a build-failing
         // step and is exercised by LocalizationGateTests.
         .executable(name: "localization-gate", targets: ["LocalizationGateTool"]),
+        // The pump reader as a command, for tools/pump-annotate's "read this frame".
+        .executable(name: "pump-read", targets: ["PumpReadTool"]),
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift", from: "7.0.0"),
@@ -58,6 +60,10 @@ let package = Package(
         .executableTarget(
             name: "LocalizationGateTool",
             dependencies: ["LocalizationGate"]
+        ),
+        .executableTarget(
+            name: "PumpReadTool",
+            dependencies: ["TankbookCore"]
         ),
         .testTarget(
             name: "TankbookCoreTests",
