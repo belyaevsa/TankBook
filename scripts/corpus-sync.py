@@ -34,7 +34,10 @@ BUCKET = "tankbook-corpus"
 ROOT = Path(__file__).resolve().parent.parent
 # (bucket prefix, local folder, glob patterns) - extend as more media leaves git.
 SETS = [
-    ("pump-live/", ROOT / "Spike/ReceiptSpike/fixtures/pump-live", ("*.mov", "*.heic", "*.mp4", "*.MOV", "*.HEIC", "*.MP4")),
+    # Only REGISTERED media leave the machine: a clip is named live-/video- by the
+    # intake (corpus-intake skill) once it is in the README; a raw drop in the folder
+    # is not the corpus yet and must not reach the bucket.
+    ("pump-live/", ROOT / "Spike/ReceiptSpike/fixtures/pump-live", ("live-*.mov", "live-*.heic", "video-*.mp4")),
 ]
 # The annotated data, pushed beside the media so the bucket is a complete copy.
 FIX = ROOT / "Spike/ReceiptSpike/fixtures"
