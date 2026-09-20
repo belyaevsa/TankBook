@@ -209,7 +209,7 @@ def track_video(stem: str, entry: dict, min_inliers: int) -> dict | None:
     it exactly as a still's are. Texts stay empty except the constant price;
     `PumpVideoReadTests` fills the rest where the arithmetic closes."""
     folder = FRAMES / stem
-    frames = sorted(folder.glob("*.jpg"), key=lambda p: int(p.stem))
+    frames = sorted((p for p in folder.glob("*.jpg") if p.stem.isdigit()), key=lambda p: int(p.stem))
     if not frames:
         return None
     ref = folder / entry["reference"]
