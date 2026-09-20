@@ -231,25 +231,39 @@ def records_for(still: str) -> list[dict]:
 
 
 # One retrack per video at a time, in the background; the page polls /api/retrack/<name>.
+# With `read`, the tracked frames are then read again by the app's reader
+# (PumpVideoReadTests regenerates the `arithmetic` labels); frames the owner
+# labelled or anchored, and a video marked reviewed, are the test's own skips.
 retracks: dict[str, dict] = {}
 
 
-def start_retrack(name: str) -> None:
+def start_retrack(name: str, read: bool = False) -> None:
     import threading  # noqa: PLC0415
     current = retracks.get(name)
     if current and current.get("running"):
         current["again"] = True   # a save during a run queues one more run
+        current["read"] = current.get("read", False) or read
         return
-    retracks[name] = {"running": True, "again": False, "result": None}
+    retracks[name] = {"running": True, "again": False, "read": read, "phase": "track", "result": None}
 
     def run() -> None:
         while True:
             ml = ROOT / "ml" / "pump-reader"
             python = ml / ".venv" / "bin" / "python"
+            retracks[name]["phase"] = "track"
             result = subprocess.run([str(python), "-m", "pump_reader.track", "--videos", "--only", name],
                                     cwd=ml, env={**os.environ, "PYTHONPATH": "src"}, capture_output=True, text=True)
             lines = (result.stdout + result.stderr).strip().splitlines()
             retracks[name]["result"] = lines[-1] if lines else f"exit {result.returncode}"
+            if retracks[name].get("read"):
+                retracks[name]["read"] = False
+                retracks[name]["phase"] = "read"
+                test = subprocess.run(["swift", "test", "--filter", "PumpVideoReadTests"], cwd=ROOT / "ios",
+                                      env={**os.environ, "PUMP_VIDEO_READ": "1", "PUMP_VIDEO_READ_ONLY": name},
+                                      capture_output=True, text=True)
+                out = (test.stdout + test.stderr).strip().splitlines()
+                summary = next((ln for ln in reversed(out) if "Test run" in ln or "error:" in ln), None)
+                retracks[name]["result"] = (summary or f"exit {test.returncode}").strip()
             if retracks[name].get("again"):
                 retracks[name]["again"] = False
                 continue
@@ -417,6 +431,16 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
+        if path.startswith("/api/rerun/"):
+            # /api/rerun/<stem>: retrack the clip from its anchors, then read every
+            # tracked frame again. Owner labels, anchored frames and a reviewed
+            # video are left as they are.
+            stem = unquote(path[len("/api/rerun/"):])
+            videos = json.loads(VIDEOS.read_text())
+            if stem not in videos:
+                return self.send_error(HTTPStatus.NOT_FOUND)
+            start_retrack(stem, read=True)
+            return self.send_json({"ok": True, "reviewed": bool(videos[stem].get("reviewed"))})
         if path == "/api/check":
             r = subprocess.run([sys.executable, str(CHECK), "--check"], capture_output=True, text=True)
             return self.send_json({"exit": r.returncode, "output": (r.stdout + r.stderr).strip()})

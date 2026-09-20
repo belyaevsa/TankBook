@@ -39,6 +39,12 @@ the ml venv runs it); the converted images are cached under
   closed (`arithmetic`), empty otherwise. Correct or fill it and **Save label**
   (`⇧⏎`; `⌥←`/`⌥→` step frames from the input); owner labels are kept by every
   re-run of the reader. Stored in `pump-live/video-labels.json`.
+- **⟳ retrack + read all** (video frame label row): retracks the clip from its
+  anchors and then runs the reader over every tracked frame
+  (`PumpVideoReadTests` with `PUMP_VIDEO_READ_ONLY=<stem>`), rewriting the
+  `arithmetic` labels. Frames with an owner label, frames anchored by hand and
+  a video marked reviewed are skipped - the run never touches what a human
+  wrote. Progress shows in the status line (`retracking…`, `reading…`).
 - **Anchors**: on any video frame the quads can be dragged (corners and body);
   the frame is saved as an anchor by itself (`videos.json`) and the clip
   retracks in the background - every other frame registers to its nearest

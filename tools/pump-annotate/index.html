@@ -72,7 +72,8 @@
       <button id="vlRead" title="run the reader on this frame's windows and fill the label (nothing saved)">▶ read</button> <span class="dim"><kbd>r</kbd> / <kbd>R</kbd> live path</span>
       <label title="the reader read these frames as one value; the label applies to all of them"><input type="checkbox" id="vlRun" checked> whole run</label>
       <span class="dim"><kbd>⇧→</kbd> next run</span>
-      <span class="dim" title="a dragged quad on a frame is saved as an anchor by itself; the clip retracks from its anchors and never moves an anchored frame">⚓ dragging a quad anchors the frame</span><button id="vlAnchor" style="display:none"></button></div>
+      <span class="dim" title="a dragged quad on a frame is saved as an anchor by itself; the clip retracks from its anchors and never moves an anchored frame">⚓ dragging a quad anchors the frame</span><button id="vlAnchor" style="display:none"></button>
+      <button id="vlRerun" title="retrack the clip from its anchors, then read every tracked frame again; your labels and anchored frames are kept">⟳ retrack + read all</button></div>
   </div>
   <div id="wins"></div>
   <div class="row"><button id="add">+ window</button> <span class="dim">or drag on the image</span></div>
@@ -162,7 +163,7 @@ function watchRetrack(name) {
   if (retrackWatch[name]) return;
   retrackWatch[name] = setInterval(async () => {
     const st = await (await fetch('/api/retrack/' + encodeURIComponent(name))).json();
-    $('#out').textContent = st.running ? `retracking ${name.slice(0, 9)}…` : `retracked: ${st.result || ''}`;
+    $('#out').textContent = st.running ? `${st.phase === 'read' ? 'reading' : 'retracking'} ${name.slice(0, 9)}…` : `done: ${st.result || ''}`;
     if (!st.running) { clearInterval(retrackWatch[name]); delete retrackWatch[name]; if (current === name) { recordsLoaded = loadRecords(name); if (frameMode) recordsLoaded.then(showFrame); } }
   }, 2000);
 }
@@ -464,6 +465,13 @@ async function saveAnchor() {
   setMsg(`anchor at ${name} (${res.anchors.length} anchors), retracking`); watchRetrack(r.movie);
 }
 $('#vlAnchor').onclick = saveAnchor;
+async function rerunVideo() {
+  const r = currentRecord(); if (!r) return;
+  const res = await (await fetch('/api/rerun/' + encodeURIComponent(r.movie), {method: 'POST'})).json();
+  setMsg(res.reviewed ? 'marked reviewed: retracking only, the reader skips a reviewed video' : 'retracking, then reading every tracked frame');
+  watchRetrack(r.movie);
+}
+$('#vlRerun').onclick = rerunVideo;
 $('#vlCopy').onclick = copyPrevious; $('#vlSkip').onclick = nextUnlabelled;
 // The reader on what is on screen (POST /api/read): with the windows it slices
 // and classifies each and the law commits; `live` runs the app's own path with
