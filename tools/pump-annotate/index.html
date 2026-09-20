@@ -140,6 +140,15 @@ async function loadRecords(n) {
   showRecordInfo();
 }
 function currentRecord() { return records[+$('#rec').value || 0]; }
+const retrackWatch = {};
+function watchRetrack(name) {
+  if (retrackWatch[name]) return;
+  retrackWatch[name] = setInterval(async () => {
+    const st = await (await fetch('/api/retrack/' + encodeURIComponent(name))).json();
+    $('#out').textContent = st.running ? `retracking ${name.slice(0, 9)}…` : `retracked: ${st.result || ''}`;
+    if (!st.running) { clearInterval(retrackWatch[name]); delete retrackWatch[name]; if (current === name) { recordsLoaded = loadRecords(name); if (frameMode) recordsLoaded.then(showFrame); } }
+  }, 2000);
+}
 function showRecordInfo() {
   const r = currentRecord(); if (!r) return;
   $('#recinfo').textContent = `${r.tracked.length} tracked of ${r.extracted} frames` + (r.extracted ? (r.tracked.length ? '' : ' – not tracked: run pump_reader.track') : ' – run pump_reader.frames / track');
@@ -208,7 +217,7 @@ function collect() {
 async function save() {
   if (!current) return;
   const r = await (await fetch('/api/entry/' + encodeURIComponent(current), {method:'PUT', body: JSON.stringify(collect())})).json();
-  if (isVideo) { dirty = false; setMsg(r.ok ? 'reference saved and retracked' : 'retrack failed'); $('#out').textContent = (r.retrack || []).join('\n'); recordsLoaded = loadRecords(current); return; }
+  if (isVideo) { dirty = false; setMsg('reference saved, retracking in the background'); watchRetrack(current); return; }
   entry = r.entry; entry.windows = entry.windows || []; dirty = false; setMsg('saved');
   const fx = fixtures.find(x => x.name === current); if (fx) { fx.windows = entry.windows.length; fx.reviewed = !!entry.reviewed; fx.tracking = entry.tracking || null; }
   renderList(); renderWins(); draw();

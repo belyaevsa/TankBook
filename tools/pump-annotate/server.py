@@ -208,6 +208,35 @@ def records_for(still: str) -> list[dict]:
     return out
 
 
+# One retrack per video at a time, in the background; the page polls /api/retrack/<name>.
+retracks: dict[str, dict] = {}
+
+
+def start_retrack(name: str) -> None:
+    import threading  # noqa: PLC0415
+    current = retracks.get(name)
+    if current and current.get("running"):
+        current["again"] = True   # a save during a run queues one more run
+        return
+    retracks[name] = {"running": True, "again": False, "result": None}
+
+    def run() -> None:
+        while True:
+            ml = ROOT / "ml" / "pump-reader"
+            python = ml / ".venv" / "bin" / "python"
+            result = subprocess.run([str(python), "-m", "pump_reader.track", "--videos", "--only", name],
+                                    cwd=ml, env={**os.environ, "PYTHONPATH": "src"}, capture_output=True, text=True)
+            lines = (result.stdout + result.stderr).strip().splitlines()
+            retracks[name]["result"] = lines[-1] if lines else f"exit {result.returncode}"
+            if retracks[name].get("again"):
+                retracks[name]["again"] = False
+                continue
+            retracks[name]["running"] = False
+            return
+
+    threading.Thread(target=run, daemon=True).start()
+
+
 class Handler(SimpleHTTPRequestHandler):
     def log_message(self, fmt, *args):  # quieter than the default
         if self.command != "GET" or "/image/" not in self.path:
@@ -262,6 +291,9 @@ class Handler(SimpleHTTPRequestHandler):
                                        "row": {"liters": "", "unitPrice": v["unitPrice"], "total": "", "currency": v["currency"]}})
             ann, rows = load_windows(), load_rows()
             return self.send_json({"entry": ann.get(name, {"windows": []}), "row": rows.get(name)})
+        if path.startswith("/api/retrack/"):
+            name = unquote(path[len("/api/retrack/"):])
+            return self.send_json(retracks.get(name, {"running": False, "result": None}))
         if path.startswith("/api/records/"):
             name = unquote(path[len("/api/records/"):])
             if name in video_entries():
@@ -316,14 +348,10 @@ class Handler(SimpleHTTPRequestHandler):
             videos[name]["windows"] = [{"field": w["field"], "quad": [[round(float(x), 4), round(float(y), 4)] for x, y in w["quad"]]}
                                        for w in entry.get("windows", []) if w["field"] in ("total", "liters", "unitPrice")]
             VIDEOS.write_text(json.dumps(videos, indent=1))
-            # Carry the new reference through the frames right away.
-            ml = ROOT / "ml" / "pump-reader"
-            python = ml / ".venv" / "bin" / "python"
-            result = subprocess.run([str(python), "-m", "pump_reader.track", "--videos", "--only", name],
-                                    cwd=ml, env={**os.environ, "PYTHONPATH": "src"}, capture_output=True, text=True)
-            return self.send_json({"ok": result.returncode == 0,
+            start_retrack(name)
+            return self.send_json({"ok": True,
                                    "entry": {"windows": videos[name]["windows"], "reference": videos[name]["reference"]},
-                                   "retrack": (result.stdout + result.stderr).strip().splitlines()[-1:]})
+                                   "retrack": "started"})
         ann = load_windows()
         ann[name] = clean_entry(entry)
         save_windows(ann)
