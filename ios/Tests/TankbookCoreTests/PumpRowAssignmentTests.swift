@@ -10,18 +10,13 @@ import Testing
 struct PumpRowAssignmentTests {
 
     // The floor moves only upward on the same corpus; a new hard fixture
-    // re-measures it and names why. pump-121 / pump-122 are two lit price
-    // cells side by side on a Wayne row with the transaction price on the
-    // right (121) and on the left (122): geometry alone cannot tell them
-    // apart, the law's board-as-price trial does, and the recorded rate is
-    // what the geometry pass achieves on its own. pump-137 (a UK head whose
-    // two pence cells are as wide as the transaction rows) has its rows
-    // taken for a board. The Veeder-Root keypad heads (pump-153..189) put
-    // the price ladder in a COLUMN left of the display and the assigner
-    // takes that column for the board: 707/739 (0.957) on 189 fixtures,
-    // 24 of the 32 misses on that head - PU.30 is the rule that fixes it,
-    // and the floor goes back up with it (docs/TASKS.md PU.23, PU.30).
-    private static let accuracyFloor = 0.95
+    // re-measures it and names why. 834/837 (0.996) on 217 fixtures after
+    // PU.30 taught the assigner the ladder column. The three left: pump-121,
+    // two lit price cells side by side with the transaction price on the
+    // right (geometry cannot order them; the law's board-as-price trial
+    // does), and pump-137, a UK head whose two pence cells are as wide as
+    // the transaction rows (docs/TASKS.md PU.23, PU.30).
+    private static let accuracyFloor = 0.99
 
     @Test("every fixture's windows get the roles the annotation gives them", .pumpFixturesPresent)
     func corpusAssignment() throws {

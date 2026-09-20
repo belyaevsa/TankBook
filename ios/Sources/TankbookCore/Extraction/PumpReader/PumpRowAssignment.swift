@@ -27,6 +27,17 @@ enum PumpRowAssignment {
     static let boardBaselineTolerance: CGFloat = 0.9
     static let boardWidthTolerance: CGFloat = 0.45
     static let boardMinimumWindows = 3
+    /// A grade-price ladder is a column of SMALL cells beside the display
+    /// (the Gilbarco Veeder-Root keypad head): a window at least this fraction
+    /// of the widest window's width is a transaction row, never a ladder cell -
+    /// the total, volume and price stack into a near-equal column too, and
+    /// without this they were taken for the ladder.
+    static let ladderMaximumWidthFraction: CGFloat = 0.6
+    /// A leftover window on a row board's baseline within this many heights
+    /// joins the board even when its size fell outside `boardWidthTolerance`
+    /// (a fourth grade cell photographed at an angle): read as the price it
+    /// would take the third column slot from nothing.
+    static let boardStragglerBaselineTolerance: CGFloat = 1.2
 
     /// The fewest cells a field can show with its decimals: `0.50` is three.
     static let minimumCells: [PumpField: Int] = [.total: 3, .liters: 3, .unitPrice: 3]
@@ -44,11 +55,35 @@ enum PumpRowAssignment {
         // Columns only on a head with no row board at all (Lukoil, the Russian
         // Gilbarco heads stack their grade prices vertically). Three equal
         // windows and nothing else is the transaction column itself.
-        var columns = rows.isEmpty ? boardGroups(boxes, used: &used, axis: .column) : []
+        var columns = rows.isEmpty ? boardGroups(boxes, used: &used, axis: .column, ladder: true) : []
         for group in columns where group.count >= windows.count {
             for k in group { used.remove(k) }
         }
         columns.removeAll { $0.count >= windows.count }
+        // A small window wholly beside the widest one - left or right of its
+        // span - is a grade cell next to the display (a two-cell ladder, which
+        // is below `boardMinimumWindows`), never a transaction row: the
+        // transaction rows share the display's horizontal span.
+        if let widest = boxes.indices.max(by: { boxes[$0].width < boxes[$1].width }) {
+            let span = boxes[widest]
+            for k in boxes.indices where !used.contains(k)
+                && boxes[k].width < ladderMaximumWidthFraction * span.width
+                && (boxes[k].maxX <= span.minX || boxes[k].minX >= span.maxX) {
+                used.insert(k)
+                roles[k] = .board
+            }
+        }
+        // A straggler on a row board's baseline is the board's, not the column's.
+        for group in rows {
+            let baseline = group.map { boxes[$0].midY }.reduce(0, +) / CGFloat(group.count)
+            let height = group.map { boxes[$0].height }.reduce(0, +) / CGFloat(group.count)
+            for k in boxes.indices where !used.contains(k)
+                && abs(boxes[k].midY - baseline) <= boardStragglerBaselineTolerance * height
+                && boxes[k].width <= 1.6 * (group.map { boxes[$0].width }.max() ?? 0) {
+                used.insert(k)
+                roles[k] = .board
+            }
+        }
 
         // A head whose only windows are one equal-width row is a horizontal
         // transaction layout (an overlay), not a board: read it left to right.
@@ -74,7 +109,11 @@ enum PumpRowAssignment {
 
     /// Greedy groups of near-equal windows sharing a baseline (row) or a
     /// centre line (column), at least `boardMinimumWindows` strong.
-    private static func boardGroups(_ boxes: [CGRect], used: inout Set<Int>, axis: Axis) -> [[Int]] {
+    private static func boardGroups(_ boxes: [CGRect], used: inout Set<Int>, axis: Axis, ladder: Bool = false) -> [[Int]] {
+        let widest = boxes.map(\.width).max() ?? 0
+        func eligible(_ i: Int) -> Bool {
+            !used.contains(i) && (!ladder || boxes[i].width < ladderMaximumWidthFraction * widest)
+        }
         func sameSize(_ a: CGRect, _ b: CGRect) -> Bool {
             abs(a.width - b.width) <= boardWidthTolerance * max(a.width, b.width)
                 && abs(a.height - b.height) <= boardWidthTolerance * max(a.height, b.height)
@@ -86,9 +125,9 @@ enum PumpRowAssignment {
             }
         }
         var groups: [[Int]] = []
-        for i in boxes.indices where !used.contains(i) {
+        for i in boxes.indices where eligible(i) {
             let group = [i] + boxes.indices.filter { j in
-                j != i && !used.contains(j) && sameSize(boxes[i], boxes[j]) && aligned(boxes[i], boxes[j])
+                j != i && eligible(j) && sameSize(boxes[i], boxes[j]) && aligned(boxes[i], boxes[j])
             }
             if group.count >= boardMinimumWindows {
                 groups.append(group)
