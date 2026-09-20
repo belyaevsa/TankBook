@@ -444,6 +444,22 @@ Acceptance by the slicer, which is the other half of this round's story: six tra
 under glare gave the extractor almost nothing (`pump-021` 3/185 windows, `pump-022` 5/310) -
 the frames are there, the slicer cannot count them, and that is the slicer round's material.
 
+### Round 7 (orchestrator, 2026-09-20): the same recipe on the fixed slicer's export
+
+After the slicer learned to prefer the fundamental pitch (PU.4 round, same day) the train export
+was redone: 8 550 windows, 5 801 agreeing (5 677 before), 25 349 real cells. Same recipe as
+round 6. On the heldout split, both models scored through the fixed slicer:
+
+| classifier | committed | correct | precision | photos every field right |
+|---|---|---|---|---|
+| round 6 (shipped) | 52 | 50 | 0.962 | 14 / 64 |
+| round 7 | 48 | 47 | 0.979 | 13 / 64 |
+
+A trade inside the noise of 175 cells: four fewer commits, one fewer wrong. Round 6 stays in
+the bundle because it clears the floors it set (52 / 0.96) and round 7 would move the committed
+floor down; the checkpoint and metrics are kept in `runs/2026-09-20/` for the next round to
+start from. The live path reads 4 / 4 with either.
+
 ## Named mutation: drop the dp bit
 
 In `dataset.py`, the target's dp bit was dropped (7 bits, dp slot padded with a
