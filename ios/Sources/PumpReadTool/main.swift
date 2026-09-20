@@ -13,7 +13,9 @@ import Foundation
 @testable import TankbookCore  // the reader's stages are package-internal; debug builds carry testability
 
 struct Request: Decodable {
-    var rotationCW: Int = 0
+    // Every key optional: the synthesised decoder ignores a default value and
+    // would reject a request that leaves one out.
+    var rotationCW: Int?
     var currency: String?
     var windows: [Window]?
     struct Window: Decodable {
@@ -29,8 +31,14 @@ guard arguments.count >= 2 else {
 }
 var classifierPath = "ios/App/Resources/PumpSegments.mlpackage"
 var detectorPath: String? = "ios/App/Resources/DigitRows.mlmodel"
+var dumpDirectory: String?
 var index = 2
 while index < arguments.count {
+    if arguments[index] == "--dump-strips", index + 1 < arguments.count {
+        dumpDirectory = arguments[index + 1]
+        index += 2
+        continue
+    }
     if arguments[index] == "--classifier", index + 1 < arguments.count {
         classifierPath = arguments[index + 1]
         index += 2
@@ -66,7 +74,7 @@ if let windows = request.windows, !windows.isEmpty {
     let located = windows.compactMap { window -> PumpReader.Window? in
         guard let field = PumpField(rawValue: window.field) else { return nil }
         let pixels = window.quad.map { CGPoint(x: $0[0] * Double(image.width), y: $0[1] * Double(image.height)) }
-        return PumpReader.Window(field: field, quad: PumpQuadWarp.readingOrder(pixels, rotationCW: request.rotationCW))
+        return PumpReader.Window(field: field, quad: PumpQuadWarp.readingOrder(pixels, rotationCW: (request.rotationCW ?? 0)))
     }
     let reads = try reader.read(image: image, windows: located)
     // The slicer's cells for each window, mapped from the warped strip back onto
@@ -76,7 +84,19 @@ if let windows = request.windows, !windows.isEmpty {
     for window in located {
         guard let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: window.quad, stripHeight: PumpReader.stripHeight)
         else { continue }
-        let cells = PumpGlyphSlicer.slice(PumpQuadWarp.rgbImage(from: strip).grayscale())
+        // PUMP_MERGE_GAP / PUMP_DP_TOP override the slicer's run-merge gap and
+        // decimal-mark top-row fraction for a diagnosis; the reading above is
+        // untouched.
+        var options = PumpGlyphSlicer.Options()
+        let environment = ProcessInfo.processInfo.environment
+        if let value = environment["PUMP_MERGE_GAP"].flatMap(Float.init) { options.mergeGapFraction = value }
+        if let value = environment["PUMP_DP_TOP"].flatMap(Float.init) { options.decimalPointTopRowFraction = value }
+        let cells = PumpGlyphSlicer.slice(PumpQuadWarp.rgbImage(from: strip).grayscale(), options: options)
+        if let dumpDirectory {
+            // The warped strip as the slicer sees it, for looking at a miss.
+            _ = PumpQuadWarp.writePNG(image: strip, to: URL(fileURLWithPath: dumpDirectory)
+                .appendingPathComponent("\(window.field.rawValue).png"))
+        }
         let stripWidth = CGFloat(strip.width), stripHeight = CGFloat(strip.height)
         let quad = window.quad
         func at(_ fx: CGFloat, _ fy: CGFloat) -> [Double] {
@@ -117,10 +137,10 @@ if let windows = request.windows, !windows.isEmpty {
         return try body()
     }
     let reading = try timed("readPhoto") {
-        try reader.readPhoto(image: image, rotationCW: request.rotationCW, currency: currency, priceBand: nil)
+        try reader.readPhoto(image: image, rotationCW: (request.rotationCW ?? 0), currency: currency, priceBand: nil)
     }
     reply["committed"] = committed(reading)
-    let upright = PumpPanelLocator.rotatedRGB(image, rotationCW: request.rotationCW)
+    let upright = PumpPanelLocator.rotatedRGB(image, rotationCW: (request.rotationCW ?? 0))
     if let detector, let cg = PumpQuadWarp.makeImage(upright.pixels, width: upright.width, height: upright.height) {
         timings["detectorOnly"] = timed("detectorOnly") { detector.detect(in: cg).count }
     }
@@ -130,6 +150,20 @@ if let windows = request.windows, !windows.isEmpty {
     reply["timingsMs"] = timings
     let assignment = PumpRowAssignment.assign(
         windows: verified.map { PumpRowAssignment.Window(quad: $0.quad, glyphCount: $0.glyphCount) }, rotationCW: 0)
+    // What the located rows read as, digit by digit, so a miss can be told
+    // apart from a law that would not close.
+    var assigned: [PumpReader.Window] = []
+    for (window, role) in zip(verified, assignment.roles) {
+        guard let role else { continue }
+        assigned.append(PumpReader.Window(field: role, quad: window.quad))
+    }
+    if let reads = try? reader.read(image: upright, windows: assigned) {
+        reply["rowTexts"] = reads.map { read in
+            read.field.rawValue + " " + read.cells.map { cell in
+                (cell.ranked.first.map { String($0.digit) } ?? "?") + (cell.decimalPoint ? "." : "")
+            }.joined() + " " + read.cells.map { String(format: "%.1f", ($0.ranked[0].logPosterior - $0.ranked[1].logPosterior)) }.joined(separator: ",")
+        }
+    }
     reply["rows"] = zip(verified, assignment.roles).map { window, role -> [String: Any] in
         ["field": role?.rawValue ?? NSNull(), "cells": window.glyphCount, "detected": window.detected,
          "quad": window.quad.map { [$0.x / Double(upright.width), $0.y / Double(upright.height)] }]

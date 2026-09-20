@@ -151,6 +151,11 @@ public struct PumpDisplayConventions: Sendable, Equatable {
         case "KZT":
             return PumpDisplayConventions(volumeDecimals: [2], priceDecimals: [0, 1],
                                           totalDecimals: [0, 2], truncatedTotalDecimals: [1])
+        case "KGS":
+            // Som prices are two digits to one decimal (`99,9`, video-004); the
+            // default's two or three decimals can never place that mark.
+            return PumpDisplayConventions(volumeDecimals: [2], priceDecimals: [1, 2],
+                                          totalDecimals: [2], truncatedTotalDecimals: [1])
         default:
             return PumpDisplayConventions(volumeDecimals: [2, 3], priceDecimals: [2, 3],
                                           totalDecimals: [2], truncatedTotalDecimals: [1])

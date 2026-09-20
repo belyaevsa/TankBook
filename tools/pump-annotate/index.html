@@ -487,6 +487,8 @@ async function runReader(live) {
   const lines = [`reader${live ? ' (live path)' : ''}: total ${c.total ?? '–'}  liters ${c.liters ?? '–'}  price ${c.unitPrice ?? '–'}`];
   for (const w of res.windows || []) lines.push(`  ${w.field.padEnd(9)} ${w.text.padEnd(10)} margins ${w.cells.map(x => x.margin.toFixed(1)).join(' ')}`);
   for (const r of res.rows || []) lines.push(`  row ${(r.field || '–').padEnd(9)} ${r.cells} cells${r.detected ? ' (detector)' : ''}`);
+  for (const t of res.rowTexts || []) lines.push(`  read ${t}`);
+  if (res.timingsMs) lines.push(`  ms ${Object.entries(res.timingsMs).map(([k, v]) => k + ' ' + v).join('  ')}`);
   $('#out').textContent = lines.join('\n');
   readRows = {image, rows: res.rows || []};
   readCells = {image, cells: (res.windows || []).flatMap(w => w.sliced || [])};

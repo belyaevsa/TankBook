@@ -33,6 +33,9 @@ enum PumpRowAssignment {
     /// the total, volume and price stack into a near-equal column too, and
     /// without this they were taken for the ladder.
     static let ladderMaximumWidthFraction: CGFloat = 0.6
+    /// How far above or below the widest window's own extent, in its heights,
+    /// a small side window may sit and still count as beside it.
+    static let besideVerticalTolerance: CGFloat = 1.0
     /// A leftover window on a row board's baseline within this many heights
     /// joins the board even when its size fell outside `boardWidthTolerance`
     /// (a fourth grade cell photographed at an angle): read as the price it
@@ -61,14 +64,19 @@ enum PumpRowAssignment {
         }
         columns.removeAll { $0.count >= windows.count }
         // A small window wholly beside the widest one - left or right of its
-        // span - is a grade cell next to the display (a two-cell ladder, which
-        // is below `boardMinimumWindows`), never a transaction row: the
-        // transaction rows share the display's horizontal span.
+        // span, and sharing its vertical extent - is a grade cell next to the
+        // display (a two-cell ladder, which is below `boardMinimumWindows`),
+        // never a transaction row: the transaction rows share the display's
+        // horizontal span. A small window below the display and off to one
+        // side (a Wayne head's price cell under its grade button) is not
+        // beside it: it stays in the transaction column.
         if let widest = boxes.indices.max(by: { boxes[$0].width < boxes[$1].width }) {
             let span = boxes[widest]
             for k in boxes.indices where !used.contains(k)
                 && boxes[k].width < ladderMaximumWidthFraction * span.width
-                && (boxes[k].maxX <= span.minX || boxes[k].minX >= span.maxX) {
+                && (boxes[k].maxX <= span.minX || boxes[k].minX >= span.maxX)
+                && boxes[k].midY >= span.minY - besideVerticalTolerance * span.height
+                && boxes[k].midY <= span.maxY + besideVerticalTolerance * span.height {
                 used.insert(k)
                 roles[k] = .board
             }

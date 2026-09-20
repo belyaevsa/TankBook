@@ -61,6 +61,22 @@ struct PumpReadingLawTests {
         #expect(reading.total.provenance == .derived)
     }
 
+    @Test("video-004: a KGS price to one decimal closes with no mark seen on any row")
+    func kgsOneDecimalPrice() {
+        // The Gilbarco Veeder-Root som head shows `2955,04` / `29,58` / `99,9`; the
+        // slicer saw no mark on any of them, so the placement comes from the
+        // conventions alone. 29.58 x 99.9 = 2955.042.
+        let reading = PumpReadingLaw.resolve(
+            windows: [
+                Self.window(.total, "295504"),
+                Self.window(.liters, "2958"),
+                Self.window(.unitPrice, "999"),
+            ], currency: CurrencyCode(rawValue: "KGS"))
+        #expect(reading.unitPrice.value == Decimal(string: "99.9"))
+        #expect(reading.liters.value == Decimal(string: "29.58"))
+        #expect(reading.total.value == Decimal(string: "2955.04"))
+    }
+
     @Test("pump-031: a discount that breaks the arithmetic commits nothing wrong")
     func pump031Abstains() {
         let reading = PumpReadingLaw.resolve(

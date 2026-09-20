@@ -82,6 +82,27 @@ struct PumpRowAssignmentTests {
         #expect(roles[0] == .total && roles[1] == .liters && roles[2] == .unitPrice)
     }
 
+    @Test("a price cell below the display and off to one side is the price, not a grade cell beside it")
+    func priceUnderTheGradeButtonIsThePrice() {
+        // video-003 (Wayne, Circle K): the total and liters rows share the
+        // display; the price sits under the leftmost grade button, wholly left
+        // of the display's span but far below it. In a 1000 x 1000 frame:
+        func box(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat) -> [CGPoint] {
+            [CGPoint(x: x, y: y), CGPoint(x: x + w, y: y), CGPoint(x: x + w, y: y + h), CGPoint(x: x, y: y + h)]
+        }
+        let windows = [
+            PumpRowAssignment.Window(quad: box(286, 265, 363, 82), glyphCount: 5),   // total
+            PumpRowAssignment.Window(quad: box(420, 352, 222, 52), glyphCount: 4),   // liters
+            PumpRowAssignment.Window(quad: box(87, 476, 129, 37), glyphCount: 4),    // price, under the grade button
+        ]
+        let roles = PumpRowAssignment.assign(windows: windows, rotationCW: 0).roles
+        #expect(roles == [.total, .liters, .unitPrice])
+        // The same small window level with the display IS a grade cell beside it.
+        let beside = [windows[0], windows[1],
+                      PumpRowAssignment.Window(quad: box(87, 290, 129, 37), glyphCount: 4)]
+        #expect(PumpRowAssignment.assign(windows: beside, rotationCW: 0).roles[2] == .board)
+    }
+
     @Test("a liters or total window with fewer cells than its decimals allow is implausible")
     func minimumCells() {
         #expect(!PumpRowAssignment.plausibleCount(2, for: .liters))
