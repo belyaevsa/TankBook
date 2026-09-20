@@ -21,6 +21,7 @@ import csv
 import hashlib
 import io
 import json
+import os
 import subprocess
 import sys
 import traceback
@@ -315,8 +316,14 @@ class Handler(SimpleHTTPRequestHandler):
             videos[name]["windows"] = [{"field": w["field"], "quad": [[round(float(x), 4), round(float(y), 4)] for x, y in w["quad"]]}
                                        for w in entry.get("windows", []) if w["field"] in ("total", "liters", "unitPrice")]
             VIDEOS.write_text(json.dumps(videos, indent=1))
-            return self.send_json({"ok": True, "entry": {"windows": videos[name]["windows"], "reference": videos[name]["reference"]},
-                                   "retrack": f"PYTHONPATH=src .venv/bin/python -m pump_reader.track --videos --only {name}"})
+            # Carry the new reference through the frames right away.
+            ml = ROOT / "ml" / "pump-reader"
+            python = ml / ".venv" / "bin" / "python"
+            result = subprocess.run([str(python), "-m", "pump_reader.track", "--videos", "--only", name],
+                                    cwd=ml, env={**os.environ, "PYTHONPATH": "src"}, capture_output=True, text=True)
+            return self.send_json({"ok": result.returncode == 0,
+                                   "entry": {"windows": videos[name]["windows"], "reference": videos[name]["reference"]},
+                                   "retrack": (result.stdout + result.stderr).strip().splitlines()[-1:]})
         ann = load_windows()
         ann[name] = clean_entry(entry)
         save_windows(ann)
