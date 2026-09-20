@@ -32,6 +32,7 @@ Live Photos (HEIC key frame + the paired `.mov`) of pump displays, shared by the
 the before:
 
 | live | frames | key frame | same fill as | total / liters / unitPrice |
+|  | 267 (576x1024, 30 fps, 9.1 s) | Gilbarco Veeder-Root at an Orlen forecourt (, a Verva column beside it), Poland, daylight; **counting up** at ; the owner's own clip, sent as . The source is 13.7 s with 4.6 s of the car's flank and the nozzle in the tank between two display sections (3.6-8.2 s) - cut out and the halves joined, the way video-006 was; the app's  /  tags stripped with the rest | price  constant; 250.73 / 27.89 → ~269.07 / 29.93, then 296.85 / 33.02 → 327.69 / 36.45 (,  close) |
 |---|---|---|---|---|
 | `live-6227.mov` | 24 (4K video, no HEIC) | - | `pump-097` | 43.39 / 22.85 / 1.899 |
 | `live-6228` | 32 | `live-6228.heic` | `pump-097` | 43.39 / 22.85 / 1.899 |
@@ -229,6 +230,7 @@ frame in `videos.json` and `pump_reader.track --videos` carries them through the
 | `video-016-topaz-gdrive-gazpromneft-running-display-ru` | 63 (1920x1080, 25 fps, 2.5 s) | Topaz at a G-Drive column, Russia, daylight, the display **counting up** through an AI-95 fill at `69.59`; the owner asked for 43-47 s of the source, the display fills the frame from 44.5 s and a presenter walks in at 47 s, so the cut is 44.4-46.9 s. `../pump/pump-231` is a frame of it | price `69.59` constant; ~2573 / 36.98 → 2590.84 / 37.23 (`37.23 x 69.59 = 2590.84` closes). Source: `youtube.com/watch?v=_wpWcl6Mhzw` |
 | `video-017-topaz-clip-caption-running-display-ru` | 140 (1080x1920, VFR ~20 fps, 7 s) | Topaz, Russia, a vertical clip with a QR top-left and a red `КАЖДЫЙ ЛИТР ИМЕЕТ ЗНАЧЕНИЕ` caption band that grows in over the first 3 s; **counting up** at `69.41`; cut before the logo card at 7 s. `../pump/pump-234` is a 360 px frame of it | price `69.41` constant; 409.52 / 5.90 → ~701.74 / 10.11 (`5.97 x 69.41 = 414.38`, `10.11 x 69.41 = 701.73` close). Source: VK clip `-204527792_456239354` (permpoisk) |
 | `video-018-tokheim-winter-clip-caption-running-display-ru` | 548 (720x1280, 30 fps, 18.5 s) | Tokheim (`Стоимость` / `Количество` / `Цена за 1 литр`), Russia, winter dusk, the same caption band and QR as video-017, the digits small in frame; **counting up** the whole clip at `67.06` | price `67.06` constant; 17.44 / 0.26 → ~669.7 / 9.98 (`3.19 x 67.06 = 213.92`, `9.98 x 67.06 = 669.26` close). Source: VK clip `-204527792_456239281` (permpoisk) |
+| `video-019-gilbarco-veederroot-orlen-cutaway-running-display-pl` | 267 (576x1024, 30 fps, 9.1 s) | Gilbarco Veeder-Root at an Orlen forecourt (`STANOWISKO 5`, a Verva column beside it), Poland, daylight; **counting up** at `8,99 zł/L`; the owner's own clip, sent as `IMG_18166.mp4`. The source is 13.7 s with 4.6 s of the car's flank and the nozzle in the tank between two display sections (3.6-8.2 s) - cut out and the halves joined, the way video-006 was; the app's `aigc_info` / `vid:` tags stripped with the rest | price `8.99` constant; 250.73 / 27.89 → ~269.07 / 29.93, then 296.85 / 33.02 → 327.69 / 36.45 (`27.89 x 8.99 = 250.73`, `36.45 x 8.99 = 327.69` close) |
 
 ## Frames and tracking (2026-09-20)
 
