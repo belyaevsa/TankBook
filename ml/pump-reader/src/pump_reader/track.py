@@ -92,12 +92,52 @@ def display_mask(shape: tuple[int, int], quads: list[np.ndarray], grow: float = 
 
 
 class Registrar:
-    def __init__(self, still_gray: np.ndarray, quads_px: list[np.ndarray]):
+    def __init__(self, still_gray: np.ndarray, quads_px: list[np.ndarray], samples: list[np.ndarray] = ()):
         self.orb = cv2.ORB_create(nfeatures=4000, scaleFactor=1.2, nlevels=8)
         self.small, self.scale = scaled(still_gray)
         mask = display_mask(self.small.shape, [q * self.scale for q in quads_px])
         self.kp, self.desc = self.orb.detectAndCompute(self.small, mask)
         self.matcher = cv2.BFMatcher(cv2.NORM_HAMMING)
+        self.static_dropped = self.drop_static(samples)
+
+    def drop_static(self, samples: list[np.ndarray], tolerance: float = 3.0, share: float = 0.7) -> int:
+        """A burned-in overlay - a QR code, a caption band, a channel logo - sits
+        at the same pixels in every frame, so its corners match the anchor at
+        the identity and, being many, outvote the moving display in RANSAC:
+        the tracked quads then never move. A keypoint whose match lands within
+        `tolerance` px of its own position in more than `share` of the sampled
+        frames is such an overlay and is dropped before any frame registers.
+        A still camera keeps everything: then every keypoint is static, and
+        dropping them all would leave nothing, so nothing is dropped."""
+        if self.desc is None or len(samples) < 4:
+            return 0
+        hits = np.zeros(len(self.kp), np.int32)
+        matched = np.zeros(len(self.kp), np.int32)
+        seen = 0
+        for gray in samples:
+            small, fscale = scaled(gray)
+            kp, desc = self.orb.detectAndCompute(small, None)
+            if desc is None:
+                continue
+            seen += 1
+            for pair in self.matcher.knnMatch(self.desc, desc, k=2):
+                if len(pair) == 2 and pair[0].distance < 0.75 * pair[1].distance:
+                    m = pair[0]
+                    matched[m.queryIdx] += 1
+                    a = np.array(self.kp[m.queryIdx].pt) / self.scale
+                    b = np.array(kp[m.trainIdx].pt) / fscale
+                    if np.linalg.norm(a - b) <= tolerance:
+                        hits[m.queryIdx] += 1
+        if seen < 4:
+            return 0
+        # The share is of the frames the keypoint matched in at all: a caption
+        # that fades in is absent from the early frames and static after.
+        static = (matched >= 4) & (hits > share * matched)
+        if static.sum() == 0 or (~static).sum() < 50:
+            return 0
+        self.kp = [k for k, s in zip(self.kp, static) if not s]
+        self.desc = self.desc[~static]
+        return int(static.sum())
 
     def homography(self, frame_gray: np.ndarray) -> tuple[np.ndarray | None, int, float]:
         """Still (full px) -> frame (full px), the inlier count, the frame's scale."""
@@ -222,15 +262,18 @@ def track_video(stem: str, entry: dict, min_inliers: int) -> dict | None:
     # the stretch of the clip around it.
     anchors = [{"frame": entry["reference"], "windows": entry["windows"]}] + [
         a for a in entry.get("anchors", []) if a["frame"] != entry["reference"]]
+    step = max(1, len(frames) // 16)
+    samples = [g for g in (cv2.imread(str(f), cv2.IMREAD_GRAYSCALE) for f in frames[::step][:16]) if g is not None]
     regs = []
     for a in anchors:
         gray = cv2.imread(str(folder / a["frame"]), cv2.IMREAD_GRAYSCALE)
         sh, sw = gray.shape
         quads_px = [np.array(w["quad"], dtype=np.float64) * [sw, sh] for w in a["windows"]]
-        regs.append({"index": int(a["frame"][:-4]), "reg": Registrar(gray, quads_px), "quads": quads_px,
+        regs.append({"index": int(a["frame"][:-4]), "reg": Registrar(gray, quads_px, samples), "quads": quads_px,
                      "size": (sw, sh), "windows": a["windows"]})
     out: dict = {"_video": stem, "_reference": entry["reference"], "_anchors": [a["frame"] for a in anchors],
-                 "_split": "train", "frames": {}}
+                 "_split": "train", "frames": {},
+                 "_staticKeypointsDropped": {a["frame"]: r["reg"].static_dropped for a, r in zip(anchors, regs)}}
     kept = dropped = 0
     exact = {a["frame"]: a["windows"] for a in anchors}
     for frame in frames:
