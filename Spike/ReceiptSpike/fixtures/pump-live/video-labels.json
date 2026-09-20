@@ -1755,8 +1755,1048 @@
  "video-009-adast-running-display-slow-fill-kz": {},
  "video-010-gilbarco-veederroot-running-display-social-third-party-ru": {},
  "video-011-gilbarco-veederroot-lukoil-zero-padded-running-display-ru": {},
- "video-012-wayne-gazpromneft-running-display-by": {},
- "video-013-unknown-cent-per-liter-zero-padded-running-display-ee": {},
+ "video-012-wayne-gazpromneft-running-display-by": {
+  "001.jpg": {
+   "liters": "1.38",
+   "source": "owner",
+   "total": "3.56",
+   "unitPrice": "2.58"
+  },
+  "002.jpg": {
+   "liters": "1.38",
+   "source": "owner",
+   "total": "3.56",
+   "unitPrice": "2.58"
+  },
+  "003.jpg": {
+   "liters": "1.44",
+   "source": "owner",
+   "total": "3.72",
+   "unitPrice": "2.58"
+  },
+  "004.jpg": {
+   "liters": "1.44",
+   "source": "owner",
+   "total": "3.72",
+   "unitPrice": "2.58"
+  },
+  "005.jpg": {
+   "liters": "1.44",
+   "source": "owner",
+   "total": "3.72",
+   "unitPrice": "2.58"
+  },
+  "006.jpg": {
+   "liters": "1.44",
+   "source": "owner",
+   "total": "3.72",
+   "unitPrice": "2.58"
+  },
+  "007.jpg": {
+   "liters": "1.50",
+   "source": "owner",
+   "total": "3.87",
+   "unitPrice": "2.58"
+  },
+  "008.jpg": {
+   "liters": "1.50",
+   "source": "owner",
+   "total": "3.87",
+   "unitPrice": "2.58"
+  },
+  "009.jpg": {
+   "liters": "1.56",
+   "source": "owner",
+   "total": "4.02",
+   "unitPrice": "2.58"
+  },
+  "010.jpg": {
+   "liters": "1.56",
+   "source": "owner",
+   "total": "4.02",
+   "unitPrice": "2.58"
+  },
+  "011.jpg": {
+   "liters": "1.56",
+   "source": "owner",
+   "total": "4.02",
+   "unitPrice": "2.58"
+  },
+  "012.jpg": {
+   "liters": "1.56",
+   "source": "owner",
+   "total": "4.02",
+   "unitPrice": "2.58"
+  },
+  "013.jpg": {
+   "liters": "1.62",
+   "source": "owner",
+   "total": "4.18",
+   "unitPrice": "2.58"
+  },
+  "014.jpg": {
+   "liters": "1.62",
+   "source": "owner",
+   "total": "4.18",
+   "unitPrice": "2.58"
+  },
+  "015.jpg": {
+   "liters": "1.62",
+   "source": "owner",
+   "total": "4.18",
+   "unitPrice": "2.58"
+  },
+  "016.jpg": {
+   "liters": "1.62",
+   "source": "owner",
+   "total": "4.18",
+   "unitPrice": "2.58"
+  },
+  "017.jpg": {
+   "liters": "1.68",
+   "source": "owner",
+   "total": "4.33",
+   "unitPrice": "2.58"
+  },
+  "018.jpg": {
+   "liters": "1.68",
+   "source": "owner",
+   "total": "4.33",
+   "unitPrice": "2.58"
+  },
+  "019.jpg": {
+   "liters": "1.68",
+   "source": "owner",
+   "total": "4.33",
+   "unitPrice": "2.58"
+  },
+  "020.jpg": {
+   "liters": "1.74",
+   "source": "owner",
+   "total": "4.49",
+   "unitPrice": "2.58"
+  },
+  "021.jpg": {
+   "liters": "1.74",
+   "source": "owner",
+   "total": "4.49",
+   "unitPrice": "2.58"
+  },
+  "022.jpg": {
+   "liters": "1.74",
+   "source": "owner",
+   "total": "4.49",
+   "unitPrice": "2.58"
+  },
+  "023.jpg": {
+   "liters": "1.86",
+   "source": "owner",
+   "total": "4.80",
+   "unitPrice": "2.58"
+  },
+  "024.jpg": {
+   "liters": "1.86",
+   "source": "owner",
+   "total": "4.80",
+   "unitPrice": "2.58"
+  },
+  "025.jpg": {
+   "liters": "1.86",
+   "source": "owner",
+   "total": "4.80",
+   "unitPrice": "2.58"
+  },
+  "026.jpg": {
+   "liters": "1.86",
+   "source": "owner",
+   "total": "4.80",
+   "unitPrice": "2.58"
+  },
+  "027.jpg": {
+   "liters": "1.86",
+   "source": "owner",
+   "total": "4.80",
+   "unitPrice": "2.58"
+  },
+  "028.jpg": {
+   "liters": "1.86",
+   "source": "owner",
+   "total": "4.80",
+   "unitPrice": "2.58"
+  },
+  "029.jpg": {
+   "liters": "1.93",
+   "source": "owner",
+   "total": "4.98",
+   "unitPrice": "2.58"
+  },
+  "030.jpg": {
+   "liters": "1.93",
+   "source": "owner",
+   "total": "4.98",
+   "unitPrice": "2.58"
+  },
+  "031.jpg": {
+   "liters": "1.93",
+   "source": "owner",
+   "total": "4.98",
+   "unitPrice": "2.58"
+  },
+  "032.jpg": {
+   "liters": "1.99",
+   "source": "owner",
+   "total": "5.13",
+   "unitPrice": "2.58"
+  },
+  "033.jpg": {
+   "liters": "1.99",
+   "source": "owner",
+   "total": "5.13",
+   "unitPrice": "2.58"
+  },
+  "034.jpg": {
+   "liters": "1.99",
+   "source": "owner",
+   "total": "5.13",
+   "unitPrice": "2.58"
+  },
+  "035.jpg": {
+   "liters": "2.05",
+   "source": "owner",
+   "total": "5.29",
+   "unitPrice": "2.58"
+  },
+  "036.jpg": {
+   "liters": "2.05",
+   "source": "owner",
+   "total": "5.29",
+   "unitPrice": "2.58"
+  },
+  "037.jpg": {
+   "liters": "2.05",
+   "source": "owner",
+   "total": "5.29",
+   "unitPrice": "2.58"
+  },
+  "038.jpg": {
+   "liters": "2.12",
+   "source": "owner",
+   "total": "5.47",
+   "unitPrice": "2.58"
+  },
+  "039.jpg": {
+   "liters": "2.12",
+   "source": "owner",
+   "total": "5.47",
+   "unitPrice": "2.58"
+  },
+  "040.jpg": {
+   "liters": "2.12",
+   "source": "owner",
+   "total": "5.47",
+   "unitPrice": "2.58"
+  },
+  "041.jpg": {
+   "liters": "2.18",
+   "source": "owner",
+   "total": "5.82",
+   "unitPrice": "2.58"
+  },
+  "042.jpg": {
+   "liters": "2.18",
+   "source": "owner",
+   "total": "5.62",
+   "unitPrice": "2.58"
+  },
+  "043.jpg": {
+   "liters": "2.18",
+   "source": "owner",
+   "total": "5.62",
+   "unitPrice": "2.58"
+  },
+  "044.jpg": {
+   "liters": "2.28",
+   "source": "owner",
+   "total": "5.88",
+   "unitPrice": "2.58"
+  },
+  "045.jpg": {
+   "liters": "2.24",
+   "source": "owner",
+   "total": "5.78",
+   "unitPrice": "2.58"
+  },
+  "046.jpg": {
+   "liters": "2.24",
+   "source": "owner",
+   "total": "5.78",
+   "unitPrice": "2.58"
+  },
+  "047.jpg": {
+   "liters": "2.24",
+   "source": "owner",
+   "total": "5.78",
+   "unitPrice": "2.58"
+  },
+  "048.jpg": {
+   "liters": "2.31",
+   "source": "owner",
+   "total": "5.96",
+   "unitPrice": "2.58"
+  },
+  "049.jpg": {
+   "liters": "2.31",
+   "source": "owner",
+   "total": "5.96",
+   "unitPrice": "2.58"
+  },
+  "050.jpg": {
+   "liters": "2.31",
+   "source": "owner",
+   "total": "5.96",
+   "unitPrice": "2.58"
+  },
+  "051.jpg": {
+   "liters": "2.37",
+   "source": "owner",
+   "total": "6.11",
+   "unitPrice": "2.58"
+  },
+  "052.jpg": {
+   "liters": "2.37",
+   "source": "owner",
+   "total": "6.11",
+   "unitPrice": "2.58"
+  },
+  "053.jpg": {
+   "liters": "2.37",
+   "source": "owner",
+   "total": "6.11",
+   "unitPrice": "2.58"
+  },
+  "054.jpg": {
+   "liters": "2.43",
+   "source": "owner",
+   "total": "6.27",
+   "unitPrice": "2.58"
+  },
+  "055.jpg": {
+   "liters": "2.43",
+   "source": "owner",
+   "total": "6.27",
+   "unitPrice": "2.58"
+  },
+  "056.jpg": {
+   "liters": "2.43",
+   "source": "owner",
+   "total": "6.27",
+   "unitPrice": "2.58"
+  },
+  "057.jpg": {
+   "liters": "2.49",
+   "source": "owner",
+   "total": "6.42",
+   "unitPrice": "2.58"
+  },
+  "058.jpg": {
+   "liters": "2.49",
+   "source": "owner",
+   "total": "6.42",
+   "unitPrice": "2.58"
+  },
+  "059.jpg": {
+   "liters": "2.49",
+   "source": "owner",
+   "total": "6.42",
+   "unitPrice": "2.58"
+  },
+  "060.jpg": {
+   "liters": "2.49",
+   "source": "owner",
+   "total": "6.42",
+   "unitPrice": "2.58"
+  },
+  "061.jpg": {
+   "liters": "2.56",
+   "source": "owner",
+   "total": "6.60",
+   "unitPrice": "2.58"
+  },
+  "062.jpg": {
+   "liters": "2.56",
+   "source": "owner",
+   "total": "6.60",
+   "unitPrice": "2.58"
+  },
+  "063.jpg": {
+   "liters": "2.56",
+   "source": "owner",
+   "total": "6.60",
+   "unitPrice": "2.58"
+  },
+  "064.jpg": {
+   "liters": "2.63",
+   "source": "owner",
+   "total": "6.79",
+   "unitPrice": "2.58"
+  },
+  "065.jpg": {
+   "liters": "2.63",
+   "source": "owner",
+   "total": "6.79",
+   "unitPrice": "2.58"
+  },
+  "066.jpg": {
+   "liters": "2.63",
+   "source": "owner",
+   "total": "6.79",
+   "unitPrice": "2.58"
+  },
+  "067.jpg": {
+   "liters": "2.69",
+   "source": "owner",
+   "total": "6.94",
+   "unitPrice": "2.58"
+  },
+  "068.jpg": {
+   "liters": "2.69",
+   "source": "owner",
+   "total": "6.94",
+   "unitPrice": "2.58"
+  },
+  "069.jpg": {
+   "liters": "2.69",
+   "source": "owner",
+   "total": "6.94",
+   "unitPrice": "2.58"
+  },
+  "070.jpg": {
+   "liters": "2.75",
+   "source": "owner",
+   "total": "7.10",
+   "unitPrice": "2.58"
+  },
+  "071.jpg": {
+   "liters": "2.75",
+   "source": "owner",
+   "total": "7.10",
+   "unitPrice": "2.58"
+  },
+  "072.jpg": {
+   "liters": "2.75",
+   "source": "owner",
+   "total": "7.10",
+   "unitPrice": "2.58"
+  },
+  "073.jpg": {
+   "liters": "2.82",
+   "source": "owner",
+   "total": "7.28",
+   "unitPrice": "2.58"
+  },
+  "074.jpg": {
+   "liters": "2.82",
+   "source": "owner",
+   "total": "7.28",
+   "unitPrice": "2.58"
+  },
+  "075.jpg": {
+   "liters": "2.82",
+   "source": "owner",
+   "total": "7.28",
+   "unitPrice": "2.58"
+  },
+  "076.jpg": {
+   "liters": "2.88",
+   "source": "owner",
+   "total": "7.43",
+   "unitPrice": "2.58"
+  },
+  "077.jpg": {
+   "liters": "2.88",
+   "source": "owner",
+   "total": "7.43",
+   "unitPrice": "2.58"
+  },
+  "078.jpg": {
+   "liters": "2.88",
+   "source": "owner",
+   "total": "7.43",
+   "unitPrice": "2.58"
+  },
+  "079.jpg": {
+   "liters": "2.88",
+   "source": "owner",
+   "total": "7.43",
+   "unitPrice": "2.58"
+  },
+  "080.jpg": {
+   "liters": "2.94",
+   "source": "owner",
+   "total": "7.59",
+   "unitPrice": "2.58"
+  },
+  "081.jpg": {
+   "liters": "2.94",
+   "source": "owner",
+   "total": "7.59",
+   "unitPrice": "2.58"
+  },
+  "083.jpg": {
+   "liters": "3.01",
+   "source": "owner",
+   "total": "7.77",
+   "unitPrice": "2.58"
+  },
+  "084.jpg": {
+   "liters": "3.01",
+   "source": "owner",
+   "total": "7.77",
+   "unitPrice": "2.58"
+  },
+  "085.jpg": {
+   "liters": "3.01",
+   "source": "owner",
+   "total": "7.77",
+   "unitPrice": "2.58"
+  },
+  "086.jpg": {
+   "liters": "3.07",
+   "source": "owner",
+   "total": "7.92",
+   "unitPrice": "2.58"
+  },
+  "087.jpg": {
+   "liters": "3.07",
+   "source": "owner",
+   "total": "7.92",
+   "unitPrice": "2.58"
+  },
+  "088.jpg": {
+   "liters": "3.07",
+   "source": "owner",
+   "total": "7.92",
+   "unitPrice": "2.58"
+  },
+  "089.jpg": {
+   "liters": "3.14",
+   "source": "owner",
+   "total": "8.10",
+   "unitPrice": "2.58"
+  },
+  "090.jpg": {
+   "liters": "3.14",
+   "source": "owner",
+   "total": "8.10",
+   "unitPrice": "2.58"
+  },
+  "091.jpg": {
+   "liters": "3.14",
+   "source": "owner",
+   "total": "8.10",
+   "unitPrice": "2.58"
+  },
+  "092.jpg": {
+   "liters": "3.20",
+   "source": "owner",
+   "total": "8.26",
+   "unitPrice": "2.58"
+  },
+  "093.jpg": {
+   "liters": "3.20",
+   "source": "owner",
+   "total": "8.26",
+   "unitPrice": "2.58"
+  },
+  "094.jpg": {
+   "liters": "3.20",
+   "source": "owner",
+   "total": "8.26",
+   "unitPrice": "2.58"
+  },
+  "095.jpg": {
+   "liters": "3.27",
+   "source": "owner",
+   "total": "8.44",
+   "unitPrice": "2.58"
+  },
+  "096.jpg": {
+   "liters": "3.27",
+   "source": "owner",
+   "total": "8.44",
+   "unitPrice": "2.58"
+  },
+  "097.jpg": {
+   "liters": "3.27",
+   "source": "owner",
+   "total": "8.44",
+   "unitPrice": "2.58"
+  },
+  "098.jpg": {
+   "liters": "3.33",
+   "source": "owner",
+   "total": "8.59",
+   "unitPrice": "2.58"
+  },
+  "099.jpg": {
+   "liters": "3.33",
+   "source": "owner",
+   "total": "8.59",
+   "unitPrice": "2.58"
+  },
+  "100.jpg": {
+   "liters": "3.33",
+   "source": "owner",
+   "total": "8.59",
+   "unitPrice": "2.58"
+  },
+  "101.jpg": {
+   "liters": "3.39",
+   "source": "owner",
+   "total": "8.75",
+   "unitPrice": "2.58"
+  },
+  "102.jpg": {
+   "liters": "3.39",
+   "source": "owner",
+   "total": "8.75",
+   "unitPrice": "2.58"
+  },
+  "103.jpg": {
+   "liters": "3.39",
+   "source": "owner",
+   "total": "8.75",
+   "unitPrice": "2.58"
+  },
+  "104.jpg": {
+   "liters": "3.39",
+   "source": "owner",
+   "total": "8.75",
+   "unitPrice": "2.58"
+  },
+  "105.jpg": {
+   "liters": "3.39",
+   "source": "owner",
+   "total": "8.75",
+   "unitPrice": "2.58"
+  },
+  "106.jpg": {
+   "liters": "3.39",
+   "source": "owner",
+   "total": "8.75",
+   "unitPrice": "2.58"
+  },
+  "107.jpg": {
+   "liters": "3.40",
+   "source": "owner",
+   "total": "8.77",
+   "unitPrice": "2.58"
+  },
+  "108.jpg": {
+   "liters": "3.40",
+   "source": "owner",
+   "total": "8.77",
+   "unitPrice": "2.58"
+  },
+  "109.jpg": {
+   "liters": "3.40",
+   "source": "owner",
+   "total": "8.77",
+   "unitPrice": "2.58"
+  },
+  "110.jpg": {
+   "liters": "3.42",
+   "source": "owner",
+   "total": "8.82",
+   "unitPrice": "2.58"
+  },
+  "111.jpg": {
+   "liters": "3.42",
+   "source": "owner",
+   "total": "8.82",
+   "unitPrice": "2.58"
+  },
+  "112.jpg": {
+   "liters": "3.42",
+   "source": "owner",
+   "total": "8.82",
+   "unitPrice": "2.58"
+  },
+  "113.jpg": {
+   "liters": "3.48",
+   "source": "owner",
+   "total": "8.98",
+   "unitPrice": "2.58"
+  },
+  "114.jpg": {
+   "liters": "3.48",
+   "source": "owner",
+   "total": "8.98",
+   "unitPrice": "2.58"
+  }
+ },
+ "video-013-unknown-cent-per-liter-zero-padded-running-display-ee": {
+  "001.jpg": {
+   "liters": "0010,10",
+   "source": "owner",
+   "total": "0019,18",
+   "unitPrice": "189,9"
+  },
+  "002.jpg": {
+   "liters": "0010,10",
+   "source": "owner",
+   "total": "0019,18",
+   "unitPrice": "189,9"
+  },
+  "003.jpg": {
+   "liters": "0010,10",
+   "source": "owner",
+   "total": "0019,18",
+   "unitPrice": "189,9"
+  },
+  "004.jpg": {
+   "liters": "0010,15",
+   "source": "owner",
+   "total": "0019,27",
+   "unitPrice": "189,9"
+  },
+  "005.jpg": {
+   "liters": "0010,15",
+   "source": "owner",
+   "total": "0019,27",
+   "unitPrice": "189,9"
+  },
+  "006.jpg": {
+   "liters": "0010,15",
+   "source": "owner",
+   "total": "0019,27",
+   "unitPrice": "189,9"
+  },
+  "007.jpg": {
+   "liters": "0010,15",
+   "source": "owner",
+   "total": "0019,27",
+   "unitPrice": "189,9"
+  },
+  "008.jpg": {
+   "liters": "0010,20",
+   "source": "owner",
+   "total": "0019,37",
+   "unitPrice": "189,9"
+  },
+  "009.jpg": {
+   "liters": "0010,20",
+   "source": "owner",
+   "total": "0019,37",
+   "unitPrice": "189,9"
+  },
+  "010.jpg": {
+   "liters": "0010,25",
+   "source": "owner",
+   "total": "0019,46",
+   "unitPrice": "189,9"
+  },
+  "011.jpg": {
+   "liters": "0010,25",
+   "source": "owner",
+   "total": "0019,46",
+   "unitPrice": "189,9"
+  },
+  "012.jpg": {
+   "liters": "0010,25",
+   "source": "owner",
+   "total": "0019,46",
+   "unitPrice": "189,9"
+  },
+  "013.jpg": {
+   "liters": "0010,25",
+   "source": "owner",
+   "total": "0019,46",
+   "unitPrice": "189,9"
+  },
+  "014.jpg": {
+   "liters": "0010,30",
+   "source": "owner",
+   "total": "0019,56",
+   "unitPrice": "189,9"
+  },
+  "015.jpg": {
+   "liters": "0010,30",
+   "source": "owner",
+   "total": "0019,56",
+   "unitPrice": "189,9"
+  },
+  "016.jpg": {
+   "liters": "0010,30",
+   "source": "owner",
+   "total": "0019,56",
+   "unitPrice": "189,9"
+  },
+  "017.jpg": {
+   "liters": "0010,35",
+   "source": "owner",
+   "total": "0019,65",
+   "unitPrice": "189,9"
+  },
+  "018.jpg": {
+   "liters": "0010,35",
+   "source": "owner",
+   "total": "0019,65",
+   "unitPrice": "189,9"
+  },
+  "019.jpg": {
+   "liters": "0010,39",
+   "source": "owner",
+   "total": "0019,73",
+   "unitPrice": "189,9"
+  },
+  "020.jpg": {
+   "liters": "0010,39",
+   "source": "owner",
+   "total": "0019,73",
+   "unitPrice": "189,9"
+  },
+  "021.jpg": {
+   "liters": "0010,39",
+   "source": "owner",
+   "total": "0019,73",
+   "unitPrice": "189,9"
+  },
+  "022.jpg": {
+   "liters": "0010,39",
+   "source": "owner",
+   "total": "0019,73",
+   "unitPrice": "189,9"
+  },
+  "023.jpg": {
+   "liters": "0010,44",
+   "source": "owner",
+   "total": "0019,83",
+   "unitPrice": "189,9"
+  },
+  "024.jpg": {
+   "liters": "0010,50",
+   "source": "owner",
+   "total": "0019,94",
+   "unitPrice": "189,9"
+  },
+  "025.jpg": {
+   "liters": "0010,50",
+   "source": "owner",
+   "total": "0019,94",
+   "unitPrice": "189,9"
+  },
+  "026.jpg": {
+   "liters": "0010,50",
+   "source": "owner",
+   "total": "0019,94",
+   "unitPrice": "189,9"
+  },
+  "027.jpg": {
+   "liters": "0010,50",
+   "source": "owner",
+   "total": "0019,94",
+   "unitPrice": "189,9"
+  },
+  "028.jpg": {
+   "liters": "0010,54",
+   "source": "owner",
+   "total": "0020,02",
+   "unitPrice": "189,9"
+  },
+  "029.jpg": {
+   "liters": "0010,54",
+   "source": "owner",
+   "total": "0020,02",
+   "unitPrice": "189,9"
+  },
+  "030.jpg": {
+   "liters": "0010,54",
+   "source": "owner",
+   "total": "0020,02",
+   "unitPrice": "189,9"
+  },
+  "031.jpg": {
+   "liters": "0010,54",
+   "source": "owner",
+   "total": "0020,02",
+   "unitPrice": "189,9"
+  },
+  "032.jpg": {
+   "liters": "0010,59",
+   "source": "owner",
+   "total": "0020,11",
+   "unitPrice": "189,9"
+  },
+  "033.jpg": {
+   "liters": "0010,64",
+   "source": "owner",
+   "total": "0020,21",
+   "unitPrice": "189,9"
+  },
+  "034.jpg": {
+   "liters": "0010,64",
+   "source": "owner",
+   "total": "0020,21",
+   "unitPrice": "189,9"
+  },
+  "035.jpg": {
+   "liters": "0010,64",
+   "source": "owner",
+   "total": "0020,21",
+   "unitPrice": "189,9"
+  },
+  "036.jpg": {
+   "liters": "0010,64",
+   "source": "owner",
+   "total": "0020,21",
+   "unitPrice": "189,9"
+  },
+  "037.jpg": {
+   "liters": "0010,70",
+   "source": "owner",
+   "total": "0020,32",
+   "unitPrice": "189,9"
+  },
+  "038.jpg": {
+   "liters": "0010,70",
+   "source": "owner",
+   "total": "0020,32",
+   "unitPrice": "189,9"
+  },
+  "039.jpg": {
+   "liters": "0010,70",
+   "source": "owner",
+   "total": "0020,32",
+   "unitPrice": "189,9"
+  },
+  "040.jpg": {
+   "liters": "0010,70",
+   "source": "owner",
+   "total": "0020,32",
+   "unitPrice": "189,9"
+  },
+  "041.jpg": {
+   "liters": "0010,75",
+   "source": "owner",
+   "total": "0020,41",
+   "unitPrice": "189,9"
+  },
+  "042.jpg": {
+   "liters": "0010,79",
+   "source": "owner",
+   "total": "0020,49",
+   "unitPrice": "189,9"
+  },
+  "043.jpg": {
+   "liters": "0010,79",
+   "source": "owner",
+   "total": "0020,49",
+   "unitPrice": "189,9"
+  },
+  "044.jpg": {
+   "liters": "0010,79",
+   "source": "owner",
+   "total": "0020,49",
+   "unitPrice": "189,9"
+  },
+  "045.jpg": {
+   "liters": "0010,79",
+   "source": "owner",
+   "total": "0020,49",
+   "unitPrice": "189,9"
+  },
+  "046.jpg": {
+   "liters": "0010,84",
+   "source": "owner",
+   "total": "0020,59",
+   "unitPrice": "189,9"
+  },
+  "047.jpg": {
+   "liters": "0010,84",
+   "source": "owner",
+   "total": "0020,59",
+   "unitPrice": "189,9"
+  },
+  "048.jpg": {
+   "liters": "0010,89",
+   "source": "owner",
+   "total": "0020,68",
+   "unitPrice": "189,9"
+  },
+  "049.jpg": {
+   "liters": "0010,89",
+   "source": "owner",
+   "total": "0020,68",
+   "unitPrice": "189,9"
+  },
+  "050.jpg": {
+   "liters": "0010,89",
+   "source": "owner",
+   "total": "0020,68",
+   "unitPrice": "189,9"
+  },
+  "051.jpg": {
+   "liters": "0010,93",
+   "source": "owner",
+   "total": "0020,76",
+   "unitPrice": "189,9"
+  },
+  "052.jpg": {
+   "liters": "0010,93",
+   "source": "owner",
+   "total": "0020,76",
+   "unitPrice": "189,9"
+  },
+  "053.jpg": {
+   "liters": "0010,93",
+   "source": "owner",
+   "total": "0020,76",
+   "unitPrice": "189,9"
+  },
+  "054.jpg": {
+   "liters": "0010,93",
+   "source": "owner",
+   "total": "0020,76",
+   "unitPrice": "189,9"
+  },
+  "055.jpg": {
+   "liters": "0010,99",
+   "source": "owner",
+   "total": "0020,87",
+   "unitPrice": "189,9"
+  },
+  "056.jpg": {
+   "liters": "0010,99",
+   "source": "owner",
+   "total": "0020,87",
+   "unitPrice": "189,9"
+  },
+  "057.jpg": {
+   "liters": "0011,04",
+   "source": "owner",
+   "total": "0020,96",
+   "unitPrice": "189,9"
+  },
+  "058.jpg": {
+   "liters": "0011,04",
+   "source": "owner",
+   "total": "0020,96",
+   "unitPrice": "189,9"
+  },
+  "059.jpg": {
+   "liters": "0011,04",
+   "source": "owner",
+   "total": "0020,96",
+   "unitPrice": "189,9"
+  },
+  "060.jpg": {
+   "liters": "0011,04",
+   "source": "owner",
+   "total": "0021,06",
+   "unitPrice": "189,9"
+  }
+ },
  "video-014-adast-night-running-display-lpg-pl": {
   "063.jpg": {
    "liters": "0.05",
@@ -2125,5 +3165,18 @@
    "unitPrice": "2.95"
   }
  },
- "video-015-wayne-nnk-walk-in-three-decimal-liters-running-display-ru": {}
+ "video-015-wayne-nnk-walk-in-three-decimal-liters-running-display-ru": {
+  "097.jpg": {
+   "liters": "",
+   "source": "owner",
+   "total": "3092.29",
+   "unitPrice": "63.03"
+  },
+  "115.jpg": {
+   "liters": "",
+   "source": "owner",
+   "total": "",
+   "unitPrice": "63.03"
+  }
+ }
 }
