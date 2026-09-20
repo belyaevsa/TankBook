@@ -23,7 +23,7 @@ struct PumpReaderPipelineTests {
     // 52 at 0.962, 14/64 photos, once the slicer preferred the fundamental
     // pitch; 66 at 0.970, 18/64, once it checked the pitch against the glyph
     // body (PU.4 round of 2026-09-20).
-    private static let committedFloor = 67
+    private static let committedFloor = 79
     private static let precisionFloor = 0.96
     // The live path (no annotation): measured on the heldout split on
     // 2026-09-20 after PU.24's verifier round - every candidate verified, a
@@ -38,7 +38,7 @@ struct PumpReaderPipelineTests {
     // without the detector file (ml/pump-reader/.out/det/DigitRows.mlmodel)
     // falls back to Vision and reads 11 - the floor assumes the detector is
     // present.
-    private static let liveCommittedFloor = PumpReaderTestSupport.detectorURL == nil ? 11 : 23
+    private static let liveCommittedFloor = PumpReaderTestSupport.detectorURL == nil ? 11 : 29
     private static let livePrecisionFloor = 0.99
 
     /// The make a fixture's file name names, for the per-head read table. The
@@ -50,8 +50,10 @@ struct PumpReaderPipelineTests {
         return "other"
     }
 
-    private static let modelURL = PumpReaderTestSupport.repoRoot
-        .appendingPathComponent("ios/App/Resources/PumpSegments.mlpackage")
+    /// The shipped classifier, or a candidate under `PUMP_MODEL=<path>` so a
+    /// retrain can be scored on the heldout split before it is copied into the bundle.
+    private static let modelURL = ProcessInfo.processInfo.environment["PUMP_MODEL"].map { URL(fileURLWithPath: $0) }
+        ?? PumpReaderTestSupport.repoRoot.appendingPathComponent("ios/App/Resources/PumpSegments.mlpackage")
 
     @Test("the live path: locate, verify, assign, read, resolve - no annotation used", .pumpFixturesPresent)
     func livePath() throws {

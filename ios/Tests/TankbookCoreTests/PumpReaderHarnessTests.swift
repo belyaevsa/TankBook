@@ -27,15 +27,17 @@ struct PumpReaderHarnessTests {
 
     // Measured 2026-09-19 (PU.8, then the grid anchored on the first occupied
     // cell, then interior blank cells kept): 273/433 windows agree on glyph count. The 0.80 target in the brief is the ceiling this ratchet
-    // grows toward. The dp is absorbed into the host glyph on most makes - the
-    // local-contrast normalisation and the Otsu threshold absorb a few more than
-    // PU.4's fixed-fraction pass - so the column-projection slicer cannot see it;
-    // that gap is the classifier's dp bit, and PU.6 owns closing it.
+    // grows toward.
     // Heldout split (decision 9): 184/238 on 2026-09-20 after the slicer
     // learned to prefer the fundamental pitch over its harmonic (177 before),
-    // 210/238 once the pitch was checked against the glyph body.
+    // 210/238 once the pitch was checked against the glyph body, 209/238 after
+    // PU.34b - the mark pass is mark-only and does not move the count.
     private static let countAgreementFloor = 0.85
-    private static let dpAgreementFloor = 0.0
+    // PU.34b: the mark-specific second look finds a dot or comma in the
+    // inter-cell gaps at half the run threshold, over the lower band extended
+    // below it, so the mark lands on the right cell on 128/237 heldout windows
+    // (0.540), up from 9/237.
+    private static let dpAgreementFloor = 0.54
     private static let locatorMedianIoUFloor = 0.0
 
     // MARK: - The slicer ratchet

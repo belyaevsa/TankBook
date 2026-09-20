@@ -105,6 +105,58 @@ struct PumpGlyphSlicerTests {
 
     }
 
+    // MARK: - The decimal mark (PU.34b)
+
+    @Test("a dot in the gap between two digit cells is read as a decimal mark")
+    func dotInGapIsAMark() {
+        let strip = Self.makeMarkStrip(markX: 18...22, markY: 25...34)
+        let cells = PumpGlyphSlicer.slice(strip)
+        #expect(cells.count == 3, "the mark must not change the cell count, got \(cells.count)")
+        #expect(cells.first?.hasDecimalPoint == true, "the dot after the first cell must be the mark")
+        #expect(cells.dropFirst().allSatisfy { !$0.hasDecimalPoint })
+    }
+
+    @Test("a dot hanging below the band is read as a decimal mark")
+    func hangingDotIsAMark() {
+        let strip = Self.makeMarkStrip(markX: 18...22, markY: 32...39)
+        let cells = PumpGlyphSlicer.slice(strip)
+        #expect(cells.first?.hasDecimalPoint == true,
+                "a comma under the baseline must be found through the band extension")
+    }
+
+    @Test("a speck touching the band top is not a decimal mark")
+    func topSpeckIsNotAMark() {
+        let strip = Self.makeMarkStrip(markX: 18...22, markY: 4...8)
+        let cells = PumpGlyphSlicer.slice(strip)
+        let anyMark = cells.contains { $0.hasDecimalPoint }
+        #expect(!anyMark, "a top speck must never read as a mark")
+    }
+
+    /// Three full-height digit bodies on the fixed pitch, plus a mark of
+    /// `markValue` in the gap after the first cell. The mark is fainter than a
+    /// stroke, so it never clears the digit-run threshold.
+    private static func makeMarkStrip(
+        markX: ClosedRange<Int>, markY: ClosedRange<Int>, markValue: Float = 0.30
+    ) -> PumpGrayscale {
+        let pitch = 24
+        let width = 3 * pitch
+        let height = 40
+        var pixels = [Float](repeating: 0.85, count: width * height)
+        for cell in 0..<3 {
+            for y in 4..<36 {
+                for x in (cell * pitch + 3)..<(cell * pitch + 15) {
+                    pixels[y * width + x] = 0.10
+                }
+            }
+        }
+        for y in markY {
+            for x in markX {
+                pixels[y * width + x] = markValue
+            }
+        }
+        return PumpGrayscale(width: width, height: height, pixels: pixels)
+    }
+
     // MARK: - Synthetic strips
 
     /// Scales every pixel toward the strip mean until the ink/background

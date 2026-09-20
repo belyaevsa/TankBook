@@ -125,7 +125,12 @@ def main(argv: list[str] | None = None) -> int:
             continue
         names = sorted(t["frames"], key=lambda n: int(n[:-4]))
         if is_video:
+            # A labelled frame (owner or arithmetic, never a skip) or one whose
+            # quads the owner placed by hand (`verified`, a tracking anchor) -
+            # the boxes are what the detector learns, so a hand-placed frame
+            # counts whether or not its digits were labelled.
             allowed = {n for n, e in labels.get(folder.name, {}).items() if e.get("total") != "skip"}
+            allowed |= {n for n, f in t["frames"].items() if f.get("verified")}
             names = [n for n in names if n in allowed]
         for i, frame in enumerate(names):
             if i % args.frame_step:

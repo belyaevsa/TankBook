@@ -608,6 +608,59 @@ The READ strings are **identical before and after**: the gain is the law committ
 already read, not a better read. The per-head live table (`PumpReaderPipelineTests`) is now
 printed: `gilbarco 11/11`, `tokheim 6/6`, `wayne 5/5`, `tatsuno 1/1`, `other` none committed.
 
+### The decimal mark (PU.34b, 2026-09-21)
+
+PU.34's first slice fixed the law; the mark it needs was still invisible to the slicer. The
+ratchet said it plainly: **count agreement 209/238, dp agreement 9/237** - the slicer places the
+mark on the right cell on 9 of the 237 heldout windows that carry one. The classifier's own dp
+bit is weak on the running-display videos (independently measured here: 6/69 on video-002,
+0/9 on video-003, 1/57 on video-004), so the mark was simply lost.
+
+**The cause, confirmed at the line.** A decimal mark is a tenth of a digit stroke's column mass,
+so it never clears the Otsu run threshold the digits are cut with - the dot's column profile
+peaked at 2.2 against a threshold of 3.0 on video-002's total, and the Gilbarco comma at 2.8
+against 3.7 (H1). The old bottom-only classifier (`decimalPointTopRowFraction`) could only
+reclassify a run that already existed, so it never saw either. The comma also sits at the
+digits' baseline and can hang below it (video-004: rows 81-92 against `bandBottom` 86), so the
+old band would have cut it (H2). **H3 was refuted**: the false mark on video-003's total
+(`1.4541`) is the *classifier's* cell-0 bit, not a slicer run - the slicer placed no mark on
+that clip before the fix and places the true one on cell 2 after it.
+
+**What was built.** A mark-specific second look in `PumpGlyphSlicer` (an extension,
+`markRuns`/`isMarkBlob`/`inkBlob`): the lower half of the band, extended 25 % below it, is
+summed at **half** the run threshold, and only the columns strictly between two digit runs are
+searched. A blob must stand at least one column clear of both strokes (a single column at a
+stroke's edge is anti-aliasing), be 2 px to 0.4 pitch wide and at most 0.35 band height tall.
+It attaches to the cell on its left, exactly as the existing `decimalCells` do. The short-count
+retry now keeps a mark-bearing pass over a mark-less one **when the two agree on the count**, so
+the half threshold's digit fragments cannot hide the gap the mark sits in.
+
+**Measured (heldout stills and the four named video windows).**
+
+| check | before | after |
+|---|---|---|
+| `PU.4 slicer` count agreement | 209/238 | **209/238** (held) |
+| `PU.4 slicer` dp agreement | 9/237 | **128/237** (0.540) |
+| annotated (`PumpReaderPipelineTests`) | 67 committed, 0.970, 19/64 | **73**, 0.986, 22/64 |
+| live (detector) | 23 committed, 1.000, 6/64 | **25**, 1.000, 7/64 |
+| law oracle strings | 577 / 0.998 | 577 / 0.998 |
+| law fragility | 0.051 | 0.051 |
+
+The named windows, slicer mark index (truth -> before -> after): video-002 `081.jpg` total
+`2331.65` (3 -> none -> 3) and liters `31.67` (1 -> none -> 1); video-003 `001.jpg` total
+`145.41` (2 -> none -> 2) and liters `70.62` (1 -> none -> 1); video-004 `001.jpg` total
+`2955.04` (3 -> none -> 3), liters `29.58` (1 -> none -> 1) and unitPrice `99.9` (1 -> none ->
+1). The diagnostic (`PumpMarkDiagnosticTests`, `PUMP_MARK_DIAG=1`), every tenth owner-labelled
+frame, slicer recall/precision: video-002 **41/69 (0.59), precision 1.00** (was 0/69);
+video-003 **6/9 (0.67), precision 1.00** (was 0/9); video-004 **53/57 (0.93), precision 1.00**
+(was 1/57). The remaining misses are the fainter `unitPrice` rows of video-002, where the dot is
+1-2 px at the strip resolution.
+
+**Named mutation: raise the mark threshold to the digit-run threshold**
+(`markThresholdFraction` 0.5 -> 1.0). The two synthetic mark tests go red; reverted, both green
+(verbatim in the task record). The hanging-comma case is the one that isolates the mark pass:
+the digit-run threshold cannot see the blob at all.
+
 ## Named mutation: drop the dp bit
 
 In `dataset.py`, the target's dp bit was dropped (7 bits, dp slot padded with a

@@ -68,16 +68,38 @@ struct PumpReader {
             // law must not be handed it as a reading.
             guard PumpRowAssignment.plausibleCount(cells.filter { !$0.isBlank }.count, for: window.field)
                     || window.field == .board else { continue }
+            // The slicer's mark, where it found one, outranks the classifier's
+            // bit: the slicer's mark precision measured 1.00 on the running
+            // displays where the classifier's bit fired on the wrong cell
+            // (`PumpMarkDiagnosticTests`), so a slicer mark sets its cell to
+            // certain and silences the bit on every other cell of the row.
+            let slicerMarked = cells.contains { !$0.isBlank && $0.hasDecimalPoint }
             var readings: [PumpCellReading] = []
             for cell in cells where !cell.isBlank {
                 let crop = Self.cropCell(stripRGB, rect: cell.rect)
                 var probabilities = try Self.averaged(model: model, crops: crop)
-                if probabilities.count > 7 { probabilities[7] = cell.hasDecimalPoint ? max(probabilities[7], 0.5) : probabilities[7] }
+                if probabilities.count > 7 {
+                    probabilities[7] = Self.markProbability(classifier: probabilities[7], cellMarked: cell.hasDecimalPoint,
+                                                            rowMarked: slicerMarked)
+                }
                 readings.append(PumpCellReading(probabilities: probabilities))
             }
             out.append(WindowRead(field: window.field, cells: Self.singleDecimalMark(readings), glyphCount: cells.count))
         }
         return out
+    }
+
+    /// The mark probability a slicer-found mark is raised to: above any
+    /// classifier bit, so `singleDecimalMark` keeps it when both fire.
+    static let slicerMarkConfidence = 0.95
+
+    /// The mark probability a cell carries into the reading: the slicer's
+    /// mark when it found one on this cell, silence when it found one
+    /// elsewhere on the row, the classifier's own bit when it found none.
+    static func markProbability(classifier: Double, cellMarked: Bool, rowMarked: Bool) -> Double {
+        if cellMarked { return max(classifier, slicerMarkConfidence) }
+        if rowMarked { return min(classifier, 0.49) }
+        return classifier
     }
 
     /// A number row shows one decimal mark. When the classifier (or the slicer's
