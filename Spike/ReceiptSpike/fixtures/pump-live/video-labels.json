@@ -4612,6 +4612,36 @@
   }
  },
  "video-006-shelf-running-display-preset-ends-ru": {
+  "001.jpg": {
+   "liters": "22.64",
+   "source": "owner",
+   "total": "3622.40",
+   "unitPrice": "160.00"
+  },
+  "002.jpg": {
+   "liters": "22.64",
+   "source": "owner",
+   "total": "3622.40",
+   "unitPrice": "160.00"
+  },
+  "003.jpg": {
+   "liters": "22.69",
+   "source": "owner",
+   "total": "",
+   "unitPrice": "160.00"
+  },
+  "004.jpg": {
+   "liters": "22.69",
+   "source": "owner",
+   "total": "3623.40",
+   "unitPrice": "160.00"
+  },
+  "005.jpg": {
+   "liters": "22.69",
+   "source": "owner",
+   "total": "3628.00",
+   "unitPrice": "160.00"
+  },
   "205.jpg": {
    "liters": "50.00",
    "source": "owner",
@@ -4631,8 +4661,20 @@
    "unitPrice": "160.00"
   }
  },
- "video-007-adast-running-display-kz": {},
- "video-008-gilbarco-veederroot-running-display-ru": {},
+ "video-008-gilbarco-veederroot-running-display-ru": {
+  "001.jpg": {
+   "liters": "2.07",
+   "source": "owner",
+   "total": "132,19",
+   "unitPrice": "63,25"
+  },
+  "002.jpg": {
+   "liters": "2,17",
+   "source": "owner",
+   "total": "137,25",
+   "unitPrice": "63,25"
+  }
+ },
  "video-009-adast-running-display-slow-fill-kz": {},
  "video-010-gilbarco-veederroot-running-display-social-third-party-ru": {},
  "video-011-gilbarco-veederroot-lukoil-zero-padded-running-display-ru": {},
