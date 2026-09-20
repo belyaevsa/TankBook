@@ -117,7 +117,7 @@ function renderList() {
 }
 async function openFixture(n) {
   if (dirty && !confirm('Discard unsaved changes?')) return;
-  current = n; sel = -1; dirty = false; readRows = null;
+  current = n; sel = -1; dirty = false; readRows = null; readCells = null;
   let r;
   try { r = await (await fetch('/api/entry/' + encodeURIComponent(n))).json(); }
   catch (err) { setMsg('load failed: ' + err); return; }
@@ -364,6 +364,19 @@ function draw() {
     ctx.fillStyle = ctx.strokeStyle; ctx.fillText(label, pts[0][0], pts[0][1] - 4 / zoom);
     if (i === sel) pts.forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 6 / zoom, 0, 7); ctx.fill(); });
   });
+  // The slicer's cells from the last window read: thin boxes inside the window,
+  // a dot under a cell where a decimal mark was seen, hatched when blank.
+  if (readCells && readCells.image === readImageKey()) {
+    ctx.lineWidth = 1 / zoom;
+    for (const cell of readCells.cells) {
+      const pts = cell.quad.map(toDisp);
+      ctx.strokeStyle = cell.blank ? 'rgba(255,255,255,0.35)' : '#7fff7f';
+      ctx.setLineDash(cell.blank ? [3 / zoom, 3 / zoom] : []);
+      ctx.beginPath(); pts.forEach((p, k) => k ? ctx.lineTo(...p) : ctx.moveTo(...p)); ctx.closePath(); ctx.stroke();
+      if (cell.dp) { ctx.fillStyle = '#7fff7f'; ctx.beginPath(); ctx.arc(pts[2][0] - 4 / zoom, pts[2][1] + 6 / zoom, 3 / zoom, 0, 7); ctx.fill(); }
+    }
+    ctx.setLineDash([]);
+  }
   // The live path's located rows, in the upright image's normalised coordinates.
   if (readRows && readRows.image === readImageKey()) {
     ctx.setLineDash([6 / zoom, 4 / zoom]); ctx.lineWidth = 1.5 / zoom; ctx.font = `${13 / zoom}px system-ui`;
@@ -455,7 +468,7 @@ $('#vlCopy').onclick = copyPrevious; $('#vlSkip').onclick = nextUnlabelled;
 // The reader on what is on screen (POST /api/read): with the windows it slices
 // and classifies each and the law commits; `live` runs the app's own path with
 // no windows. The result is a prefill for the owner - nothing is written until Save.
-let readRows = null;
+let readRows = null, readCells = null;
 function readImageKey() {
   if (frameMode) { const r = currentRecord(); const name = r && r.tracked[frameIdx]; return name ? `frame/${r.movie}/${name}` : null; }
   return current;
@@ -476,6 +489,7 @@ async function runReader(live) {
   for (const r of res.rows || []) lines.push(`  row ${(r.field || '–').padEnd(9)} ${r.cells} cells${r.detected ? ' (detector)' : ''}`);
   $('#out').textContent = lines.join('\n');
   readRows = {image, rows: res.rows || []};
+  readCells = {image, cells: (res.windows || []).flatMap(w => w.sliced || [])};
   const raw = f => { const w = (res.windows || []).find(x => x.field === f); return w ? w.text : ''; };
   const fill = f => c[f] ?? raw(f);
   if (frameMode && isVideo) {

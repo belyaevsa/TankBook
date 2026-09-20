@@ -48,7 +48,10 @@ the ml venv runs it); the converted images are cached under
   screen and fills the fields as a prefill - the annotated windows (or a video
   frame's carried quads) are sliced, classified and judged by the law, and the
   still's empty texts / the frame label take what came back (yellow = unsaved
-  prefill; `Save` / `⇧⏎` accepts it, or correct it first). Shift-`R` runs the
+  prefill; `Save` / `⇧⏎` accepts it, or correct it first) and draws the slicer's cells
+  inside each window - green boxes per glyph, dashed where the slicer saw a blank, a green
+  dot under a cell where it saw a decimal mark - so a miscount or a missed mark is visible
+  at the pixel. Shift-`R` runs the
   **live path** instead - detector, verifier, row assignment, law, with no
   windows at all, the way the phone reads a photo - and draws the rows it
   located as dashed boxes (white = the detector's, grey = Vision/classical)

@@ -69,6 +69,29 @@ if let windows = request.windows, !windows.isEmpty {
         return PumpReader.Window(field: field, quad: PumpQuadWarp.readingOrder(pixels, rotationCW: request.rotationCW))
     }
     let reads = try reader.read(image: image, windows: located)
+    // The slicer's cells for each window, mapped from the warped strip back onto
+    // the quad (normalised over the oriented image) so the annotator can draw
+    // where each glyph was cut and where a decimal mark was seen.
+    var cellQuads: [String: [[String: Any]]] = [:]
+    for window in located {
+        guard let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: window.quad, stripHeight: PumpReader.stripHeight)
+        else { continue }
+        let cells = PumpGlyphSlicer.slice(PumpQuadWarp.rgbImage(from: strip).grayscale())
+        let stripWidth = CGFloat(strip.width), stripHeight = CGFloat(strip.height)
+        let quad = window.quad
+        func at(_ fx: CGFloat, _ fy: CGFloat) -> [Double] {
+            let top = CGPoint(x: quad[0].x + (quad[1].x - quad[0].x) * fx, y: quad[0].y + (quad[1].y - quad[0].y) * fx)
+            let bottom = CGPoint(x: quad[3].x + (quad[2].x - quad[3].x) * fx, y: quad[3].y + (quad[2].y - quad[3].y) * fx)
+            let point = CGPoint(x: top.x + (bottom.x - top.x) * fy, y: top.y + (bottom.y - top.y) * fy)
+            return [point.x / Double(image.width), point.y / Double(image.height)]
+        }
+        cellQuads[window.field.rawValue] = cells.map { cell in
+            let fx0 = cell.rect.minX / stripWidth, fx1 = cell.rect.maxX / stripWidth
+            let fy0 = cell.rect.minY / stripHeight, fy1 = cell.rect.maxY / stripHeight
+            return ["quad": [at(fx0, fy0), at(fx1, fy0), at(fx1, fy1), at(fx0, fy1)],
+                    "blank": cell.isBlank, "dp": cell.hasDecimalPoint]
+        }
+    }
     reply["windows"] = reads.map { read -> [String: Any] in
         let cells = read.cells.map { cell -> [String: Any] in
             let top = cell.ranked.first
@@ -79,7 +102,7 @@ if let windows = request.windows, !windows.isEmpty {
         let text = read.cells.map { cell in
             (cell.ranked.first.map { String($0.digit) } ?? "?") + (cell.decimalPoint ? "." : "")
         }.joined()
-        return ["field": read.field.rawValue, "cells": cells, "text": text]
+        return ["field": read.field.rawValue, "cells": cells, "text": text, "sliced": cellQuads[read.field.rawValue] ?? []]
     }
     let law = PumpReadingLaw.resolve(windows: reads.map { PumpLocatedWindow(field: $0.field, cells: $0.cells) },
                                      currency: currency, priceBand: nil)
