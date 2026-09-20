@@ -27,11 +27,13 @@
   pre { white-space:pre-wrap; font-size:11px; max-height:200px; overflow:auto; margin:4px 0 }
   .ok { color:var(--ok) } .bad { color:var(--bad) }
   input.prefill { color:#ffc857; font-style:italic }
-  #frameStrip { display:flex; flex-wrap:wrap; gap:1px; margin:4px 0 }
+  #frameStrip { display:flex; flex-wrap:wrap; gap:1px; margin:4px 0; row-gap:12px }
   #frameStrip span { width:6px; height:14px; background:#2a303a; cursor:pointer; border-radius:1px }
   #frameStrip span.owner { background:var(--ok) } #frameStrip span.arithmetic { background:#2e8b57 }
   #frameStrip span.attention { background:var(--bad) } #frameStrip span.prefill { background:#6b5a1e }
   #frameStrip span.cur { outline:2px solid #fff; outline-offset:-1px }
+  #frameStrip span.runstart { margin-left:3px }
+  #frameStrip span.nextrun { position:relative } #frameStrip span.nextrun::after { content:'▲'; position:absolute; top:13px; left:-3px; color:#fff; font-size:10px }
   #frameStrip .legend { width:auto; height:auto; background:none; color:var(--dim); font-size:11px; margin-left:8px; cursor:default }
   kbd { border:1px solid var(--line); border-radius:3px; padding:0 4px; font-size:11px; color:var(--dim) }
 </style>
@@ -200,8 +202,11 @@ function renderStrip() {
   const strip = $('#frameStrip'); strip.style.display = (isVideo && frameMode) ? '' : 'none';
   if (!isVideo || !frameMode) return;
   const r = currentRecord(); const states = frameStates(r); const cur = r.tracked[frameIdx];
-  strip.innerHTML = r.tracked.map((n, i) => `<span class="${states[n]} ${n === cur ? 'cur' : ''}" data-i="${i}" title="${n} ${states[n]}"></span>`).join('')
-    + `<span class="legend">red = needs you (unlabelled or breaks the sequence) · yellow = reader pre-fill to confirm · green = labelled</span>`;
+  const runStart = new Set((r.runs || []).map(run => run[0]));
+  const curRun = runOf(r, cur); const runs = r.runs || []; const ri = runs.findIndex(run => run === curRun);
+  const nextRunFirst = runs[ri + 1] ? runs[ri + 1][0] : null;
+  strip.innerHTML = r.tracked.map((n, i) => `<span class="${states[n]} ${n === cur ? 'cur' : ''} ${runStart.has(n) ? 'runstart' : ''} ${n === nextRunFirst ? 'nextrun' : ''}" data-i="${i}" title="${n} ${states[n]}${runStart.has(n) ? ' · new value' : ''}"></span>`).join('')
+    + `<span class="legend">red = needs you (unlabelled or breaks the sequence) · yellow = reader pre-fill to confirm · green = labelled · ▲ next unique value (<kbd>⇧→</kbd>) · gap = value changes</span>`;
   strip.querySelectorAll('span[data-i]').forEach(el => el.onclick = () => { frameIdx = +el.dataset.i; showFrame(); });
 }
 function nextAttention() {
