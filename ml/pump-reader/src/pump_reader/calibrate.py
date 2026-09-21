@@ -41,6 +41,10 @@ from pathlib import Path
 
 import numpy as np
 
+ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(ROOT / "scripts"))
+import corpus_db  # noqa: E402
+
 TX_FIELDS: tuple[str, ...] = ("total", "liters", "unitPrice")
 QUANTILES: tuple[float, ...] = (0.05, 0.25, 0.50, 0.75, 0.95)
 Q_KEYS: tuple[str, ...] = ("p5", "p25", "p50", "p75", "p95")
@@ -83,11 +87,20 @@ def _leading_zero_run(text: str) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="pump_reader.calibrate")
     parser.add_argument("--slices", type=Path, required=True)
-    parser.add_argument("--windows", type=Path, required=True)
+    parser.add_argument("--windows", type=Path, default=None,
+                        help="a windows.json file; omit to read the stills from the database")
+    parser.add_argument("--db", type=Path, default=None, help="corpus database (default: the committed one)")
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
 
-    windows = json.loads(args.windows.read_text(encoding="utf-8"))
+    if args.windows is not None:
+        windows = json.loads(args.windows.read_text(encoding="utf-8"))
+    else:
+        con = corpus_db.connect(args.db)
+        try:
+            windows = corpus_db.entries(con)
+        finally:
+            con.close()
     slices = json.loads(args.slices.read_text(encoding="utf-8"))
 
     aspects: list[float] = []
@@ -169,7 +182,8 @@ def main(argv: list[str] | None = None) -> int:
             "slices.json cell rects crossed with windows.json quads and strings. Never "
             "pixels, never per-fixture labels (product owner, 2026-09-19)."
         ),
-        "sources": {"slices": str(args.slices), "windows": str(args.windows)},
+        "sources": {"slices": str(args.slices),
+                    "windows": str(args.windows) if args.windows is not None else str(args.db or corpus_db.DB)},
         "strip_height": STRIP_HEIGHT,
         "body_ratio": BODY_RATIO,
         "counts": {

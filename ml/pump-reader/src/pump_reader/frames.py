@@ -24,6 +24,8 @@ ROOT = Path(__file__).resolve().parents[4]
 LIVE = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "pump-live"
 FRAMES = LIVE / "frames"
 MOVIE_SUFFIXES = (".mov", ".mp4", ".MOV", ".MP4")
+sys.path.insert(0, str(ROOT / "scripts"))
+import corpus_db  # noqa: E402
 
 
 def probe(movie: Path) -> dict:
@@ -43,15 +45,12 @@ def probe(movie: Path) -> dict:
 
 
 def frame_range(stem: str) -> tuple[int, int | None]:
-    """The usable frames of a video (`firstFrame` / `lastFrame` in videos.json,
-    e.g. "047.jpg"): a clip whose opening frames are corrupt or show no
-    display, or whose tail is a frozen display after the fill ended, drops them
-    at extraction, so nothing downstream ever sees them."""
-    videos = LIVE / "videos.json"
-    if not videos.exists():
-        return 1, None
-    entry = json.loads(videos.read_text()).get(stem, {})
-    if not isinstance(entry, dict):
+    """The usable frames of a video (`firstFrame` / `lastFrame` in the
+    database, e.g. "047.jpg"): a clip whose opening frames are corrupt or show
+    no display, or whose tail is a frozen display after the fill ended, drops
+    them at extraction, so nothing downstream ever sees them."""
+    entry = corpus_db.video(stem)
+    if not entry:
         return 1, None
     first, last = entry.get("firstFrame"), entry.get("lastFrame")
     return (int(first[:-4]) if first else 1), (int(last[:-4]) if last else None)

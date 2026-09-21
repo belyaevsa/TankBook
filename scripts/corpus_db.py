@@ -19,11 +19,13 @@ corpus leaves `git diff Spike/` empty. Values that have no column live in an
 `extra` JSON column on their table, and record-level tables also carry a `keys`
 column - the original top-level key order - so the dump loses nothing.
 
-The tables the report and the annotator read (`fixtures`, `entries`, `windows`,
-`media`, `pairs`) are unchanged apart from `entries.tracking` and the two new
-columns. The frames writer (`pump_reader.track`) still writes its file; the
-annotator imports that one record after a retrack, the single remaining
-file-to-database direction, removed in PU.36b.
+The tables the report and the annotator read (`fixtures`, `entries`,
+`windows`, `media`, `pairs`) are unchanged apart from `entries.tracking` and
+the two new columns. `pump_reader.track` writes `frames` / `frame_windows`
+through `save_tracked` and dumps the record's file; `import_frames` remains
+only for a folder tracked before that move. The Python readers and writers
+(track, frames, realglyphs, detdata, score, calibrate, corrections-report) go
+through the query helpers below; the text dump stays for the Swift readers.
 """
 from __future__ import annotations
 
@@ -256,24 +258,28 @@ def load_videos(con: sqlite3.Connection) -> None:
                             (stem, a["frame"], i, w["field"], json.dumps(w["quad"])))
 
 
-def _load_frames_file(con: sqlite3.Connection, path: Path) -> None:
-    tracked = json.loads(path.read_text())
-    stem = path.parent.name
+def _write_frames(con: sqlite3.Connection, record: str, tracked: dict) -> None:
+    """One record's tracked frames as `frames` / `frame_windows` rows - the
+    exact shape `_load_frames_file` imported, so `dump` reproduces the file."""
     con.execute("insert or replace into frames (record, frame, still, split, inliers, anchor, verified, keys, extra, ord) "
                 "values (?,?,?,?,?,?,?,?,?,?)",
-                (stem, "", tracked.get("_still") or tracked.get("_video"), tracked.get("_split"),
+                (record, "", tracked.get("_still") or tracked.get("_video"), tracked.get("_split"),
                  None, None, None, json.dumps(list(tracked.keys())),
                  json.dumps({k: v for k, v in tracked.items() if k != "frames"}), None))
     for i, (frame, fr) in enumerate(tracked.get("frames", {}).items()):
         con.execute(
             "insert or replace into frames (record, frame, still, split, inliers, anchor, verified, keys, extra, ord) "
             "values (?,?,?,?,?,?,?,?,?,?)",
-            (stem, frame, tracked.get("_still") or tracked.get("_video"), tracked.get("_split"),
+            (record, frame, tracked.get("_still") or tracked.get("_video"), tracked.get("_split"),
              fr.get("inliers"), fr.get("anchor"), (1 if fr.get("verified") else None) if "verified" in fr else None,
              json.dumps(list(fr.keys())), json.dumps(_residual(fr, FRAME_KEYS)), i))
         for j, w in enumerate(fr.get("windows", [])):
             con.execute("insert into frame_windows values (?,?,?,?,?,?,?)",
-                        (stem, frame, j, w["field"], w.get("text", ""), json.dumps(w["quad"]), w.get("legibility")))
+                        (record, frame, j, w["field"], w.get("text", ""), json.dumps(w["quad"]), w.get("legibility")))
+
+
+def _load_frames_file(con: sqlite3.Connection, path: Path) -> None:
+    _write_frames(con, path.parent.name, json.loads(path.read_text()))
 
 
 def load_frames(con: sqlite3.Connection) -> None:
@@ -693,6 +699,123 @@ def check() -> list[str]:
 
 
 # ---------------------------------------------------------------------------
+# the readers' query helpers
+# ---------------------------------------------------------------------------
+
+def entry(name: str, con: sqlite3.Connection | None = None) -> dict | None:
+    """One still's annotated entry, the `windows.json` object. None if unknown."""
+    with transaction(con) as con:
+        row = con.execute("select * from entries where fixture = ?", (name,)).fetchone()
+        if row is None:
+            return None
+        windows = con.execute("select * from windows where fixture = ? order by ord", (name,)).fetchall()
+        live = con.execute("select * from live_anchors where fixture = ? order by ord", (name,)).fetchall()
+        return _entry_obj(row, windows, live)
+
+
+def entries(con: sqlite3.Connection | None = None) -> dict[str, dict]:
+    """Every still entry, the `windows.json` object (without the meta keys)."""
+    with transaction(con) as con:
+        out: dict[str, dict] = {}
+        for row in con.execute("select * from entries order by ord"):
+            windows = con.execute("select * from windows where fixture = ? order by ord", (row["fixture"],)).fetchall()
+            live = con.execute("select * from live_anchors where fixture = ? order by ord", (row["fixture"],)).fetchall()
+            out[row["fixture"]] = _entry_obj(row, windows, live)
+        return out
+
+
+def video(stem: str, con: sqlite3.Connection | None = None) -> dict | None:
+    """One running-display video's entry, the `videos.json` object."""
+    with transaction(con) as con:
+        row = con.execute("select * from videos where stem = ?", (stem,)).fetchone()
+        if row is None:
+            return None
+        windows = con.execute("select * from video_windows where stem = ? order by ord", (stem,)).fetchall()
+        anchors = con.execute("select * from video_anchors where stem = ? order by ord", (stem,)).fetchall()
+        return _video_obj(row, windows, anchors)
+
+
+def tracked(record: str, con: sqlite3.Connection | None = None) -> dict | None:
+    """One record's tracked frames, the `frames/<record>/windows.json` object."""
+    with transaction(con) as con:
+        meta = con.execute("select * from frames where record = ? and frame = ''", (record,)).fetchone()
+        if meta is None:
+            return None
+        rows = con.execute("select * from frames where record = ? and frame != '' order by ord", (record,)).fetchall()
+        windows = _group(con.execute("select * from frame_windows where record = ? order by frame, ord", (record,)),
+                         "frame")
+        body = {r["frame"]: _frame_obj(r, windows.get((r["frame"],), [])) for r in rows}
+        values = {"frames": body, "_still": meta["still"], "_split": meta["split"]}
+        extra = json.loads(meta["extra"]) if meta["extra"] else {}
+        return _ordered(json.loads(meta["keys"]), values, extra)
+
+
+def tracked_records(con: sqlite3.Connection | None = None) -> list[str]:
+    with transaction(con) as con:
+        return [r["record"] for r in con.execute("select record from frames where frame = '' order by record")]
+
+
+def video_stems(con: sqlite3.Connection | None = None) -> list[str]:
+    with transaction(con) as con:
+        return [r["stem"] for r in con.execute("select stem from videos order by ord")]
+
+
+def split(con: sqlite3.Connection | None = None) -> dict[str, str]:
+    """Every still's frozen split (`fixtures.split`); a pump not listed is train."""
+    with transaction(con) as con:
+        return {r["name"]: r["split"] for r in
+                con.execute("select name, split from fixtures where split is not null")}
+
+
+def heldout_names(con: sqlite3.Connection | None = None) -> set[str]:
+    with transaction(con) as con:
+        return {r["name"] for r in con.execute("select name from fixtures where split = 'heldout'")}
+
+
+def labels(con: sqlite3.Connection | None = None) -> dict:
+    """The video labels, the `video-labels.json` object."""
+    with transaction(con) as con:
+        out: dict = {}
+        rows = _group(con.execute("select * from labels order by video, frame"), "video", "frame")
+        for (video, frame), group in rows.items():
+            frames = out.setdefault(video, {})
+            if frame == "":
+                continue
+            fields: dict = {}
+            for r in group:
+                fields[r["field"]] = r["text"]
+                if r["source"] is not None:
+                    fields["source"] = r["source"]
+            frames[frame] = fields
+        return out
+
+
+def corrections(con: sqlite3.Connection | None = None) -> list[dict]:
+    """The ledger rows, in the order they were appended (the JSONL's order)."""
+    with transaction(con) as con:
+        out: list[dict] = []
+        for r in con.execute("select * from corrections order by rowid"):
+            obj: dict = {"at": r["at"], "build": r["build"], "kind": r["kind"]}
+            for k in CORRECTION_ORDER:
+                v = r[k]
+                if v is None:
+                    continue
+                obj[k] = json.loads(v) if k in ("proposed", "final") and r["kind"] == "quad" else v
+            obj.update(json.loads(r["extra"]) if r["extra"] else {})
+            out.append(obj)
+        return out
+
+
+def paired_records(con: sqlite3.Connection | None = None) -> list[tuple[str, str, str]]:
+    """(movie stem, still filename, split) for every Live record paired to a pump still."""
+    with transaction(con) as con:
+        rows = con.execute(
+            "select m.name, m.paired_fixture, f.split from media m join fixtures f on f.name = m.paired_fixture "
+            "where m.kind = 'live' and f.kind = 'pump' order by m.name").fetchall()
+    return [(Path(name).stem, still, s) for name, still, s in rows]
+
+
+# ---------------------------------------------------------------------------
 # the annotator's write path
 # ---------------------------------------------------------------------------
 
@@ -848,10 +971,19 @@ def _frame_windows(con: sqlite3.Connection, record: str, frame: str) -> list[dic
                                  (record, frame))]
 
 
+def save_tracked(record: str, tracked: dict, con: sqlite3.Connection | None = None) -> None:
+    """`pump_reader.track`'s write: one record's frames / frame windows in one
+    transaction. The caller dumps the record's file so the Swift readers see it."""
+    with transaction(con) as con:
+        con.execute("delete from frame_windows where record = ?", (record,))
+        con.execute("delete from frames where record = ?", (record,))
+        _write_frames(con, record, tracked)
+
+
 def import_frames(record: str) -> bool:
-    """PU.36b: `pump_reader.track` still writes `frames/<record>/windows.json`;
-    the server imports that one record's file so the database stays the store
-    every other tool reads. The single file-to-database direction that remains."""
+    """One-time import of `frames/<record>/windows.json` for a folder tracked
+    before PU.36b, when `pump_reader.track` wrote the file and the server read it
+    back. `save_tracked` is the write path now; this remains for old folders."""
     path = FRAMES / record / "windows.json"
     if not path.exists():
         return False

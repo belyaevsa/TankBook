@@ -46,6 +46,25 @@ Writes `DIR/glyphs/NNNNNN.png` and `DIR/labels.csv`
 (`file,label,digit,make,technology`); with `--rows` also `DIR/rows/NNNNNN.png`
 and `DIR/rows.json`.
 
+## The corpus database
+
+The corpus is SQLite-first (`scripts/corpus_db.py`, `Spike/ReceiptSpike/fixtures/corpus.sqlite`);
+the text files are a deterministic dump of it. Every trainer reads and writes through
+`corpus_db`:
+
+```
+.venv/bin/python -m pump_reader.track --only live-5860        # writes frames/frame_windows, dumps the file
+.venv/bin/python -m pump_reader.frames                        # firstFrame/lastFrame from videos
+.venv/bin/python -m pump_reader.detdata                       # detector boxes from windows/frames/labels
+.venv/bin/python -m pump_reader.realglyphs \
+    --also ../../ios/.build/pump-reader-out/train/train-videos.json
+```
+
+`realglyphs` has two sampler levers, both off by default so the export is reproducible first
+(`CORRECTIONS.md` section 3): `--cap-fixture` caps any one still, record or video's share of the
+pool by uniform subsampling, and `--hard-weight` repeats the cells of a frame or still the
+operator corrected a reader pre-fill on. The manifest records each cell's weight.
+
 ## Test
 
 ```

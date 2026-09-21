@@ -157,6 +157,26 @@ def test_pin_frame_writes_verified_anchor_and_correction(corpus: Path) -> None:
     assert json.loads((cdb.FRAMES / record / "windows.json").read_text())["frames"][frame]["verified"] is True
 
 
+def test_save_tracked_round_trips_the_record(corpus: Path) -> None:
+    cdb.dump()
+    record = next(p.parent.name for p in cdb.FRAMES.glob("*/windows.json")
+                  if json.loads(p.read_text()).get("frames"))
+    path = cdb.FRAMES / record / "windows.json"
+    before = path.read_bytes()
+    tracked = cdb.tracked(record)
+    assert tracked and tracked["frames"], "an empty record would make this round trip vacuous"
+    cdb.save_tracked(record, tracked)
+    cdb.dump([path])
+    assert path.read_bytes() == before
+    # Non-vacuous: a moved quad must change the dumped file.
+    frame = next(iter(tracked["frames"]))
+    tracked["frames"][frame]["windows"][0]["quad"] = [[0.11, 0.11], [0.22, 0.11], [0.22, 0.22], [0.11, 0.22]]
+    cdb.save_tracked(record, tracked)
+    cdb.dump([path])
+    assert path.read_bytes() != before
+    assert cdb.check() == []
+
+
 def test_save_live_anchor_replaces_one_frame(corpus: Path) -> None:
     cdb.dump()
     windows_json = json.loads(cdb.WINDOWS_FILE.read_text())

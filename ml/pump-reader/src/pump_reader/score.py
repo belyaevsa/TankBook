@@ -28,6 +28,10 @@ from .glyph import decode_constrained
 from .glyph import CELL_H, CELL_W, BLANK, DP_ONLY, SegmentLabel
 from .model import SegmentNet
 
+ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(ROOT / "scripts"))
+import corpus_db  # noqa: E402
+
 try:
     import pillow_heif
 
@@ -310,7 +314,9 @@ def classify_cells(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="pump_reader.score")
     parser.add_argument("--model", type=Path, required=True)
-    parser.add_argument("--windows", type=Path, required=True)
+    parser.add_argument("--windows", type=Path, default=None,
+                        help="a windows.json file; omit to read the stills from the database")
+    parser.add_argument("--db", type=Path, default=None, help="corpus database (default: the committed one)")
     parser.add_argument("--fixtures", type=Path, required=True)
     parser.add_argument("--dump", type=Path, default=None)
     parser.add_argument("--boxes", type=Path, default=None,
@@ -332,11 +338,17 @@ def main(argv: list[str] | None = None) -> int:
     model.load_state_dict(state["state_dict"])
     model.eval()
 
-    if not args.windows.exists():
-        print(f"windows.json absent: {args.windows}")
-        return 1
-
-    windows = json.loads(args.windows.read_text(encoding="utf-8"))
+    if args.windows is not None:
+        if not args.windows.exists():
+            print(f"windows.json absent: {args.windows}")
+            return 1
+        windows = json.loads(args.windows.read_text(encoding="utf-8"))
+    else:
+        con = corpus_db.connect(args.db)
+        try:
+            windows = corpus_db.entries(con)
+        finally:
+            con.close()
     boxes = None
     if args.boxes is not None and args.boxes.exists():
         boxes = json.loads(args.boxes.read_text(encoding="utf-8"))

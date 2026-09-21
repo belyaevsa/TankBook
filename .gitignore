@@ -113,3 +113,7 @@ Spike/ReceiptSpike/fixtures/pump-live/*.mp4
 
 # scripts/corpus_db.py's scratch file (corpus.sqlite itself is committed)
 Spike/ReceiptSpike/fixtures/corpus.sqlite.tmp
+
+# SQLite WAL side files of the corpus database
+Spike/ReceiptSpike/fixtures/corpus.sqlite-wal
+Spike/ReceiptSpike/fixtures/corpus.sqlite-shm

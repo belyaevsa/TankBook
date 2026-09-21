@@ -789,3 +789,79 @@ round - which section indicts which tool, why the corrected frames are diagnosis
 yardstick, how a classifier round weights them, how a slicer round turns them into synthetic
 tests, and the tracker's IoU histogram as its first ratchet.
 
+## PU.36b - the Python trainers on the database (2026-09-21)
+
+The corpus is SQLite-first (PU.36a); this row moves every Python reader and writer off the text
+files and onto `scripts/corpus_db.py`, adds the two sampler levers `CORRECTIONS.md` section 3
+asks for, and removes the last file-to-database direction (`track.py`'s `windows.json`).
+
+**What moved, and the query each now runs.**
+
+| module | read | write |
+|---|---|---|
+| `track.py` | `paired_records()` (media join fixtures), `entry(still)` (entries + windows + live_anchors), `video(stem)` (videos + video_windows + video_anchors) | `save_tracked(record, tracked)` -> `frames` / `frame_windows`, one transaction, then `dump` of that record's file |
+| `frames.py` | `video(stem).firstFrame/lastFrame` (`videos`) | `movie.json` (a derived artefact, still a file) |
+| `detdata.py` | stills (`fixtures.split='train'` + `entries` + `windows`), records (`frames` + `frame_windows`), videos (`frames.verified` + `labels`), heldout (`fixtures.split`) | Create ML folders (unchanged) |
+| `realglyphs.py` | `db_windows(con)`: stills (entries + windows), frames (frames + frame_windows), videos (labels); `hard_keys(con)` (corrections) | cells + manifest (unchanged shape, `weight` per cell) |
+| `score.py` | `entries(con)` when `--windows` is omitted | - |
+| `calibrate.py` | `entries(con)` when `--windows` is omitted | calibration.json (unchanged) |
+| `corrections-report.py` | `corrections(con)`, `tracked(record)` for the make | - |
+
+`corpus_db.py` gained read helpers (`entry`, `entries`, `video`, `video_stems`, `tracked`,
+`tracked_records`, `split`, `heldout_names`, `labels`, `corrections`, `paired_records`) and one
+writer, `save_tracked`; `_load_frames_file` now delegates to the same `_write_frames`, so the
+import path and the tracker's path produce the same rows. `import_frames` stays for a folder
+tracked before this row.
+
+**Counts reproduced from the database, options off.** `detdata`: 206 train stills, 64 heldout,
+963 tracked frames, 397 video frames, 104 negatives, 5829 boxes - identical to the file-based
+builder on the same corpus. `realglyphs`: **40 755 cells** from 9 481 of 12 110 windows, and the
+per-fixture dict is **identical to `.out/real-r10/manifest.json`** (191 fixtures, 0 diffs). The
+brief's 926 images / 3 126 boxes is the pre-batch-6 figure: batch 6 (`pump-242..273`) landed 50
+minutes before the brief and added 30 stills and their tracked frames. The label distribution
+does move (e.g. `1` 6332 -> 6037) because the label text now comes from the database, where the
+operator's comma/digit corrections are current, not from the older export.
+
+**Sampler levers.** `--cap-fixture 0.02 --hard-weight 4` on the full export, before -> after:
+
+| | cells | gilbarco | wayne | dresser | top source share |
+|---|---|---|---|---|---|
+| before | 40 755 | 15 506 | 11 695 | 9 453 | 0.0895 (`video-004`) |
+| after | 22 351 | 10 098 | 4 767 | 4 775 | 0.0200 (every capped source) |
+
+Water-filling finds the largest per-source count whose kept pool still satisfies the cap, so the
+smallest number of cells is dropped; the cap is applied after the weight, so a weighted hard frame
+cannot become the new skew. `--hard-weight` is a no-op on the current ledger - all 22 text
+corrections are `proposedBy = operator`, none `reader` - and the unit test covers it with a
+synthetic reader row.
+
+**Round trip.** `pump_reader.track --only live-5860` (53 frames, 0 dropped) writes the record
+through `save_tracked` and dumps `frames/live-5860/windows.json`; `scripts/corpus_db.py check`
+exits 0, so the file matches the database byte for byte. The new `corpus_db_test` also round-trips
+a record in a temp corpus and shows a moved quad changes the dump (the non-vacuous half).
+
+**Named mutation.** `expand_hard`'s `n = weight if c["hard"] else 1` changed to `n = weight`:
+
+```
+        assert len(a) == 30 and all(c["weight"] == 3 for c in a)
+>       assert len(b) == 2 and all(c["weight"] == 1 for c in b), "the weight leaked onto an uncorrected frame"
+E       AssertionError: the weight leaked onto an uncorrected frame
+E       assert (6 == 2)
+1 failed
+```
+
+Reverted, the same test is `1 passed`.
+
+**Checks.** `pytest` 43 passed (`ml/pump-reader/tests` 33 + `scripts/corpus_db_test.py` 10);
+`detdata` and `realglyphs` exit 0 with the counts above; `track --only live-5860` then
+`corpus_db.py check` exit 0. No iOS gate: nothing under `ios/` changed.
+
+**Found and not fixed.**
+
+- `tools/pump-annotate/server.py` still calls `corpus_db.import_frames(name)` after a retrack. It
+  is now a redundant re-import of the file `track.py` just dumped, and idempotent, but the call
+  site belongs to `tools/pump-annotate/` (outside this row's write set); PU.36c removes it.
+- The still filter matches a renamed fixture by its stable `pump-NNN` token, because
+  `pump-241` was renamed after the train export was cut and an exact-name match would drop its
+  only count-agreeing window. A general rename policy is not this row's.
+

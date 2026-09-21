@@ -224,13 +224,7 @@ def start_retrack(name: str, read: bool = False) -> None:
                                     cwd=ml, env={**os.environ, "PYTHONPATH": "src"}, capture_output=True, text=True)
             lines = (result.stdout + result.stderr).strip().splitlines()
             retracks[name]["result"] = lines[-1] if lines else f"exit {result.returncode}"
-            # PU.36b: track.py still writes frames/<name>/windows.json; the one
-            # file-to-database direction left, so the store the next dump reads
-            # from is the file the tracker just wrote.
-            try:
-                corpus_db.import_frames(name)
-            except Exception:  # noqa: BLE001
-                traceback.print_exc()
+            # The tracker writes the database itself and dumps the record's file.
             if retracks[name].get("read"):
                 retracks[name]["read"] = False
                 retracks[name]["phase"] = "read"

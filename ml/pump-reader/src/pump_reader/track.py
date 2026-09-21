@@ -8,11 +8,11 @@ through that homography. A frame whose registration has too few inliers,
 or whose mapped quads leave the image or change area implausibly, is
 dropped rather than guessed.
 
-Output per record, beside the frames ``pump_reader.frames`` extracted:
+The record's frames / frame windows are written through
+``corpus_db.save_tracked`` (one transaction), then ``corpus_db.dump`` writes
+``frames/<stem>/windows.json`` for the Swift readers. Beside the frames
+``pump_reader.frames`` extracted, each record also gets:
 
-* ``frames/<stem>/windows.json`` - the corpus ``windows.json`` shape keyed by
-  frame file, with the still's ``field`` / ``text`` / ``legibility`` and the
-  mapped ``quad`` (normalised over the frame), plus the inlier count;
 * ``frames/<stem>/sheet.jpg`` - a contact sheet with the quads drawn, for
   the eye check that is the only human step here.
 
@@ -26,8 +26,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import json
-import sqlite3
 import sys
 from pathlib import Path
 
@@ -40,7 +38,9 @@ FIX = ROOT / "Spike" / "ReceiptSpike" / "fixtures"
 PUMP = FIX / "pump"
 LIVE = FIX / "pump-live"
 FRAMES = LIVE / "frames"
-DB = FIX / "corpus.sqlite"
+sys.path.insert(0, str(ROOT / "scripts"))
+import corpus_db  # noqa: E402
+
 WORK_EDGE = 1200  # feature extraction resolution; quads are mapped in full coordinates
 
 try:
@@ -49,19 +49,6 @@ try:
     pillow_heif.register_heif_opener()
 except Exception:  # pragma: no cover
     pass
-
-
-def paired_records() -> list[tuple[str, str, str]]:
-    """(movie stem, still filename, split) for every Live record paired to a pump still."""
-    with sqlite3.connect(DB) as con:
-        rows = con.execute(
-            "select m.name, m.paired_fixture, f.split from media m join fixtures f on f.name = m.paired_fixture "
-            "where m.kind = 'live' and f.kind = 'pump' order by m.name").fetchall()
-    return [(Path(name).stem, still, split) for name, still, split in rows]
-
-
-def load_windows() -> dict:
-    return json.loads((PUMP / "windows.json").read_text())
 
 
 def oriented_gray(path: Path) -> tuple[np.ndarray, tuple[int, int]]:
@@ -184,7 +171,7 @@ def carried(source: dict, quad: list) -> dict:
     return cw
 
 
-def track_record(stem: str, still: str, split: str, ann: dict, min_inliers: int) -> dict | None:
+def track_record(stem: str, still: str, split: str, entry: dict, min_inliers: int) -> dict | None:
     """A Live Photo's frames take the still's quads and texts. The still is the
     reference; every frame the owner corrected in the annotator (`liveAnchors`
     on the still's entry) is a further anchor, written back verbatim, and each
@@ -194,8 +181,7 @@ def track_record(stem: str, still: str, split: str, ann: dict, min_inliers: int)
     frames = sorted(folder.glob("*.jpg"))
     if not frames:
         return None
-    entry = ann.get(still)
-    if not entry or not entry.get("windows"):
+    if not entry.get("windows"):
         return None
     still_gray, (sw, sh) = oriented_gray(PUMP / still)
     quads_px = [np.array(w["quad"], dtype=np.float64) * [sw, sh] for w in entry["windows"]]
@@ -250,8 +236,6 @@ def track_record(stem: str, still: str, split: str, ann: dict, min_inliers: int)
         kept += 1
     out["_kept"] = kept
     out["_dropped"] = dropped
-    (folder / "windows.json").write_text(json.dumps(out, indent=1))
-    sheet(folder, out)
     return out
 
 
@@ -275,12 +259,9 @@ def sheet(folder: Path, tracked: dict, cols: int = 6, rows: int = 2, tile: int =
     canvas.save(folder / "sheet.jpg", quality=80)
 
 
-VIDEOS = LIVE / "videos.json"
-
-
 def track_video(stem: str, entry: dict, min_inliers: int) -> dict | None:
     """A running-display video has no still: its reference is one of its own
-    frames (`videos.json`), annotated by hand, and the quads are carried from
+    frames (the database `videos` entry), annotated by hand, and the quads are carried from
     it exactly as a still's are. Texts stay empty except the constant price;
     `PumpVideoReadTests` fills the rest where the arithmetic closes."""
     folder = FRAMES / stem
@@ -351,8 +332,6 @@ def track_video(stem: str, entry: dict, min_inliers: int) -> dict | None:
         kept += 1
     out["_kept"] = kept
     out["_dropped"] = dropped
-    (folder / "windows.json").write_text(json.dumps(out, indent=1))
-    sheet(folder, out)
     return out
 
 
@@ -360,37 +339,54 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="pump_reader.track")
     parser.add_argument("--only", action="append", default=[])
     parser.add_argument("--min-inliers", type=int, default=30)
-    parser.add_argument("--videos", action="store_true", help="track the running-display videos from videos.json")
+    parser.add_argument("--videos", action="store_true", help="track the running-display videos in the database")
     args = parser.parse_args(argv)
-    if args.videos:
-        videos = json.loads(VIDEOS.read_text())
-        for stem, entry in videos.items():
-            if stem.startswith("_") or (args.only and stem not in args.only):
-                continue
-            result = track_video(stem, entry, args.min_inliers)
-            if result:
+    con = corpus_db.connect()
+    paths: list[Path] = []
+    try:
+        if args.videos:
+            for stem in corpus_db.video_stems(con):
+                if args.only and stem not in args.only:
+                    continue
+                entry = corpus_db.video(stem, con=con)
+                result = track_video(stem, entry, args.min_inliers) if entry else None
+                if result is None:
+                    print(f"{stem}: no frames or no entry")
+                    continue
+                with con:
+                    corpus_db.save_tracked(stem, result, con=con)
+                sheet(FRAMES / stem, result)
+                paths.append(FRAMES / stem / "windows.json")
                 print(f"{stem}: {result['_kept']} kept, {result['_dropped']} dropped")
+            corpus_db.dump(paths)
+            return 0
+        records = corpus_db.paired_records(con)
+        if args.only:
+            records = [r for r in records if r[0] in args.only]
+        summary = []
+        for stem, still, split in records:
+            entry = corpus_db.entry(still, con=con)
+            result = track_record(stem, still, split, entry, args.min_inliers) if entry else None
+            if result is None:
+                print(f"{stem}: no frames or no annotation for {still[:12]}")
+                continue
+            with con:
+                corpus_db.save_tracked(stem, result, con=con)
+            sheet(FRAMES / stem, result)
+            paths.append(FRAMES / stem / "windows.json")
+            summary.append((stem, split, result["_kept"], result["_dropped"]))
+            print(f"{stem} <- {still[:12]} [{split}]: {result['_kept']} kept, {result['_dropped']} dropped")
+        corpus_db.dump(paths)
+        kept = sum(k for _, _, k, _ in summary)
+        dropped = sum(d for _, _, _, d in summary)
+        print(f"{len(summary)} records: {kept} frames tracked, {dropped} dropped")
+        with (FRAMES / "tracking.csv").open("w") as f:
+            w = csv.writer(f)
+            w.writerow(["movie", "split", "kept", "dropped"])
+            w.writerows(summary)
         return 0
-    ann = load_windows()
-    records = paired_records()
-    if args.only:
-        records = [r for r in records if r[0] in args.only]
-    summary = []
-    for stem, still, split in records:
-        result = track_record(stem, still, split, ann, args.min_inliers)
-        if result is None:
-            print(f"{stem}: no frames or no annotation for {still[:12]}")
-            continue
-        summary.append((stem, split, result["_kept"], result["_dropped"]))
-        print(f"{stem} <- {still[:12]} [{split}]: {result['_kept']} kept, {result['_dropped']} dropped")
-    kept = sum(k for _, _, k, _ in summary)
-    dropped = sum(d for _, _, _, d in summary)
-    print(f"{len(summary)} records: {kept} frames tracked, {dropped} dropped")
-    with (FRAMES / "tracking.csv").open("w") as f:
-        w = csv.writer(f)
-        w.writerow(["movie", "split", "kept", "dropped"])
-        w.writerows(summary)
-    return 0
+    finally:
+        con.close()
 
 
 if __name__ == "__main__":
