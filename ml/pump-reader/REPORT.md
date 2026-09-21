@@ -724,3 +724,35 @@ let on = (0..<8).map { probs[[0, $0] as [NSNumber]].doubleValue >= 0.5 }
   this yet, it is a seam between PU.2's annotation and this scorer.
 - **VFD/LED-amber clean-data misses** on the synthetic fake (above). Not acted on
   without the real corpus.
+
+### Round 10 (orchestrator, 2026-09-21): the 3-seed protocol on the mark-aware slicer's export
+
+The first round run the way round 9 asked: three seeds, the same recipe (`train.py --steps 15000
+--real .out/real-r10 --real-frac 0.3`), real cells cut from the stills' train export plus every
+labelled running-display frame (owner and arithmetic labels, all clips), through the slicer with
+PU.34b's mark detection. Scored on the heldout split with `PUMP_MODEL=` against the shipped round 6,
+both through the same slicer and law (`ce09fd74`):
+
+| model | annotated: committed / correct / precision / photos | live: committed / correct / precision / photos |
+|---|---|---|
+| round 6 (shipped) | 79 / 78 / 0.987 / 22 | **29 / 29 / 1.000 / 8** |
+| round 10 seed 0 | 79 / 76 / 0.962 / 21 | 35 / 32 / 0.914 / 10 |
+| round 10 seed 1 | 79 / 76 / 0.962 / 21 | 35 / 34 / 0.971 / 10 |
+| round 10 seed 2 | 80 / 79 / 0.988 / 23 | 33 / 32 / 0.970 / 9 |
+
+Two things the protocol settles. **The retrain buys coverage and pays in precision**: every seed
+commits 4-6 more live cells and gets 1-3 of them wrong, and the live floor is precision 0.99 - a
+wrong number costs more than a missing one (hard rule 13), so none of the three ships. **Seeds differ
+by more than recipes did**: seed 0 and seed 1 read the same cells on the annotated path and differ by
+two wrong cells on the live path (0.914 vs 0.971); a single-seed comparison at this size is noise,
+which is what round 9 suspected. Round 6 stays in the bundle. What moved the heldout today was the
+slicer (dp 9 → 128 of 237) and the law, not the classifier; the next classifier round needs a
+different lever - the sampler rebalance across heads (93 % of real cells come from 15 fixtures) and
+the mark bit trained on the slicer's own marks - not more of the same cells.
+
+The detector, retrained on the same day's corpus (926 images: 176 train stills, 400 Live frames, 249
+video frames including the hand-placed anchors, 101 negatives; 3 126 boxes): recall@0.5 0.861 → 0.870,
+median IoU 0.796 → 0.779, false rows 42 → 44, photos with every row 49 → 47. Noise; not shipped. The
+locator's next lever is geometric (PU.35: a margin on detected boxes before slicing, a stacked-row
+rescue below the confidence cut, keypad negatives), not more frames.
+
