@@ -153,8 +153,15 @@ function renderList() {
     || (st === 'work' && ((x.video && !x.reviewed) || (!x.video && !x.reviewed) || (x.live && x.tracked && !x.tracking && !x.video))));
   const shown = fixtures.filter(x => x.name.toLowerCase().includes(f) && pass(x));
   $('#list').innerHTML = shown.map(x =>
-    `<div data-n="${x.name}" class="${x.name===current?'sel':''} ${x.windows?'':'todo'}" title="${x.name}">${x.reviewed?'✓ ':''}${x.video?'🎞 ':''}${x.name.replace(/\.(jpe?g|heic|png)$/i,'')}<span class="n">${x.live ? `<span class="live ${x.tracking||''}" title="${x.live} Live record(s), ${x.tracked} tracked frames${x.tracking ? ', tracking ' + x.tracking : ''}">▶${x.tracked ? '' : '?'}</span> ` : ''}${x.windows||'·'}</span></div>`).join('');
+    `<div data-n="${x.name}" class="${x.name===current?'sel':''} ${x.windows?'':'todo'}" title="${x.name}">${x.reviewed?'✓ ':''}${x.video?'🎞 ':''}${x.name.replace(/\.(jpe?g|heic|png)$/i,'')}<span class="n">${x.live ? `<span class="live ${x.tracking||''}" data-play="${x.name}" title="${x.live} Live record(s), ${x.tracked} tracked frames${x.tracking ? ', tracking ' + x.tracking : ''} – click to play">▶${x.tracked ? '' : '?'}</span> ` : ''}${x.windows||'·'}</span></div>`).join('');
   document.querySelectorAll('#list div').forEach(d => d.onclick = () => openFixture(d.dataset.n));
+  // The ▶ marker: open the photo, go straight to its frames and play.
+  document.querySelectorAll('#list [data-play]').forEach(el => el.onclick = async e => {
+    e.stopPropagation(); const n = el.dataset.play;
+    if (current !== n) await openFixture(n);
+    if (current !== n) return;
+    await recordsLoaded; await enterFrames(); if (frameMode) startPlay();
+  });
 }
 async function openFixture(n) {
   if (dirty && !confirm('Discard unsaved changes?')) return;
@@ -200,7 +207,13 @@ function startPlay() {
   }, 1000 / fps);
 }
 function stopPlay() { if (playTimer) clearInterval(playTimer); playTimer = null; $('#play').textContent = '▶'; }
-function togglePlay() { playTimer ? stopPlay() : startPlay(); }
+// Play from the still: enter the frames view first (records may still be
+// loading), then start; from the frames view it toggles.
+async function togglePlay() {
+  if (playTimer) { stopPlay(); return; }
+  if (!frameMode) { await enterFrames(); if (!frameMode) { setMsg('no tracked frames for this photo'); return; } }
+  startPlay();
+}
 $('#play').onclick = togglePlay;
 $('#stepFwd').onclick = () => { if (!playable()) return; stopPlay(); frameIdx = Math.min(frameIdx + 1, currentRecord().tracked.length - 1); showFrame(); };
 $('#stepBack').onclick = () => { if (!playable()) return; stopPlay(); frameIdx = Math.max(frameIdx - 1, 0); showFrame(); };
