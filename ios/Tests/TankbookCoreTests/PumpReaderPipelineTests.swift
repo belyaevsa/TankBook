@@ -206,4 +206,151 @@ struct PumpReaderPipelineTests {
         #expect(committed >= Self.committedFloor)
         #expect(precision >= Self.precisionFloor)
     }
+
+    // MARK: - Fusion over a record's frames
+
+    private struct FusionScore {
+        var committed = 0
+        var correct = 0
+        var asserted = 0
+        var photosRight = 0
+        var photosScored = 0
+        var seconds = 0.0
+
+        var precision: Double { committed > 0 ? Double(correct) / Double(committed) : 0 }
+
+        mutating func add(_ other: FusionScore) {
+            committed += other.committed
+            correct += other.correct
+            asserted += other.asserted
+            photosRight += other.photosRight
+            photosScored += other.photosScored
+            seconds += other.seconds
+        }
+    }
+
+    private func score(_ reading: PumpDisplayReading, want: ExpectedRow) -> FusionScore {
+        var result = FusionScore()
+        func count(_ cell: PumpFieldReading, _ wantValue: Double?) {
+            guard let wantValue else { return }
+            result.asserted += 1
+            guard let got = cell.value.map({ NSDecimalNumber(decimal: $0).doubleValue }) else { return }
+            result.committed += 1
+            let derived: Bool = { if case .derived? = cell.provenance { return true }; return false }()
+            if abs(got - wantValue) < (derived ? 0.1 : CorpusScorer.tolerance) { result.correct += 1 }
+        }
+        count(reading.liters, want.liters)
+        count(reading.unitPrice, want.unitPrice)
+        count(reading.total, want.total)
+        if result.asserted > 0 {
+            result.photosScored = 1
+            if result.correct == result.asserted { result.photosRight = 1 }
+        }
+        return result
+    }
+
+    /// The value a field committed, for the per-photo flip log.
+    private func value(_ reading: PumpFieldReading) -> Double? {
+        reading.value.map { NSDecimalNumber(decimal: $0).doubleValue }
+    }
+
+    private struct FusionMeasurement {
+        var still = FusionScore()
+        var allFrames = FusionScore()
+        var fifthFrame = FusionScore()
+        var pixels = FusionScore()
+        var flips: [String] = []
+    }
+
+    private func measureFusion(reader: PumpReader, records: [PumpReaderTestSupport.PumpLiveRecord],
+                               root: [String: Any], expected: [String: ExpectedRow],
+                               pack: FuelPriceBandPack) throws -> FusionMeasurement {
+        func band(_ currency: CurrencyCode?) -> FuelPriceBand? {
+            currency.flatMap { pack.currencyBand(currency: $0) }
+        }
+        var measurement = FusionMeasurement()
+        for record in records {
+            guard let ann = root[record.still] as? [String: Any], let want = expected[record.still] else { continue }
+            let url = PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent(record.still)
+            guard let image = PumpReaderTestSupport.loadRGB(url: url) else {
+                Issue.record("cannot load \(record.still)")
+                continue
+            }
+            let windows = PumpReaderTestSupport.annotatedWindows(ann, image: image)
+
+            var start = Date()
+            let stillReading = try reader.resolve(image: image, windows: windows,
+                currency: want.currency, priceBand: band(want.currency))
+            measurement.still.seconds += Date().timeIntervalSince(start)
+
+            start = Date()
+            let allReading = try reader.resolveFused(still: image, windows: windows,
+                frames: PumpReaderTestSupport.trackedFrames(for: record), stride: 1,
+                mode: .probabilities, currency: want.currency, priceBand: band(want.currency))
+            measurement.allFrames.seconds += Date().timeIntervalSince(start)
+
+            start = Date()
+            let fifthReading = try reader.resolveFused(still: image, windows: windows,
+                frames: PumpReaderTestSupport.trackedFrames(for: record, step: 5), stride: 1,
+                mode: .probabilities, currency: want.currency, priceBand: band(want.currency))
+            measurement.fifthFrame.seconds += Date().timeIntervalSince(start)
+
+            start = Date()
+            let pixelReading = try reader.resolveFused(still: image, windows: windows,
+                frames: PumpReaderTestSupport.trackedFrames(for: record, step: 5), stride: 1,
+                mode: .pixels, currency: want.currency, priceBand: band(want.currency))
+            measurement.pixels.seconds += Date().timeIntervalSince(start)
+
+            measurement.still.add(score(stillReading, want: want))
+            measurement.allFrames.add(score(allReading, want: want))
+            measurement.fifthFrame.add(score(fifthReading, want: want))
+            measurement.pixels.add(score(pixelReading, want: want))
+
+            let stillCells = [stillReading.liters, stillReading.unitPrice, stillReading.total]
+            let fusedCells = [allReading.liters, allReading.unitPrice, allReading.total]
+            let fields: [PumpField] = [.liters, .unitPrice, .total]
+            for index in fields.indices where value(stillCells[index]) != value(fusedCells[index]) {
+                let sv = value(stillCells[index]).map { String($0) } ?? "nil"
+                let fv = value(fusedCells[index]).map { String($0) } ?? "nil"
+                measurement.flips.append("\(record.id) \(record.still.prefix(8)) \(fields[index].rawValue): "
+                                          + "still \(sv) -> fused \(fv)")
+            }
+        }
+        return measurement
+    }
+
+    /// The still alone, the same read fused over the record's tracked frames,
+    /// and fused over every fifth frame, on the 17 heldout stills with a
+    /// tracked record. A frame whose slicer finds a different cell count than
+    /// the still is skipped whole, so a fusion that never agrees with the
+    /// still returns the still's own reading.
+    /// Opt-in (`PUMP_FUSION=1`): the all-frames pass reads 860 frames and takes
+    /// 17 minutes; it is a measurement, not a floor.
+    @Test("PU.19 fusion: still alone, all tracked frames, every fifth frame", .pumpFixturesPresent,
+          .enabled(if: ProcessInfo.processInfo.environment["PUMP_FUSION"] == "1", "PUMP_FUSION=1"))
+    func liveFusion() throws {
+        let model = try PumpSegmentsModel(contentsOf: Self.modelURL)
+        let reader = PumpReader(model: model)
+        let expected = try CorpusScorer.loadExpected(
+            PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent("expected.csv"))
+        let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)
+        let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        let pack = try FuelPriceBandStore.bundledPack()
+        let records = PumpReaderTestSupport.heldoutLiveRecords()
+        print("PU.19 heldout records with a tracked Live record: \(records.count)")
+
+        let measurement = try measureFusion(reader: reader, records: records, root: root,
+                                            expected: expected, pack: pack)
+        func report(_ label: String, _ totals: FusionScore) {
+            print("PU.19 \(label): committed \(totals.committed), correct \(totals.correct), "
+                  + "precision \(String(format: "%.3f", totals.precision)), "
+                  + "photos with every field right \(totals.photosRight)/\(totals.photosScored); "
+                  + "\(String(format: "%.1f", totals.seconds))s")
+        }
+        report("still only", measurement.still)
+        report("fused, all frames (probabilities)", measurement.allFrames)
+        report("fused, every 5th frame (probabilities)", measurement.fifthFrame)
+        report("fused, every 5th frame (pixels)", measurement.pixels)
+        for line in measurement.flips { print("  FLIP \(line)") }
+    }
 }

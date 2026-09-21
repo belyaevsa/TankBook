@@ -86,6 +86,93 @@ enum PumpReaderTestSupport {
     static func quadPixels(_ quad: [[Double]], width: Int, height: Int) -> [CGPoint] {
         quad.map { CGPoint(x: $0[0] * Double(width), y: $0[1] * Double(height)) }
     }
+
+    // MARK: - Live records
+
+    static let pumpLiveFramesRoot = repoRoot
+        .appendingPathComponent("Spike/ReceiptSpike/fixtures/pump-live/frames")
+
+    /// A still's tracked Live record: the frames `pump_reader.track` kept and
+    /// the still's quads carried into each. Quads stay normalised over the
+    /// frame until the frame is decoded, when they are converted with the
+    /// frame's own size.
+    struct PumpLiveRecord {
+        let id: String
+        let still: String
+        let framesDirectory: URL
+        let frameNames: [String]
+        let windows: [String: [(field: PumpField, quad: [[Double]])]]
+    }
+
+    /// Every tracked record whose still is heldout (decision 9). The frame
+    /// media is gitignored and lives in the corpus bucket; absent, the list is
+    /// empty and the fusion test has nothing to measure.
+    static func heldoutLiveRecords() -> [PumpLiveRecord] {
+        guard let dirs = try? FileManager.default.contentsOfDirectory(
+            at: pumpLiveFramesRoot, includingPropertiesForKeys: nil) else { return [] }
+        var out: [PumpLiveRecord] = []
+        for dir in dirs.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
+            guard let data = try? Data(contentsOf: dir.appendingPathComponent("windows.json")),
+                  let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let still = root["_still"] as? String,
+                  (root["_split"] as? String) == "heldout",
+                  let frames = root["frames"] as? [String: Any] else { continue }
+            var windows: [String: [(field: PumpField, quad: [[Double]])]] = [:]
+            for (name, value) in frames {
+                guard let entry = value as? [String: Any],
+                      let raw = entry["windows"] as? [[String: Any]] else { continue }
+                windows[name] = raw.compactMap { window in
+                    guard let fieldName = window["field"] as? String,
+                          let field = PumpField(rawValue: fieldName),
+                          let quad = window["quad"] as? [[Double]] else { return nil }
+                    return (field, quad)
+                }
+            }
+            out.append(PumpLiveRecord(id: dir.lastPathComponent, still: still,
+                                      framesDirectory: dir, frameNames: frames.keys.sorted(),
+                                      windows: windows))
+        }
+        return out
+    }
+
+    /// The still's annotated windows in pixel coordinates, the shape
+    /// `read`/`resolve` take.
+    static func annotatedWindows(_ annotation: [String: Any], image: PumpRGBImage) -> [PumpReader.Window] {
+        let rotation = (annotation["rotationCW"] as? NSNumber)?.intValue ?? 0
+        var out: [PumpReader.Window] = []
+        for raw in annotation["windows"] as? [[String: Any]] ?? [] {
+            guard let fieldName = raw["field"] as? String, let field = PumpField(rawValue: fieldName),
+                  let text = raw["text"] as? String, !text.isEmpty,
+                  let quad = raw["quad"] as? [[Double]] else { continue }
+            let pixels = PumpQuadWarp.readingOrder(
+                quadPixels(quad, width: image.width, height: image.height), rotationCW: rotation)
+            out.append(PumpReader.Window(field: field, quad: pixels))
+        }
+        return out
+    }
+
+    /// The record's frames as a lazy sequence, one decoded frame alive at a
+    /// time: a 4K movie frame is 33 MB and a record can hold two hundred.
+    static func trackedFrames(for record: PumpLiveRecord, step: Int = 1) -> AnySequence<PumpTrackedFrame> {
+        AnySequence {
+            var index = 0
+            return AnyIterator {
+                while index < record.frameNames.count {
+                    let name = record.frameNames[index]
+                    index += max(1, step)
+                    guard let image = loadRGB(url: record.framesDirectory.appendingPathComponent(name))
+                    else { continue }
+                    let windows = (record.windows[name] ?? []).map { entry in
+                        PumpReader.Window(field: entry.field,
+                                          quad: entry.quad.map { CGPoint(x: $0[0] * Double(image.width),
+                                                                         y: $0[1] * Double(image.height)) })
+                    }
+                    return PumpTrackedFrame(image: image, windows: windows)
+                }
+                return nil
+            }
+        }
+    }
 }
 
 extension Trait where Self == ConditionTrait {

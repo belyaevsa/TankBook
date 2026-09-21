@@ -865,3 +865,38 @@ Reverted, the same test is `1 passed`.
   `pump-241` was renamed after the train export was cut and an exact-name match would drop its
   only count-agreeing window. A general rename policy is not this row's.
 
+### PU.19 (orchestrator, 2026-09-21): Live Photo per-cell fusion over frames
+
+Does fusing the classifier's per-cell probabilities across a record's frames read more cells right
+than the still alone? Measured on the 17 heldout records with tracked frames (860 frames;
+`PumpReaderPipelineTests` `liveFusion`), same law and tolerance as the still path:
+
+| read | committed | correct | precision | photos fully right | time |
+|---|---|---|---|---|---|
+| still alone | 23 | 22 | 0.957 | 6/17 | 21 s |
+| fused, all frames | 24 | 23 | 0.958 | 7/17 | 945 s |
+| fused, every 5th frame | 24 | 23 | 0.958 | 7/17 | 213 s |
+| fused, every 5th frame, pixels | 21 | 20 | 0.952 | 6/17 | 205 s |
+
+**Fusion does not help on this corpus.** The one cell it adds is pump-079's total (`nil` -> 135.86,
+correct); nothing else moves. +1 committed / +1 correct is inside the ±2-cell seed noise round 10
+measured, and it costs 45x the still read for the all-frames pass (945 s vs 21 s in the test's Debug
+build – ~1.1 s a frame, nearly all of it the slicer run on each frame's own strip). Every-5th reads
+the same 24/23 as all frames, so a fraction of the frames carries the whole signal. The still path
+is unchanged: 79 / 0.987 on the 64 heldout stills.
+
+Fusing the warped cell **pixels** and classifying once is worse, not better: on the same every-5th
+frames it commits 21 and gets 20 right where the probability median commits 24 and gets 23. The
+probability median is the one to keep if this row is ever revisited.
+
+The 17 records cover 16 distinct stills – `live-6283` and `live-6285` are two records of pump-116
+(the Live record and the 4K movie) – so "photos" counts records, not stills.
+
+**What PU.5 would need to wire it live.** The still path here takes the hand quads; the live path
+has neither. Fusion needs, per frame: the detector's rows on that frame (the still's boxes cannot
+be reused – the camera moves, the records' README says the window quad moves every frame), the
+still's row matched to each frame's row across frames, and a cell-count agreement check before a
+frame is fused. Only then does the median run. That is the detector-per-frame plus row-matching
+work the row already names, and one cell on 17 records does not earn it yet.
+
+
