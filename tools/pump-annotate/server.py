@@ -198,6 +198,17 @@ def records_for(still: str) -> list[dict]:
     return out
 
 
+def propagate_texts(record: str, windows: list[dict]) -> None:
+    """A still's texts (and legibility) onto every frame of its Live record,
+    then the record's file dumped - what a retrack would carry, without the
+    registration."""
+    with corpus_db.transaction(None) as con:
+        for w in windows:
+            con.execute("update frame_windows set text = ?, legibility = ? where record = ? and field = ?",
+                        (w.get("text", ""), w.get("legibility"), record, w["field"]))
+    corpus_db.dump([FRAMES / record / "windows.json"])
+
+
 # One retrack per video at a time, in the background; the page polls /api/retrack/<name>.
 # With `read`, the tracked frames are then read again by the app's reader
 # (PumpVideoReadTests regenerates the `arithmetic` labels); frames the owner
@@ -463,10 +474,19 @@ class Handler(SimpleHTTPRequestHandler):
         tracked = []
         if saved["windows"]:
             quads_changed = [w["quad"] for w in before.get("windows", [])] != [w["quad"] for w in saved["windows"]]
+            texts_changed = [(w["field"], w.get("text", ""), w.get("legibility")) for w in before.get("windows", [])] \
+                != [(w["field"], w.get("text", ""), w.get("legibility")) for w in saved["windows"]]
             for rec in records_for(name):
-                if (FRAMES / rec["movie"]).exists() and (quads_changed or not rec["tracked"]):
+                if not (FRAMES / rec["movie"]).exists():
+                    continue
+                if quads_changed or not rec["tracked"]:
                     start_retrack(rec["movie"])
                     tracked.append(rec["movie"])
+                elif texts_changed:
+                    # The texts are the still's, carried into every frame; a text
+                    # edit needs no homography, so the frames take it directly.
+                    propagate_texts(rec["movie"], saved["windows"])
+                    tracked.append(rec["movie"] + " (texts)")
         return self.send_json({"ok": True, "entry": saved, "tracking": tracked})
 
     def do_POST(self):
