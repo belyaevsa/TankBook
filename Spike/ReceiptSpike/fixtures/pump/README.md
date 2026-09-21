@@ -325,7 +325,10 @@ is authoritative, and where there is no receipt the user picks it - which is wha
 
 Keep the original resolution, name in sequence (`pump-002-lukoil-spb-ru.png`...), and put the
 truth in `expected.csv` beside the images - the harness looks for it in the
-folder it is pointed at. Leave a field empty rather than guessing.
+folder it is pointed at. Leave a field empty rather than guessing. **The JSON and CSV are a dump
+of `../corpus.sqlite`** (`scripts/corpus_db.py`): add a still through the annotator or
+`corpus_db`, never by editing the file, and run `corpus_db.py dump` (or `check`, which fails a
+stale file) so the file matches the database.
 
 Breadth that matters here: different pump makes (Wayne, Gilbarco, Tokheim),
 sunlight and glare on the glass, angled shots, and displays that show the
@@ -1323,7 +1326,10 @@ with an empty one), none `reviewed`, and the Live records were tracked from thos
 stay `pendingWindows` for the owner's hand: `pump-261` (the reader placed no row on the
 oblique Wayne face) and seven where an asserted cell got no row (`248`, `249`, `253`, `255`,
 `258` the price window; `257`, `267` the total). `pump-263` (the CLOSED negative) carries no
-windows and a `negative` note. The auto-placed boxes are a head start, not a review: the
+windows and a `negative` note. `pump-264` and `pump-265` are legitimate stills of the same
+fill, but their Live records (`live-6321`, `live-6322`, `live-6323`) show the CLOSED text on
+their frames - the display changed state inside the Live Photo - so both are `tracking: bad`
+(product owner, 2026-09-21): the stills stay truth, the records train nothing. The auto-placed boxes are a head start, not a review: the
 owner tightens, retypes the display's own spelling (`0063,27`) and marks processed.
 
 - **Neste, Dresser Wayne** (`EUR` / `LIITRIT`, three-cell board `futura D` / `Neste MY D` /
