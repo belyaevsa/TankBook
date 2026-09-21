@@ -79,7 +79,7 @@
   <div class="row mono" id="csv"></div>
   <div class="win" id="live" style="display:none">
     <div class="row"><b>Live record</b> <select id="rec"></select> <span id="recinfo" class="dim"></span></div>
-    <div class="row"><button id="framesToggle">View frames</button> <input id="frameSlider" type="range" min="0" max="0" value="0" style="flex:1;display:none">
+    <div class="row"><button id="framesToggle">View frames</button> <button id="recTrack" title="carry the still's windows into this record's frames (pump_reader.track); saving a still with changed windows does this by itself">↻ track</button> <input id="frameSlider" type="range" min="0" max="0" value="0" style="flex:1;display:none">
       <span id="frameName" class="mono dim"></span></div>
     <div class="row"><b>tracking</b>
       <label><input type="radio" name="tracking" value=""> unreviewed</label>
@@ -234,7 +234,8 @@ function watchRetrack(name) {
 }
 function showRecordInfo() {
   const r = currentRecord(); if (!r) return;
-  $('#recinfo').textContent = `${r.tracked.length} tracked of ${r.extracted} frames` + (r.extracted ? (r.tracked.length ? '' : ' – not tracked: run pump_reader.track') : ' – run pump_reader.frames / track');
+  $('#recinfo').textContent = `${r.tracked.length} tracked of ${r.extracted} frames` + (r.extracted ? (r.tracked.length ? '' : ' – not tracked yet: save the windows, or ↻ track') : ' – frames not extracted: pump_reader.frames');
+  $('#recTrack').style.display = r.extracted ? '' : 'none';
   $('#frameSlider').max = Math.max(0, r.tracked.length - 1);
 }
 async function enterFrames() {
@@ -370,6 +371,7 @@ async function save() {
   entry = r.entry; entry.windows = entry.windows || []; dirty = false; setMsg('saved');
   const fx = fixtures.find(x => x.name === current); if (fx) { fx.windows = entry.windows.length; fx.reviewed = !!entry.reviewed; fx.tracking = entry.tracking || null; }
   renderList(); renderWins(); draw();
+  for (const stem of r.tracking || []) { notify('busy', `Saved – tracking ${stem} from the windows…`); watchRetrack(stem); }
 }
 async function check() {
   const r = await (await fetch('/api/check', {method:'POST'})).json();
@@ -634,7 +636,7 @@ async function retrackNow() {
 }
 $('#vlAnchor').onclick = saveAnchor;
 $('#lfSave').onclick = () => { clearTimeout(anchorTimer); saveAnchor(); };
-for (const id of ['#lfRetrack', '#vlRetrack']) { const b = $(id); if (b) b.onclick = retrackNow; }
+for (const id of ['#lfRetrack', '#vlRetrack', '#recTrack']) { const b = $(id); if (b) b.onclick = retrackNow; }
 $('#lfOk').onclick = markTrackingOk;
 async function rerunVideo() {
   const r = currentRecord(); if (!r) return;

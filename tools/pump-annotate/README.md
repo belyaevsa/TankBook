@@ -26,6 +26,11 @@ the ml venv runs it); the converted images are cached under
 - A `▶` in the list marks a still with a Live record (blue = tracking unreviewed,
   green = ok, red = bad; `▶?` = not tracked yet); the filter has *with Live record* and
   *Live, tracking unreviewed*.
+- A `▶?` beside a still means it has a Live record whose frames are not
+  tracked yet - tracking carries the STILL's windows into the frames, so a
+  still with no windows has nothing to track. Draw (or `A`) and Save: the save
+  tracks every paired record in the background (and re-tracks when the quads
+  changed); **↻ track** beside *View frames* does the same by hand.
 - **Live record / View frames** (shown when the still has a Live record and
   `pump_reader.frames` + `pump_reader.track` have run): steps through the
   record's tracked frames with the carried quads drawn (`←`/`→`, slider,

@@ -481,10 +481,22 @@ class Handler(SimpleHTTPRequestHandler):
         # drag cannot drop them.
         if "liveAnchors" not in entry and ann.get(name, {}).get("liveAnchors"):
             entry["liveAnchors"] = ann[name]["liveAnchors"]
+        before = ann.get(name, {})
         ann[name] = clean_entry(entry)
         save_windows(ann)
         rebuild_db()
-        return self.send_json({"ok": True, "entry": ann[name]})
+        # A still's windows are what the tracker carries into its Live record:
+        # a record with no tracked frames yet, or one whose still's quads just
+        # changed, is (re)tracked in the background so the frames view opens
+        # without a shell step.
+        tracked = []
+        if ann[name]["windows"]:
+            quads_changed = [w["quad"] for w in before.get("windows", [])] != [w["quad"] for w in ann[name]["windows"]]
+            for rec in records_for(name):
+                if (FRAMES / rec["movie"]).exists() and (quads_changed or not rec["tracked"]):
+                    start_retrack(rec["movie"])
+                    tracked.append(rec["movie"])
+        return self.send_json({"ok": True, "entry": ann[name], "tracking": tracked})
 
     def do_POST(self):
         path = urlparse(self.path).path
