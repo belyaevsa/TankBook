@@ -781,3 +781,11 @@ sharing the span) - the sweep's version was gated on the classifier's margin, wh
 forbids; on geometry alone it drops pump-224's keys and no true row. `PumpBoxRefiner` (the
 opposite bet, tightening; 22 → 21) is deleted. Live floor 29 → 37.
 
+### The operator's corrections as the next round's input (2026-09-21)
+
+The annotator now writes a corrections ledger (tools/pump-annotate/README.md);
+`ml/pump-reader/CORRECTIONS.md` is the standing procedure for reading it at the start of every
+round - which section indicts which tool, why the corrected frames are diagnosis and never the
+yardstick, how a classifier round weights them, how a slicer round turns them into synthetic
+tests, and the tracker's IoU histogram as its first ratchet.
+

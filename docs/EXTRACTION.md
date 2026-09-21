@@ -911,6 +911,12 @@ forbids. Measured on the heldout: two rows verified 50 → 52, roles right 44 �
 cells at precision 1.000, photos fully right 8 → 11. The detector retrained on the whole corpus the
 same day (926 images) moved nothing - the lever on the locator is geometric, not more frames.
 
+**The operator's corrections.** Every disagreement between a tool's proposal (the tracker's
+quad, the reader's pre-fill) and the annotator's hand is recorded (`pump-live/corrections.jsonl`)
+with the build it came from; `ml/pump-reader/CORRECTIONS.md` is the standing procedure that reads
+it at the start of every round - diagnosis, never the yardstick; the heldout split stays the only
+number a change is judged by.
+
 **Where it lives.** Training, rendering, export and scoring are Python under `ml/pump-reader/`
 (PyTorch → coremltools), outside every gate except their own `pytest`; the exported `.mlpackage` is
 an app resource (`PumpSegments.mlpackage`, the cell classifier; `DigitRows.mlmodel`, the row

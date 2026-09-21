@@ -110,7 +110,7 @@ the ml venv runs it); the converted images are cached under
   for a field left as proposed. `scripts/corrections-report.py` turns it into the tracker's IoU
   histogram per record and make, the reader's pre-fill accuracy per build split into slicer
   misses (mark or leading zero only) and classifier misses, and the list of hard frames the
-  next training export should weight.
+  next training export should weight. How each round uses it: `ml/pump-reader/CORRECTIONS.md`.
 
 Loopback only. Nothing is committed - stage the JSON by path when the batch
 is done.
