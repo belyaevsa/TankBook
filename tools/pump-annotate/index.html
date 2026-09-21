@@ -73,7 +73,7 @@
 </main>
 <section class="right">
   <div class="row"><b id="name" style="flex:1">–</b> <label title="reviewed by a human; P toggles"><input type="checkbox" id="reviewed"> processed</label></div>
-  <div class="row dim">Drag = new window · click = select · drag corner = adjust · <kbd>⌫</kbd> delete · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> field · <kbd>⌘S</kbd> save · <kbd>+</kbd>/<kbd>-</kbd>/<kbd>0</kbd> zoom · <kbd>A</kbd> auto-annotate · <kbd>P</kbd> processed · <kbd>⏎</kbd> save &amp; next · <kbd>J</kbd>/<kbd>K</kbd> next/prev</div>
+  <div class="row dim">Drag = new window · click = select · drag corner = adjust · <kbd>⌫</kbd> delete · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> field · <kbd>⌘S</kbd> save · <kbd>+</kbd>/<kbd>-</kbd>/<kbd>0</kbd> zoom · <kbd>[</kbd>/<kbd>]</kbd> turn the box · <kbd>A</kbd> auto-annotate · <kbd>P</kbd> processed · <kbd>⏎</kbd> save &amp; next · <kbd>J</kbd>/<kbd>K</kbd> next/prev</div>
   <div class="row">Zoom <input id="zoom" type="range" min="0.25" max="4" step="0.05" value="1" style="flex:1">
     Rotate <select id="rot"><option>0</option><option>90</option><option>180</option><option>270</option></select></div>
   <div class="row mono" id="csv"></div>
@@ -392,6 +392,7 @@ function renderWins() {
         <select data-f="${i}">${FIELDS.map(f => `<option ${f===w.field?'selected':''}>${f}</option>`).join('')}</select>
         <input data-t="${i}" value="${w.text||''}" placeholder="what the display shows" class="mono" style="flex:1">
         <label title="digits only partly readable"><input type="checkbox" data-l="${i}" ${w.legibility==='partial'?'checked':''}>partial</label>
+        <button data-r="${i}" data-d="-1" title="turn the box 1° counter-clockwise ([, shift = 0.1°)">↺</button><button data-r="${i}" data-d="1" title="turn the box 1° clockwise (], shift = 0.1°)">↻</button>
         <button data-x="${i}" title="delete">×</button></div>
       <div class="row dim mono">${w.quad.map(p => p.map(v => (+v).toFixed(3)).join(',')).join('  ')}</div>
     </div>`).join('');
@@ -400,6 +401,18 @@ function renderWins() {
   document.querySelectorAll('[data-t]').forEach(s => s.oninput = () => { entry.windows[+s.dataset.t].text = s.value; touch(); });
   document.querySelectorAll('[data-l]').forEach(s => s.onchange = () => { entry.windows[+s.dataset.l].legibility = s.checked ? 'partial' : undefined; touch(); });
   document.querySelectorAll('[data-x]').forEach(b => b.onclick = e => { e.stopPropagation(); removeWindow(+b.dataset.x); });
+  document.querySelectorAll('[data-r]').forEach(b => b.onclick = e => { e.stopPropagation(); sel = +b.dataset.r; turnWindow(sel, +b.dataset.d * (e.shiftKey ? 0.1 : 1)); });
+}
+// Turn one window's quad about its centre by `deg` (clockwise positive), in
+// display space so the turn matches what is on screen whatever the 90-degree
+// rotation; the corners are written back in image space.
+function turnWindow(i, deg) {
+  const w = editable()[i]; if (!w) return;
+  const pts = w.quad.map(toDisp), cx = pts.reduce((a, p) => a + p[0] / 4, 0), cy = pts.reduce((a, p) => a + p[1] / 4, 0);
+  const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+  w.quad = pts.map(([x, y]) => toImg([cx + (x - cx) * c - (y - cy) * s, cy + (x - cx) * s + (y - cy) * c]).map(v => Math.round(v * 10000) / 10000));
+  if (frameMode && isVideo) frameQuadsEdited = true;
+  touch(); renderWins(); draw();
 }
 function addWindow(field, text, quad) {
   quad = quad || [[0.3,0.4],[0.7,0.4],[0.7,0.5],[0.3,0.5]];
@@ -694,6 +707,7 @@ document.addEventListener('keydown', e => {
   if (!typing && e.key === 'r') { runReader(false); return; }
   if (!typing && e.key === 'R') { runReader(true); return; }
   if (!typing && e.key === 'A') { autoAnnotate(); return; }
+  if (!typing && sel >= 0 && (e.key === '[' || e.key === ']' || e.key === '{' || e.key === '}')) { e.preventDefault(); const step = (e.key === '{' || e.key === '}') ? 0.1 : 1; turnWindow(sel, (e.key === ']' || e.key === '}') ? step : -step); return; }
   if (!typing && (e.key === '+' || e.key === '=')) { setZoom(zoom * 1.2); return; }
   if (!typing && e.key === '-') { setZoom(zoom / 1.2); return; }
   if (!typing && e.key === '0') { fit(); draw(); return; }
