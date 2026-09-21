@@ -30,6 +30,7 @@
   #frameStrip { display:flex; flex-wrap:wrap; gap:1px; margin:4px 0; row-gap:12px }
   #frameStrip span { width:6px; height:14px; background:#2a303a; cursor:pointer; border-radius:1px }
   #frameStrip span.owner { background:var(--ok) } #frameStrip span.arithmetic { background:#2e8b57 }
+  #frameStrip span.tracked { background:#555 }
   #frameStrip span.attention { background:var(--bad) } #frameStrip span.prefill { background:#6b5a1e }
   #frameStrip span.cur { outline:2px solid #fff; outline-offset:-1px }
   #frameStrip span.runstart { margin-left:3px }
@@ -164,7 +165,7 @@ function watchRetrack(name) {
   retrackWatch[name] = setInterval(async () => {
     const st = await (await fetch('/api/retrack/' + encodeURIComponent(name))).json();
     $('#out').textContent = st.running ? `${st.phase === 'read' ? 'reading' : 'retracking'} ${name.slice(0, 9)}…` : `done: ${st.result || ''}`;
-    if (!st.running) { clearInterval(retrackWatch[name]); delete retrackWatch[name]; if (current === name) { recordsLoaded = loadRecords(name); if (frameMode) recordsLoaded.then(showFrame); } }
+    if (!st.running) { clearInterval(retrackWatch[name]); delete retrackWatch[name]; const mine = current === name || (currentRecord() && currentRecord().movie === name); if (mine) { recordsLoaded = loadRecords(current); if (frameMode) recordsLoaded.then(showFrame); } }
   }, 2000);
 }
 function showRecordInfo() {
@@ -205,8 +206,16 @@ function frameStates(r) {
   return states;
 }
 function renderStrip() {
-  const strip = $('#frameStrip'); strip.style.display = (isVideo && frameMode) ? '' : 'none';
-  if (!isVideo || !frameMode) return;
+  const strip = $('#frameStrip'); strip.style.display = frameMode ? '' : 'none';
+  if (!frameMode) return;
+  if (!isVideo) {
+    // A Live record: every tracked frame, anchors outlined; nothing to label per frame.
+    const r = currentRecord(); const cur = r.tracked[frameIdx];
+    strip.innerHTML = r.tracked.map((n, i) => `<span class="tracked ${n === cur ? 'cur' : ''} ${r.frames[n].verified ? 'anchor' : ''}" data-i="${i}" title="${n} · inliers ${r.frames[n].inliers}${r.frames[n].verified ? ' · anchor (quads placed by hand)' : ''}"></span>`).join('')
+      + `<span class="legend">grey = tracked from the still · white outline = anchor (quads you placed) · drag a quad to anchor a frame · <kbd>⇧⏎</kbd> marks tracking ok and saves</span>`;
+    strip.querySelectorAll('span[data-i]').forEach(el => el.onclick = () => { frameIdx = +el.dataset.i; showFrame(); });
+    return;
+  }
   const r = currentRecord(); const states = frameStates(r); const cur = r.tracked[frameIdx];
   const runStart = new Set((r.runs || []).map(run => run[0]));
   const curRun = runOf(r, cur); const runs = r.runs || []; const ri = runs.findIndex(run => run === curRun);
@@ -222,7 +231,8 @@ function nextAttention() {
 }
 function showVideoLabel() {
   $('#videoLabel').style.display = (isVideo && frameMode) ? '' : 'none';
-  if (!isVideo || !frameMode) return;
+  if (!isVideo) { renderStrip(); return; }
+  if (!frameMode) return;
   const r = currentRecord(); const name = r.tracked[frameIdx]; const f = r.frames[name];
   const win = k => f.windows.find(w => w.field === k) || {};
   const get = k => win(k).text || '';
@@ -330,7 +340,7 @@ function windowsToDraw() {
 }
 // The windows the mouse edits: the still's, or in a video's frames view the
 // frame's own (which 'save as anchor' turns into a tracking anchor).
-function editable() { return (frameMode && isVideo) ? windowsToDraw() : entry.windows; }
+function editable() { return frameMode ? windowsToDraw() : entry.windows; }
 function dispSize() { const r = rot(); return (r === 90 || r === 270) ? [img.naturalHeight, img.naturalWidth] : [img.naturalWidth, img.naturalHeight]; }
 function toDisp([nx, ny]) {           // normalised image -> unscaled display px
   const W = img.naturalWidth, H = img.naturalHeight, x = nx * W, y = ny * H;
@@ -409,18 +419,18 @@ function hitWindow(p) {
     return nx >= Math.min(...xs) && nx <= Math.max(...xs) && ny >= Math.min(...ys) && ny <= Math.max(...ys); });
 }
 canvas.onmousedown = e => {
-  if (!img || (frameMode && !isVideo)) return; const [x, y] = mouse(e);
+  if (!img) return; const [x, y] = mouse(e);
   const c = hitCorner([x, y]);
   if (c >= 0) { drag = {kind:'corner', c}; return; }
   const w = hitWindow([x, y]);
   if (w >= 0 && !e.shiftKey) { sel = w; drag = {kind:'move', x, y, quad: editable()[w].quad.map(p => [...p])}; renderWins(); draw(); return; }
-  if (frameMode && isVideo) return;   // no new windows on a frame; a video has exactly its three
+  if (frameMode) return;   // no new windows on a frame: a frame carries its reference's windows
   drag = {kind:'new', x0:x, y0:y, x, y};
 };
 canvas.onmousemove = e => {
   if (!drag) return; const [x, y] = mouse(e);
   if (drag.kind === 'new') { drag.x = x; drag.y = y; }
-  else if (drag.kind === 'corner') { editable()[sel].quad[drag.c] = toImg([x, y]); if (frameMode && isVideo) frameQuadsEdited = true; else touch(); }
+  else if (drag.kind === 'corner') { editable()[sel].quad[drag.c] = toImg([x, y]); if (frameMode) frameQuadsEdited = true; else touch(); }
   else if (drag.kind === 'move') {
     const d0 = toImg([drag.x, drag.y]), d1 = toImg([x, y]);
     editable()[sel].quad = drag.quad.map(p => [Math.min(1, Math.max(0, p[0] + d1[0] - d0[0])), Math.min(1, Math.max(0, p[1] + d1[1] - d0[1]))]); if (frameMode && isVideo) frameQuadsEdited = true; else touch();
@@ -442,7 +452,7 @@ canvas.onmouseup = e => {
   drag = null; draw();
   // A dragged quad on a video frame is a human placement: it persists as an
   // anchor at once (debounced), and the retrack leaves the frame verbatim.
-  if (wasEdit && frameMode && isVideo && frameQuadsEdited) { clearTimeout(anchorTimer); anchorTimer = setTimeout(saveAnchor, 600); }
+  if (wasEdit && frameMode && frameQuadsEdited) { clearTimeout(anchorTimer); anchorTimer = setTimeout(saveAnchor, 600); }
 };
 let anchorTimer = null;
 
@@ -479,6 +489,11 @@ document.querySelectorAll('[name=tracking]').forEach(r => r.onchange = touch);
 $('#save').onclick = save; $('#check').onclick = check;
 $('#reviewed').onchange = touch;
 $('#vlSave').onclick = saveVideoLabel;
+// A Live record reviewed in its frames: tracking ok on the still, saved, next.
+async function markTrackingOk() {
+  const radio = document.querySelector('input[name="tracking"][value="ok"]'); if (radio) { radio.checked = true; entry.tracking = 'ok'; touch(); }
+  await save(); setMsg('tracking ok, saved');
+}
 async function saveAnchor() {
   const r = currentRecord(); const name = r.tracked[frameIdx];
   const res = await (await fetch('/api/video-anchor/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name), {method:'PUT', body: JSON.stringify({windows: r.frames[name].windows})})).json();
@@ -548,6 +563,7 @@ document.addEventListener('keydown', e => {
   const t = e.target; const typing = t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !['range','checkbox','radio'].includes(t.type));
   if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); save(); return; }
   if (typing && frameMode && isVideo && e.key === 'Enter' && e.shiftKey) { e.preventDefault(); saveVideoLabel(); return; }
+  if (frameMode && !isVideo && e.key === 'Enter' && e.shiftKey) { e.preventDefault(); markTrackingOk(); return; }
   if (frameMode && isVideo && e.key === 'ArrowLeft' && e.shiftKey) { e.preventDefault(); copyPrevious(); return; }
   if (frameMode && isVideo && e.key === 'ArrowRight' && e.shiftKey) { e.preventDefault(); stepRun(1); return; }
   if (!typing && e.key === 'r') { runReader(false); return; }

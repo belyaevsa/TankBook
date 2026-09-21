@@ -176,7 +176,20 @@ def plausible(mapped: np.ndarray, orig: np.ndarray, frame_size: tuple[int, int],
     return cv2.isContourConvex(mapped.astype(np.float32))
 
 
+def carried(source: dict, quad: list) -> dict:
+    """A frame window: the still's field, text and legibility on a new quad."""
+    cw = {"field": source["field"], "text": source.get("text", ""), "quad": quad}
+    if source.get("legibility"):
+        cw["legibility"] = source["legibility"]
+    return cw
+
+
 def track_record(stem: str, still: str, split: str, ann: dict, min_inliers: int) -> dict | None:
+    """A Live Photo's frames take the still's quads and texts. The still is the
+    reference; every frame the owner corrected in the annotator (`liveAnchors`
+    on the still's entry) is a further anchor, written back verbatim, and each
+    other frame registers to the still and to its nearest anchors and takes the
+    registration with the most inliers - the same rule as a video's."""
     folder = FRAMES / stem
     frames = sorted(folder.glob("*.jpg"))
     if not frames:
@@ -186,32 +199,54 @@ def track_record(stem: str, still: str, split: str, ann: dict, min_inliers: int)
         return None
     still_gray, (sw, sh) = oriented_gray(PUMP / still)
     quads_px = [np.array(w["quad"], dtype=np.float64) * [sw, sh] for w in entry["windows"]]
-    reg = Registrar(still_gray, quads_px)
-    out: dict = {"_still": still, "_movie": stem, "_split": split, "frames": {}}
+    regs = [{"index": None, "reg": Registrar(still_gray, quads_px), "quads": quads_px, "size": (sw, sh),
+             "windows": entry["windows"]}]
+    anchors = [a for a in entry.get("liveAnchors", []) if (folder / a["frame"]).exists()]
+    for a in anchors:
+        gray = cv2.imread(str(folder / a["frame"]), cv2.IMREAD_GRAYSCALE)
+        ah, aw = gray.shape
+        aq = [np.array(w["quad"], dtype=np.float64) * [aw, ah] for w in a["windows"]]
+        regs.append({"index": int(a["frame"][:-4]), "reg": Registrar(gray, aq), "quads": aq, "size": (aw, ah),
+                     "windows": a["windows"]})
+    texts = {w["field"]: w for w in entry["windows"]}
+    out: dict = {"_still": still, "_movie": stem, "_split": split, "_anchors": [a["frame"] for a in anchors],
+                 "frames": {}}
     kept = dropped = 0
+    exact = {a["frame"]: a["windows"] for a in anchors}
     for frame in frames:
+        if frame.name in exact:
+            out["frames"][frame.name] = {"windows": [carried(texts.get(w["field"], w), w["quad"]) for w in exact[frame.name]],
+                                        "inliers": -1, "anchor": int(frame.stem), "verified": True}
+            kept += 1
+            continue
         gray = cv2.imread(str(frame), cv2.IMREAD_GRAYSCALE)
         fh, fw = gray.shape
-        H, inliers, _ = reg.homography(gray)
-        if H is None or inliers < min_inliers:
+        index = int(frame.stem) if frame.stem.isdigit() else 0
+        nearest = [regs[0]] + sorted(regs[1:], key=lambda r: abs(r["index"] - index))[:2]
+        best = None
+        for r in nearest:
+            H, inliers, _ = r["reg"].homography(gray)
+            if H is not None and inliers >= min_inliers and (best is None or inliers > best[1]):
+                best = (H, inliers, r)
+        if best is None:
             dropped += 1
             continue
+        H, inliers, r = best
+        rw, rh = r["size"]
         windows = []
         ok = True
-        for w, q in zip(entry["windows"], quads_px):
+        for w, q in zip(r["windows"], r["quads"]):
             m = map_quad(H, q)
-            if not plausible(m, q, (fw, fh), (sw, sh)):
+            if not plausible(m, q, (fw, fh), (rw, rh)):
                 ok = False
                 break
-            cw = {"field": w["field"], "text": w.get("text", ""),
-                  "quad": [[round(float(x) / fw, 4), round(float(y) / fh, 4)] for x, y in m]}
-            if w.get("legibility"):
-                cw["legibility"] = w["legibility"]
-            windows.append(cw)
+            windows.append(carried(texts.get(w["field"], w),
+                                   [[round(float(x) / fw, 4), round(float(y) / fh, 4)] for x, y in m]))
         if not ok:
             dropped += 1
             continue
-        out["frames"][frame.name] = {"windows": windows, "inliers": inliers}
+        out["frames"][frame.name] = {"windows": windows, "inliers": inliers,
+                                     **({"anchor": r["index"]} if r["index"] is not None else {})}
         kept += 1
     out["_kept"] = kept
     out["_dropped"] = dropped

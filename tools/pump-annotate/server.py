@@ -38,7 +38,7 @@ CHECK = ROOT / "scripts" / "pump-windows-check.py"
 HERE = Path(__file__).resolve().parent
 CACHE = Path.home() / "Library" / "Caches" / "tankbook-pump-annotate"
 IMAGE_EDGE = 2000
-ENTRY_KEYS = ("windows", "rotationCW", "notOnDisplay", "csvDisagrees", "reviewed", "tracking")
+ENTRY_KEYS = ("windows", "rotationCW", "notOnDisplay", "csvDisagrees", "reviewed", "tracking", "liveAnchors")
 FRAMES = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "pump-live" / "frames"
 DB = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "corpus.sqlite"
 LIVE = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "pump-live"
@@ -129,6 +129,11 @@ def clean_entry(entry: dict) -> dict:
         out["reviewed"] = True
     if entry.get("tracking") in ("ok", "bad"):
         out["tracking"] = entry["tracking"]
+    if entry.get("liveAnchors"):
+        # A Live record's hand-placed frames (`pump_reader.track` anchors), per
+        # record: frame name plus its quads.
+        out["liveAnchors"] = [{"record": a["record"], "frame": a["frame"], "windows": a["windows"]}
+                              for a in entry["liveAnchors"]]
     return out
 
 
@@ -251,7 +256,8 @@ def start_retrack(name: str, read: bool = False) -> None:
             ml = ROOT / "ml" / "pump-reader"
             python = ml / ".venv" / "bin" / "python"
             retracks[name]["phase"] = "track"
-            result = subprocess.run([str(python), "-m", "pump_reader.track", "--videos", "--only", name],
+            mode = ["--videos"] if name.startswith("video-") else []
+            result = subprocess.run([str(python), "-m", "pump_reader.track", *mode, "--only", name],
                                     cwd=ml, env={**os.environ, "PYTHONPATH": "src"}, capture_output=True, text=True)
             lines = (result.stdout + result.stderr).strip().splitlines()
             retracks[name]["result"] = lines[-1] if lines else f"exit {result.returncode}"
@@ -365,10 +371,25 @@ class Handler(SimpleHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", "0"))
             body = json.loads(self.rfile.read(length))
             videos = json.loads(VIDEOS.read_text())
+            windows = [{"field": w["field"], "quad": [[round(float(x), 4), round(float(y), 4)] for x, y in w["quad"]]}
+                       for w in body.get("windows", []) if w["field"] in ("total", "liters", "unitPrice", "board")]
+            if stem.startswith("live-"):
+                # A Live record's anchor is kept on its still's entry (windows.json);
+                # the record's own tracked file is derived from it.
+                tracked = FRAMES / stem / "windows.json"
+                still = json.loads(tracked.read_text()).get("_still") if tracked.exists() else None
+                ann = load_windows()
+                if not still or still not in ann:
+                    return self.send_error(HTTPStatus.NOT_FOUND)
+                anchors = [a for a in ann[still].get("liveAnchors", []) if not (a["record"] == stem and a["frame"] == frame)]
+                anchors.append({"record": stem, "frame": frame, "windows": windows})
+                ann[still]["liveAnchors"] = sorted(anchors, key=lambda a: (a["record"], int(a["frame"][:-4])))
+                ann[still] = clean_entry(ann[still])
+                save_windows(ann)
+                start_retrack(stem)
+                return self.send_json({"ok": True, "anchors": [a["frame"] for a in anchors if a["record"] == stem]})
             if stem not in videos:
                 return self.send_error(HTTPStatus.NOT_FOUND)
-            windows = [{"field": w["field"], "quad": [[round(float(x), 4), round(float(y), 4)] for x, y in w["quad"]]}
-                       for w in body.get("windows", []) if w["field"] in ("total", "liters", "unitPrice")]
             anchors = [a for a in videos[stem].get("anchors", []) if a["frame"] != frame]
             if frame == videos[stem]["reference"]:
                 videos[stem]["windows"] = windows
