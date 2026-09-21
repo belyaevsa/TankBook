@@ -8,6 +8,7 @@ diffs stay readable and the Swift ratchets keep reading files unchanged.
     scripts/corpus_db.py import   # files -> corpus.sqlite (the old `build`)
     scripts/corpus_db.py dump     # corpus.sqlite -> the seven text files
     scripts/corpus_db.py check    # exit 1 when a file differs from the dump
+    scripts/corpus_db.py import-readings <staging.json>   # the Swift reader's write path
     scripts/corpus_db.py sql "select field, count(*) from windows group by 1"
 
 `import` reads `pump/windows.json`, `pump/expected.csv`,
@@ -18,6 +19,13 @@ format the old writers used, so `import` followed by `dump` on an unchanged
 corpus leaves `git diff Spike/` empty. Values that have no column live in an
 `extra` JSON column on their table, and record-level tables also carry a `keys`
 column - the original top-level key order - so the dump loses nothing.
+
+`import-readings` is the Swift reader's write path: the test stages one
+record's readings and its arithmetic labels as a JSON file, this writes
+`readings` and `labels` in one transaction (an owner label is never
+overwritten) and dumps the two files. `frames.s3_key` records where the
+gitignored frame JPEGs live in the bucket; the dump does not carry it, so the
+text files stay byte-identical.
 
 The tables the report and the annotator read (`fixtures`, `entries`,
 `windows`, `media`, `pairs`) are unchanged apart from `entries.tracking` and
@@ -55,7 +63,7 @@ S3_ENDPOINT = "https://storage.yandexcloud.net"
 S3_BUCKET = "tankbook-corpus"
 S3_MEDIA_PREFIX = "pump-live/"
 
-SCHEMA_VERSION = "2"
+SCHEMA_VERSION = "3"
 
 ENTRY_KEYS = ("windows", "rotationCW", "notOnDisplay", "csvDisagrees", "reviewed", "tracking", "liveAnchors")
 VIDEO_KEYS = ("reference", "currency", "unitPrice", "windows", "reviewed", "anchors", "firstFrame", "lastFrame", "note")
@@ -98,6 +106,7 @@ create table video_anchors (
 create table frames (
   record text not null, frame text not null, still text, split text,
   inliers integer, anchor integer, verified integer, keys text, extra text, ord integer,
+  s3_key text,
   primary key (record, frame));
 create table frame_windows (
   record text not null, frame text not null, ord integer not null, field text not null,
@@ -434,6 +443,29 @@ def _carry_forward(con: sqlite3.Connection, old_db: Path, tables: list[str]) -> 
         con.commit()
 
 
+def _carry_frame_keys(con: sqlite3.Connection, old_db: Path) -> None:
+    """Keep `frames.s3_key`: the frames files are gitignored and the key is not
+    in them, so a rebuild that re-reads the frames must not blank it."""
+    if not old_db.exists():
+        return
+    con.commit()
+    con.execute("attach database ? as old", (str(old_db),))
+    try:
+        columns = {r[1] for r in con.execute("pragma old.table_info(frames)")}
+        if "s3_key" in columns:
+            con.execute(
+                "update frames set s3_key = (select o.s3_key from old.frames o "
+                "where o.record = frames.record and o.frame = frames.frame) "
+                "where exists (select 1 from old.frames o where o.record = frames.record "
+                "and o.frame = frames.frame and o.s3_key is not null)")
+        con.commit()
+    except sqlite3.DatabaseError:
+        pass  # the old database predates the column
+    finally:
+        con.execute("detach database old")
+        con.commit()
+
+
 def import_corpus(with_s3: bool = False, db: Path | None = None) -> Path:
     """The files -> a fresh database, replacing it atomically. Renamed `build`."""
     target = db or DB
@@ -461,6 +493,7 @@ def import_corpus(with_s3: bool = False, db: Path | None = None) -> Path:
         if not CORRECTIONS_FILE.exists():
             carry.append("corrections")
         _carry_forward(con, target, carry)
+        _carry_frame_keys(con, target)
         load_media(con, bucket_keys() if with_s3 else None, media_known)
         load_pairs(con)
         # The file is committed: a rebuild from unchanged inputs must be
@@ -1072,8 +1105,81 @@ def save_labels(stem: str, frames: dict[str, dict], con: sqlite3.Connection | No
                 con.execute("insert into labels values (?,?,?,?,?)", (stem, frame, field, text, source))
 
 
+def set_frame_key(record: str, frame: str, key: str, con: sqlite3.Connection | None = None) -> None:
+    """Record where a frame JPEG (or the record's `sheet.jpg`, `frame=""`)
+    lives in the bucket. The dump does not carry it."""
+    with transaction(con) as con:
+        con.execute("update frames set s3_key = ? where record = ? and frame = ?", (key, record, frame))
+
+
+def import_readings(path: Path) -> None:
+    """The Swift reader's staging file -> `readings` and arithmetic `labels`,
+    one transaction, then the two files dumped.
+
+    The staging file is `{"record": stem, "readings": {...}, "labels": {...}}`:
+    `readings` is the per-frame readings object the old writer wrote to
+    `frames/<stem>/readings.json`; `labels` carries only arithmetic rows. An
+    owner label for a frame is kept and no arithmetic row is added for it.
+    The old writer emitted compact readings JSON, so the style is reset to
+    `compact` for the record."""
+    data = json.loads(Path(path).read_text())
+    record = data["record"]
+    readings = data.get("readings") or {}
+    labels = data.get("labels") or {}
+    con = connect()
+    try:
+        with con:
+            con.execute("delete from readings where record = ?", (record,))
+            con.execute("delete from meta where key = ?", ("readings-style:" + record,))
+            con.execute("insert into meta values (?,?)", ("readings-style:" + record, "compact"))
+            if not readings:
+                con.execute("insert into readings values (?,?,?,?,?,?)", (record, "", "", None, None, -1))
+            for i, (frame, fields) in enumerate(readings.items()):
+                closes = int(bool(fields.get("closes")))
+                for field, text in fields.items():
+                    if field == "closes":
+                        continue
+                    con.execute("insert into readings values (?,?,?,?,?,?)",
+                                (record, frame, field, text, closes, i))
+            owner = {r["frame"] for r in con.execute(
+                "select distinct frame from labels where video = ? and source = 'owner'", (record,))}
+            con.execute("delete from labels where video = ? and (source is null or source != 'owner')", (record,))
+            if not labels and not owner:
+                con.execute("insert into labels values (?,?,?,?,?)", (record, "", "", None, None))
+            for frame, fields in labels.items():
+                if frame in owner:
+                    continue
+                source = fields.get("source", "arithmetic")
+                for field, text in fields.items():
+                    if field == "source":
+                        continue
+                    con.execute("insert into labels values (?,?,?,?,?)", (record, frame, field, text, source))
+    finally:
+        con.close()
+    dump([LABELS_FILE, FRAMES / record / "readings.json"])
+
+
+def _stamp() -> tuple[str, str]:
+    """Now, and the commit the tools run from - what every ledger line carries."""
+    import datetime  # noqa: PLC0415
+    stamp = datetime.datetime.now().replace(microsecond=0).isoformat()
+    try:
+        build = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT,
+                               capture_output=True, text=True).stdout.strip() or "unknown"
+    except Exception:  # noqa: BLE001
+        build = "unknown"
+    return stamp, build
+
+
 def _insert_corrections(con: sqlite3.Connection, rows: list[dict]) -> None:
+    # A row without a stamp (pinned from a frame, not through `add_corrections`)
+    # is stamped here: `at` and `build` are what makes the ledger readable per
+    # build, and a null would drop the line from every per-build report.
+    stamped = None
     for row in rows:
+        if not row.get("at") or not row.get("build"):
+            stamped = stamped or _stamp()
+            row = {**row, "at": row.get("at") or stamped[0], "build": row.get("build") or stamped[1]}
         extra = {k: v for k, v in row.items() if k not in ("at", "build", *CORRECTION_ORDER)}
         con.execute(
             "insert into corrections (at, build, kind, still, record, video, frame, field, proposedBy, "
@@ -1100,9 +1206,32 @@ def add_corrections(rows: list[dict], con: sqlite3.Connection | None = None) -> 
         _insert_corrections(con, [{"at": stamp, "build": build, **row} for row in rows])
 
 
-def ensure_schema() -> None:
-    """At server start: a missing or older database is imported from the files."""
+def migrate(db: Path | None = None) -> bool:
+    """Bring an older database up to `SCHEMA_VERSION` in place, keeping every
+    row. The one migration so far adds `frames.s3_key`; a rebuild from the files
+    cannot reproduce it, because `frames/` is gitignored and the keys are only
+    known to the machine that uploaded them."""
+    target = db or DB
+    if not target.exists():
+        return False
     try:
+        with sqlite3.connect(target) as con:
+            columns = {r[1] for r in con.execute("pragma table_info(frames)")}
+            if "s3_key" not in columns:
+                con.execute("alter table frames add column s3_key text")
+            version = con.execute("select value from meta where key = 'schema_version'").fetchone()
+            if not version or version[0] != SCHEMA_VERSION:
+                con.execute("insert or replace into meta values ('schema_version', ?)", (SCHEMA_VERSION,))
+        return True
+    except sqlite3.DatabaseError:
+        return False
+
+
+def ensure_schema() -> None:
+    """At server start: a missing or older database is migrated, else imported
+    from the files."""
+    try:
+        migrate()
         with sqlite3.connect(DB) as con:
             version = con.execute("select value from meta where key = 'schema_version'").fetchone()
         if version and version[0] == SCHEMA_VERSION:
@@ -1119,7 +1248,7 @@ def build(with_s3: bool = False) -> Path:
 
 def main() -> int:
     args = sys.argv[1:]
-    if not args or args[0] not in ("import", "build", "dump", "check", "sql"):
+    if not args or args[0] not in ("import", "build", "dump", "check", "import-readings", "sql"):
         print(__doc__)
         return 2
     if args[0] in ("import", "build"):
@@ -1130,6 +1259,12 @@ def main() -> int:
                                 "videos", "video_windows", "frames", "frame_windows",
                                 "labels", "readings", "corrections")}
         print(f"{DB.relative_to(ROOT)}: " + ", ".join(f"{v} {k}" for k, v in counts.items()))
+        return 0
+    if args[0] == "import-readings":
+        if len(args) != 2:
+            print("usage: corpus_db.py import-readings <staging.json>")
+            return 2
+        import_readings(Path(args[1]))
         return 0
     if args[0] == "dump":
         for path in dump():
