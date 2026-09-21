@@ -53,6 +53,13 @@ the ml venv runs it); the converted images are cached under
   `arithmetic` labels. Frames with an owner label, frames anchored by hand and
   a video marked reviewed are skipped - the run never touches what a human
   wrote. Progress shows in the status line (`retracking…`, `reading…`).
+- **The rail** (far left): 🖼 photos (every still), ▶ Live photos (stills with a
+  Live record - opening one lands on its frames), 🎞 movies (the running-display
+  clips and the 4K held-display records). The filter and search apply inside the
+  chosen mode; the mode is remembered per browser.
+- **Playback** (toolbar above the image): ▶ / ⏸ (`space` when not typing), ⏮ ⏭
+  step, fps, **loop**, and **autoplay** - when on, a Live photo or movie starts
+  playing the moment it opens. Stepping or dragging a quad pauses.
 - **Zoom** (`+` / `-` / the slider) keeps the selected window - else the
   centroid of all windows - at the same spot in the viewport, so zooming in
   lands on the digits instead of the image's top-left corner; `0` refits.

@@ -7,7 +7,13 @@
   :root { --bg:#0e1116; --panel:#171b22; --line:#2a303a; --fg:#e6e8eb; --dim:#8a919c;
           --total:#ff5a5f; --liters:#4cc3ff; --unitPrice:#ffc857; --board:#9b8cff; --ok:#4ade80; --bad:#f87171; }
   * { box-sizing:border-box }
-  body { margin:0; background:var(--bg); color:var(--fg); font:13px/1.4 -apple-system, system-ui, sans-serif; height:100vh; display:grid; grid-template-columns:260px 1fr 340px; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:13px/1.4 -apple-system, system-ui, sans-serif; height:100vh; display:grid; grid-template-columns:44px 260px 1fr 340px; }
+  nav.rail { background:#0b0e13; border-right:1px solid var(--line); display:flex; flex-direction:column; gap:4px; padding:8px 4px }
+  nav.rail button { width:36px; height:36px; padding:0; font-size:18px; background:none; border-color:transparent } nav.rail button:hover { background:#222833 } nav.rail button.on { background:#2456a5; border-color:#2456a5 }
+  main { display:flex; flex-direction:column }
+  #toolbar { display:flex; gap:8px; align-items:center; padding:4px 8px; background:var(--panel); border-bottom:1px solid var(--line); flex:none }
+  #toolbar button { min-width:32px } #toolbar .dim { font-size:12px }
+  #stage { position:relative; overflow:auto; flex:1; background:#05070a }
   aside, section.right { background:var(--panel); border-right:1px solid var(--line); overflow:auto; padding:8px }
   section.right { border-right:0; border-left:1px solid var(--line) }
   input, select, button, textarea { font:inherit; background:#0b0e13; color:var(--fg); border:1px solid var(--line); border-radius:4px; padding:3px 6px }
@@ -16,7 +22,6 @@
   #list div.sel { background:#2456a5 } #list div .n { color:var(--dim); float:right }
   #list div.todo { color:var(--dim) }
   #list .live { color:#4cc3ff } #list .live.ok { color:var(--ok) } #list .live.bad { color:var(--bad) }
-  main { position:relative; overflow:auto; background:#05070a }
   canvas { display:block; cursor:crosshair }
   .row { display:flex; gap:6px; align-items:center; margin:4px 0; flex-wrap:wrap }
   .win { border:1px solid var(--line); border-radius:6px; padding:6px; margin:6px 0 }
@@ -43,6 +48,11 @@
 </style>
 </head>
 <body>
+<nav class="rail" title="what the list shows">
+  <button data-mode="photos" class="on" title="photos - every still">🖼</button>
+  <button data-mode="live" title="Live photos - stills with a Live record, opened on their frames">▶</button>
+  <button data-mode="movies" title="movies - the running-display clips and the 4K held-display records">🎞</button>
+</nav>
 <aside>
   <div class="row"><input id="filter" placeholder="filter…" style="flex:1">
     <select id="state"><option value="all">all</option><option value="todo">no windows</option><option value="unreviewed">not processed</option><option value="reviewed">processed</option><option value="live">with Live record</option><option value="liveunchecked">Live, tracking unreviewed</option><option value="video">videos</option><option value="work">to do: unprocessed, Live unchecked, videos</option></select></div>
@@ -50,7 +60,17 @@
   <div class="row dim" id="counts"></div>
   <div id="list"></div>
 </aside>
-<main><div id="banner" class="idle"></div><canvas id="c"></canvas></main>
+<main>
+  <div id="toolbar">
+    <button id="play" title="play / pause the frames (space)">▶</button>
+    <button id="stepBack" title="previous frame (←)">⏮</button><button id="stepFwd" title="next frame (→)">⏭</button>
+    <label title="frames per second">fps <input id="fps" type="number" min="1" max="60" value="12" style="width:52px"></label>
+    <label title="start playing as soon as a Live photo or movie opens"><input type="checkbox" id="autoplay"> autoplay</label>
+    <label><input type="checkbox" id="loop" checked> loop</label>
+    <span id="playInfo" class="dim"></span>
+  </div>
+  <div id="stage"><div id="banner" class="idle"></div><canvas id="c"></canvas></div>
+</main>
 <section class="right">
   <div class="row"><b id="name" style="flex:1">–</b> <label title="reviewed by a human; P toggles"><input type="checkbox" id="reviewed"> processed</label></div>
   <div class="row dim">Drag = new window · click = select · drag corner = adjust · <kbd>⌫</kbd> delete · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> field · <kbd>⌘S</kbd> save · <kbd>+</kbd>/<kbd>-</kbd>/<kbd>0</kbd> zoom · <kbd>P</kbd> processed · <kbd>⏎</kbd> save &amp; next · <kbd>J</kbd>/<kbd>K</kbd> next/prev</div>
@@ -107,6 +127,15 @@ const canvas = $('#c'), ctx = canvas.getContext('2d');
 let fixtures = [], current = null, entry = null, row = null, img = null, dirty = false;
 let sel = -1, zoom = 1, drag = null;
 let records = [], frameMode = false, frameIdx = 0, frameImg = null, stillImg = null, isVideo = false;
+// The rail: photos (every still), live (stills with a Live record, opened on
+// their frames), movies (the clips). Remembered per browser.
+let mode = 'photos';
+try { mode = localStorage.getItem('annotator.mode') || 'photos'; } catch (e) {}
+function setMode(m) {
+  mode = m; try { localStorage.setItem('annotator.mode', m); } catch (e) {}
+  document.querySelectorAll('nav.rail button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
+  renderList();
+}
 
 // ---- data ----
 async function loadList() {
@@ -117,9 +146,10 @@ function renderList() {
   const f = $('#filter').value.toLowerCase(), st = $('#state').value;
   const done = fixtures.filter(x => x.windows).length, rev = fixtures.filter(x => x.reviewed).length;
   $('#counts').textContent = `${rev} processed · ${done} with windows · ${fixtures.length - done} empty`;
-  const pass = x => st === 'all' || (st === 'todo' && !x.windows) || (st === 'reviewed' && x.reviewed) || (st === 'unreviewed' && !x.reviewed)
+  const inMode = x => mode === 'photos' ? !x.video : mode === 'live' ? (x.live && !x.video) : x.video;
+  const pass = x => inMode(x) && (st === 'all' || (st === 'todo' && !x.windows) || (st === 'reviewed' && x.reviewed) || (st === 'unreviewed' && !x.reviewed)
     || (st === 'live' && x.live) || (st === 'liveunchecked' && x.live && !x.tracking && !x.video) || (st === 'video' && x.video)
-    || (st === 'work' && ((x.video && !x.reviewed) || (!x.video && !x.reviewed) || (x.live && x.tracked && !x.tracking && !x.video)));
+    || (st === 'work' && ((x.video && !x.reviewed) || (!x.video && !x.reviewed) || (x.live && x.tracked && !x.tracking && !x.video))));
   const shown = fixtures.filter(x => x.name.toLowerCase().includes(f) && pass(x));
   $('#list').innerHTML = shown.map(x =>
     `<div data-n="${x.name}" class="${x.name===current?'sel':''} ${x.windows?'':'todo'}" title="${x.name}">${x.reviewed?'✓ ':''}${x.video?'🎞 ':''}${x.name.replace(/\.(jpe?g|heic|png)$/i,'')}<span class="n">${x.live ? `<span class="live ${x.tracking||''}" title="${x.live} Live record(s), ${x.tracked} tracked frames${x.tracking ? ', tracking ' + x.tracking : ''}">▶${x.tracked ? '' : '?'}</span> ` : ''}${x.windows||'·'}</span></div>`).join('');
@@ -151,7 +181,31 @@ async function openFixture(n) {
   document.querySelectorAll('[name=tracking]').forEach(r => r.checked = (entry.tracking || '') === r.value);
   recordsLoaded = loadRecords(n);
   renderList(); renderWins(); location.hash = encodeURIComponent(n);
+  stopPlay();
+  if (mode !== 'photos' || isVideo) recordsLoaded.then(async () => { if (current !== n) return; await enterFrames(); if (frameMode && $('#autoplay').checked) startPlay(); });
 }
+// ---- playback: the tracked frames as a movie ----
+let playTimer = null;
+function playable() { const r = currentRecord(); return frameMode && r && r.tracked.length > 1; }
+function startPlay() {
+  if (!playable()) return;
+  stopPlay(); $('#play').textContent = '⏸';
+  const fps = Math.max(1, Math.min(60, +$('#fps').value || 12));
+  playTimer = setInterval(() => {
+    const r = currentRecord(); if (!frameMode || !r) { stopPlay(); return; }
+    if (frameIdx >= r.tracked.length - 1) { if ($('#loop').checked) frameIdx = 0; else { stopPlay(); return; } }
+    else frameIdx += 1;
+    showFrame();
+  }, 1000 / fps);
+}
+function stopPlay() { if (playTimer) clearInterval(playTimer); playTimer = null; $('#play').textContent = '▶'; }
+function togglePlay() { playTimer ? stopPlay() : startPlay(); }
+$('#play').onclick = togglePlay;
+$('#stepFwd').onclick = () => { if (!playable()) return; stopPlay(); frameIdx = Math.min(frameIdx + 1, currentRecord().tracked.length - 1); showFrame(); };
+$('#stepBack').onclick = () => { if (!playable()) return; stopPlay(); frameIdx = Math.max(frameIdx - 1, 0); showFrame(); };
+$('#fps').onchange = () => { if (playTimer) startPlay(); };
+try { $('#autoplay').checked = localStorage.getItem('annotator.autoplay') === '1'; } catch (e) {}
+$('#autoplay').onchange = e => { try { localStorage.setItem('annotator.autoplay', e.target.checked ? '1' : '0'); } catch (err) {} };
 let recordsLoaded = Promise.resolve();
 function resetFrames() {
   frameMode = false; frameIdx = 0; records = []; $('#frameStrip').style.display = 'none'; $('#frameStrip').innerHTML = '';
@@ -189,6 +243,7 @@ async function enterFrames() {
   $('#framesToggle').textContent = 'Back to still'; showFrame();
 }
 function leaveFrames() {
+  stopPlay(); $('#playInfo').textContent = '';
   frameMode = false; img = stillImg; $('#videoLabel').style.display = 'none'; $('#liveFrame').style.display = 'none'; $('#frameStrip').style.display = 'none'; $('#frameSlider').style.display = 'none'; $('#framesToggle').textContent = 'View frames';
   $('#frameName').textContent = ''; fit(); draw();
 }
@@ -292,6 +347,7 @@ function showFrame() {
   showVideoLabel();
   const movie = r.movie, still = current;
   $('#frameSlider').value = frameIdx; $('#frameName').textContent = `${name} · inliers ${r.frames[name].inliers} · ${frameIdx + 1}/${r.tracked.length}`;
+  $('#playInfo').textContent = `${r.movie} · ${frameIdx + 1}/${r.tracked.length}`;
   frameImg = new Image();
   frameImg.onload = () => { if (frameMode && current === still && currentRecord() && currentRecord().movie === movie) { img = frameImg; fit(); draw(); } };
   frameImg.src = '/frame/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name);
@@ -372,7 +428,7 @@ function toImg([dx, dy]) {            // unscaled display px -> normalised image
   return [Math.min(1, Math.max(0, x / W)), Math.min(1, Math.max(0, y / H))];
 }
 function fit() {
-  const [w, h] = dispSize(), main = $('main');
+  const [w, h] = dispSize(), main = $('#stage');
   zoom = Math.min((main.clientWidth - 16) / w, (main.clientHeight - 16) / h, 1);
   $('#zoom').value = zoom;
 }
@@ -482,14 +538,14 @@ let anchorTimer = null;
 // The point is fixed in unscaled display px, so after a redraw the scroll
 // offset that puts it back at the same viewport spot is recomputed.
 function focusPoint() {
-  const main = $('main'), wins = windowsToDraw();
+  const main = $('#stage'), wins = windowsToDraw();
   const centre = pts => pts.reduce((a, p) => [a[0] + p[0] / pts.length, a[1] + p[1] / pts.length], [0, 0]);
   if (sel >= 0 && wins[sel]) return { p: centre(wins[sel].quad.map(toDisp)), v: null };
   if (wins.length) return { p: centre(wins.flatMap(w => w.quad.map(toDisp))), v: null };
   return { p: [(main.scrollLeft + main.clientWidth / 2) / zoom, (main.scrollTop + main.clientHeight / 2) / zoom], v: null };
 }
 function setZoom(z, focus) {
-  const main = $('main');
+  const main = $('#stage');
   const f = focus || focusPoint();
   // Where the focus point sits in the viewport now; a window off screen is brought to the middle.
   const vx = f.p[0] * zoom - main.scrollLeft, vy = f.p[1] * zoom - main.scrollTop;
@@ -598,6 +654,8 @@ function next() { const names = [...document.querySelectorAll('#list div')].map(
 $('#savenext').onclick = async () => { $('#reviewed').checked = true; await save(); next(); };
 $('#filter').oninput = renderList; $('#state').onchange = renderList;
 document.querySelectorAll('.quick').forEach(b => b.onclick = () => { $('#state').value = b.dataset.q; renderList(); });
+document.querySelectorAll('nav.rail button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+setMode(mode);
 document.querySelectorAll('[data-nod],[data-dis]').forEach(i => i.oninput = touch);
 document.addEventListener('keydown', e => {
   const t = e.target; const typing = t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !['range','checkbox','radio'].includes(t.type));
@@ -614,8 +672,9 @@ document.addEventListener('keydown', e => {
   if (typing && frameMode && isVideo && e.key === 'ArrowRight' && e.shiftKey) { e.preventDefault(); stepRun(1); return; }
   if (typing && frameMode && isVideo && (e.key === 'ArrowRight' || e.key === 'ArrowLeft') && e.altKey) { e.preventDefault(); frameIdx = Math.max(0, Math.min(currentRecord().tracked.length - 1, frameIdx + (e.key === 'ArrowRight' ? 1 : -1))); showFrame(); return; }
   if (typing) return;
-  if (frameMode && e.key === 'ArrowRight') { e.preventDefault(); frameIdx = Math.min(frameIdx + 1, currentRecord().tracked.length - 1); showFrame(); return; }
-  if (frameMode && e.key === 'ArrowLeft') { e.preventDefault(); frameIdx = Math.max(frameIdx - 1, 0); showFrame(); return; }
+  if (!typing && frameMode && e.key === ' ') { e.preventDefault(); togglePlay(); return; }
+  if (frameMode && e.key === 'ArrowRight') { e.preventDefault(); stopPlay(); frameIdx = Math.min(frameIdx + 1, currentRecord().tracked.length - 1); showFrame(); return; }
+  if (frameMode && e.key === 'ArrowLeft') { e.preventDefault(); stopPlay(); frameIdx = Math.max(frameIdx - 1, 0); showFrame(); return; }
   if (frameMode && e.key === 'Escape') { leaveFrames(); return; }
   if (frameMode && isVideo && e.key === 'Enter' && e.shiftKey) { e.preventDefault(); saveVideoLabel(); return; }
   if (frameMode) return;
