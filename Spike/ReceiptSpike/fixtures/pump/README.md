@@ -1360,3 +1360,21 @@ owner tightens, retypes the display's own spelling (`0063,27`) and marks process
 
 Pump cells asserted: 678 → 753 (32 stills; two idle and one negative assert nothing, three
 board-only Wayne heads assert two cells each, two glare stills two). Totals only (macOS 27).
+
+## Added 2026-09-21 (batch 7: the same day at night - eight stills)
+
+The first **night** captures of the Estonian faces, all **train**, auto-annotated through the
+live path (unreviewed; `pump-280` pending its price window, which the reader did not place).
+`pump-274`..`276`: Neste Dresser Wayne under the canopy lights, `30.24 / 15.13`, `103.37 /
+51.71` (a 51-litre fill, the corpus's largest Neste), `86.05 / 39.13`; the three-cell board lit
+(`1.999` / `2.459` / `2.199`), `unitPrice` blank as for the day set. `pump-277`..`279`: Circle K
+Peetri Gilbarco, backlit blue-white at night - pump 2 `0034,36 / 0017,54` at `1,959`, pump 4
+`0069,91 / 0034,97` at `1,999` (**off by a cent** the way `pump-256` is: 34.97 x 1.999 = 69.90,
+and the receipt prints 69,91 as well - **pair** with `receipt-086`), pump 3 `0016,47 /
+0008,00` at `2,059` (an 8.00-litre preset - **pair** with `receipt-087`). `pump-280`/`281`: a
+Circle K Gilbarco at night, pumps 11 and 12 - `0007,05 / 0003,23` at `2,184` (a 3-litre fill,
+the corpus's highest Estonian price) and `0045,78 / 0023,49` at `1,949`.
+
+**The Live records of this batch were lost at intake**: the orchestrator's cleanup deleted the
+`.mov` files after the conversion step failed, before they were copied (2026-09-21). They can
+be re-exported from the phone; until then these stills have no record. Pump cells: 753 → 774.

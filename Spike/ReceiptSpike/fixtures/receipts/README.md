@@ -1087,3 +1087,11 @@ miles 21,43 L at 2,099, 44,98, pump 3, 09:56 - **pair** with `pump-248`/`pump-24
 **pair** with `pump-253`). Held in hand at the forecourt; every one has a Live record
 (`../pump-live/live-6300`, `6303`, `6308`). Station `circle k|circlek`. JPEG, EXIF stripped.
 Receipt cells: 389 → 404, stations 68 → 71.
+
+## Added 2026-09-21 (batch 7: two night receipts at Peetri)
+
+`receipt-086` (95EO miles 34,97 L at 1,999, KOKKU 69,91, pump 4, 20:31 - **pair** with
+`pump-278`) and `receipt-087` (98EO miles+ 8,00 L at 2,059, 16,47, pump 3, 20:31 - **pair** with
+`pump-279`), held over the paving under the forecourt lights, the first receipt photographed
+at night. Station `circle k|circlek`. Their Live records were lost at intake (see the pump
+README). Receipt cells: 404 → 414, stations 71 → 73.
