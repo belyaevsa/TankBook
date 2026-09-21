@@ -198,6 +198,7 @@ let fixtures = [], current = null, entry = null, row = null, img = null, dirty =
 let sel = -1, zoom = 1, drag = null, activeCorner = 0;
 let confirmLoop = null;
 let records = [], frameMode = false, frameIdx = 0, frameImg = null, stillImg = null, isVideo = false;
+let frameZoomFor = null;   // the record whose frames currently keep the owner's zoom
 // The rail: photos (every still), live (stills with a Live record, opened on
 // their frames), movies (the clips). Remembered per browser.
 let mode = 'photos';
@@ -330,6 +331,7 @@ async function enterFrames() {
   $('#framesToggle').textContent = 'Back to still'; showFrame();
 }
 function leaveFrames() {
+  frameZoomFor = null;
   stopPlay(); $('#playInfo').textContent = ''; confirmLoop = null;
   frameMode = false; img = stillImg; $('#videoLabel').style.display = 'none'; $('#liveFrame').style.display = 'none'; $('#retrackBar').style.display = 'none'; $('#keepShapeLabel').style.display = 'none'; $('#frameStrip').style.display = 'none'; $('#frameSlider').style.display = 'none'; $('#framesToggle').textContent = 'View frames';
   $('#frameName').textContent = ''; fit(); draw();
@@ -554,7 +556,16 @@ function showFrame() {
   $('#frameSlider').value = frameIdx; $('#frameName').textContent = `${name} · inliers ${r.frames[name].inliers} · ${frameIdx + 1}/${r.tracked.length}`;
   $('#playInfo').textContent = `${r.movie} · ${frameIdx + 1}/${r.tracked.length}`;
   frameImg = new Image();
-  frameImg.onload = () => { if (frameMode && current === still && currentRecord() && currentRecord().movie === movie) { img = frameImg; fit(); draw(); } };
+  frameImg.onload = () => {
+    if (!(frameMode && current === still && currentRecord() && currentRecord().movie === movie)) return;
+    // The zoom and the scroll position survive a frame step: the frames of one
+    // record share a size, and re-fitting on every frame threw away the zoom
+    // the owner had set on the digits. Only the first frame of a record fits.
+    const keep = frameZoomFor === movie && img && img.naturalWidth === frameImg.naturalWidth && img.naturalHeight === frameImg.naturalHeight;
+    const stage = $('#stage'), sx = stage.scrollLeft, sy = stage.scrollTop;
+    img = frameImg;
+    if (keep) { draw(); stage.scrollLeft = sx; stage.scrollTop = sy; } else { frameZoomFor = movie; fit(); draw(); }
+  };
   frameImg.src = '/frame/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name);
 }
 function collect() {

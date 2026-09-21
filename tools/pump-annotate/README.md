@@ -135,6 +135,8 @@ the ml venv runs it); the converted images are cached under
   (`slicer.py`; the optimised build under `ios/.build/opt`, made on first use -
   the first request on a still also pays its decode, ~100-400 ms); no model
   runs and nothing is written. Off, the overlay only appears after ▶ read.
+- In the frames view the zoom and scroll survive stepping frames (one
+  record's frames share a size); the first frame of a record fits, `0` refits.
 - **Zoom** (`+` / `-` / the slider) keeps the selected window - else the
   centroid of all windows - at the same spot in the viewport, so zooming in
   lands on the digits instead of the image's top-left corner; `0` refits.
