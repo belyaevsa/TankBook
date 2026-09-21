@@ -83,7 +83,23 @@
 </main>
 <section class="right">
   <div class="row"><b id="name" style="flex:1">–</b> <label title="reviewed by a human; P toggles"><input type="checkbox" id="reviewed"> processed</label></div>
-  <div class="row dim">Drag = new window · click = select · drag corner = adjust · <kbd>⌫</kbd> delete · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> field · <kbd>⌘S</kbd> save · <kbd>+</kbd>/<kbd>-</kbd>/<kbd>0</kbd> zoom · <kbd>[</kbd>/<kbd>]</kbd> or the ring handle: turn the box · <kbd>A</kbd> auto-annotate · <kbd>P</kbd> processed · <kbd>⏎</kbd> save &amp; next · <kbd>J</kbd>/<kbd>K</kbd> next/prev</div>
+  <div class="row dim">Drag = new window · click = select · drag corner = adjust · <kbd>⌫</kbd> delete · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> field · <kbd>⌘S</kbd> save · <kbd>+</kbd>/<kbd>-</kbd>/<kbd>0</kbd> zoom · arrows nudge the selected box (<kbd>⇧</kbd> 10 px, <kbd>⌥</kbd> corner; in frames <kbd>,</kbd>/<kbd>.</kbd> for left/right) · <kbd>[</kbd>/<kbd>]</kbd> or the ring handle: turn · <kbd>A</kbd> auto-annotate · <kbd>Z</kbd> pad · <kbd>P</kbd> processed · <kbd>⏎</kbd> save &amp; next · <kbd>J</kbd>/<kbd>K</kbd> next/prev · <a href="#keys" onclick="document.getElementById('keys').style.display='';return false">all keys</a></div>
+  <pre id="keys" style="display:none">STILL (not typing)          FRAMES VIEW (Live record or movie)
+⌘S save                     ← →        prev / next frame (always)
+⏎  save & next              space      play / pause
+J K next / prev fixture     ⇧←         copy the previous label (video)
+P  toggle processed         ⇧→         next run (video)
+⌫  delete selected box      ⌥← ⌥→     step frames while typing a label
+1-4 field of selected box   ⇧⏎         save label (video) / pin anchor or tracking ok (Live)
+A  auto-annotate (reader)   ⌥⏎         keyframe: label + fill to the previous keyframe
+r  read the boxes           ⏎ →        in the confirm loop: confirm this frame
+R  read, live path          ⌥⏎         in the confirm loop: confirm the rest if the arithmetic closes
+Z  pad texts to convention  Esc        leave the loop → deselect → back to the still
++ - 0 zoom                  , .        nudge selected box left / right (⇧ 10 px)
+arrows nudge box (⇧ 10 px)  ↑ ↓        nudge selected box up / down (⇧ 10 px)
+⌥arrows move active corner  ⌥arrows    move the active corner
+[ ] { } turn box 1° / 0.1°  [ ] { }    turn the selected box
+Esc deselect                (a box is selected by clicking it; entering frames deselects)</pre>
   <div class="row">Zoom <input id="zoom" type="range" min="0.25" max="4" step="0.05" value="1" style="flex:1">
     Rotate <select id="rot"><option>0</option><option>90</option><option>180</option><option>270</option></select></div>
   <div class="row mono" id="csv"></div>
@@ -1057,13 +1073,19 @@ document.addEventListener('keydown', e => {
   // Arrow keys nudge the selected window: one screen pixel at the current
   // zoom (shift = 10), in display space so the step is the same whatever the
   // still's 90-degree rotation; alt moves only the active corner.
-  // In the frames view a plain ← / → always steps frames (that is what the
-  // view is for); a horizontal nudge there needs shift or alt.
-  const plainHorizontal = (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.shiftKey && !e.altKey;
-  if (!typing && sel >= 0 && !(frameMode && plainHorizontal) && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) {
+  // In the frames view the horizontal arrows belong to the frames: plain ← / →
+  // step, ⇧← / ⇧→ are the label keys (copy previous / next run). A horizontal
+  // nudge there is , and . (⇧ = 10 px); ↑ / ↓ nudge as on a still; ⌥ moves
+  // the active corner in both views.
+  const horizontalArrow = e.key === 'ArrowLeft' || e.key === 'ArrowRight';
+  const nudgeKey = ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key) && !(frameMode && horizontalArrow && !e.altKey)
+    || (frameMode && (e.key === ',' || e.key === '.' || e.key === '<' || e.key === '>'));
+  if (!typing && sel >= 0 && nudgeKey) {
     e.preventDefault();
-    const step = (e.shiftKey ? 10 : 1) / zoom;
-    const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+    const big = e.shiftKey || e.key === '<' || e.key === '>';
+    const step = (big ? 10 : 1) / zoom;
+    const left = e.key === 'ArrowLeft' || e.key === ',' || e.key === '<', right = e.key === 'ArrowRight' || e.key === '.' || e.key === '>';
+    const dx = left ? -step : right ? step : 0;
     const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
     const w = editable()[sel];
     if (e.altKey) {
@@ -1098,7 +1120,7 @@ document.addEventListener('keydown', e => {
   if (frameMode && isVideo && e.key === 'Enter' && e.shiftKey) { e.preventDefault(); saveVideoLabel(); return; }
   if (frameMode) return;
   if ((e.key === 'Backspace' || e.key === 'Delete') && sel >= 0) { e.preventDefault(); removeWindow(sel); }
-  if (e.key === 'p') { $('#reviewed').checked = !$('#reviewed').checked; touch(); }
+  if (e.key === 'p' || e.key === 'P') { $('#reviewed').checked = !$('#reviewed').checked; touch(); }
   if (e.key === 'Enter') { $('#savenext').click(); }
   if ('1234'.includes(e.key) && sel >= 0) { entry.windows[sel].field = FIELDS[+e.key - 1]; touch(); renderWins(); draw(); }
   if (e.key === 'j' || e.key === 'k') {

@@ -32,9 +32,11 @@ the ml venv runs it); the converted images are cached under
 - **Nudge** (window selected, not typing): `←↑→↓` move the whole quad by one
   screen pixel at the current zoom (`⇧` = 10 px); `⌥`+arrow moves only the
   active corner - the last one dragged, else corner 0, shown as the filled dot.
-  `Esc` deselects. In the frames view a plain `←`/`→` always steps frames
-  (opening the view deselects); a horizontal nudge there needs `⇧` or `⌥`,
-  `↑`/`↓` nudge as usual.
+  `Esc` deselects. In the frames view the horizontal arrows belong to the
+  frames - `←`/`→` step, `⇧←` copies the previous label, `⇧→` jumps to the next
+  run - so a horizontal nudge there is `,`/`.` (`⇧` = 10 px); `↑`/`↓` and
+  `⌥`+arrow work as on a still. Entering the frames view deselects. The page's
+  "all keys" link opens the full table.
 - Right: the text as the display SHOWS it (zero padding, comma), `partial`
   legibility, `rotationCW` (rotates the view only - quads stay in image space),
   `notOnDisplay` and `csvDisagrees`.
