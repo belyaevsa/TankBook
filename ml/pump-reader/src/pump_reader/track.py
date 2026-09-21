@@ -194,14 +194,19 @@ def track_record(stem: str, still: str, split: str, entry: dict, min_inliers: in
         aq = [np.array(w["quad"], dtype=np.float64) * [aw, ah] for w in a["windows"]]
         regs.append({"index": int(a["frame"][:-4]), "reg": Registrar(gray, aq), "quads": aq, "size": (aw, ah),
                      "windows": a["windows"]})
-    texts = {w["field"]: w for w in entry["windows"]}
+    # Texts by window index, not by field: a head with two `board` cells has
+    # two different texts under one field name.
+    still_windows = entry["windows"]
+
+    def source(index: int, fallback: dict) -> dict:
+        return still_windows[index] if index < len(still_windows) else fallback
     out: dict = {"_still": still, "_movie": stem, "_split": split, "_anchors": [a["frame"] for a in anchors],
                  "frames": {}}
     kept = dropped = 0
     exact = {a["frame"]: a["windows"] for a in anchors}
     for frame in frames:
         if frame.name in exact:
-            out["frames"][frame.name] = {"windows": [carried(texts.get(w["field"], w), w["quad"]) for w in exact[frame.name]],
+            out["frames"][frame.name] = {"windows": [carried(source(i, w), w["quad"]) for i, w in enumerate(exact[frame.name])],
                                         "inliers": -1, "anchor": int(frame.stem), "verified": True}
             kept += 1
             continue
@@ -221,12 +226,12 @@ def track_record(stem: str, still: str, split: str, entry: dict, min_inliers: in
         rw, rh = r["size"]
         windows = []
         ok = True
-        for w, q in zip(r["windows"], r["quads"]):
+        for i, (w, q) in enumerate(zip(r["windows"], r["quads"])):
             m = map_quad(H, q)
             if not plausible(m, q, (fw, fh), (rw, rh)):
                 ok = False
                 break
-            windows.append(carried(texts.get(w["field"], w),
+            windows.append(carried(source(i, w),
                                    [[round(float(x) / fw, 4), round(float(y) / fh, 4)] for x, y in m]))
         if not ok:
             dropped += 1

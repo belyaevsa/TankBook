@@ -203,9 +203,10 @@ def propagate_texts(record: str, windows: list[dict]) -> None:
     then the record's file dumped - what a retrack would carry, without the
     registration."""
     with corpus_db.transaction(None) as con:
-        for w in windows:
-            con.execute("update frame_windows set text = ?, legibility = ? where record = ? and field = ?",
-                        (w.get("text", ""), w.get("legibility"), record, w["field"]))
+        # By window index, not field: two `board` cells carry two texts.
+        for ord_, w in enumerate(windows):
+            con.execute("update frame_windows set text = ?, legibility = ? where record = ? and ord = ?",
+                        (w.get("text", ""), w.get("legibility"), record, ord_))
     corpus_db.dump([FRAMES / record / "windows.json"])
 
 
