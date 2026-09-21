@@ -381,8 +381,15 @@ class Handler(SimpleHTTPRequestHandler):
             for field, final in entry.items():
                 if field == "unitPrice":
                     continue
-                before, by = (prior.get(field), "operator") if prior.get("source") == "owner" else (
-                    prior.get(field), "reader") if prior.get("source") == "arithmetic" else (proposed.get(field), "reader")
+                # Who proposed the value being changed: the reader (an arithmetic
+                # label or a pre-fill), a copy from the previous frame or a run
+                # propagation (`via`), or the operator's own earlier judgement.
+                if prior.get("source") == "owner":
+                    before, by = prior.get(field), ("copied" if prior.get("via") in ("copied", "run") else "operator")
+                elif prior.get("source") == "arithmetic":
+                    before, by = prior.get(field), "reader"
+                else:
+                    before, by = proposed.get(field), "reader"
                 if before is not None and before != "" and before != final:
                     corrections.append({"kind": "text", "video": stem, "frame": frame, "field": field,
                                         "proposedBy": by, "proposed": before, "final": final})
@@ -397,7 +404,8 @@ class Handler(SimpleHTTPRequestHandler):
                 if target != frame and per.get(target, {}).get("source") == "owner":
                     continue
                 if any(entry.values()):
-                    per[target] = dict(entry, source="owner")
+                    via = "copied" if body.get("copied") else ("run" if target != frame else None)
+                    per[target] = dict(entry, source="owner", **({"via": via} if via else {}))
                 else:
                     per.pop(target, None)
                 written.append(target)

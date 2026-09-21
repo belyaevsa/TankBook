@@ -333,7 +333,8 @@ async function saveVideoLabel() {
   const r = currentRecord(); const name = r.tracked[frameIdx];
   if (frameQuadsEdited) { await saveAnchor(); }
   const run = $('#vlRun').checked ? runOf(r, name) : [name];
-  const body = {total: $('#vlTotal').value.trim(), liters: $('#vlLiters').value.trim(), unitPrice: $('#vlPrice').value.trim(), frames: run};
+  const body = {total: $('#vlTotal').value.trim(), liters: $('#vlLiters').value.trim(), unitPrice: $('#vlPrice').value.trim(), frames: run, copied: !!copiedFromPrevious};
+  copiedFromPrevious = false;
   const res = await (await fetch('/api/video-label/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name), {method:'PUT', body: JSON.stringify(body)})).json();
   const written = res.written || [name];
   for (const fr of written) { const f = r.frames[fr]; for (const w of f.windows) if (body[w.field] !== undefined) w.text = body[w.field]; f.source = (body.total || body.liters) ? 'owner' : null; }
@@ -350,10 +351,15 @@ function previousLabelled() {
   for (let i = frameIdx - 1; i >= 0; i--) { const f = r.frames[r.tracked[i]]; if (f.windows.some(w => w.field !== 'unitPrice' && w.text)) return f; }
   return null;
 }
+// A label copied from the previous frame is a copy, not a judgement typed for
+// this frame: the ledger attributes a later change to `copied`, not to the reader
+// or the operator.
+let copiedFromPrevious = false;
 async function copyPrevious() {
   const p = previousLabelled(); if (!p) { setMsg('no labelled frame before this one'); return; }
   const get = k => (p.windows.find(w => w.field === k) || {}).text || '';
   $('#vlTotal').value = get('total'); $('#vlLiters').value = get('liters'); $('#vlPrice').value = get('unitPrice') || $('#vlPrice').value;
+  copiedFromPrevious = true;
   await saveVideoLabel();
 }
 function nextUnlabelled() { nextAttention(); }
