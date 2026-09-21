@@ -45,6 +45,9 @@ the ml venv runs it); the converted images are cached under
   `arithmetic` labels. Frames with an owner label, frames anchored by hand and
   a video marked reviewed are skipped - the run never touches what a human
   wrote. Progress shows in the status line (`retracking…`, `reading…`).
+- **Zoom** (`+` / `-` / the slider) keeps the selected window - else the
+  centroid of all windows - at the same spot in the viewport, so zooming in
+  lands on the digits instead of the image's top-left corner; `0` refits.
 - **Anchors**: on any video frame the quads can be dragged (corners and body);
   the frame is saved as an anchor by itself (`videos.json`) and the clip
   retracks in the background - every other frame registers to its nearest

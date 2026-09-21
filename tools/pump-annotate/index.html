@@ -447,7 +447,28 @@ canvas.onmouseup = e => {
 let anchorTimer = null;
 
 // ---- controls ----
-$('#zoom').oninput = e => { zoom = +e.target.value; draw(); };
+// Zooming keeps the windows where the eye is: the selected window's centre,
+// else the centroid of every window, else what was under the viewport centre.
+// The point is fixed in unscaled display px, so after a redraw the scroll
+// offset that puts it back at the same viewport spot is recomputed.
+function focusPoint() {
+  const main = $('main'), wins = windowsToDraw();
+  const centre = pts => pts.reduce((a, p) => [a[0] + p[0] / pts.length, a[1] + p[1] / pts.length], [0, 0]);
+  if (sel >= 0 && wins[sel]) return { p: centre(wins[sel].quad.map(toDisp)), v: null };
+  if (wins.length) return { p: centre(wins.flatMap(w => w.quad.map(toDisp))), v: null };
+  return { p: [(main.scrollLeft + main.clientWidth / 2) / zoom, (main.scrollTop + main.clientHeight / 2) / zoom], v: null };
+}
+function setZoom(z, focus) {
+  const main = $('main');
+  const f = focus || focusPoint();
+  // Where the focus point sits in the viewport now; a window off screen is brought to the middle.
+  const vx = f.p[0] * zoom - main.scrollLeft, vy = f.p[1] * zoom - main.scrollTop;
+  const onScreen = vx >= 0 && vx <= main.clientWidth && vy >= 0 && vy <= main.clientHeight;
+  const tx = onScreen ? vx : main.clientWidth / 2, ty = onScreen ? vy : main.clientHeight / 2;
+  zoom = Math.max(0.25, Math.min(4, z)); $('#zoom').value = zoom; draw();
+  main.scrollLeft = f.p[0] * zoom - tx; main.scrollTop = f.p[1] * zoom - ty;
+}
+$('#zoom').oninput = e => setZoom(+e.target.value);
 $('#rot').onchange = () => { touch(); fit(); draw(); };
 $('#add').onclick = () => addWindow();
 $('#framesToggle').onclick = e => { e.target.blur(); frameMode ? leaveFrames() : enterFrames(); };
@@ -531,8 +552,8 @@ document.addEventListener('keydown', e => {
   if (frameMode && isVideo && e.key === 'ArrowRight' && e.shiftKey) { e.preventDefault(); stepRun(1); return; }
   if (!typing && e.key === 'r') { runReader(false); return; }
   if (!typing && e.key === 'R') { runReader(true); return; }
-  if (!typing && (e.key === '+' || e.key === '=')) { zoom = Math.min(4, zoom * 1.2); $('#zoom').value = zoom; draw(); return; }
-  if (!typing && e.key === '-') { zoom = Math.max(0.25, zoom / 1.2); $('#zoom').value = zoom; draw(); return; }
+  if (!typing && (e.key === '+' || e.key === '=')) { setZoom(zoom * 1.2); return; }
+  if (!typing && e.key === '-') { setZoom(zoom / 1.2); return; }
   if (!typing && e.key === '0') { fit(); draw(); return; }
   if (typing && frameMode && isVideo && e.key === 'ArrowRight' && e.shiftKey) { e.preventDefault(); stepRun(1); return; }
   if (typing && frameMode && isVideo && (e.key === 'ArrowRight' || e.key === 'ArrowLeft') && e.altKey) { e.preventDefault(); frameIdx = Math.max(0, Math.min(currentRecord().tracked.length - 1, frameIdx + (e.key === 'ArrowRight' ? 1 : -1))); showFrame(); return; }
