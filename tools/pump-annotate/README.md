@@ -60,6 +60,11 @@ the ml venv runs it); the converted images are cached under
 - **Playback** (toolbar above the image): ▶ / ⏸ (`space` when not typing), ⏮ ⏭
   step, fps, **loop**, and **autoplay** - when on, a Live photo or movie starts
   playing the moment it opens. Stepping or dragging a quad pauses.
+- **Tilt** (the slider under Rotate, `[` / `]` by 1°, `{` / `}` by 0.1°,
+  `level` back to 0): turns the VIEW by any angle about the centre so a skewed
+  display reads level while its windows are drawn. View-only - the quads are
+  saved in image space and the entry's `rotationCW` stays the 90-degree one.
+  Resets when another fixture opens.
 - **Zoom** (`+` / `-` / the slider) keeps the selected window - else the
   centroid of all windows - at the same spot in the viewport, so zooming in
   lands on the digits instead of the image's top-left corner; `0` refits.
