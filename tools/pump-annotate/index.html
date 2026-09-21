@@ -42,8 +42,8 @@
   #frameStrip span.anchor { box-shadow: inset 0 0 0 1px #fff }
   #frameStrip span.nextrun { position:relative } #frameStrip span.nextrun::after { content:'▲'; position:absolute; top:13px; left:-3px; color:#fff; font-size:10px }
   #frameStrip .legend { width:auto; height:auto; background:none; color:var(--dim); font-size:11px; margin-left:8px; cursor:default }
-  #banner { position:sticky; top:0; z-index:5; padding:6px 10px; font-size:13px; background:rgba(20,20,20,0.92); border-bottom:1px solid var(--line); display:none }
-  #banner.busy { display:block; color:#ffc857 } #banner.done { display:block; color:#7fff7f } #banner.failed { display:block; color:var(--bad) }
+  #banner { flex:0 0 auto; padding:6px 10px; font-size:13px; background:rgba(20,20,20,0.92); border-bottom:1px solid var(--line); min-height:1.4em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  #banner.idle { color:var(--dim) } #banner.busy { color:#ffc857 } #banner.done { color:#7fff7f } #banner.failed { color:var(--bad) }
   kbd { border:1px solid var(--line); border-radius:3px; padding:0 4px; font-size:11px; color:var(--dim) }
 </style>
 </head>
@@ -69,7 +69,8 @@
     <label><input type="checkbox" id="loop" checked> loop</label>
     <span id="playInfo" class="dim"></span>
   </div>
-  <div id="stage"><div id="banner" class="idle"></div><canvas id="c"></canvas></div>
+  <div id="banner" class="idle"></div>
+  <div id="stage"><canvas id="c"></canvas></div>
 </main>
 <section class="right">
   <div class="row"><b id="name" style="flex:1">–</b> <label title="reviewed by a human; P toggles"><input type="checkbox" id="reviewed"> processed</label></div>
@@ -170,6 +171,7 @@ async function openFixture(n) {
   try { r = await (await fetch('/api/entry/' + encodeURIComponent(n))).json(); }
   catch (err) { setMsg('load failed: ' + err); return; }
   entry = r.entry; row = r.row; isVideo = !!r.video;
+  refreshBanner();
   entry.windows = entry.windows || [];
   $('#reviewed').parentElement.style.display = '';
   if (isVideo) $('#reviewed').checked = !!entry.reviewed;
@@ -357,6 +359,7 @@ async function copyPrevious() {
 function nextUnlabelled() { nextAttention(); }
 function showFrame() {
   if (!frameMode) return;
+  refreshBanner();
   frameQuadsEdited = false;
   const r = currentRecord(); const name = r && r.tracked[frameIdx]; if (!name) return;
   showVideoLabel();
@@ -393,10 +396,16 @@ async function check() {
 }
 // The banner over the image: what is running (tracking, reading) and how it ended.
 let bannerTimer = null;
+function idleText() {
+  if (!current) return 'ready';
+  const r = frameMode && currentRecord(); const name = r && r.tracked[frameIdx];
+  return `ready · ${current}${name ? ` · ${r.movie} ${name}` : ''}${dirty ? ' · unsaved' : ''}`;
+}
 function notify(kind, text) {
   const b = $('#banner'); b.className = kind; b.textContent = text; clearTimeout(bannerTimer);
-  if (kind !== 'busy') bannerTimer = setTimeout(() => { if (b.textContent === text) b.className = 'idle'; }, 12000);
+  if (kind !== 'busy') bannerTimer = setTimeout(() => { if (b.textContent === text) { b.className = 'idle'; b.textContent = idleText(); } }, 12000);
 }
+function refreshBanner() { const b = $('#banner'); if (b.className === 'idle') b.textContent = idleText(); }
 function setMsg(t) { $('#msg').textContent = t; setTimeout(() => { if ($('#msg').textContent === t) $('#msg').textContent = dirty ? 'unsaved' : ''; }, 1500); }
 function touch() { dirty = true; $('#msg').textContent = 'unsaved'; }
 
@@ -779,6 +788,7 @@ document.addEventListener('keydown', e => {
   }
 });
 window.onbeforeunload = () => dirty ? 'unsaved' : undefined;
+refreshBanner();
 loadList().then(() => { const h = decodeURIComponent(location.hash.slice(1)); if (h) openFixture(h); });
 </script>
 </body>
