@@ -1316,9 +1316,15 @@ three windows. Pump cells: 675 → 678.
 ## Added 2026-09-21 (batch 6: the owner's morning at Peetri, Olerex and a second Circle K - 32 stills, windows pending)
 
 `pump-242`..`pump-273`, every one with a Live record in `../pump-live/` (batch 6 there), all
-**train**. Truth rows are written; the **windows are not drawn** - each entry carries
-`pendingWindows` until the product owner draws them in the annotator ("no windows" filter),
-and the checker, the harness and the glyph extractor skip such an entry.
+**train**. Truth rows are written. `pump-242`/`243` were drawn by the product owner; the rest
+were **auto-annotated** by the app's live path (`pump-read`, no windows: detector -> verifier
+-> row assignment) - every row it assigned became a window with the CSV's text (board rows
+with an empty one), none `reviewed`, and the Live records were tracked from those boxes. Eight
+stay `pendingWindows` for the owner's hand: `pump-261` (the reader placed no row on the
+oblique Wayne face) and seven where an asserted cell got no row (`248`, `249`, `253`, `255`,
+`258` the price window; `257`, `267` the total). `pump-263` (the CLOSED negative) carries no
+windows and a `negative` note. The auto-placed boxes are a head start, not a review: the
+owner tightens, retypes the display's own spelling (`0063,27`) and marks processed.
 
 - **Neste, Dresser Wayne** (`EUR` / `LIITRIT`, three-cell board `futura D` / `Neste MY D` /
   `futura 95`, all lit): `pump-242`/`243` one fill twice (24.61 / 13.13), `pump-244` 52.25 /

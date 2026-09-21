@@ -73,9 +73,8 @@ def main() -> int:
             continue
         if entry.get("pendingWindows"):
             # The still is in the corpus, its truth is in expected.csv, and its
-            # windows are still to be drawn: nothing to compare yet.
-            if entry.get("windows"):
-                problems.append(f"{name}: pendingWindows but windows are drawn - drop the flag")
+            # windows are not all drawn yet (none, or the reader's auto-placed
+            # ones missing an asserted cell): the comparison waits for the owner.
             continue
         not_on_display = set(entry.get("notOnDisplay", ()))
         csv_disagrees = entry.get("csvDisagrees", {})
