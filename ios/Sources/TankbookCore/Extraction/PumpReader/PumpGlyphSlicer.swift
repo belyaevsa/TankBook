@@ -139,7 +139,10 @@ enum PumpGlyphSlicer {
             : gray.pixels
 
         // Background subtraction.
-        let backgroundLevel: Float = darkOnLight ? (1 - Self.percentile(lum, 0.50)) : Self.percentile(lum, 0.50)
+        // The LCN'd strip's median is a second full sort only when the LCN ran;
+        // without it `lum` is the raw strip and `p50` is already its median.
+        let lumMedian = options.localContrastNormalization ? Self.percentile(lum, 0.50) : p50
+        let backgroundLevel: Float = darkOnLight ? (1 - lumMedian) : lumMedian
         let ink: [Float] = lum.map { value in
             let flipped: Float = darkOnLight ? (1 - value) : value
             return max(0, flipped - backgroundLevel)
@@ -524,8 +527,14 @@ enum PumpGlyphSlicer {
         return sorted[index]
     }
 
+    /// One sort for the three percentiles: sorting the strip's pixels was 45 %
+    /// of the whole live read (Time Profiler, 2026-09-21), and it was sorted
+    /// three times here. Exactly the values `percentile` gives.
     private static func percentiles(_ values: [Float]) -> (p05: Float, p50: Float, p95: Float) {
-        (percentile(values, 0.05), percentile(values, 0.50), percentile(values, 0.95))
+        guard !values.isEmpty else { return (0, 0, 0) }
+        let sorted = values.sorted()
+        func at(_ p: Float) -> Float { sorted[min(sorted.count - 1, Int((Float(sorted.count - 1) * p).rounded()))] }
+        return (at(0.05), at(0.50), at(0.95))
     }
 
     private static func circularMean(_ values: [Double], period: Double) -> Double {

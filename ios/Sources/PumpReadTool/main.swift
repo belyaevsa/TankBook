@@ -49,7 +49,9 @@ while index < arguments.count {
         index += 1
     }
 }
-let stdin = FileHandle.standardInput.readDataToEndOfFile()
+// `--request <file>` reads the request from a file: a profiler launch has no stdin.
+let requestPath = arguments.firstIndex(of: "--request").flatMap { $0 + 1 < arguments.count ? arguments[$0 + 1] : nil }
+let stdin = requestPath.flatMap { FileManager.default.contents(atPath: $0) } ?? FileHandle.standardInput.readDataToEndOfFile()
 let request = (try? JSONDecoder().decode(Request.self, from: stdin)) ?? Request()
 guard let oriented = PumpQuadWarp.loadOrientedImage(from: URL(fileURLWithPath: arguments[1])) else {
     print("{\"error\": \"cannot load image\"}")
@@ -136,6 +138,13 @@ if let windows = request.windows, !windows.isEmpty {
         defer { timings[key] = Int(Date().timeIntervalSince(started) * 1000) }
         return try body()
     }
+    // PUMP_REPEAT=N runs the whole live read N extra times first, so a
+    // profiler sees the steady state rather than the model's first load.
+    if let repeats = ProcessInfo.processInfo.environment["PUMP_REPEAT"].flatMap(Int.init) {
+        for _ in 0..<repeats {
+            _ = try reader.readPhoto(image: image, rotationCW: (request.rotationCW ?? 0), currency: currency, priceBand: nil)
+        }
+    }
     let reading = try timed("readPhoto") {
         try reader.readPhoto(image: image, rotationCW: (request.rotationCW ?? 0), currency: currency, priceBand: nil)
     }
@@ -157,7 +166,17 @@ if let windows = request.windows, !windows.isEmpty {
         guard let role else { continue }
         assigned.append(PumpReader.Window(field: role, quad: window.quad))
     }
-    if let reads = try? reader.read(image: upright, windows: assigned) {
+    timings["assign"] = 0
+    let readsTimed = try? timed("read") { try reader.read(image: upright, windows: assigned) }
+    if let readsTimed {
+        _ = timed("law") {
+            PumpReadingLaw.resolve(windows: readsTimed.map { PumpLocatedWindow(field: $0.field, cells: $0.cells) },
+                                   currency: currency, priceBand: nil)
+        }
+        reply["cellsPerRow"] = readsTimed.map { $0.cells.count }
+    }
+    reply["timingsMs"] = timings
+    if let reads = readsTimed {
         reply["rowTexts"] = reads.map { read in
             read.field.rawValue + " " + read.cells.map { cell in
                 (cell.ranked.first.map { String($0.digit) } ?? "?") + (cell.decimalPoint ? "." : "")
