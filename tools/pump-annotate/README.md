@@ -11,9 +11,8 @@ anchor, label and correction is a row in `fixtures/corpus.sqlite`
 format the old writers used, so the committed files stay readable and the
 ratchets keep reading them unchanged. `corpus_db.py import` is the one
 direction back from the files to the database; it rebuilds the database when it
-is missing or older. `pump_reader.track` still writes its own
-`frames/<stem>/windows.json`, which the server imports after a retrack (PU.36b
-moves that writer onto the database).
+is missing or older. `pump_reader.track` saves its record through
+`corpus_db.save_tracked`, which dumps `frames/<stem>/windows.json`.
 
     python3 tools/pump-annotate/server.py
     # open http://127.0.0.1:8765/
@@ -110,8 +109,8 @@ the ml venv runs it); the converted images are cached under
   models from `ios/App/Resources`; the per-cell digits and margins print under
   the buttons. Nothing is written until you save.
 - `Save` (`⌘S`) writes the entry as rows in `fixtures/corpus.sqlite`
-  (`scripts/corpus_db.py`) and dumps the JSON back from it in the file's own
-  formatting; the database is committed with the files. `Check` runs
+  (`scripts/corpus_db.py`) through the database, dumped; the database is
+  committed with the files. `Check` runs
   `scripts/pump-windows-check.py --check` and shows the verdict, which now also
   fails when a file no longer matches the database.
 

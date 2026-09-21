@@ -50,7 +50,8 @@ and `DIR/rows.json`.
 
 The corpus is SQLite-first (`scripts/corpus_db.py`, `Spike/ReceiptSpike/fixtures/corpus.sqlite`);
 the text files are a deterministic dump of it. Every trainer reads and writes through
-`corpus_db`:
+`corpus_db`, the Swift reader writes its readings and arithmetic labels through
+`corpus_db.py import-readings`, and the frames' bucket keys live on `frames.s3_key`:
 
 ```
 .venv/bin/python -m pump_reader.track --only live-5860        # writes frames/frame_windows, dumps the file

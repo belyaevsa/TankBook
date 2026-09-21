@@ -15,16 +15,22 @@
   (mode 600). Revoke a key with `yc iam access-key delete`.
 - Sync: `scripts/corpus-sync.py pull` (a fresh machine), `push` (after new captures land),
   `list`. It compares size and MD5, so a re-run moves nothing already there. Needs `boto3`
-  (`ml/pump-reader/.venv/bin/pip install boto3`, or any Python with it).
+  (`ml/pump-reader/.venv/bin/pip install boto3`, or any Python with it). `push` also uploads the
+  frame JPEGs of every registered record to `pump-live/frames/<record>/` and records each key on
+  `frames.s3_key` (the dump does not carry it); `pull --frames <record>` or `pull --frames all`
+  fetches them back, and a fresh machine can instead re-extract from the movies with the `ffmpeg`
+  line below. `DRY_RUN=1` reports what a push would send without touching the bucket.
 - `../pump/` (the still corpus, its annotations and truth) stays in git - the source of truth
   the ratchets read. `push` also uploads a copy of it under `index/`: `corpus.sqlite` (the whole
-  corpus as one database, built by `scripts/corpus_db.py` - fixtures with truth and size,
-  annotation entries and windows, the media with their bucket keys and pairings, the matched
-  pairs) plus the CSVs, `windows.json`, the station ledger and this README, so the bucket is a
-  complete copy and not only the bytes git refuses. The database is derived;
-  `scripts/corpus_db.py build` rebuilds it, `tools/pump-annotate` rebuilds it on every save, and it is committed with the files it is built from (a rebuild from unchanged inputs is byte-identical);
-  `scripts/corpus_db.py sql "…"` queries it. Frames regenerate from the movies with the
-  `ffmpeg` line below.
+  corpus as one database - fixtures with truth and size, annotation entries and windows, the
+  media with their bucket keys and pairings, the matched pairs) plus the CSVs, `windows.json`,
+  the station ledger and this README, so the bucket is a complete copy and not only the bytes git
+  refuses. **The database is the write store and the text files are its dump** (`corpus_db.py
+  dump` writes them, `corpus_db.py check` fails a stale one); the annotator, `pump_reader.track`
+  and the Swift reader all save through it, and `corpus_db.py import` is the one direction back
+  from the files. It is committed with the files it dumps (a rebuild from unchanged inputs is
+  byte-identical); `scripts/corpus_db.py sql "…"` queries it. Frames regenerate from the movies
+  with the `ffmpeg` line below.
 
 Live Photos (HEIC key frame + the paired `.mov`) of pump displays, shared by the product owner on
 2026-09-19 for PU.19 (per-cell fusion over frames). Every one is a fill that is ALREADY in
@@ -309,8 +315,9 @@ PYTHONPATH=src .venv/bin/python -m pump_reader.track         # the still's quads
 `track` registers each frame to its paired still directly - ORB on the display region, RANSAC
 homography, never chained frame to frame - maps the still's quads through it and drops a frame
 whose registration is weak (< 30 inliers) or whose quads leave the image or change area
-implausibly. It writes `frames/<stem>/windows.json` (the corpus shape, keyed by frame, with the
-still's `field` / `text` / `legibility`) and `frames/<stem>/sheet.jpg` with the quads drawn -
+implausibly. It saves the record through `corpus_db.save_tracked`, which dumps
+`frames/<stem>/windows.json` (the corpus shape, keyed by frame, with the
+still's `field` / `text` / `legibility`) and writes `frames/<stem>/sheet.jpg` with the quads drawn -
 the one human step is a glance at the sheet, or the annotator's Frames view. Every paired
 record is tracked so the annotator can show any of them; the output carries the still's
 `split`, and **only train records feed the glyph extractor** (decision 9) - a heldout still's

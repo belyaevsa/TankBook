@@ -430,16 +430,22 @@ def _carry_forward(con: sqlite3.Connection, old_db: Path, tables: list[str]) -> 
     if not old_db.exists() or not tables:
         return
     con.commit()
-    con.execute("attach database ? as old", (str(old_db),))
+    try:
+        con.execute("attach database ? as old", (str(old_db),))
+    except sqlite3.DatabaseError:
+        return
     try:
         for table in tables:
             try:
                 con.execute(f"insert into {table} select * from old.{table}")
             except sqlite3.DatabaseError:
-                pass  # the old database predates the table
+                con.rollback()  # the old database predates the table
         con.commit()
     finally:
-        con.execute("detach database old")
+        try:
+            con.execute("detach database old")
+        except sqlite3.DatabaseError:
+            pass
         con.commit()
 
 
@@ -449,7 +455,10 @@ def _carry_frame_keys(con: sqlite3.Connection, old_db: Path) -> None:
     if not old_db.exists():
         return
     con.commit()
-    con.execute("attach database ? as old", (str(old_db),))
+    try:
+        con.execute("attach database ? as old", (str(old_db),))
+    except sqlite3.DatabaseError:
+        return
     try:
         columns = {r[1] for r in con.execute("pragma old.table_info(frames)")}
         if "s3_key" in columns:
@@ -460,9 +469,12 @@ def _carry_frame_keys(con: sqlite3.Connection, old_db: Path) -> None:
                 "and o.frame = frames.frame and o.s3_key is not null)")
         con.commit()
     except sqlite3.DatabaseError:
-        pass  # the old database predates the column
+        con.rollback()  # an unreadable old database must not abort the rebuild
     finally:
-        con.execute("detach database old")
+        try:
+            con.execute("detach database old")
+        except sqlite3.DatabaseError:
+            pass
         con.commit()
 
 
@@ -718,6 +730,20 @@ def dump(paths: list[Path] | None = None) -> list[Path]:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(body)
     return list(rendered)
+
+
+def mark_in_bucket(keys: set[str], db: Path | None = None) -> int:
+    """Refresh `media.in_bucket` from a bucket listing - the one thing a push
+    changes about the database; nothing else is touched."""
+    with transaction(None) as con:
+        rows = con.execute("select name, s3_key, in_bucket from media").fetchall()
+        changed = 0
+        for row in rows:
+            now = 1 if row["s3_key"] in keys else 0
+            if (row["in_bucket"] or 0) != now:
+                con.execute("update media set in_bucket = ? where name = ?", (now, row["name"]))
+                changed += 1
+        return changed
 
 
 def check() -> list[str]:
@@ -1045,19 +1071,23 @@ def pin_frame(record: str, frame: str, windows: list[dict], texts: dict[str, str
             row = con.execute("select * from frames where record = ? and frame = ?", (record, frame)).fetchone()
             if row is None:
                 return False
-        old = {w["field"]: w for w in _frame_windows(con, record, frame)}
+        # The frame's windows by index, not by field: a head with two `board`
+        # cells has two windows under one field name, and the page sends the
+        # windows in the frame's own order.
+        previous = _frame_windows(con, record, frame)
         was_anchor = bool(row["verified"])
         corrections = []
-        for w in windows:
-            before = old.get(w["field"])
+        for index, w in enumerate(windows):
+            before = previous[index] if index < len(previous) and previous[index]["field"] == w["field"] else None
             if before and before["quad"] != w["quad"]:
                 corrections.append({"kind": "quad", "record": record, "frame": frame, "field": w["field"],
                                     "proposedBy": "operator" if was_anchor else "tracker",
                                     "proposed": before["quad"], "final": w["quad"],
                                     "iou": quad_iou(before["quad"], w["quad"]), "inliers": row["inliers"]})
         out = []
-        for w in windows:
-            cw = dict(old.get(w["field"], {"field": w["field"], "text": ""}))
+        for index, w in enumerate(windows):
+            before = previous[index] if index < len(previous) and previous[index]["field"] == w["field"] else None
+            cw = dict(before or {"field": w["field"], "text": ""})
             cw["quad"] = w["quad"]
             if texts and w["field"] in texts:
                 cw["text"] = texts[w["field"]]

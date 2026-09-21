@@ -7,12 +7,14 @@ import Testing
 /// tracked frame's total and liters windows are read by the reader with the
 /// video's constant price, and a frame's reading becomes its label only when
 /// `total == round(liters x price)` to the cent - the display's own arithmetic
-/// is the oracle, no annotation exists. Written to
-/// `pump-live/video-labels.json` (committed) with `source: "arithmetic"`; the
-/// product owner's corrections in the annotator overwrite entries with
-/// `source: "owner"` and are never touched by a re-run; nor is a video marked
-/// `reviewed` in `videos.json` or a frame the owner anchored by hand
-/// (`verified` in the tracked `windows.json`).
+/// is the oracle, no annotation exists. The result is staged as one record's
+/// readings plus its arithmetic labels and written through
+/// `scripts/corpus_db.py import-readings`, which updates `readings` and `labels`
+/// in one transaction and dumps `pump-live/video-labels.json` and
+/// `frames/<stem>/readings.json`; the product owner's corrections in the
+/// annotator carry `source: "owner"` and are never overwritten by a re-run; nor
+/// is a video marked `reviewed` in `videos.json` or a frame the owner anchored
+/// by hand (`verified` in the tracked `windows.json`).
 ///
 /// Opt-in (`PUMP_VIDEO_READ=1`; `PUMP_VIDEO_READ_ONLY=video-002` for one clip):
 /// four thousand frames through the reader.
@@ -21,6 +23,49 @@ struct PumpVideoReadTests {
     private static var enabled: Bool { ProcessInfo.processInfo.environment["PUMP_VIDEO_READ"] == "1" }
     private static let live = PumpReaderTestSupport.repoRoot.appendingPathComponent("Spike/ReceiptSpike/fixtures/pump-live")
     private static let modelURL = PumpReaderTestSupport.repoRoot.appendingPathComponent("ios/App/Resources/PumpSegments.mlpackage")
+    private static let stagingDirectory = PumpReaderTestSupport.outRoot.appendingPathComponent("video-read")
+
+    /// A failed import must be loud: the old writer wrote the files directly and
+    /// a missing `python3` would silently leave the database stale.
+    private struct ImportError: Error, CustomStringConvertible {
+        let path: String
+        let status: Int32
+        let detail: String
+        var description: String {
+            "corpus_db.py import-readings failed (status \(status)) for \(path): \(detail)"
+        }
+    }
+
+    /// One record's readings plus its arithmetic labels to a staging file, then
+    /// through `scripts/corpus_db.py import-readings`, which writes both tables
+    /// in one transaction and dumps the two files.
+    private static func stage(_ stem: String, readings: [String: Any], arithmetic: [String: Any]) throws {
+        let staging = stagingDirectory.appendingPathComponent("\(stem).json")
+        let staged: [String: Any] = ["record": stem, "readings": readings, "labels": arithmetic]
+        try JSONSerialization.data(withJSONObject: staged, options: [.sortedKeys]).write(to: staging)
+        try importReadings(staging)
+    }
+
+    private static func importReadings(_ staging: URL) throws {
+        let script = PumpReaderTestSupport.repoRoot.appendingPathComponent("scripts/corpus_db.py")
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = ["python3", script.path, "import-readings", staging.path]
+        process.currentDirectoryURL = PumpReaderTestSupport.repoRoot
+        let stderr = Pipe()
+        process.standardError = stderr
+        process.standardOutput = Pipe()
+        do {
+            try process.run()
+        } catch {
+            throw ImportError(path: staging.path, status: -1, detail: error.localizedDescription)
+        }
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else {
+            let detail = String(data: stderr.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            throw ImportError(path: staging.path, status: process.terminationStatus, detail: detail)
+        }
+    }
 
     @Test("every tracked video frame whose reading closes gets its label", .enabled(if: enabled, "PUMP_VIDEO_READ=1"))
     func label() throws {
@@ -28,7 +73,8 @@ struct PumpVideoReadTests {
         let reader = PumpReader(model: model)
         let videos = try JSONSerialization.jsonObject(with: Data(contentsOf: Self.live.appendingPathComponent("videos.json"))) as? [String: Any] ?? [:]
         let labelsURL = Self.live.appendingPathComponent("video-labels.json")
-        var labels = (try? JSONSerialization.jsonObject(with: Data(contentsOf: labelsURL)) as? [String: Any]) ?? [:]
+        let labels = (try? JSONSerialization.jsonObject(with: Data(contentsOf: labelsURL)) as? [String: Any]) ?? [:]
+        try FileManager.default.createDirectory(at: Self.stagingDirectory, withIntermediateDirectories: true)
         var summary: [String] = []
         let only = ProcessInfo.processInfo.environment["PUMP_VIDEO_READ_ONLY"]
         for (stem, value) in videos.sorted(by: { $0.key < $1.key }) {
@@ -43,11 +89,12 @@ struct PumpVideoReadTests {
             guard let tracked = try? JSONSerialization.jsonObject(with: Data(contentsOf: trackedURL)) as? [String: Any],
                   let frames = tracked["frames"] as? [String: Any] else { continue }
             let comma = priceText.contains(",")
-            var perVideo = labels[stem] as? [String: Any] ?? [:]
+            let existing = labels[stem] as? [String: Any] ?? [:]
             var readings: [String: Any] = [:]
+            var arithmetic: [String: Any] = [:]
             var closed = 0, read = 0
             for (frameName, frameValue) in frames.sorted(by: { Int($0.key.dropLast(4)) ?? 0 < Int($1.key.dropLast(4)) ?? 0 }) {
-                if let existing = perVideo[frameName] as? [String: Any], existing["source"] as? String == "owner" { continue }
+                if let existing = existing[frameName] as? [String: Any], existing["source"] as? String == "owner" { continue }
                 guard let frame = frameValue as? [String: Any], let windows = frame["windows"] as? [[String: Any]],
                       // A frame whose quads the owner placed by hand (a tracking anchor)
                       // is human-reviewed; it keeps whatever it has.
@@ -79,15 +126,14 @@ struct PumpVideoReadTests {
                 readings[frameName] = ["total": t, "liters": l, "closes": closes]
                 guard closes else { continue }
                 closed += 1
-                perVideo[frameName] = ["total": t, "liters": l, "unitPrice": priceText, "source": "arithmetic"]
+                arithmetic[frameName] = ["total": t, "liters": l, "unitPrice": priceText, "source": "arithmetic"]
             }
-            labels[stem] = perVideo
-            let readingsData = try JSONSerialization.data(withJSONObject: readings, options: [.sortedKeys])
-            try readingsData.write(to: Self.live.appendingPathComponent("frames/\(stem)/readings.json"))
-            summary.append("\(stem.prefix(9)): \(closed) of \(read) frames closed (\(perVideo.count) labelled)")
+            // One staging file per record: readings plus the arithmetic labels
+            // the reader would write. `import-readings` keeps owner rows.
+            try Self.stage(stem, readings: readings, arithmetic: arithmetic)
+            let labelled = Set(existing.keys).union(arithmetic.keys)
+            summary.append("\(stem.prefix(9)): \(closed) of \(read) frames closed (\(labelled.count) labelled)")
         }
-        let data = try JSONSerialization.data(withJSONObject: labels, options: [.prettyPrinted, .sortedKeys])
-        try data.write(to: labelsURL)
         for line in summary { print("PU.19 \(line)") }
         #expect(!summary.isEmpty)
     }

@@ -51,10 +51,11 @@ def test_detdata_splits_train_and_heldout(tmp_path: Path, monkeypatch) -> None:
 
     rec = "video-001-x"
     _png(tmp_path / "frames" / rec / "001.jpg")
-    con.execute("insert into frames values (?,?,?,?,?,?,?,?,?,?)",
+    con.execute("insert into frames (record, frame, still, split, inliers, anchor, verified, keys, extra, ord) "
+                "values (?,?,?,?,?,?,?,?,?,?)",
                 (rec, "", rec, "train", None, None, None, '["_video","_split","frames"]',
                  '{"_video": "video-001-x", "_split": "train"}', None))
-    con.execute("insert into frames values (?,?,?,?,?,?,?,?,?,?)",
+    con.execute("insert into frames (record, frame, still, split, inliers, anchor, verified, keys, extra, ord) values (?,?,?,?,?,?,?,?,?,?)",
                 (rec, "001.jpg", rec, "train", 10, 1, 1, '["windows","inliers","anchor","verified"]', "{}", 0))
     con.execute("insert into frame_windows values (?,?,?,?,?,?,?)",
                 (rec, "001.jpg", 0, "total", "1.23", json.dumps(QUAD), None))

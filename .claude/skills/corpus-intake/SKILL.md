@@ -38,8 +38,9 @@ not in git.
 
 ## 2. Truth
 
-Append a row to the class's `expected.csv` (`filename,liters,unitPrice,total,fuelKind,currency`).
-A pump row never asserts `fuelKind`; a receipt row does. **The receipt is the truth for a fill**
+Append a row to the class's `expected.csv` (`filename,liters,unitPrice,total,fuelKind,currency`)
+and import it (`scripts/corpus_db.py import`); the database is the write store and the file is
+its dump. A pump row never asserts `fuelKind`; a receipt row does. **The receipt is the truth for a fill**
 (decision 6): a display that rounds a total gets the receipt's value in the CSV and a
 `csvDisagrees` note in `windows.json`. A cell you cannot read stays blank (unscored), never a
 guess. Where a pump and a receipt show one fill, name both files `…-pair-…` and register the pair
@@ -63,7 +64,7 @@ measurement for no reason, and a train still is what the classifier's real glyph
 only after a clockwise turn. **Draw them in the annotator** - `ml/pump-reader/.venv/bin/python
 tools/pump-annotate/server.py`, then open the URL it prints (`tools/pump-annotate/README.md`):
 drag a rectangle per window, drag corners to tighten, type what the display shows, `Save`. It
-writes the JSON in the committed formatting, so the diff is only your windows. The product
+writes the entry through the database and dumps the JSON, so the diff is only your windows. The product
 owner can annotate too - the page needs no reader knowledge, only the conventions below.
 Conventions and the declared-exception keys are in the file's `_about`. Then (also the page's
 `Check` button):
@@ -81,11 +82,13 @@ scripts/corpus-sync.py push                # the movies to the bucket; size+MD5 
 scripts/corpus_db.py sql "select name, present, in_bucket, paired_fixture from media where paired_fixture is null"
                                            # what is still unpaired, straight from the database
 ```
-`corpus.sqlite` is derived from the git files and committed beside them - never edit it; edit the CSV / JSON /
-README and rebuild (`scripts/corpus_db.py build`; the annotator does it on save).
+**The database (`corpus.sqlite`) is the write store and the CSV / JSON are its dump** - write
+through the annotator or `corpus_db`, never by hand; `scripts/corpus_db.py dump` writes the files
+and `check` fails a stale one, and `import` is the one direction back from the files. The
+database is committed beside the files it dumps.
 Access (a static key for `tankbook-corpus-rw`, kept in `~/.config/tankbook/corpus-s3.env`) is
 described in `fixtures/pump-live/README.md` → Access. Extract frames locally with the `ffmpeg`
-line there; `frames/` is gitignored.
+line there; `frames/` is gitignored, and `push` uploads them with their key on `frames.s3_key`.
 
 ## 5. READMEs
 

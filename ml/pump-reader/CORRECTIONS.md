@@ -56,9 +56,9 @@ the cells a retrain must see more of. The procedure:
 2. Export the train slices as usual (`PUMP_TRAIN_EXPORT=1 PUMP_TRAIN_EXPORT_VIDEOS=1 swift test
    --filter PumpTrainSliceExportTests`), then cut cells with the hard frames up-weighted:
    `python -m pump_reader.realglyphs --also ../../ios/.build/pump-reader-out/train/train-videos.json
-   --hard <path-to-corrections.jsonl> --hard-weight 4` – a hard frame's cells appear four times in
-   the sampler's pool (the option is the round's to add if it does not exist yet; keep the weight
-   a command-line number, never a constant in the code).
+   --hard-weight 4` – a hard frame's cells (the `corrections` rows of kind `text` with
+   `proposedBy = reader`) appear four times in the sampler's pool (`--hard-weight`, built in
+   PU.36b; keep the weight a command-line number, never a constant in the code).
 3. Cap any single fixture's share of the real pool (the same round's other lever) so the weighted
    hard frames do not become the new skew.
 4. Three seeds (round 10's protocol), scored with `PUMP_MODEL=` on the heldout; the round ships
@@ -108,7 +108,5 @@ consecutive builds before shipping a classifier or slicer change to the bundle.
 
 - The ledger is committed with the corpus, appended only, never edited by hand; a wrong line is
   corrected by the next save, which writes a new line.
-- `scripts/corpus_db.py build` folds it into `corpus.sqlite` (table `corrections`) – queries
-  across frames, makes and builds are easier there than in the JSONL.
-- When the corpus moves to SQLite as its write store (filed as CO.x), the ledger becomes a table
-  written by the same routes; this document does not change.
+- It is a table in `corpus.sqlite` (`corrections`), written by the same routes as the JSONL and
+  dumped from it – queries across frames, makes and builds are easier there than in the JSONL.

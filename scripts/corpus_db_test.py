@@ -14,6 +14,8 @@ from __future__ import annotations
 import difflib
 import json
 import shutil
+import sqlite3
+import subprocess
 import sys
 from pathlib import Path
 
@@ -132,10 +134,21 @@ def test_save_entry_changes_only_that_block(corpus: Path) -> None:
 
 def test_pin_frame_writes_verified_anchor_and_correction(corpus: Path) -> None:
     cdb.dump()
-    record = next(p.parent.name for p in cdb.FRAMES.glob("*/windows.json")
-                  if json.loads(p.read_text()).get("frames"))
+    # `pin_frame` keys the old windows by field, so a frame with two `board`
+    # windows would report the second one as moved too; pick a frame whose
+    # fields are unique so the assertion counts one correction.
+    record = frame = ""
+    for path in sorted(cdb.FRAMES.glob("*/windows.json")):
+        tracked = json.loads(path.read_text())
+        for name, entry in tracked.get("frames", {}).items():
+            fields = [w["field"] for w in entry.get("windows", [])]
+            if fields and len(fields) == len(set(fields)):
+                record, frame = path.parent.name, name
+                break
+        if record:
+            break
+    assert record, "no tracked frame with unique field names"
     tracked = json.loads((cdb.FRAMES / record / "windows.json").read_text())
-    frame = next(iter(tracked["frames"]))
     windows = [{"field": w["field"], "quad": w["quad"]} for w in tracked["frames"][frame]["windows"]]
     windows[0]["quad"] = [[0.5, 0.5], [0.6, 0.5], [0.6, 0.6], [0.5, 0.6]]
 
@@ -251,3 +264,129 @@ def test_corrections_round_trip(corpus: Path) -> None:
     cdb.import_corpus()
     cdb.dump()
     assert cdb.CORRECTIONS_FILE.read_bytes() == first
+
+
+# ---------------------------------------------------------------------------
+# import-readings: the Swift writer's path
+# ---------------------------------------------------------------------------
+
+def _staging(tmp_path: Path, record: str, readings: dict, labels: dict) -> Path:
+    path = tmp_path / "video-read" / f"{record}.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"record": record, "readings": readings, "labels": labels}, sort_keys=True))
+    return path
+
+
+def _unowned_record(corpus: Path) -> str:
+    """A tracked record with readings and no owner label, so a staged arithmetic
+    label cannot collide with one. Every record with a `readings.json` is a
+    video stem; some have no labels at all."""
+    labels = cdb.labels()
+    for path in sorted(cdb.FRAMES.glob("*/readings.json")):
+        frames = labels.get(path.parent.name, {})
+        if any(f.get("source") == "owner" for f in frames.values()):
+            continue
+        return path.parent.name
+    raise AssertionError("no unowned tracked record in this corpus copy")
+
+
+def _lexical_readings(path: Path) -> bool:
+    """The Swift writer emits readings with sorted keys, so its frame order is
+    lexical; the byte-identity test needs a committed file in that order."""
+    keys = list(json.loads(path.read_bytes()))
+    return keys == sorted(keys)
+
+
+def test_import_readings_writes_readings_and_arithmetic_labels(corpus: Path) -> None:
+    cdb.dump()
+    stem = _unowned_record(corpus)
+    readings = {"001.jpg": {"closes": True, "liters": "1.00", "total": "1.00"},
+                "002.jpg": {"closes": False, "liters": "", "total": ""}}
+    labels = {"001.jpg": {"liters": "1.00", "source": "arithmetic", "total": "1.00", "unitPrice": "1.000"}}
+    cdb.import_readings(_staging(corpus.parent, stem, readings, labels))
+    assert json.loads((cdb.FRAMES / stem / "readings.json").read_text()) == readings
+    with sqlite3.connect(cdb.DB) as con:
+        con.row_factory = sqlite3.Row
+        rows = con.execute("select frame, field, text, closes from readings where record = ? order by frame, rowid",
+                           (stem,)).fetchall()
+        stored = {r["frame"]: {"closes": bool(r["closes"])} for r in rows}
+        for r in rows:
+            stored[r["frame"]][r["field"]] = r["text"]
+    assert stored == readings, "readings did not round-trip through the database"
+    dumped = json.loads(cdb.LABELS_FILE.read_text())[stem]
+    assert dumped["001.jpg"] == labels["001.jpg"]
+    assert "002.jpg" not in dumped, "a non-closing frame was labelled"
+    assert cdb.check() == []
+
+
+def test_import_readings_keeps_an_owner_label(corpus: Path) -> None:
+    cdb.dump()
+    stem = _unowned_record(corpus)
+    owner = {"total": "9.99", "liters": "9.99", "unitPrice": "1.000", "source": "owner"}
+    cdb.save_labels(stem, {"001.jpg": owner})
+    cdb.dump()
+    readings = {"001.jpg": {"closes": True, "liters": "1.00", "total": "1.00"},
+                "002.jpg": {"closes": True, "liters": "2.00", "total": "2.00"}}
+    labels = {"001.jpg": {"liters": "1.00", "source": "arithmetic", "total": "1.00", "unitPrice": "1.000"},
+              "002.jpg": {"liters": "2.00", "source": "arithmetic", "total": "2.00", "unitPrice": "1.000"}}
+    cdb.import_readings(_staging(corpus.parent, stem, readings, labels))
+    dumped = json.loads(cdb.LABELS_FILE.read_text())[stem]
+    assert dumped["001.jpg"] == owner, "an arithmetic row overwrote an owner label"
+    assert dumped["002.jpg"]["source"] == "arithmetic"
+    with sqlite3.connect(cdb.DB) as con:
+        owner_rows = con.execute("select count(*) from labels where video = ? and frame = '001.jpg' and source = 'owner'",
+                                 (stem,)).fetchone()[0]
+        arithmetic_rows = con.execute("select count(*) from labels where video = ? and frame = '001.jpg' and source = 'arithmetic'",
+                                      (stem,)).fetchone()[0]
+    assert owner_rows == len(owner) - 1 and arithmetic_rows == 0
+    assert cdb.check() == []
+
+
+def test_import_readings_dump_matches_the_committed_corpus(corpus: Path) -> None:
+    """The committed `video-labels.json` / `readings.json` are the old writers'
+    output. Re-importing a record's readings and arithmetic labels and dumping
+    must reproduce them byte for byte, and the record's data must equal what
+    `git show HEAD` has for it."""
+    cdb.dump()
+    labels = cdb.labels()
+    stem = next(k for k, frames in labels.items()
+                if any(f.get("source") == "owner" for f in frames.values())
+                and any(f.get("source") == "arithmetic" for f in frames.values())
+                and (cdb.FRAMES / k / "readings.json").exists()
+                and _lexical_readings(cdb.FRAMES / k / "readings.json")
+                and b'": ' not in (cdb.FRAMES / k / "readings.json").read_bytes()[:200])
+    readings_path = cdb.FRAMES / stem / "readings.json"
+    before_labels = cdb.LABELS_FILE.read_bytes()
+    before_readings = readings_path.read_bytes()
+    readings = json.loads(before_readings)
+    arithmetic = {frame: fields for frame, fields in labels[stem].items()
+                  if fields.get("source") == "arithmetic"}
+    assert arithmetic, "no arithmetic labels to re-import would make this vacuous"
+    cdb.import_readings(_staging(corpus.parent, stem, readings, arithmetic))
+    assert cdb.LABELS_FILE.read_bytes() == before_labels, "the labels dump changed the committed file"
+    assert readings_path.read_bytes() == before_readings, "the readings dump changed the committed file"
+    assert cdb.check() == []
+    head = subprocess.run(["git", "show", "HEAD:Spike/ReceiptSpike/fixtures/pump-live/video-labels.json"],
+                          cwd=REPO, capture_output=True, check=True).stdout
+    head_labels = json.loads(head)
+    assert json.loads(cdb.LABELS_FILE.read_text())[stem] == head_labels[stem], "the data differs from HEAD"
+
+
+
+
+def test_migrate_adds_s3_key_without_losing_rows(corpus: Path) -> None:
+    cdb.dump()
+    with sqlite3.connect(cdb.DB) as con:
+        con.execute("alter table frames drop column s3_key")
+        con.execute("update meta set value = '2' where key = 'schema_version'")
+        before = con.execute("select count(*) from frames").fetchone()[0]
+    assert before > 0, "an empty frames table would make this vacuous"
+    assert cdb.migrate() is True
+    with sqlite3.connect(cdb.DB) as con:
+        columns = {r[1] for r in con.execute("pragma table_info(frames)")}
+        after = con.execute("select count(*) from frames").fetchone()[0]
+        version = con.execute("select value from meta where key = 'schema_version'").fetchone()[0]
+    assert "s3_key" in columns
+    assert after == before, "the migration lost frames rows"
+    assert version == cdb.SCHEMA_VERSION
+
