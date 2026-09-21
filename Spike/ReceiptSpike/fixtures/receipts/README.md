@@ -1078,3 +1078,12 @@ printed are the paid ones. Station `lukoil|lukoyl`. Five cells: 384 → 389.
 
 All four are JPEG with the orientation baked in and every EXIF field stripped. Measured on
 macOS 27 - totals only in `../high-water.json`; hits stand until the measured runtime runs.
+
+## Added 2026-09-21 (batch 6: three Circle K Peetri receipts with Live records)
+
+`receipt-083` (D B0 miles 43,25 L at 2,099, KOKKU 90,78, pump 1, 09:55), `receipt-084` (D B0
+miles 21,43 L at 2,099, 44,98, pump 3, 09:56 - **pair** with `pump-248`/`pump-249`),
+`receipt-085` (98EO miles+ 17,90 L at 1,959, `EXTRA SOODUS -0,36`, KOKKU 35,07, pump 5, 09:58 -
+**pair** with `pump-253`). Held in hand at the forecourt; every one has a Live record
+(`../pump-live/live-6300`, `6303`, `6308`). Station `circle k|circlek`. JPEG, EXIF stripped.
+Receipt cells: 389 → 404, stations 68 → 71.

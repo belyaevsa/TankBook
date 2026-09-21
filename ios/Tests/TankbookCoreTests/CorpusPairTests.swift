@@ -49,7 +49,10 @@ private let matchedPairs: [MatchedPair] = [
     MatchedPair(pump: "pump-110", receipt: "receipt-071", totalsAgree: false,
                 note: "a Wayne display truncates 2953.02 to 2953.00"),
     MatchedPair(pump: "pump-115", receipt: "receipt-074"),
-    MatchedPair(pump: "pump-116", receipt: "receipt-075")
+    MatchedPair(pump: "pump-116", receipt: "receipt-075"),
+    MatchedPair(pump: "pump-248", receipt: "receipt-084"),
+    MatchedPair(pump: "pump-249", receipt: "receipt-084"),   // the same fill, a closer still
+    MatchedPair(pump: "pump-253", receipt: "receipt-085")    // the paper carries a 0,36 loyalty discount line; the printed total is the paid one
 ]
 
 @Suite("Matched pump/receipt pairs (RV.114)")

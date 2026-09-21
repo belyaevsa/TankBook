@@ -1308,7 +1308,43 @@ nozzle boots), Cyrillic, `4693,50` / `90,00` at `52,15` - a 90-litre preset, unp
 behind. Train; three windows (903). Pump cells: 672 → 675.
 
 `pump-241` (same day): Dresser Wayne Pignone, **Poland**, the dm³ face (`zł` / `dm³` / `zł/dm³`,
-`LICZYDŁO POWINNO WSKAZYWAĆ ZERO`): `24.98` / `5.2?` at `4.69`, under a canopy on a wet day. The
-triple **does not close** with the litres read as 5.28 (x 4.69 = 24.76; 24.98 / 4.69 = 5.33), so
-the litres' second glyph is a 2 or a 3 and that cell is **blank** (`csvDisagrees` says so). `PLN`,
-train; three windows (909). Pump cells: 675 → 677.
+`LICZYDŁO POWINNO WSKAZYWAĆ ZERO`): `24.76` / `5.28` at `4.69`, under a canopy on a wet day - the
+total's last glyph is a 6 that reads as an 8 at a glance (the orchestrator first transcribed
+24.98; the product owner's review settled it, and 5.28 x 4.69 = 24.76 closes). `PLN`, train;
+three windows. Pump cells: 675 → 678.
+
+## Added 2026-09-21 (batch 6: the owner's morning at Peetri, Olerex and a second Circle K - 32 stills, windows pending)
+
+`pump-242`..`pump-273`, every one with a Live record in `../pump-live/` (batch 6 there), all
+**train**. Truth rows are written; the **windows are not drawn** - each entry carries
+`pendingWindows` until the product owner draws them in the annotator ("no windows" filter),
+and the checker, the harness and the glyph extractor skip such an entry.
+
+- **Neste, Dresser Wayne** (`EUR` / `LIITRIT`, three-cell board `futura D` / `Neste MY D` /
+  `futura 95`, all lit): `pump-242`/`243` one fill twice (24.61 / 13.13), `pump-244` 52.25 /
+  27.88 with the photographer in the glass. The price is a board cell (1.874), so `unitPrice`
+  is blank the way `pump-021`..`023` are.
+- **Circle K Peetri, Gilbarco Veeder-Root** (zero-padded, `€` / `L` / `€/L`): `pump-245`/`246`
+  pump 2 (84,80 / 44,19 at 1,919), `247` pump 1 (69,99 / 36,47 at 1,919), `248`/`249` pump 3
+  (44,98 / 21,43 at 2,099 - **pair** with `receipt-084`), `250`/`251` pump 7 (75,35 / 35,90 at
+  2,099), `252` pump 8 (68,05 / 32,42), `253` pump 5 (35,07 / 17,90 at 1,959 under glare -
+  **pair** with `receipt-085`), `254` pump 9 **AdBlue** (3,60 / 3,75 at 0,959 - the corpus's
+  first sub-1 price and first non-fuel fill), `255` pump 6 (42,00 / 20,01), `256` pump 6
+  (31,91 / 15,20 at 2,099 - **off by a cent**: 15.20 x 2.099 = 31.90, the head rounds on more
+  litre precision than it shows), `257` pump 7 (38,69 / 20,32, the price window washed out -
+  blank), `258` pump 4 (67,28 / 35,06 at 1,919), `259` pump 8 (131,94 / 62,86 at 2,099).
+- **Circle K, Dresser Wayne** (`SUMMA` / `LIITRIT`, four-cell `miles` board, all lit, no price
+  window): `pump-260`/`261` pump 5 (20.99 / 10.00), `262` pump 2 (36.17 / 17.23), `263` pump 4
+  **negative** - `CLOSED` in the sum window, `-00-` on the board, no fill, every cell blank
+  (product owner: a reader must commit nothing here), `264`/`265` pump 4 (55.40 / 28.87), `266`
+  pump 3 (66.74 / 36.29 - closes only at **1.839**, the 95 miles 1.919 less an 8-cent loyalty
+  discount the board does not show), `267` pump 1 (122.54, litres `58.3?` under glare - blank).
+  `unitPrice` blank throughout (board, not a transaction price).
+- **Olerex, Dresser Wayne** (`TANKUR N 24 h` label): `pump-268`, `pump-269` **idle** (0.00 /
+  0.00, board 2.109 / 1.884), the photographer in the glass.
+- **A second Circle K, Gilbarco with the five-grade board down the left** (1.919 / 1.969 /
+  1.979 / 2.132 / 2.232): `pump-270` (63,27 / 31,97 at 1,979), `271` (25,11 / 11,25 at 2,232),
+  `272` pump 4 (86,32 / 40,49 at 2,132), `273` pump 2 (68,05 / 35,46 at 1,919).
+
+Pump cells asserted: 678 → 753 (32 stills; two idle and one negative assert nothing, three
+board-only Wayne heads assert two cells each, two glare stills two). Totals only (macOS 27).

@@ -171,6 +171,60 @@ and a longer 4K video walking the angle with the LCD flickering; plus a third fi
 | `live-6285` | 224 | 4K video, moving angle, flicker | `pump-116` (same fill) |
 | `live-6279` | 149 | 4K video, moving angle, flicker | **new fill, video only** - 62.12 / 32.37 / 1.919 (read by eye from the frames) |
 
+## Batch 6 (2026-09-21, product owner): a morning across Peetri, Olerex and a second Circle K
+
+Thirty-two pump stills and three receipts, every one with its Live record, plus five 4K movies of a
+held display and three of a display counting up. The stills are `pump-242`..`pump-273` in `../pump/`
+(all **train**, decision 9, windows **pending** - `pendingWindows` in `windows.json` until the owner
+draws them), the receipts `receipt-083`..`receipt-085`. Two matched pairs: `pump-248`/`pump-249` with
+`receipt-084` (pump 3, 21.43 L) and `pump-253` with `receipt-085` (pump 5, 17.90 L, `EXTRA SOODUS`
+-0,36 on the paper). `pump-263` is a **negative**: the Wayne head shows the text `CLOSED` in the
+sum window and `-00-` on the board - a reader must commit nothing (product owner). Every Live record
+was re-encoded from the phone's `.mov` unchanged; the 4K `.MOV`s had audio and metadata stripped.
+
+| live | frames | what | paired still / truth |
+|---|---|---|---|
+| `live-6293` | 87 | Live record of the pump still | `pump-242` |
+| `live-6294` | 71 | Live record of the pump still | `pump-243` |
+| `live-6295` | 57 | Live record of the pump still | `pump-244` |
+| `live-6296` | 71 | Live record of the pump still | `pump-245` |
+| `live-6297` | 67 | Live record of the pump still | `pump-246` |
+| `live-6298` | 89 | Live record of the pump still | `pump-247` |
+| `live-6301` | 53 | Live record of the pump still | `pump-248` |
+| `live-6302` | 43 | Live record of the pump still | `pump-249` |
+| `live-6304` | 87 | Live record of the pump still | `pump-250` |
+| `live-6305` | 70 | Live record of the pump still | `pump-251` |
+| `live-6306` | 87 | Live record of the pump still | `pump-252` |
+| `live-6307` | 86 | Live record of the pump still | `pump-253` |
+| `live-6310` | 69 | Live record of the pump still | `pump-254` |
+| `live-6311` | 53 | Live record of the pump still | `pump-255` |
+| `live-6312` | 87 | Live record of the pump still | `pump-256` |
+| `live-6313` | 71 | Live record of the pump still | `pump-257` |
+| `live-6314` | 56 | Live record of the pump still | `pump-258` |
+| `live-6315` | 85 | Live record of the pump still | `pump-259` |
+| `live-6317` | 88 | Live record of the pump still | `pump-260` |
+| `live-6318` | 78 | Live record of the pump still | `pump-261` |
+| `live-6319` | 52 | Live record of the pump still | `pump-262` |
+| `live-6320` | 54 | Live record of the pump still | `pump-263` |
+| `live-6321` | 58 | Live record of the pump still | `pump-264` |
+| `live-6322` | 76 | Live record of the pump still | `pump-265` |
+| `live-6324` | 59 | Live record of the pump still | `pump-266` |
+| `live-6325` | 77 | Live record of the pump still | `pump-267` |
+| `live-6326` | 46 | Live record of the pump still | `pump-268` |
+| `live-6327` | 50 | Live record of the pump still | `pump-269` |
+| `live-6330` | 86 | Live record of the pump still | `pump-270` |
+| `live-6332` | 85 | Live record of the pump still | `pump-271` |
+| `live-6333` | 83 | Live record of the pump still | `pump-272` |
+| `live-6334` | 67 | Live record of the pump still | `pump-273` |
+| `live-6300` | 57 | Live record of the receipt | `receipt-083` |
+| `live-6303` | 54 | Live record of the receipt | `receipt-084` |
+| `live-6308` | 88 | Live record of the receipt | `receipt-085` |
+| `live-6299` | 158 | 4K movie, held display, moving angle | `pump-247` - 0069,99 / 0036,47 at 1,919 |
+| `live-6309` | 147 | 4K movie, held display, moving angle | `pump-253` - 0035,07 / 0017,90 at 1,959, glare |
+| `live-6316` | 146 | 4K movie, held display, moving angle | `pump-259` - 0131,94 / 0062,86 at 2,099 |
+| `live-6323` | 77 | 4K movie, held display, moving angle | `pump-264` - 55.40 / 28.87, Wayne board |
+| `live-6331` | 189 | 4K movie, held display, moving angle | `pump-270` - 0063,27 / 0031,97 at 1,979 |
+
 ## Batch 5 (2026-09-19, product owner): a running display on video
 
 `video-NNN-…mp4` is a third kind of medium beside the Live records: a plain video, not from
@@ -236,6 +290,9 @@ frame in `videos.json` and `pump_reader.track --videos` carries them through the
 | `video-022-gilbarco-veederroot-orlen-caption-diesel-running-display-pl` | 175 (544x968, 30 fps, 5.8 s) | Gilbarco Veeder-Root at an Orlen forecourt (`STANOWISKO 1`, a `ZACHOWAJ BEZPIECZEŃSTWO` sign), Poland, daylight, the **zero-padded** face (`0305,25` / `0034,53` at `08,84`), a diesel fill **counting up**, a white caption `Tak brzmi tankowanie diesela do pełna` burned in at the foot; the owner's own clip (`IMG_27747.mp4`), the first 3 s of car and nozzle cut as asked | price `8.84` constant; ~233.6 / 26.4 → 331.99 / 37.55 (`34.53 x 8.84 = 305.25` closes) |
 | `video-023-gilbarco-veederroot-orlen-night-oblique-running-display-pl` | 180 (720x1280, 30 fps, 6 s) | Gilbarco Veeder-Root at an Orlen forecourt (`STANOWISKO 3`, Verva columns), Poland, **at night**, the head shot **obliquely from the left** so the digits are small and skewed; **counting up** at `7,34`; the owner asked for 6-12 s of a 21.6 s clip (a pan along the nozzle rack before it) | price `7.34` constant; ~148 / 20.2 → 221.7 / 30.2 (`29.44 x 7.34 = 216.09` closes) |
 | `video-024-unknown-bucees-gallons-meme-caption-running-display-us` | 424 (720x1280, 30 fps, 14.1 s) | A Buc-ee's diesel dispenser (make not on the face), USA, `This Sale $` / `Gallons`, **three-decimal gallons** counting up through a diesel fill; a green `DIESEL PUMPS BE LIKE` meme caption burned in below the display and the pump-number card above; whole clip kept (no person). No price window on this face: `unitPrice` is the quotient **5.999 $/gal** (141.92 / 23.657; every sampled pair closes on it) and `volumeUnit: gal` says the `liters` field carries gallons - the arithmetic gate is unit-agnostic. Sent by the owner as `IMG_22610.mp4`; the corpus's first US clip | price `5.999` (inferred); 135.78 / 22.631 → 148.57 / 24.766 (`23.657 x 5.999 = 141.92` closes) |
+| `video-025-wayne-olerex-tankur2-running-display-ee` | 337 (2160x3840, 24 fps, 14 s) | Dresser Wayne at Olerex TANKUR 2 (`EUR` / `LIITRIT` / `EUR/1L`, `Tb = 15°C`), Estonia, daylight, **counting up** through a petrol fill at `1.884`; the owner's own 4K clip (`IMG_6328.MOV`), whole clip kept. Idle heads of the same station: `../pump/pump-268`, `pump-269` | price `1.884` constant; ~21.4 / 11.4 → 29.6 / 15.7 (`13.80 x 1.884 = 26.00` closes) |
+| `video-026-wayne-olerex-tankur6-running-display-ee` | 368 (3840x2160, 24 fps, 15 s) | The same Olerex face at TANKUR 6, landscape, **counting up** through a diesel fill at `2.109` from 6.69 / 3.55 (`IMG_6329.MOV`, whole clip) | price `2.109` constant; 6.69 / 3.55 → ~24.9 / 11.8 (`8.33 x 2.109 = 17.57` closes) |
+| `video-027-gilbarco-circlek-five-grade-pump2-running-display-ee` | 670 (3840x2160, 24 fps, 28 s) | Gilbarco Veeder-Root at the second Circle K (the five-grade board down the left: 1.919 / 1.969 / 1.979 / 2.132 / 2.232), pump 2, **counting up** through a 95 miles+ fill at `1.969` (`IMG_6335.MOV`, whole clip); the still `../pump/pump-273` is a later fill on the same head at 1.919 | price `1.969` constant; 13.04 / 6.80 → 32.31 / 16.84 (`17.88 x 1.969 = 35.21` closes) |
 
 ## Frames and tracking (2026-09-20)
 

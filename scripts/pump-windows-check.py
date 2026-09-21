@@ -9,7 +9,8 @@ display shows. This script is what keeps the two files from disagreeing:
   * each `total` / `liters` / `unitPrice` window's string equals the CSV cell
     once display notation is normalised (comma decimal, zero padding, a dropped
     trailing zero on a truncated total). A blank CSV cell is unscored and not
-    checked; an entry's `notOnDisplay` names a CSV field the display does not
+    checked; an entry marked `pendingWindows` (still in, windows not drawn) is
+    skipped until the flag goes; an entry's `notOnDisplay` names a CSV field the display does not
     show, and `csvDisagrees` names one where the display and the CSV differ on
     purpose, with the reason - both are read as declared exceptions;
   * liters x unitPrice ~ total within the precision the display shows;
@@ -69,6 +70,12 @@ def main() -> int:
     for name, entry in ann.items():
         row = rows.get(name)
         if row is None:
+            continue
+        if entry.get("pendingWindows"):
+            # The still is in the corpus, its truth is in expected.csv, and its
+            # windows are still to be drawn: nothing to compare yet.
+            if entry.get("windows"):
+                problems.append(f"{name}: pendingWindows but windows are drawn - drop the flag")
             continue
         not_on_display = set(entry.get("notOnDisplay", ()))
         csv_disagrees = entry.get("csvDisagrees", {})
