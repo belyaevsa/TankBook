@@ -37,6 +37,8 @@
   #frameStrip span.anchor { box-shadow: inset 0 0 0 1px #fff }
   #frameStrip span.nextrun { position:relative } #frameStrip span.nextrun::after { content:'▲'; position:absolute; top:13px; left:-3px; color:#fff; font-size:10px }
   #frameStrip .legend { width:auto; height:auto; background:none; color:var(--dim); font-size:11px; margin-left:8px; cursor:default }
+  #banner { position:sticky; top:0; z-index:5; padding:6px 10px; font-size:13px; background:rgba(20,20,20,0.92); border-bottom:1px solid var(--line); display:none }
+  #banner.busy { display:block; color:#ffc857 } #banner.done { display:block; color:#7fff7f } #banner.failed { display:block; color:var(--bad) }
   kbd { border:1px solid var(--line); border-radius:3px; padding:0 4px; font-size:11px; color:var(--dim) }
 </style>
 </head>
@@ -48,7 +50,7 @@
   <div class="row dim" id="counts"></div>
   <div id="list"></div>
 </aside>
-<main><canvas id="c"></canvas></main>
+<main><div id="banner" class="idle"></div><canvas id="c"></canvas></main>
 <section class="right">
   <div class="row"><b id="name" style="flex:1">–</b> <label title="reviewed by a human; P toggles"><input type="checkbox" id="reviewed"> processed</label></div>
   <div class="row dim">Drag = new window · click = select · drag corner = adjust · <kbd>⌫</kbd> delete · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> field · <kbd>⌘S</kbd> save · <kbd>+</kbd>/<kbd>-</kbd>/<kbd>0</kbd> zoom · <kbd>P</kbd> processed · <kbd>⏎</kbd> save &amp; next · <kbd>J</kbd>/<kbd>K</kbd> next/prev</div>
@@ -169,6 +171,7 @@ function watchRetrack(name) {
   retrackWatch[name] = setInterval(async () => {
     const st = await (await fetch('/api/retrack/' + encodeURIComponent(name))).json();
     $('#out').textContent = st.running ? `${st.phase === 'read' ? 'reading' : 'retracking'} ${name.slice(0, 9)}…` : `done: ${st.result || ''}`;
+    notify(st.running ? 'busy' : 'done', st.running ? `${st.phase === 'read' ? 'Reading every frame of' : 'Tracking'} ${name} in progress…` : `Re-tracking completed – ${st.result || 'no result line'}`);
     if (!st.running) { clearInterval(retrackWatch[name]); delete retrackWatch[name]; const mine = current === name || (currentRecord() && currentRecord().movie === name); if (mine) { recordsLoaded = loadRecords(current); if (frameMode) recordsLoaded.then(showFrame); } }
   }, 2000);
 }
@@ -304,7 +307,7 @@ async function save() {
   if (!current) return;
   const r = await (await fetch('/api/entry/' + encodeURIComponent(current), {method:'PUT', body: JSON.stringify(collect())})).json();
   if (isVideo) { dirty = false; const fx = fixtures.find(x => x.name === current); if (fx) fx.reviewed = !!entry.reviewed; renderList();
-    if (r.retrack === 'started') { setMsg('reference saved, retracking in the background'); watchRetrack(current); } else setMsg('saved'); return; }
+    if (r.retrack === 'started') { setMsg('reference saved, retracking in the background'); notify('busy', `Reference saved – tracking ${current} in progress…`); watchRetrack(current); } else setMsg('saved'); return; }
   entry = r.entry; entry.windows = entry.windows || []; dirty = false; setMsg('saved');
   const fx = fixtures.find(x => x.name === current); if (fx) { fx.windows = entry.windows.length; fx.reviewed = !!entry.reviewed; fx.tracking = entry.tracking || null; }
   renderList(); renderWins(); draw();
@@ -312,6 +315,12 @@ async function save() {
 async function check() {
   const r = await (await fetch('/api/check', {method:'POST'})).json();
   $('#out').textContent = r.output; $('#out').className = r.exit ? 'bad' : 'ok';
+}
+// The banner over the image: what is running (tracking, reading) and how it ended.
+let bannerTimer = null;
+function notify(kind, text) {
+  const b = $('#banner'); b.className = kind; b.textContent = text; clearTimeout(bannerTimer);
+  if (kind !== 'busy') bannerTimer = setTimeout(() => { if (b.textContent === text) b.className = 'idle'; }, 12000);
 }
 function setMsg(t) { $('#msg').textContent = t; setTimeout(() => { if ($('#msg').textContent === t) $('#msg').textContent = dirty ? 'unsaved' : ''; }, 1500); }
 function touch() { dirty = true; $('#msg').textContent = 'unsaved'; }
@@ -509,7 +518,7 @@ async function saveAnchor() {
   r.frames[name].verified = true; frameQuadsEdited = false;
   if (res.liveAnchors && entry) entry.liveAnchors = res.liveAnchors;
   if (!isVideo) $('#lfState').textContent = '⚓ anchor (quads placed by hand)';
-  setMsg(`anchor at ${name} (${res.anchors.length} anchors), retracking`); watchRetrack(r.movie);
+  setMsg(`anchor at ${name} (${res.anchors.length} anchors), retracking`); notify('busy', `Anchor saved at ${name} – tracking ${r.movie} in progress…`); watchRetrack(r.movie);
 }
 $('#vlAnchor').onclick = saveAnchor;
 $('#lfSave').onclick = () => { clearTimeout(anchorTimer); saveAnchor(); };
@@ -518,6 +527,7 @@ async function rerunVideo() {
   const r = currentRecord(); if (!r) return;
   const res = await (await fetch('/api/rerun/' + encodeURIComponent(r.movie), {method: 'POST'})).json();
   setMsg(res.reviewed ? 'marked reviewed: retracking only, the reader skips a reviewed video' : 'retracking, then reading every tracked frame');
+  notify('busy', res.reviewed ? `Tracking ${r.movie} in progress (reviewed: the reader is skipped)…` : `Tracking ${r.movie}, then reading every tracked frame…`);
   watchRetrack(r.movie);
 }
 $('#vlRerun').onclick = rerunVideo;
@@ -536,11 +546,16 @@ async function runReader(live) {
   const body = {image, rotationCW: rot(), live: !!live, currency: row && row.currency,
                 windows: wins.filter(w => w.field !== 'board').map(w => ({field: w.field, quad: w.quad}))};
   setMsg(live ? 'reading (live path)…' : 'reading…');
+  notify('busy', live ? 'Reading – live path (detector → verifier → assignment → law)…' : 'Reading from the layouts (the annotated windows)…');
   let res;
   try { res = await (await fetch('/api/read', {method: 'POST', body: JSON.stringify(body)})).json(); }
-  catch (err) { setMsg('read failed: ' + err); return; }
-  if (res.error) { $('#out').textContent = res.error + '\n' + (res.output || ''); setMsg('read failed'); return; }
+  catch (err) { setMsg('read failed: ' + err); notify('failed', 'Read failed: ' + err); return; }
+  if (res.error) { $('#out').textContent = res.error + '\n' + (res.output || ''); setMsg('read failed'); notify('failed', 'Read failed – ' + res.error); return; }
   const c = res.committed || {};
+  const committedText = ['total', 'liters', 'unitPrice'].map(f => `${f} ${c[f] ?? '–'}`).join(' · ');
+  const rowsText = live ? ` · rows found ${(res.rows || []).length}` : '';
+  notify(Object.values(c).some(v => v) ? 'done' : 'failed',
+         (live ? 'Live path read' : 'Layout read') + ' completed – ' + committedText + rowsText + (Object.values(c).some(v => v) ? '' : ' (nothing committed)'));
   const lines = [`reader${live ? ' (live path)' : ''}: total ${c.total ?? '–'}  liters ${c.liters ?? '–'}  price ${c.unitPrice ?? '–'}`];
   for (const w of res.windows || []) lines.push(`  ${w.field.padEnd(9)} ${w.text.padEnd(10)} margins ${w.cells.map(x => x.margin.toFixed(1)).join(' ')}`);
   for (const r of res.rows || []) lines.push(`  row ${(r.field || '–').padEnd(9)} ${r.cells} cells${r.detected ? ' (detector)' : ''}`);
