@@ -17,6 +17,9 @@ import UIKit
 final class CameraController: NSObject {
     private let session = AVCaptureSession()
     private let photoOutput = AVCapturePhotoOutput()
+    /// PU.40b: the preview guidance's frame source. The same session as the
+    /// shutter, so what the detector sees is what the shutter will capture.
+    private let videoOutput = AVCaptureVideoDataOutput()
     private var didConfigure = false
     private var captureContinuation: CheckedContinuation<UIImage?, Never>?
     /// The video device `start()` attached, retained so the DEBUG Capture Lab
@@ -29,6 +32,20 @@ final class CameraController: NSObject {
 
     /// True once a camera is attached and running (false on the simulator).
     private(set) var isReady = false
+
+    /// The live preview's guidance (PU.40b), published for `CaptureView`'s
+    /// caption and overlay. Nothing runs until `setGuidanceActive(true)`.
+    let guidance = PreviewGuidance()
+
+    /// Runs the detector on the video frames and forwards the rows to
+    /// `guidance` on the main actor. `lazy` so its `@Sendable` handler can
+    /// capture the already-initialised `guidance`; ignored by `@Observable`,
+    /// which cannot track a lazily-initialised property.
+    @ObservationIgnored private lazy var frameAnalyzer = PreviewFrameAnalyzer { [guidance] rows, size, ms in
+        Task { @MainActor in
+            guidance.observe(rows: rows, frameSize: size, analysisMs: ms)
+        }
+    }
 
     #if DEBUG
     /// The `-captureCameraTestFrame <path>` test double: a simulated camera.
@@ -71,6 +88,21 @@ final class CameraController: NSObject {
             guard session.canAddInput(input), session.canAddOutput(photoOutput) else { return }
             session.addInput(input)
             session.addOutput(photoOutput)
+            // PU.40b: a second output on the SAME session delivers frames to
+            // the detector. Late frames are dropped so a slow analysis never
+            // queues up; the delegate queue serialises what remains.
+            if session.canAddOutput(videoOutput) {
+                session.addOutput(videoOutput)
+                videoOutput.alwaysDiscardsLateVideoFrames = true
+                frameAnalyzer.attach(to: videoOutput)
+                // The sensor delivers landscape pixels; rotate them upright so
+                // the detector (trained on upright displays) sees what the user
+                // sees, and the normalised rows match the preview's space.
+                if let connection = videoOutput.connection(with: .video),
+                   connection.isVideoRotationAngleSupported(90) {
+                    connection.videoRotationAngle = 90
+                }
+            }
             // `.photo` delivers the sensor's full photo resolution, not the
             // default `.high` (~1080p) - the app OCRs small print, and every
             // pixel the sensor can spare is a pixel the recognizer can read.
@@ -109,6 +141,57 @@ final class CameraController: NSObject {
             captureContinuation = continuation
             photoOutput.capturePhoto(with: AVCapturePhotoSettings(), delegate: self)
         }
+    }
+
+    // MARK: - Preview guidance (PU.40b)
+
+    /// Starts or stops the preview detector. `active` with no reader (the
+    /// bundle's models missing) leaves the analyser idle, so guidance never
+    /// runs without the reader behind it. Turning it off clears the published
+    /// state and undoes a zoom the guidance offered.
+    func setGuidanceActive(_ active: Bool) {
+        frameAnalyzer.set(reader: active ? CapturePipeline.pumpReader : nil, active: active)
+        guard active else {
+            guidance.reset()
+            resetZoom()
+            return
+        }
+        #if DEBUG
+        // The simulator's `-captureCameraTestFrame` double has no camera to
+        // deliver a stream; feed the same frame enough times for the debouncer
+        // to publish. The feeds are spaced wider than the analyser's own
+        // throttle, or the analyser would drop the second and third frames and
+        // the state would never leave `searching`.
+        if let frame = testFrame, let cgImage = frame.cgImage {
+            Task {
+                for _ in 0..<GuidanceDebouncer.requiredFrames {
+                    frameAnalyzer.feed(cgImage)
+                    try? await Task.sleep(for: .milliseconds(250))
+                }
+            }
+        }
+        #endif
+    }
+
+    /// Whether the active device can zoom far enough to offer the hint's 2×
+    /// tap. False on the simulator (no device).
+    var hasZoomRange: Bool {
+        guard let device else { return false }
+        return device.activeFormat.videoMaxZoomFactor >= 2
+    }
+
+    /// Applies a zoom factor, clamped to the device's range. The guidance's 2×
+    /// offer calls this; `resetZoom` undoes it when the screen is left.
+    func applyZoom(_ factor: CGFloat) {
+        guard let device, device.activeFormat.videoMaxZoomFactor >= factor else { return }
+        try? device.lockForConfiguration()
+        device.videoZoomFactor = min(max(factor, device.minAvailableVideoZoomFactor),
+                                     device.maxAvailableVideoZoomFactor)
+        device.unlockForConfiguration()
+    }
+
+    func resetZoom() {
+        applyZoom(1)
     }
 
     /// Sets the photo connection's `videoRotationAngle` from the current

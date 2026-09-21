@@ -1495,6 +1495,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },
+    "PU.40b-capture-guidance": {
+      "commit": "20dc18cb",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PU.40b-capture-guidance-ru": {
+      "commit": "20dc18cb",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "RV.10-date-picker-open": {
       "commit": "3611237",
       "device": "iPhone 17",

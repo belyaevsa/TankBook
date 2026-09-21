@@ -128,6 +128,13 @@ user mid-restore.
 ### J4 · No receipt – pump display photo
 **Trigger:** station prints no receipt / receipt skipped; the pump still shows liters, price, total.
 
+**The preview, before the shutter (PU.40b).** The row detector runs on the live preview frames and
+the screen says what the reader will have before the user presses: *Display in view* with the digit
+rows outlined in the fuel token when two stacked rows are found, *Move closer* (with a 2× tap where
+the device can zoom) when the rows are under the size rule, and *Tilt to show the whole display*
+when one row is short. The hint is a head start, never a gate – the shutter fires in every state
+and typing stays the peer door (hard rule 15) – and a receipt frame raises no hint at all.
+
 Same shape as J3, with the deltas: camera pointed at the pump display before hanging up the nozzle (→ prompt tip on first use: "no receipt? Shoot the pump"); OCR reads the three numbers, arithmetic triple-match assigns them (⚠ glare/LED segments – the spike's ~95% gate applies before this ships); station name auto-suggested from location + favorites. This journey is **unowned by any competitor** – it must feel as reliable as J3 or not exist.
 
 **The reader, and what the shipped build does with a pump photo (PU.29, decisions 7 and 8,

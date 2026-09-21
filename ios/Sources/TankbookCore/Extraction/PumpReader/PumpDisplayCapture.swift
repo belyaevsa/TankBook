@@ -1,4 +1,5 @@
 import CoreGraphics
+import CoreVideo
 import Foundation
 
 /// Which classification path produced a frame's verdict (PU.38): the detector's
@@ -112,7 +113,10 @@ public enum PumpDisplayCapture {
     /// warping, slicing or classifier. Two rows that pass the size rules and
     /// stack, at the detector's own confidence, under the text-line ceiling.
     /// The frame is a display; the reading runs afterwards only to fill it.
-    static func fastVerdict(rows: [PumpRowDetector.Row], textLines: Int) -> Bool {
+    ///
+    /// Public because the live preview's guidance (PU.40b) must decide "display
+    /// in view" with the same rules the capture path uses, never a second copy.
+    public static func fastVerdict(rows: [PumpRowDetector.Row], textLines: Int) -> Bool {
         guard textLines <= maximumTextLines else { return false }
         let sized = rows.filter { passesSize($0) }
         for i in sized.indices {
@@ -128,9 +132,20 @@ public enum PumpDisplayCapture {
         return false
     }
 
-    private static func passesSize(_ row: PumpRowDetector.Row) -> Bool {
-        let bounds = PumpRowAssignment.bounds(row.quad, rotationCW: 0)
+    /// Whether one detected row is big enough in the frame to be a display row
+    /// rather than a receipt's printed line. Shared with the preview guidance.
+    public static func passesSize(_ row: PumpRowDetector.Row) -> Bool {
+        let bounds = row.bounds
         return bounds.height >= minimumRowHeightFraction && bounds.width >= minimumWidestRowFraction
+    }
+
+    /// The detector's rows after the stacked-row rescue (`PumpReader`): every
+    /// row above the confidence cut plus a low-confidence row rescued from
+    /// beside a passing one. Public so the preview guidance's state machine can
+    /// be tested on synthetic rows with the production rescue, and used by
+    /// `PumpReaderHandle` so the two can never diverge.
+    public static func rescuedRows(_ rows: [PumpRowDetector.Row]) -> [PumpRowDetector.Row] {
+        PumpReader.rescueStackedRows(rows)
     }
 
     /// The decision and, when the read should run, how to get its windows. Fast
@@ -292,4 +307,19 @@ public enum PumpDisplayCapture {
 public final class PumpReaderHandle: @unchecked Sendable {
     let reader: PumpReader
     init(reader: PumpReader) { self.reader = reader }
+
+    /// The detector's rows after the stacked-row rescue, with no warping,
+    /// slicing or classification - the fast path's input, exposed for the live
+    /// preview's guidance (PU.40b). Empty when no detector is loaded.
+    public func detectedRows(in pixelBuffer: CVPixelBuffer) -> [PumpRowDetector.Row] {
+        guard let detector = reader.detector else { return [] }
+        return PumpDisplayCapture.rescuedRows(detector.detect(in: pixelBuffer))
+    }
+
+    /// The same rows from a decoded image, so a test frame can drive the
+    /// guidance with no camera (PU.40b).
+    public func detectedRows(in image: CGImage) -> [PumpRowDetector.Row] {
+        guard let detector = reader.detector else { return [] }
+        return PumpDisplayCapture.rescuedRows(detector.detect(in: image))
+    }
 }

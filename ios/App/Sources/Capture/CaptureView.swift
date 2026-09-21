@@ -42,7 +42,9 @@ struct CaptureView: View {
     /// can be `.authorized` while the hardware refuses; the fault card offers
     /// the manual door, never Settings.
     @State var cameraFault = false
-    @State private var mode: CaptureMode = .fillUpAuto
+    /// Internal, not private: the guidance caption in `CaptureGuidanceCaption.swift`
+    /// reads the mode to decide whether the detector runs.
+    @State var mode: CaptureMode = .fillUpAuto
     @State var activeSheet: CaptureSheet?
     /// RV.5: the captured frame awaiting the user's verdict. Non-nil means the
     /// review step is up; the capture pipeline has NOT run yet.
@@ -65,7 +67,9 @@ struct CaptureView: View {
     /// The shared camera session: the live preview and the shutter's photo
     /// capture are the SAME session, so what the preview shows is what a scan
     /// reads.
-    @State private var camera = CameraController()
+    /// Internal, not private: the guidance caption in `CaptureGuidanceCaption.swift`
+    /// reads the published guidance state and offers the zoom tap.
+    @State var camera = CameraController()
 
     private let authorizer: CameraAuthorizing
     private let injectedPowertrain: Powertrain?
@@ -113,7 +117,10 @@ struct CaptureView: View {
             loadPowertrain(); loadAlphaNotice()
             presentTypeItIfRequested(); presentReviewIfRequested(); presentFaultIfRequested()
             presentServiceScanIfRequested()
+            updateGuidance()
         }
+        .onChange(of: mode) { _, _ in updateGuidance() }
+        .onDisappear { camera.setGuidanceActive(false) }
         .onChange(of: scenePhase) { _, phase in
             #if DEBUG
             if phase == .background {
@@ -406,6 +413,10 @@ struct CaptureView: View {
     private func captureFrame() {
         guard !isProcessing else { return }
         isProcessing = true
+        // PU.40b: what the preview had told the user at the moment they pressed.
+        // Counts and one token (hard rule 12).
+        AppLog.shared.emit(CaptureGuidance(state: camera.guidance.state.rawValue,
+                                           framesAnalysed: camera.guidance.framesAnalysed))
         Task {
             defer { isProcessing = false }
             let fixture = fixtureImage()
@@ -445,7 +456,9 @@ struct CaptureView: View {
     @ViewBuilder
     private var cameraBackground: some View {
         if cameraStatus == .authorized {
-            CameraPreview(controller: camera)
+            CameraPreview(controller: camera,
+                          overlayRects: camera.guidance.overlayRects,
+                          frameSize: camera.guidance.frameSize)
                 .ignoresSafeArea()
         } else {
             Theme.Palette.midnight
@@ -483,13 +496,7 @@ struct CaptureView: View {
     private var liveLayout: some View {
         VStack(spacing: 0) {
             Spacer(minLength: 0)
-            Text(captureCaption)
-                .font(.system(size: 12))
-                .foregroundStyle(Theme.Palette.inkSoft)
-                .multilineTextAlignment(.center)
-                .lineLimit(3)
-                .padding(.horizontal, 36)
-                .padding(.bottom, 22)
+            captureCaptionArea
             modeRow
                 .padding(.bottom, 14)
             if alphaNoticeVisible {
@@ -525,7 +532,9 @@ struct CaptureView: View {
     /// no fuel tank and no pump display to read. `offeredModes` is the same
     /// source of truth as the mode row, so the screen decides what it offers
     /// and what it promises in one place.
-    private var captureCaption: LocalizedStringKey {
+    /// Internal, not private: the guidance caption lives in
+    /// `CaptureGuidanceCaption.swift` (this file is at its length limit).
+    var captureCaption: LocalizedStringKey {
         if offeredModes.contains(.fillUpAuto), PumpPhotoGate.allowsPumpPhoto {
             return "Receipts and pump displays are detected automatically"
         }

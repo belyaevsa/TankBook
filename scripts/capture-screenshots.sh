@@ -357,6 +357,19 @@ capture RV.223-capture-fault-ru    ru -presentScreen capture -cameraStatus autho
 capture RV.226-capture-restricted       en -seedVehicleForUITests -presentScreen capture -cameraStatus restricted
 capture RV.226-capture-restricted-ru    ru -seedVehicleForUITests -presentScreen capture -cameraStatus restricted
 
+# PU.40b: the detector on the live preview. `-captureCameraTestFrame` stands in
+# for the camera on the simulator with a PU.38 fast-path display, so the frame
+# shows the `ready` state: the digit rows outlined in taillight and the caption
+# "Display in view". CAPTURE_SLEEP is raised because the debounce needs three
+# analysed frames before the state publishes, and the first launch after an
+# install also pays the model load; a 12 s sleep was enough on a warm device but
+# caught the plain caption on the first, cold EN frame. RU is the wrap check for
+# the hint copy (Наведите ближе / Наклоните… must not truncate under the caption).
+CAPTURE_SLEEP=20
+capture PU.40b-capture-guidance    en -presentScreen capture -cameraStatus authorized -captureCameraTestFrame "${PWD}/Spike/ReceiptSpike/fixtures/pump/pump-032-gilbarco-circlek-ee-clean.jpg"
+capture PU.40b-capture-guidance-ru ru -presentScreen capture -cameraStatus authorized -captureCameraTestFrame "${PWD}/Spike/ReceiptSpike/fixtures/pump/pump-032-gilbarco-circlek-ee-clean.jpg"
+CAPTURE_SLEEP=6
+
 # P6.10: the alpha-testing disclosure on the capture surface (docs/ERRORS.md ->
 # Capture). A fresh database is the point: with zero captures the notice is
 # active, sitting directly above the shutter. `-alphaNoticeReset` clears the
