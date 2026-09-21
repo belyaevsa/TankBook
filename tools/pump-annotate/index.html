@@ -73,7 +73,7 @@
 </main>
 <section class="right">
   <div class="row"><b id="name" style="flex:1">–</b> <label title="reviewed by a human; P toggles"><input type="checkbox" id="reviewed"> processed</label></div>
-  <div class="row dim">Drag = new window · click = select · drag corner = adjust · <kbd>⌫</kbd> delete · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> field · <kbd>⌘S</kbd> save · <kbd>+</kbd>/<kbd>-</kbd>/<kbd>0</kbd> zoom · <kbd>P</kbd> processed · <kbd>⏎</kbd> save &amp; next · <kbd>J</kbd>/<kbd>K</kbd> next/prev</div>
+  <div class="row dim">Drag = new window · click = select · drag corner = adjust · <kbd>⌫</kbd> delete · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> field · <kbd>⌘S</kbd> save · <kbd>+</kbd>/<kbd>-</kbd>/<kbd>0</kbd> zoom · <kbd>A</kbd> auto-annotate · <kbd>P</kbd> processed · <kbd>⏎</kbd> save &amp; next · <kbd>J</kbd>/<kbd>K</kbd> next/prev</div>
   <div class="row">Zoom <input id="zoom" type="range" min="0.25" max="4" step="0.05" value="1" style="flex:1">
     Rotate <select id="rot"><option>0</option><option>90</option><option>180</option><option>270</option></select></div>
   <div class="row mono" id="csv"></div>
@@ -115,7 +115,8 @@
   </div>
   <div id="status">
     <div class="row"><button id="save" class="primary">Save</button><button id="savenext" title="mark processed, save, open the next">✓ Save &amp; next</button><button id="check">Check</button>
-      <button id="read" title="run the reader on the annotated windows and fill empty texts (r); R runs the app's live path - detector, verifier, law - on the photo with no windows">▶ read</button><span id="msg" class="dim"></span></div>
+      <button id="read" title="run the reader on the annotated windows and fill empty texts (r); R runs the app's live path - detector, verifier, law - on the photo with no windows">▶ read</button>
+      <button id="auto" title="auto-annotate (A): the live path locates the rows and each assigned row becomes a window with the CSV's text - adjust and save">✦ auto</button><span id="msg" class="dim"></span></div>
     <pre id="out"></pre>
   </div>
 </section>
@@ -608,7 +609,7 @@ function readImageKey() {
   if (frameMode) { const r = currentRecord(); const name = r && r.tracked[frameIdx]; return name ? `frame/${r.movie}/${name}` : null; }
   return current;
 }
-async function runReader(live) {
+async function runReader(live, onDone) {
   const image = readImageKey(); if (!image) return;
   const wins = (frameMode && isVideo) ? windowsToDraw() : (entry ? entry.windows : []);
   const body = {image, rotationCW: rot(), live: !!live, currency: row && row.currency,
@@ -647,8 +648,34 @@ async function runReader(live) {
   }
   draw();
   setMsg('read done');
+  if (onDone) onDone(res);
 }
 $('#read').onclick = () => runReader(false);
+// Auto-annotate a still (A): the live path locates the rows; each row the
+// reader assigned a field to becomes a window on the still, its text the
+// CSV's truth (what the annotation asserts) rather than the reader's read, so
+// a misread cannot be frozen in. Windows already drawn are kept; the first new
+// one is selected for the small adjustments the row box usually needs.
+function autoAnnotate() {
+  if (!entry || (frameMode && isVideo)) return;
+  runReader(true, res => {
+    const [w, h] = dispSize();
+    const have = new Set(entry.windows.map(x => x.field));
+    let first = -1;
+    for (const rr of res.rows || []) {
+      const f = rr.field; if (!f || !FIELDS.includes(f) || (f !== 'board' && have.has(f))) continue;
+      const quad = rr.quad.map(([nx, ny]) => toImg([nx * w, ny * h]));
+      // A board cell has no CSV truth: its text is left for the owner to type.
+      const truth = f !== 'board' && row && row[f] ? String(row[f]) : '';
+      entry.windows.push({field: f, text: truth, quad}); have.add(f);
+      if (first < 0) first = entry.windows.length - 1;
+    }
+    if (first < 0) { setMsg('auto-annotate: the reader placed no new row'); return; }
+    sel = first; touch(); renderWins(); draw();
+    setMsg(`auto-annotate: ${entry.windows.length - first} window(s) from the reader's rows - adjust the boxes, then save`);
+  });
+}
+$('#auto').onclick = autoAnnotate;
 $('#vlRead').onclick = () => runReader(false);
 function next() { const names = [...document.querySelectorAll('#list div')].map(d => d.dataset.n); const n = names[names.indexOf(current) + 1]; if (n) openFixture(n); }
 $('#savenext').onclick = async () => { $('#reviewed').checked = true; await save(); next(); };
@@ -666,6 +693,7 @@ document.addEventListener('keydown', e => {
   if (frameMode && isVideo && e.key === 'ArrowRight' && e.shiftKey) { e.preventDefault(); stepRun(1); return; }
   if (!typing && e.key === 'r') { runReader(false); return; }
   if (!typing && e.key === 'R') { runReader(true); return; }
+  if (!typing && e.key === 'A') { autoAnnotate(); return; }
   if (!typing && (e.key === '+' || e.key === '=')) { setZoom(zoom * 1.2); return; }
   if (!typing && e.key === '-') { setZoom(zoom / 1.2); return; }
   if (!typing && e.key === '0') { fit(); draw(); return; }

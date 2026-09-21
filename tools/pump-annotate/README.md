@@ -69,6 +69,11 @@ the ml venv runs it); the converted images are cached under
   to its nearest anchors and takes the best - a pinned frame is written back
   verbatim and never re-registered - so one corrected frame fixes the stretch
   around it when you ask for it, and a single bad frame costs a single pin.
+- **✦ auto** (`A`, shift+a): auto-annotate a still - the live path locates
+  the rows, and every row the reader assigned a field to becomes a window whose
+  text is the CSV's truth - the display's own padding and comma still need typing - (never the reader's read, so a misread cannot be
+  frozen in); a board row becomes a `board` window with an empty text to type. Windows already drawn are kept; the first new one is selected so
+  the box can be tightened. Nothing is saved until Save.
 - **▶ read** (`r`): runs the app's own reader on what is on
   screen and fills the fields as a prefill - the annotated windows (or a video
   frame's carried quads) are sliced, classified and judged by the law, and the
