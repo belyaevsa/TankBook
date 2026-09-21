@@ -911,6 +911,25 @@ forbids. Measured on the heldout: two rows verified 50 → 52, roles right 44 �
 cells at precision 1.000, photos fully right 8 → 11. The detector retrained on the whole corpus the
 same day (926 images) moved nothing - the lever on the locator is geometric, not more frames.
 
+**Decision 10, amended 2026-09-21 (PU.38): classification from the detector's rows alone, and a
+cap on the fallback.** The classification ran only after the whole verifier: every capture,
+attach and re-attach warped, sliced and classified every candidate row to count what survived -
+0.8-3.5 s a photo on the Mac and 28 s on the fallback path (pump-190), against the 3 s device
+budget (P4.12) that every receipt pays too. A frame is now a display when the detector alone
+vouches for it: at least two of its rescued rows pass the existing size rules
+(`minimumRowHeightFraction`, a widest row ≥ 0.18 of the frame) and stack (share an x-span), both
+at ≥ 0.3 or one at ≥ 0.5 with the other rescued, under the Vision text-line ceiling
+(`textLines ≤ 30`). No warping, slicing or classifier enters the decision; the verifier runs only
+to read a frame the decision accepted. When the detector finds fewer than two such rows the old
+Vision + classical verifier runs as before, so a head it never saw (Topaz, Tatsuno) still gets its
+chance - but capped: a wall-clock budget (`slowPathBudget`, 1.5 s) after which the classification
+says not-a-display (the read path is unchanged). The `capture.classify` line gains `path=fast|slow`
+so the device says which branch ran. Measured on the heldout six: **5/6 classified** (up from 4/6;
+the fast path rescues pump-042, which the verifier's margin missed, while pump-035 stays out on 31
+text lines against the 30 ceiling), **0/8 receipts leaked**, and the decision is a detector pass
+plus a text-line count (~50-80 ms in Release on the 12 MP stills) instead of the verifier's
+0.8-3.5 s. The read floors are untouched.
+
 **The operator's corrections.** Every disagreement between a tool's proposal (the tracker's
 quad, the reader's pre-fill) and the annotator's hand is recorded (`pump-live/corrections.jsonl`)
 with the build it came from; `ml/pump-reader/CORRECTIONS.md` is the standing procedure that reads

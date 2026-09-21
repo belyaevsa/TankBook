@@ -563,9 +563,9 @@ public struct CapturedField: Sendable, Equatable {
     }
 }
 
-/// One frame's pump-display classification (PU.29): whether the reader was
-/// loaded at all, what it counted and what it decided. Counts and fractions
-/// only - the frame, its rows and any digit read have no route in (hard rule 12).
+/// One frame's pump-display classification (PU.29, PU.38): the reader, what it
+/// counted, the verdict and `path` (`fast`/`slow`). Counts and one token only -
+/// the frame, its rows and any digit read have no route in (hard rule 12).
 public struct CaptureClassify: LogEvent {
     public let eventName = "capture.classify"
     public let category = LogCategory.capture
@@ -573,7 +573,7 @@ public struct CaptureClassify: LogEvent {
     public let fields: [LogField]
 
     public init(reader: String, display: Bool, rows: Int, textLines: Int, widestRow: Double, tallestRow: Double,
-                durationMs: Int) {
+                durationMs: Int, path: String? = nil) {
         fields = [
             .safe("reader", reader),
             .safe("display", display ? "true" : "false"),
@@ -582,7 +582,7 @@ public struct CaptureClassify: LogEvent {
             .safe("widestRow", String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), arguments: [widestRow])),
             .safe("tallestRow", String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), arguments: [tallestRow])),
             .safe("durationMs", durationMs),
-        ]
+        ] + (path.map { [.safe("path", $0)] } ?? [])
     }
 }
 

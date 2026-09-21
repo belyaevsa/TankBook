@@ -963,5 +963,71 @@ comma under a digit. Each is its own row; this round's write set could not carry
 annotated floor. The two synthetic tests live in `PumpGlyphSlicerTests`; the miscount table is the
 ratchet's own print.
 
+## PU.38 - classification from the detector alone (2026-09-21)
+
+Every capture, attach and re-attach decided "is this a display" only after the whole verifier had
+warped, sliced and classified every candidate row - 0.8-3.5 s a photo in the gate build and 28 s on
+the fallback path, against the 3 s device budget (P4.12) that receipts pay too. The decision is now
+the detector's rows alone: two rescued rows that pass the size rules (`minimumRowHeightFraction`,
+widest ≥ 0.18 of the frame) and stack (share an x-span), both at ≥ 0.3 or one at ≥ 0.5 with the
+other rescued, under the Vision text-line ceiling (`textLines ≤ 30`). No warping, slicing or
+classifier enters it; the verifier runs only to read an accepted frame. When the detector finds
+fewer than two such rows, the old Vision + classical verifier runs as before, capped at
+`slowPathBudget` (1.5 s); a frame that exhausts the cap is not a display. `capture.classify` gains
+`path=fast|slow`.
+
+### Heldout six, before and after (`PumpDisplayCaptureTests`, Debug build)
+
+| still | after path | decision ms | classify+read ms | after | before (slow) | before ms |
+|---|---|---|---|---|---|---|
+| pump-032 | fast | 469 | 3718 | display | display | 2326 |
+| pump-035 | slow | 2349 | 2357 | not (31 lines) | not | 4085 |
+| pump-042 | fast | 421 | 4758 | **display** | **not** | 4023 |
+| pump-038 | fast | 435 | 4532 | display | display | 3338 |
+| pump-092 | fast | 16 | 3679 | display | display | 2638 |
+| pump-062 | fast | 432 | 5029 | display | display | 3349 |
+
+Totals: **5/6 pumps (5 fast), 0/8 receipts leaked**; before 4/6 (pump-042 was missed at the
+classification margin, and the fast path rescues it). Pump decision median **435 ms** vs before
+median **3349 ms** (7.7x, Debug); the 8 receipts all take the slow path and are not displays.
+
+### Release build (the shipped one)
+
+The Debug decision is dominated by the shared text-line count's Swift downscale (~337 ms of the
+~440 ms); in Release the downscale is 4 ms, so the decision is the detector pass plus Vision:
+**13-73 ms**, under 100 ms on the 12 MP stills. `classify`+read is 112-164 ms on a fast pump
+(the read still runs); receipts 102-1630 ms, all refused.
+
+### What the budget costs
+
+With the cap at 1.5 s vs 60 s, no verdict changes on the six heldout pumps or the eight receipts:
+the fast path decides the five, pump-035 is refused by the text-line ceiling, and every receipt is
+refused by it too. The cap only bounds the fallback (pump-190: a 5.5 s uncapped verify, and not a
+display either way).
+
+### Named mutations
+
+1. **Drop the stack guard** (`PumpReader.sharesSpan && PumpReader.stacks` in `fastVerdict`):
+   `PumpDisplayCaptureTests.fastSideBySideRowsAbstain` goes red
+   (`Expectation failed: !PumpDisplayCapture.fastVerdict(rows: rows, textLines: 8)`).
+2. **Set `slowPathBudget` to 0**: `PumpDisplayCaptureTests.slowPathBudgetRefuses` goes red
+   (`Expectation failed: PumpDisplayCapture.slowPathBudget > 0`). The test's accept/refuse
+   assertions inject their budgets (30 s and 0) so they never assert wall clock; the constant
+   guard is what the mutation trips.
+
+Restored, both are green.
+
+### Floors
+
+`PumpReaderPipelineTests`: annotated **80 / 0.988**, live **37 / 1.000** - untouched (the read path
+did not change). `PumpDisplayCaptureTests`: 5/6 pumps, 0/8 receipts.
+
+**Found and not fixed.** `PumpPanelLocator.downscaleRGB`'s per-pixel Swift loop is the same slow
+downscale the classification pays in a Debug build; Release makes it 4 ms, so it is left for the
+locator's own round. The `classify`'s slow-path cap starts before `PumpPanelLocator.locate`, whose
+Vision pass cannot be interrupted - a fallback frame can overshoot the cap by one locate, but the
+verifier's own loop is bounded per candidate.
+
+
 
 

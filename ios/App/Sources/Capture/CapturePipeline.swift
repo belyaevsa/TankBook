@@ -65,7 +65,8 @@ enum CapturePipeline {
                     AppLog.shared.emit(CaptureClassify(
                         reader: "loaded", display: detection.isPumpDisplay, rows: detection.displayRows,
                         textLines: detection.textLines, widestRow: detection.widestRow, tallestRow: detection.tallestRow,
-                        durationMs: Int(Date().timeIntervalSince(classifyStartedAt) * 1000)))
+                        durationMs: Int(Date().timeIntervalSince(classifyStartedAt) * 1000),
+                        path: detection.path.rawValue))
                 } else {
                     // The models are missing from the bundle: every frame is a receipt, and
                     // the line says so rather than leaving the pump path silently dead.

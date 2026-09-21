@@ -43,15 +43,23 @@ struct PumpReader {
     /// keeps it on count and size alone), then the Vision + classical
     /// proposals when the detector found fewer than two rows.
     func candidates(for upright: PumpRGBImage) -> [PumpPanelLocator.Candidate] {
-        var out: [PumpPanelLocator.Candidate] = []
-        if let detector, let cg = PumpQuadWarp.makeImage(upright.pixels, width: upright.width, height: upright.height) {
-            let rows = Self.rescueStackedRows(detector.detect(in: cg))
-            out = rows.map { PumpPanelLocator.Candidate(quad: $0.quad, glyphCount: 0, detected: true) }
+        var out = detectedRows(for: upright).map {
+            PumpPanelLocator.Candidate(quad: $0.quad, glyphCount: 0, detected: true)
         }
         if out.count < Self.detectorMinimumRows {
             out += PumpPanelLocator.locate(upright, rotationCW: 0)
         }
         return out
+    }
+
+    /// The detector's rows after the stacked-row rescue, with their confidences -
+    /// the fast classification path's only input (PU.38). Empty when no detector
+    /// is loaded, which makes the fast path abstain and the verifier decide.
+    func detectedRows(for upright: PumpRGBImage) -> [PumpRowDetector.Row] {
+        guard let detector,
+              let cg = PumpQuadWarp.makeImage(upright.pixels, width: upright.width, height: upright.height)
+        else { return [] }
+        return Self.rescueStackedRows(detector.detect(in: cg))
     }
 
     /// The detector's rows the reader will use: every row above the confidence
@@ -291,8 +299,9 @@ struct PumpReader {
     static let duplicateIoU: CGFloat = 0.3
     static let duplicateContainment: CGFloat = 0.6
 
-    func verify(image: PumpRGBImage, candidates: [PumpPanelLocator.Candidate]) throws -> [VerifiedWindow] {
-        let kept = try verdicts(image: image, candidates: candidates).filter(\.kept)
+    func verify(image: PumpRGBImage, candidates: [PumpPanelLocator.Candidate],
+                deadline: Date? = nil) throws -> [VerifiedWindow] {
+        let kept = try verdicts(image: image, candidates: candidates, deadline: deadline).filter(\.kept)
         // Best version of each row first: more cells read with a wider margin
         // on a taller strip is the fuller window, not a fragment of it.
         let ranked = kept.sorted { Self.strength($0) > Self.strength($1) }
@@ -324,7 +333,12 @@ struct PumpReader {
         return smaller > 0 ? (inter.width * inter.height) / smaller : 0
     }
 
-    func verdicts(image: PumpRGBImage, candidates: [PumpPanelLocator.Candidate]) throws -> [Verdict] {
+    /// `deadline` caps the wall clock the verifier may spend: checked before
+    /// each candidate, it lets the classification's slow path stop a frame the
+    /// detector never saw from running the full 48-candidate sweep (PU.38).
+    /// The read path passes none and is unchanged.
+    func verdicts(image: PumpRGBImage, candidates: [PumpPanelLocator.Candidate],
+                  deadline: Date? = nil) throws -> [Verdict] {
         let considered = Array(candidates.prefix(Self.maximumCandidates))
         // The detected rows' boxes before the margin, for the keypad test.
         let detectedBoxes: [(index: Int, box: CGRect)] = considered.enumerated().compactMap { index, candidate in
@@ -335,6 +349,7 @@ struct PumpReader {
         let widestDetected = detectedBoxes.max { $0.box.width < $1.box.width }?.box
         var out: [Verdict] = []
         for (index, candidate) in considered.enumerated() {
+            if let deadline, Date() >= deadline { break }
             let original = candidate.quad.map { CGPoint(x: $0.x * CGFloat(image.width), y: $0.y * CGFloat(image.height)) }
             let originalYs = original.map(\.y)
             let heightFraction = (originalYs.max()! - originalYs.min()!) / CGFloat(image.height)
