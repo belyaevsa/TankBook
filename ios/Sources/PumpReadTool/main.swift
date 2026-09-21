@@ -2,6 +2,7 @@
 // reading of a frame or a still (tools/pump-annotate):
 //
 //   pump-read <image> [--classifier <PumpSegments.mlpackage>] [--detector <DigitRows.mlmodel>] < request.json
+//   pump-read --slice-serve            # resident slicer: one request per stdin line, no model
 //
 // Request (stdin): {"rotationCW": 0, "currency": "EUR",
 //                   "windows": [{"field": "total", "quad": [[x, y] x 4]}, ...]}
@@ -49,6 +50,95 @@ while index < arguments.count {
         index += 1
     }
 }
+/// The slicer's cells for one window: the strip is warped, sliced with the
+/// diagnosis overrides, and each cell's rect is mapped back onto the quad
+/// (normalised over the oriented image) so a caller can draw where each glyph
+/// was cut and where a decimal mark was seen. No model runs here.
+func slicedCells(image: PumpRGBImage, window: PumpReader.Window, dumpDirectory: String? = nil) -> (cells: [GlyphCell], quads: [[String: Any]]) {
+    guard let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: window.quad, stripHeight: PumpReader.stripHeight)
+    else { return ([], []) }
+    // PUMP_MERGE_GAP / PUMP_DP_TOP override the slicer's run-merge gap and
+    // decimal-mark top-row fraction for a diagnosis; a model reading is untouched.
+    var options = PumpGlyphSlicer.Options()
+    let environment = ProcessInfo.processInfo.environment
+    if let value = environment["PUMP_MERGE_GAP"].flatMap(Float.init) { options.mergeGapFraction = value }
+    if let value = environment["PUMP_DP_TOP"].flatMap(Float.init) { options.decimalPointTopRowFraction = value }
+    let cells = PumpGlyphSlicer.slice(PumpQuadWarp.rgbImage(from: strip).grayscale(), options: options)
+    if let dumpDirectory {
+        // The warped strip as the slicer sees it, for looking at a miss.
+        _ = PumpQuadWarp.writePNG(image: strip, to: URL(fileURLWithPath: dumpDirectory)
+            .appendingPathComponent("\(window.field.rawValue).png"))
+    }
+    let stripWidth = CGFloat(strip.width), stripHeight = CGFloat(strip.height)
+    let quad = window.quad
+    func at(_ fx: CGFloat, _ fy: CGFloat) -> [Double] {
+        let top = CGPoint(x: quad[0].x + (quad[1].x - quad[0].x) * fx, y: quad[0].y + (quad[1].y - quad[0].y) * fx)
+        let bottom = CGPoint(x: quad[3].x + (quad[2].x - quad[3].x) * fx, y: quad[3].y + (quad[2].y - quad[3].y) * fx)
+        let point = CGPoint(x: top.x + (bottom.x - top.x) * fy, y: top.y + (bottom.y - top.y) * fy)
+        return [point.x / Double(image.width), point.y / Double(image.height)]
+    }
+    let quads = cells.map { cell -> [String: Any] in
+        let fx0 = cell.rect.minX / stripWidth, fx1 = cell.rect.maxX / stripWidth
+        let fy0 = cell.rect.minY / stripHeight, fy1 = cell.rect.maxY / stripHeight
+        return ["quad": [at(fx0, fy0), at(fx1, fy0), at(fx1, fy1), at(fx0, fy1)],
+                "blank": cell.isBlank, "dp": cell.hasDecimalPoint]
+    }
+    return (cells, quads)
+}
+
+func locate(_ windows: [Request.Window], in image: PumpRGBImage, rotationCW: Int) -> [PumpReader.Window] {
+    windows.compactMap { window -> PumpReader.Window? in
+        guard let field = PumpField(rawValue: window.field) else { return nil }
+        let pixels = window.quad.map { CGPoint(x: $0[0] * Double(image.width), y: $0[1] * Double(image.height)) }
+        return PumpReader.Window(field: field, quad: PumpQuadWarp.readingOrder(pixels, rotationCW: rotationCW))
+    }
+}
+
+// `--slice-serve`: a resident slicer for the annotator's live overlay. One JSON
+// request per stdin line - {"image": path, "rotationCW": n, "windows": [...]} -
+// one JSON reply per line with each window's slicer cells and their count. No
+// model is loaded and the last decoded image is kept, so a reply costs the
+// warp and the column profiles rather than a process launch and a 12 MP decode.
+if arguments.contains("--slice-serve") {
+    struct ServeRequest: Decodable {
+        var image: String?
+        var rotationCW: Int?
+        var windows: [Request.Window]?
+    }
+    var cachedPath: String?
+    var cachedImage: PumpRGBImage?
+    setvbuf(stdout, nil, _IOLBF, 0)
+    while let line = readLine(strippingNewline: true) {
+        let started = Date()
+        var reply: [String: Any] = [:]
+        if let data = line.data(using: .utf8), let request = try? JSONDecoder().decode(ServeRequest.self, from: data),
+           let path = request.image {
+            if path != cachedPath {
+                cachedImage = PumpQuadWarp.loadOrientedImage(from: URL(fileURLWithPath: path)).map(PumpQuadWarp.rgbImage(from:))
+                cachedPath = path
+            }
+            if let image = cachedImage {
+                let located = locate(request.windows ?? [], in: image, rotationCW: request.rotationCW ?? 0)
+                reply["windows"] = located.map { window -> [String: Any] in
+                    let sliced = slicedCells(image: image, window: window)
+                    return ["field": window.field.rawValue, "sliced": sliced.quads,
+                            "cells": sliced.cells.count,
+                            "dpCell": sliced.cells.firstIndex(where: { $0.hasDecimalPoint }) ?? NSNull()]
+                }
+            } else {
+                reply["error"] = "cannot load image"
+            }
+        } else {
+            reply["error"] = "bad request"
+        }
+        reply["ms"] = Int(Date().timeIntervalSince(started) * 1000)
+        if let out = try? JSONSerialization.data(withJSONObject: reply), let text = String(data: out, encoding: .utf8) {
+            print(text)
+        }
+    }
+    exit(0)
+}
+
 // `--request <file>` reads the request from a file: a profiler launch has no stdin.
 let requestPath = arguments.firstIndex(of: "--request").flatMap { $0 + 1 < arguments.count ? arguments[$0 + 1] : nil }
 let stdin = requestPath.flatMap { FileManager.default.contents(atPath: $0) } ?? FileHandle.standardInput.readDataToEndOfFile()
@@ -73,46 +163,11 @@ func committed(_ reading: PumpDisplayReading) -> [String: Any] {
 
 if let windows = request.windows, !windows.isEmpty {
     // Annotated quads are read on the oriented image in reading order, as the harness does.
-    let located = windows.compactMap { window -> PumpReader.Window? in
-        guard let field = PumpField(rawValue: window.field) else { return nil }
-        let pixels = window.quad.map { CGPoint(x: $0[0] * Double(image.width), y: $0[1] * Double(image.height)) }
-        return PumpReader.Window(field: field, quad: PumpQuadWarp.readingOrder(pixels, rotationCW: (request.rotationCW ?? 0)))
-    }
+    let located = locate(windows, in: image, rotationCW: request.rotationCW ?? 0)
     let reads = try reader.read(image: image, windows: located)
-    // The slicer's cells for each window, mapped from the warped strip back onto
-    // the quad (normalised over the oriented image) so the annotator can draw
-    // where each glyph was cut and where a decimal mark was seen.
     var cellQuads: [String: [[String: Any]]] = [:]
     for window in located {
-        guard let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: window.quad, stripHeight: PumpReader.stripHeight)
-        else { continue }
-        // PUMP_MERGE_GAP / PUMP_DP_TOP override the slicer's run-merge gap and
-        // decimal-mark top-row fraction for a diagnosis; the reading above is
-        // untouched.
-        var options = PumpGlyphSlicer.Options()
-        let environment = ProcessInfo.processInfo.environment
-        if let value = environment["PUMP_MERGE_GAP"].flatMap(Float.init) { options.mergeGapFraction = value }
-        if let value = environment["PUMP_DP_TOP"].flatMap(Float.init) { options.decimalPointTopRowFraction = value }
-        let cells = PumpGlyphSlicer.slice(PumpQuadWarp.rgbImage(from: strip).grayscale(), options: options)
-        if let dumpDirectory {
-            // The warped strip as the slicer sees it, for looking at a miss.
-            _ = PumpQuadWarp.writePNG(image: strip, to: URL(fileURLWithPath: dumpDirectory)
-                .appendingPathComponent("\(window.field.rawValue).png"))
-        }
-        let stripWidth = CGFloat(strip.width), stripHeight = CGFloat(strip.height)
-        let quad = window.quad
-        func at(_ fx: CGFloat, _ fy: CGFloat) -> [Double] {
-            let top = CGPoint(x: quad[0].x + (quad[1].x - quad[0].x) * fx, y: quad[0].y + (quad[1].y - quad[0].y) * fx)
-            let bottom = CGPoint(x: quad[3].x + (quad[2].x - quad[3].x) * fx, y: quad[3].y + (quad[2].y - quad[3].y) * fx)
-            let point = CGPoint(x: top.x + (bottom.x - top.x) * fy, y: top.y + (bottom.y - top.y) * fy)
-            return [point.x / Double(image.width), point.y / Double(image.height)]
-        }
-        cellQuads[window.field.rawValue] = cells.map { cell in
-            let fx0 = cell.rect.minX / stripWidth, fx1 = cell.rect.maxX / stripWidth
-            let fy0 = cell.rect.minY / stripHeight, fy1 = cell.rect.maxY / stripHeight
-            return ["quad": [at(fx0, fy0), at(fx1, fy0), at(fx1, fy1), at(fx0, fy1)],
-                    "blank": cell.isBlank, "dp": cell.hasDecimalPoint]
-        }
+        cellQuads[window.field.rawValue] = slicedCells(image: image, window: window, dumpDirectory: dumpDirectory).quads
     }
     reply["windows"] = reads.map { read -> [String: Any] in
         let cells = read.cells.map { cell -> [String: Any] in
