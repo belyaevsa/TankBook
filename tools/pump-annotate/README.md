@@ -60,8 +60,9 @@ the ml venv runs it); the converted images are cached under
 - **Playback** (toolbar above the image): ▶ / ⏸ (`space` when not typing), ⏮ ⏭
   step, fps, **loop**, and **autoplay** - when on, a Live photo or movie starts
   playing the moment it opens. Stepping or dragging a quad pauses.
-- **Turn a box** (`[` / `]` by 1°, `{` / `}` by 0.1°, or ↺ ↻ on the window's
-  card, shift for 0.1°): rotates the selected window's quad about its centre
+- **Turn a box** (drag the ring handle above the selected box, shift snaps to
+  whole degrees; `[` / `]` by 1°, `{` / `}` by 0.1°; ↺ ↻ on the window's card,
+  shift for 0.1°): rotates the selected window's quad about its centre
   so a skewed number gets a level box without dragging four corners. Works on
   a still's windows and on a video frame's (where it counts as a quad edit).
 - **Zoom** (`+` / `-` / the slider) keeps the selected window - else the

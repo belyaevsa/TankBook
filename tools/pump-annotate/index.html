@@ -73,7 +73,7 @@
 </main>
 <section class="right">
   <div class="row"><b id="name" style="flex:1">–</b> <label title="reviewed by a human; P toggles"><input type="checkbox" id="reviewed"> processed</label></div>
-  <div class="row dim">Drag = new window · click = select · drag corner = adjust · <kbd>⌫</kbd> delete · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> field · <kbd>⌘S</kbd> save · <kbd>+</kbd>/<kbd>-</kbd>/<kbd>0</kbd> zoom · <kbd>[</kbd>/<kbd>]</kbd> turn the box · <kbd>A</kbd> auto-annotate · <kbd>P</kbd> processed · <kbd>⏎</kbd> save &amp; next · <kbd>J</kbd>/<kbd>K</kbd> next/prev</div>
+  <div class="row dim">Drag = new window · click = select · drag corner = adjust · <kbd>⌫</kbd> delete · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> field · <kbd>⌘S</kbd> save · <kbd>+</kbd>/<kbd>-</kbd>/<kbd>0</kbd> zoom · <kbd>[</kbd>/<kbd>]</kbd> or the ring handle: turn the box · <kbd>A</kbd> auto-annotate · <kbd>P</kbd> processed · <kbd>⏎</kbd> save &amp; next · <kbd>J</kbd>/<kbd>K</kbd> next/prev</div>
   <div class="row">Zoom <input id="zoom" type="range" min="0.25" max="4" step="0.05" value="1" style="flex:1">
     Rotate <select id="rot"><option>0</option><option>90</option><option>180</option><option>270</option></select></div>
   <div class="row mono" id="csv"></div>
@@ -463,7 +463,13 @@ function draw() {
     const tw = ctx.measureText(label).width, th = 16 / zoom;
     ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(pts[0][0] - 2 / zoom, pts[0][1] - th - 4 / zoom, tw + 4 / zoom, th + 2 / zoom);
     ctx.fillStyle = ctx.strokeStyle; ctx.fillText(label, pts[0][0], pts[0][1] - 4 / zoom);
-    if (i === sel) pts.forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 6 / zoom, 0, 7); ctx.fill(); });
+    if (i === sel) {
+      pts.forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 6 / zoom, 0, 7); ctx.fill(); });
+      const h = turnHandle(pts), m = [(pts[0][0] + pts[1][0]) / 2, (pts[0][1] + pts[1][1]) / 2];
+      ctx.beginPath(); ctx.moveTo(m[0], m[1]); ctx.lineTo(h[0], h[1]); ctx.lineWidth = 1 / zoom; ctx.stroke();
+      ctx.beginPath(); ctx.arc(h[0], h[1], 7 / zoom, 0, 7); ctx.fillStyle = '#fff'; ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(h[0], h[1], 3 / zoom, 0, 7); ctx.fillStyle = ctx.strokeStyle; ctx.fill();
+    }
   });
   // The slicer's cells from the last window read: thin boxes inside the window,
   // a dot under a cell where a decimal mark was seen, hatched when blank.
@@ -498,6 +504,18 @@ function draw() {
   ctx.restore();
 }
 function mouse(e) { const r = canvas.getBoundingClientRect(); return [(e.clientX - r.left) / zoom, (e.clientY - r.top) / zoom]; }
+// The turn handle sits 24 screen px outside the top edge's midpoint, along
+// the edge's normal, so it keeps that place whatever the box's own angle.
+function turnHandle(pts) {
+  const m = [(pts[0][0] + pts[1][0]) / 2, (pts[0][1] + pts[1][1]) / 2];
+  const ex = pts[1][0] - pts[0][0], ey = pts[1][1] - pts[0][1], len = Math.hypot(ex, ey) || 1;
+  return [m[0] + ey / len * 24 / zoom, m[1] - ex / len * 24 / zoom];
+}
+function hitTurnHandle(p) {
+  if (sel < 0 || !editable()[sel]) return false;
+  const h = turnHandle(editable()[sel].quad.map(toDisp));
+  return Math.hypot(h[0] - p[0], h[1] - p[1]) < 10 / zoom;
+}
 function hitCorner(p) {
   if (sel < 0 || !editable()[sel]) return -1;
   const pts = editable()[sel].quad.map(toDisp);
@@ -510,6 +528,10 @@ function hitWindow(p) {
 }
 canvas.onmousedown = e => {
   if (!img) return; const [x, y] = mouse(e);
+  if (hitTurnHandle([x, y])) {
+    const pts = editable()[sel].quad.map(toDisp), cx = pts.reduce((a, q) => a + q[0] / 4, 0), cy = pts.reduce((a, q) => a + q[1] / 4, 0);
+    drag = {kind:'turn', cx, cy, a0: Math.atan2(y - cy, x - cx), quad: editable()[sel].quad.map(q => [...q])}; return;
+  }
   const c = hitCorner([x, y]);
   if (c >= 0) { drag = {kind:'corner', c}; return; }
   const w = hitWindow([x, y]);
@@ -521,6 +543,15 @@ canvas.onmousemove = e => {
   if (!drag) return; const [x, y] = mouse(e);
   if (drag.kind === 'new') { drag.x = x; drag.y = y; }
   else if (drag.kind === 'corner') { editable()[sel].quad[drag.c] = toImg([x, y]); if (frameMode) frameQuadsEdited = true; else touch(); }
+  else if (drag.kind === 'turn') {
+    // Rotate the quad the drag started with by the angle the mouse has swept
+    // about the box centre; shift snaps to whole degrees.
+    let deg = (Math.atan2(y - drag.cy, x - drag.cx) - drag.a0) * 180 / Math.PI;
+    if (e.shiftKey) deg = Math.round(deg);
+    const a = deg * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
+    editable()[sel].quad = drag.quad.map(toDisp).map(([px, py]) => toImg([drag.cx + (px - drag.cx) * c - (py - drag.cy) * sn, drag.cy + (px - drag.cx) * sn + (py - drag.cy) * c]).map(v => Math.round(v * 10000) / 10000));
+    if (frameMode && isVideo) frameQuadsEdited = true; else touch();
+  }
   else if (drag.kind === 'move') {
     const d0 = toImg([drag.x, drag.y]), d1 = toImg([x, y]);
     editable()[sel].quad = drag.quad.map(p => [Math.min(1, Math.max(0, p[0] + d1[0] - d0[0])), Math.min(1, Math.max(0, p[1] + d1[1] - d0[1]))]); if (frameMode && isVideo) frameQuadsEdited = true; else touch();
