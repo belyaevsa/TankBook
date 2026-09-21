@@ -80,7 +80,8 @@
       <button id="vlRead" title="run the reader on this frame's windows and fill the label (nothing saved)">▶ read</button> <span class="dim"><kbd>r</kbd> / <kbd>R</kbd> live path</span>
       <label title="the reader read these frames as one value; the label applies to all of them"><input type="checkbox" id="vlRun" checked> whole run</label>
       <span class="dim"><kbd>⇧→</kbd> next run</span>
-      <span class="dim" title="a dragged quad on a frame is saved as an anchor by itself; the clip retracks from its anchors and never moves an anchored frame">⚓ dragging a quad anchors the frame</span><button id="vlAnchor" style="display:none"></button>
+      <span class="dim" title="a dragged quad on a frame pins it as an anchor by itself; nothing else moves until ↻ re-track">⚓ a drag pins the frame</span><button id="vlAnchor" style="display:none"></button>
+      <button id="vlRetrack" title="re-register every non-anchored frame to the reference and the anchors">↻ re-track</button>
       <button id="vlRerun" title="retrack the clip from its anchors, then read every tracked frame again; your labels and anchored frames are kept">⟳ retrack + read all</button></div>
   </div>
   <div id="wins"></div>
@@ -532,7 +533,7 @@ async function retrackNow() {
 }
 $('#vlAnchor').onclick = saveAnchor;
 $('#lfSave').onclick = () => { clearTimeout(anchorTimer); saveAnchor(); };
-$('#lfRetrack').onclick = retrackNow; $('#vlRetrack').onclick = retrackNow;
+for (const id of ['#lfRetrack', '#vlRetrack']) { const b = $(id); if (b) b.onclick = retrackNow; }
 $('#lfOk').onclick = markTrackingOk;
 async function rerunVideo() {
   const r = currentRecord(); if (!r) return;
