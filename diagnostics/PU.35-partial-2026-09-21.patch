@@ -1,0 +1,413 @@
+diff --git a/ios/Sources/TankbookCore/Extraction/PumpReader/PumpReader.swift b/ios/Sources/TankbookCore/Extraction/PumpReader/PumpReader.swift
+index 309c168e..07af56c7 100644
+--- a/ios/Sources/TankbookCore/Extraction/PumpReader/PumpReader.swift
++++ b/ios/Sources/TankbookCore/Extraction/PumpReader/PumpReader.swift
+@@ -37,7 +37,6 @@ struct PumpReader {
+     /// Fewer detector rows than this and the frame falls back to the Vision +
+     /// classical proposals: a display has at least total and volume.
+     static let detectorMinimumRows = 2
+-    static let refineDetectedBoxes = false
+ 
+     /// The locator's candidates for an upright frame: the detector's rows
+     /// first (ranked by confidence, each flagged as detected so the verifier
+@@ -46,7 +45,8 @@ struct PumpReader {
+     func candidates(for upright: PumpRGBImage) -> [PumpPanelLocator.Candidate] {
+         var out: [PumpPanelLocator.Candidate] = []
+         if let detector, let cg = PumpQuadWarp.makeImage(upright.pixels, width: upright.width, height: upright.height) {
+-            out = detector.detect(in: cg).map { PumpPanelLocator.Candidate(quad: $0.quad, glyphCount: 0, detected: true) }
++            let rows = Self.rescueStackedRows(detector.detect(in: cg))
++            out = rows.map { PumpPanelLocator.Candidate(quad: $0.quad, glyphCount: 0, detected: true) }
+         }
+         if out.count < Self.detectorMinimumRows {
+             out += PumpPanelLocator.locate(upright, rotationCW: 0)
+@@ -54,6 +54,93 @@ struct PumpReader {
+         return out
+     }
+ 
++    /// The detector's rows the reader will use: every row above the confidence
++    /// cut, plus a low-confidence row rescued from beside a passing row when it
++    /// shares that row's x-span. Transaction rows stack on one column on every
++    /// head; a keypad row sits off the display's span, so it is never rescued.
++    static let pu35RescueEnabled = ProcessInfo.processInfo.environment["PU35_RESCUE"] != "0"
++    static let pu35KeypadEnabled = ProcessInfo.processInfo.environment["PU35_KEYPAD"] != "0"
++    static let pu35MarginHorizontal: CGFloat = ProcessInfo.processInfo.environment["PU35_MH"].flatMap(Double.init).map { CGFloat($0) } ?? 0.5
++    static let pu35MarginVertical: CGFloat = ProcessInfo.processInfo.environment["PU35_MV"].flatMap(Double.init).map { CGFloat($0) } ?? 0.15
++
++    static func rescueStackedRows(_ rows: [PumpRowDetector.Row]) -> [PumpRowDetector.Row] {
++        let passing = rows.filter { $0.confidence >= PumpRowDetector.minimumConfidence }
++        var kept = passing
++        guard pu35RescueEnabled else { return kept }
++        for row in rows where row.confidence < PumpRowDetector.minimumConfidence {
++            if passing.contains(where: { sharesSpan(row.quad, $0.quad) && stacks(row.quad, $0.quad) }) {
++                kept.append(row)
++            }
++        }
++        return kept.sorted { $0.confidence > $1.confidence }
++    }
++
++    /// Whether two rows share an x-span: one contains the other, or both edges
++    /// line up within a quarter of the passing row's width.
++    static func sharesSpan(_ a: [CGPoint], _ b: [CGPoint]) -> Bool {
++        let ra = PumpRowAssignment.bounds(a, rotationCW: 0)
++        let rb = PumpRowAssignment.bounds(b, rotationCW: 0)
++        if (ra.minX >= rb.minX && ra.maxX <= rb.maxX) || (rb.minX >= ra.minX && rb.maxX <= ra.maxX) {
++            return true
++        }
++        let tolerance = 0.25 * rb.width
++        return abs(ra.minX - rb.minX) <= tolerance && abs(ra.maxX - rb.maxX) <= tolerance
++    }
++
++    /// Whether two rows sit above or below each other within three row heights.
++    static func stacks(_ a: [CGPoint], _ b: [CGPoint]) -> Bool {
++        let ra = PumpRowAssignment.bounds(a, rotationCW: 0)
++        let rb = PumpRowAssignment.bounds(b, rotationCW: 0)
++        let gap: CGFloat
++        if ra.maxY <= rb.minY { gap = rb.minY - ra.maxY }
++        else if rb.maxY <= ra.minY { gap = ra.minY - rb.maxY }
++        else { return true }
++        return gap <= 3 * max(ra.height, rb.height)
++    }
++
++    /// A detected box hugs or clips the digits (median IoU 0.80 on the heldout
++    /// stills, and video-003 loses a thin leading `1` and a trailing `2`). The
++    /// slicer tolerates panel around the row - leading and trailing blank
++    /// positions are blanks and the band comes from the projection - so a
++    /// detected quad is widened before slicing. One digit pitch is ~0.6-0.7 row
++    /// heights on a seven-segment row, so half a height each side clears a
++    /// clipped edge digit; the vertical margin is smaller, since the band is
++    /// already taken from the row projection. Clamped to the frame.
++    static let detectedMarginHorizontal: CGFloat = 0.5
++    static let detectedMarginVertical: CGFloat = 0.15
++
++    static func widened(_ quad: [CGPoint], in image: PumpRGBImage) -> [CGPoint] {
++        let b = PumpRowAssignment.bounds(quad, rotationCW: 0)
++        let dx = pu35MarginHorizontal * b.height
++        let dy = pu35MarginVertical * b.height
++        let minX = max(0, b.minX - dx), maxX = min(CGFloat(image.width), b.maxX + dx)
++        let minY = max(0, b.minY - dy), maxY = min(CGFloat(image.height), b.maxY + dy)
++        return [CGPoint(x: minX, y: minY), CGPoint(x: maxX, y: minY),
++                CGPoint(x: maxX, y: maxY), CGPoint(x: minX, y: maxY)]
++    }
++
++    /// A keypad row is printed digits in a grid of keys, and the detector's
++    /// shape check cannot tell it from a display row. Two things single it out,
++    /// both structural: it shares its x-span with no other detected row and
++    /// lies outside the widest one's span (a transaction row stacks with the
++    /// column), and its cells are the tall ones of a key grid - a printed key
++    /// row's band spans more than one key, so its pitch is under three quarters
++    /// of the band, where a seven-segment row's pitch is around the band's
++    /// height. Measured: pump-224's keypad 0.57, a true ladder price cell 0.94
++    /// (pump-056); see `verdicts`.
++    static let keypadMaximumCellAspect: CGFloat = 0.75
++
++    static func isKeypadRow(_ box: CGRect, widest: CGRect, siblings: [CGRect], cellAspect: CGFloat,
++                            meanMargin: Double) -> Bool {
++        // A printed key row reads as a digit row to the classifier only weakly
++        // (pump-224's keypad 0.67, where a true row carries 1.4-5.6); a real row
++        // off the span with a low margin is kept (a glare-hit ladder cell).
++        guard meanMargin < Self.minimumMeanMargin else { return false }
++        guard cellAspect < Self.keypadMaximumCellAspect else { return false }
++        guard box.maxX <= widest.minX || box.minX >= widest.maxX else { return false }
++        return !siblings.contains { $0.minX < box.maxX && $0.maxX > box.minX }
++    }
++
+     /// Classifies every window's cells. Windows the slicer finds nothing in
+     /// are dropped, so the law sees only what was read.
+     func read(image: PumpRGBImage, windows: [Window]) throws -> [WindowRead] {
+@@ -222,22 +309,28 @@ struct PumpReader {
+     }
+ 
+     func verdicts(image: PumpRGBImage, candidates: [PumpPanelLocator.Candidate]) throws -> [Verdict] {
++        let considered = Array(candidates.prefix(Self.maximumCandidates))
++        // The detected rows' boxes before the margin, for the keypad test.
++        let detectedBoxes: [(index: Int, box: CGRect)] = considered.enumerated().compactMap { index, candidate in
++            guard candidate.detected else { return nil }
++            let pixels = candidate.quad.map { CGPoint(x: $0.x * CGFloat(image.width), y: $0.y * CGFloat(image.height)) }
++            return (index, PumpRowAssignment.bounds(pixels, rotationCW: 0))
++        }
++        let widestDetected = detectedBoxes.max { $0.box.width < $1.box.width }?.box
+         var out: [Verdict] = []
+-        for candidate in candidates.prefix(Self.maximumCandidates) {
+-            var quad = candidate.quad.map { CGPoint(x: $0.x * CGFloat(image.width), y: $0.y * CGFloat(image.height)) }
+-            // A detected box carries panel around the digits; PumpBoxRefiner
+-            // tightens it to the ink, measured on the heldout split as no
+-            // gain (22 -> 21 committed), so it stays off until the read
+-            // stage's losses are understood (PumpLivePathDiagnosticTests).
+-            if candidate.detected && Self.refineDetectedBoxes {
+-                quad = PumpBoxRefiner.refine(quad: quad, in: image)
+-            }
+-            let ys = quad.map(\.y)
+-            let heightFraction = (ys.max()! - ys.min()!) / CGFloat(image.height)
++        for (index, candidate) in considered.enumerated() {
++            let original = candidate.quad.map { CGPoint(x: $0.x * CGFloat(image.width), y: $0.y * CGFloat(image.height)) }
++            let originalYs = original.map(\.y)
++            let heightFraction = (originalYs.max()! - originalYs.min()!) / CGFloat(image.height)
+             // A row against the frame's top or bottom edge is a banner or a
+-            // sign the photo cut, never a display row the user framed.
++            // sign the photo cut, never a display row the user framed. Judged
++            // on the detected box, before the margin, so a margin that reaches
++            // the edge does not reject a row the detector placed inside it.
+             let edge = Self.frameEdgeFraction * CGFloat(image.height)
+-            let touchesEdge = ys.min()! <= edge || ys.max()! >= CGFloat(image.height) - edge
++            let touchesEdge = originalYs.min()! <= edge || originalYs.max()! >= CGFloat(image.height) - edge
++            // The detector's box hugs the digits; widen it before slicing so a
++            // clipped edge digit is inside the window.
++            let quad = candidate.detected ? Self.widened(original, in: image) : original
+             guard heightFraction >= Self.minimumRowHeightFraction, !touchesEdge,
+                   let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: quad, stripHeight: Self.stripHeight) else {
+                 out.append(Verdict(quad: quad, heightFraction: heightFraction, cells: 0, meanMargin: 0, kept: false))
+@@ -261,8 +354,20 @@ struct PumpReader {
+             let shaped = aspect <= Self.maximumAspectPerCell * CGFloat(cells.count) + 1
+             // A detected row is kept on count and size alone: the detector's
+             // confidence already vouched for it, and gating it on the
+-            // classifier's margin coupled the live number to every retrain.
+-            let kept = candidate.detected ? shaped : (shaped && mean >= Self.minimumMeanMargin)
++            // classifier's margin coupled the live number to every retrain. The
++            // exception is a keypad row, which the shape check cannot see; it is
++            // judged on its cell geometry, never the classifier.
++            var keypad = false
++            if Self.pu35KeypadEnabled, candidate.detected, let widestDetected,
++               let box = detectedBoxes.first(where: { $0.index == index })?.box {
++                let cellAspect = cells.first.map { $0.rect.width / max($0.rect.height, 1) } ?? 1
++                keypad = Self.isKeypadRow(box, widest: widestDetected,
++                                          siblings: detectedBoxes.filter { $0.index != index }.map(\.box),
++                                          cellAspect: cellAspect, meanMargin: mean)
++            }
++            let kept = candidate.detected
++                ? (shaped && !keypad)
++                : (shaped && mean >= Self.minimumMeanMargin)
+             out.append(Verdict(quad: quad, heightFraction: heightFraction, cells: cells.count, meanMargin: mean, kept: kept,
+                                detected: candidate.detected))
+         }
+diff --git a/ios/Sources/TankbookCore/Extraction/PumpReader/PumpRowDetector.swift b/ios/Sources/TankbookCore/Extraction/PumpReader/PumpRowDetector.swift
+index 73b46b8b..d0f4a9d7 100644
+--- a/ios/Sources/TankbookCore/Extraction/PumpReader/PumpRowDetector.swift
++++ b/ios/Sources/TankbookCore/Extraction/PumpReader/PumpRowDetector.swift
+@@ -17,10 +17,15 @@ final class PumpRowDetector: @unchecked Sendable {
+     }
+ 
+     private let model: VNCoreMLModel
+-    /// Below this the detector's proposals are noise; measured on the heldout
++    /// The confidence a detected row needs on its own. Measured on the heldout
+     /// stills (ml/pump-reader/detector/measure.swift): 0.3 keeps 86 % of the
+     /// annotated rows at 0.7 false rows per photo, 0.5 keeps 81 % at 0.3.
+     static let minimumConfidence: Double = 0.3
++    /// Rows down to this are returned so the reader can rescue one stacked under
++    /// a passing row (a transaction row the detector saw but was not sure of);
++    /// a row below `minimumConfidence` is a candidate only through that rescue
++    /// (`PumpReader.rescueStackedRows`), never on its own.
++    static let rescueConfidence: Double = 0.15
+ 
+     init(contentsOf url: URL) throws {
+         var modelURL = url
+@@ -36,7 +41,7 @@ final class PumpRowDetector: @unchecked Sendable {
+         guard (try? VNImageRequestHandler(cgImage: image, options: [:]).perform([request])) != nil else { return [] }
+         let observations = request.results as? [VNRecognizedObjectObservation] ?? []
+         return observations.compactMap { observation in
+-            guard Double(observation.confidence) >= Self.minimumConfidence else { return nil }
++            guard Double(observation.confidence) >= Self.rescueConfidence else { return nil }
+             let b = observation.boundingBox  // Vision: bottom-left origin
+             let top = 1 - b.maxY, bottom = 1 - b.minY
+             return Row(quad: [CGPoint(x: b.minX, y: top), CGPoint(x: b.maxX, y: top),
+diff --git a/ios/Tests/TankbookCoreTests/PumpGeometryProbeTests.swift b/ios/Tests/TankbookCoreTests/PumpGeometryProbeTests.swift
+new file mode 100644
+index 00000000..0ced469a
+--- /dev/null
++++ b/ios/Tests/TankbookCoreTests/PumpGeometryProbeTests.swift
+@@ -0,0 +1,196 @@
++import CoreGraphics
++import Foundation
++import Testing
++@testable import TankbookCore
++
++@Suite("PU.35 geometry probe")
++struct PumpGeometryProbeTests {
++    private static let modelURL = PumpReaderTestSupport.repoRoot
++        .appendingPathComponent("ios/App/Resources/PumpSegments.mlpackage")
++
++    /// The widest contiguous run of ink columns inside a cell, at `fraction` of
++    /// the cell's peak column mass.
++    private static func inkWidth(_ gray: PumpGrayscale, rect: CGRect, fraction: Double) -> Double {
++        let x0 = max(0, Int(rect.minX)), x1 = min(gray.width, Int(rect.maxX))
++        let y0 = max(0, Int(rect.minY)), y1 = min(gray.height, Int(rect.maxY))
++        guard x1 > x0, y1 > y0 else { return 0 }
++        let sorted = gray.pixels.sorted()
++        let p50 = sorted[sorted.count / 2]
++        var cols = [Double](repeating: 0, count: x1 - x0)
++        for x in x0..<x1 {
++            var mass = 0.0
++            for y in y0..<y1 { mass += max(0, Double(p50) - Double(gray.pixels[y * gray.width + x])) }
++            cols[x - x0] = mass
++        }
++        guard let maxCol = cols.max(), maxCol > 0 else { return 0 }
++        let threshold = fraction * maxCol
++        var best = 0, run = 0
++        for value in cols {
++            if value > threshold { run += 1; best = max(best, run) } else { run = 0 }
++        }
++        return Double(best)
++    }
++
++    @Test("funnel", .enabled(if: ProcessInfo.processInfo.environment["PU35_FUNNEL"] == "1"))
++    func funnel() throws {
++        let model = try PumpSegmentsModel(contentsOf: Self.modelURL)
++        let reader = PumpReader(model: model, detector: PumpReaderTestSupport.makeDetector())
++        let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)
++        let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
++        let only = ProcessInfo.processInfo.environment["PU35_FUNNEL_ONLY"]
++        var stage = (photos: 0, cand: 0, ver: 0, two: 0, assign: 0, committed: 0)
++        var lost: [String] = []
++        for (name, value) in root.sorted(by: { $0.key < $1.key }) {
++            guard name != "_about", let ann = value as? [String: Any], PumpReaderTestSupport.isHeldout(name),
++                  only == nil || name.hasPrefix(only!) else { continue }
++            guard let image = PumpReaderTestSupport.loadRGB(
++                url: PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent(name)) else { continue }
++            let rotation = (ann["rotationCW"] as? NSNumber)?.intValue ?? 0
++            let upright = PumpPanelLocator.rotatedRGB(image, rotationCW: rotation)
++            var truth: [(field: String, quad: [CGPoint])] = []
++            for w in ann["windows"] as? [[String: Any]] ?? [] {
++                guard let field = w["field"] as? String, let q = (w["quad"] as? [[NSNumber]])?.map({ $0.map(\.doubleValue) }) else { continue }
++                truth.append((field, PumpQuadWarp.readingOrder(
++                    PumpReaderTestSupport.quadPixels(q, width: image.width, height: image.height), rotationCW: rotation)))
++            }
++            let candidates = reader.candidates(for: upright)
++            let verdicts = try reader.verdicts(image: upright, candidates: candidates)
++            let verified = try reader.verify(image: upright, candidates: candidates)
++            let assignment = PumpRowAssignment.assign(
++                windows: verified.map { PumpRowAssignment.Window(quad: $0.quad, glyphCount: $0.glyphCount) }, rotationCW: 0)
++            if ProcessInfo.processInfo.environment["PU35_FUNNEL_VERBOSE"] == "1" {
++                for v in verdicts where v.detected && !v.kept {
++                    let b = PumpRowAssignment.bounds(v.quad, rotationCW: 0)
++                    var geometry = ""
++                    if let strip = PumpQuadWarp.warpToStrip(rgb: upright, quad: v.quad, stripHeight: 96) {
++                        let cells = PumpGlyphSlicer.slice(PumpQuadWarp.rgbImage(from: strip).grayscale()).filter { !$0.isBlank }
++                        let aspects = cells.map { $0.rect.width / max($0.rect.height, 1) }
++                        geometry = String(format: " aspects [%@]", aspects.map { String(format: "%.2f", $0) }.joined(separator: ","))
++                    }
++                    print(String(format: "FUNNELDROP %@ cells %d margin %.2f hf %.3f x %.3f-%.3f%@",
++                                 String(name.prefix(30)), v.cells, v.meanMargin, v.heightFraction,
++                                 b.minX / CGFloat(upright.width), b.maxX / CGFloat(upright.width), geometry))
++                }
++            }
++            func bestTruth(_ quad: [CGPoint]) -> (String, Double) {
++                var best = ("-", 0.0)
++                for t in truth { let iou = Double(PumpQuadWarp.iou(quad, t.quad)); if iou > best.1 { best = (t.field, iou) } }
++                return best
++            }
++            let candHits = candidates.map { c in
++                bestTruth(c.quad.map { CGPoint(x: $0.x * CGFloat(upright.width), y: $0.y * CGFloat(upright.height)) })
++            }.filter { $0.1 >= 0.5 }
++            let verHits = verified.map { bestTruth($0.quad) }
++            let tx = Set(verHits.filter { $0.1 >= 0.5 && $0.0 != "board" }.map(\.0))
++            var rolesRight = 0
++            for (v, role) in zip(verified, assignment.roles) {
++                let (field, iou) = bestTruth(v.quad)
++                if iou >= 0.5 && role?.rawValue == field { rolesRight += 1 }
++            }
++            stage.photos += 1
++            if !candHits.isEmpty { stage.cand += 1 }
++            if verHits.contains(where: { $0.1 >= 0.5 }) { stage.ver += 1 } else { lost.append(name) }
++            if tx.count >= 2 { stage.two += 1 }
++            if rolesRight >= 2 { stage.assign += 1 }
++            if ProcessInfo.processInfo.environment["PU35_FUNNEL_VERBOSE"] == "1" {
++                print("FUNNELPHOTO \(name.prefix(30)) ver \(verHits.filter { $0.1 >= 0.5 }.count) roles \(rolesRight)")
++            }
++        }
++        print("FUNNEL stages: candidate hit \(stage.cand), verified hit \(stage.ver), two rows \(stage.two), assigned right \(stage.assign) of \(stage.photos)")
++        print("FUNNEL verified-miss photos: \(lost.joined(separator: ", "))")
++    }
++
++    @Test("detector rows", .enabled(if: ProcessInfo.processInfo.environment["PU35_PROBE"] == "1"))
++    func detectorRows() throws {
++        guard let detector = PumpReaderTestSupport.makeDetector() else { return }
++        let files = (ProcessInfo.processInfo.environment["PU35_FILES"] ?? "").split(separator: ";").map(String.init)
++        for file in files {
++            let url = URL(fileURLWithPath: file)
++            guard let image = PumpQuadWarp.loadOrientedImage(from: url) else { continue }
++            let rgb = PumpQuadWarp.rgbImage(from: image)
++            guard let cg = PumpQuadWarp.makeImage(rgb.pixels, width: rgb.width, height: rgb.height) else { continue }
++            print("=== detector rows \(url.lastPathComponent)")
++            for row in detector.detect(in: cg) {
++                let b = PumpRowAssignment.bounds(row.quad, rotationCW: 0)
++                print(String(format: "  conf %.3f x %.3f-%.3f y %.3f-%.3f h %.3f w %.3f",
++                             row.confidence, b.minX, b.maxX, b.minY, b.maxY, b.height, b.width))
++            }
++        }
++    }
++
++    @Test("margin sweep", .enabled(if: ProcessInfo.processInfo.environment["PU35_PROBE"] == "1"))
++    func marginSweep() throws {
++        let model = try PumpSegmentsModel(contentsOf: Self.modelURL)
++        let reader = PumpReader(model: model, detector: PumpReaderTestSupport.makeDetector())
++        // The detector's un-widened quads for the three named cases, normalised.
++        let cases: [(name: String, field: PumpField, quad: [[Double]], want: String)] = [
++            ("video-003 001 total", .total,
++             [[0.307, 0.253], [0.640, 0.253], [0.640, 0.336], [0.307, 0.336]], "145.41"),
++            ("video-003 001 liters", .liters,
++             [[0.366, 0.326], [0.630, 0.326], [0.630, 0.389], [0.366, 0.389]], "70.62"),
++            ("video-002 093 total", .total,
++             [[0.253, 0.183], [0.583, 0.183], [0.583, 0.383], [0.253, 0.383]], "2336.06"),
++        ]
++        let files: [String: String] = [
++            "video-003 001 total": "Spike/ReceiptSpike/fixtures/pump-live/frames/video-003-wayne-circlek-fill-ends-ee/001.jpg",
++            "video-003 001 liters": "Spike/ReceiptSpike/fixtures/pump-live/frames/video-003-wayne-circlek-fill-ends-ee/001.jpg",
++            "video-002 093 total": "Spike/ReceiptSpike/fixtures/pump-live/frames/video-002-wayne-running-display-slow-fill-ru/093.jpg",
++        ]
++        for hMargin in [0.0, 0.05, 0.1, 0.15, 0.2] {
++            for vMargin in [0.0, 0.05] {
++                for c in cases {
++                    let url = PumpReaderTestSupport.repoRoot.appendingPathComponent(files[c.name]!)
++                    guard let image = PumpQuadWarp.loadOrientedImage(from: url) else { continue }
++                    let rgb = PumpQuadWarp.rgbImage(from: image)
++                    let b = PumpRowAssignment.bounds(c.quad.map { CGPoint(x: $0[0] * Double(rgb.width), y: $0[1] * Double(rgb.height)) }, rotationCW: 0)
++                    let dx = hMargin * b.height, dy = vMargin * b.height
++                    let quad = [CGPoint(x: b.minX - dx, y: b.minY - dy), CGPoint(x: b.maxX + dx, y: b.minY - dy),
++                                CGPoint(x: b.maxX + dx, y: b.maxY + dy), CGPoint(x: b.minX - dx, y: b.maxY + dy)]
++                    let reads = try reader.read(image: rgb, windows: [PumpReader.Window(field: c.field, quad: quad)])
++                    let text = reads.first.map { r in r.cells.map { ($0.ranked.first.map { String($0.digit) } ?? "?") + ($0.decimalPoint ? "." : "") }.joined() } ?? "(none)"
++                    print(String(format: "SWEEP h%.1f v%.2f %@ -> '%@' cells %d glyphs %d want %@", hMargin, vMargin, c.name, text,
++                                 reads.first?.cells.count ?? 0, reads.first?.glyphCount ?? 0, c.want))
++                }
++            }
++        }
++    }
++
++    @Test("probe", .enabled(if: ProcessInfo.processInfo.environment["PU35_PROBE"] == "1"))
++    func probe() throws {
++        let model = try PumpSegmentsModel(contentsOf: Self.modelURL)
++        let reader = PumpReader(model: model, detector: PumpReaderTestSupport.makeDetector())
++        var files = (ProcessInfo.processInfo.environment["PU35_FILES"] ?? "").split(separator: ";").map(String.init)
++        if files.isEmpty {
++            let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)
++            let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
++            for (name, _) in root.sorted(by: { $0.key < $1.key }) where name != "_about" && PumpReaderTestSupport.isHeldout(name) {
++                files.append(PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent(name).path)
++            }
++        }
++        for file in files {
++            let url = URL(fileURLWithPath: file)
++            guard let image = PumpQuadWarp.loadOrientedImage(from: url) else { continue }
++            let rgb = PumpQuadWarp.rgbImage(from: image)
++            let candidates = reader.candidates(for: rgb)
++            let verdicts = try reader.verdicts(image: rgb, candidates: candidates)
++            for v in verdicts where v.detected {
++                guard let strip = PumpQuadWarp.warpToStrip(rgb: rgb, quad: v.quad, stripHeight: 96) else { continue }
++                let gray = PumpQuadWarp.rgbImage(from: strip).grayscale()
++                let cells = PumpGlyphSlicer.slice(gray)
++                let occupied = cells.filter { !$0.isBlank }
++                guard !occupied.isEmpty else { continue }
++                let bandH = occupied[0].rect.height
++                let pitch = occupied[0].rect.width
++                func median(_ values: [Double]) -> Double { values.sorted()[values.count / 2] }
++                let w20 = median(occupied.map { Self.inkWidth(gray, rect: $0.rect, fraction: 0.2) })
++                let w50 = median(occupied.map { Self.inkWidth(gray, rect: $0.rect, fraction: 0.5) })
++                let b = PumpRowAssignment.bounds(v.quad, rotationCW: 0)
++                print(String(format: "PROBE %@ cells %d kept %@ margin %.2f aspect %.2f pitch %.0f band %.0f ink20 %.0f ink50 %.0f p/i20 %.2f p/i50 %.2f i50/band %.2f x %.3f-%.3f",
++                             String(url.lastPathComponent.prefix(28)), v.cells, v.kept ? "Y" : "N", v.meanMargin,
++                             pitch / bandH, pitch, bandH, w20, w50,
++                             pitch / max(w20, 1), pitch / max(w50, 1), w50 / bandH,
++                             b.minX / CGFloat(rgb.width), b.maxX / CGFloat(rgb.width)))
++            }
++        }
++    }
++}
