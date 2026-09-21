@@ -4,6 +4,7 @@
 #
 # Usage:
 #   TANKBOOK_TEAM_ID=ABCDE12345 scripts/release.sh            # archive + export only
+#   TANKBOOK_TEAM_ID=ABCDE12345 scripts/release.sh --debug    # DEBUG build installed on the plugged-in iPhone (no archive)
 #   TANKBOOK_TEAM_ID=... ASC_KEY_ID=... ASC_ISSUER_ID=... ASC_KEY_PATH=~/.private_keys/AuthKey_XXXX.p8 \
 #       scripts/release.sh --upload                            # ...and upload
 #
@@ -17,14 +18,43 @@ cd "$(dirname "$0")/.."
 : "${TANKBOOK_TEAM_ID:?set TANKBOOK_TEAM_ID to the Apple Developer team id (docs/STORE.md)}"
 UPLOAD=0
 REBUILD=0
+DEBUG=0
 case "${1:-}" in
   "")        ;;
   --upload)  UPLOAD=1 ;;
   --rebuild) REBUILD=1 ;;
-  *) echo "release: unknown argument '${1}'. The flags are --upload and --rebuild;" >&2
+  --debug)   DEBUG=1 ;;
+  *) echo "release: unknown argument '${1}'. The flags are --upload, --rebuild and --debug;" >&2
      echo "  -allowProvisioningUpdates is already passed to xcodebuild internally." >&2
      exit 2 ;;
 esac
+
+# --debug: not a release at all. Builds the DEBUG configuration for the iPhone
+# plugged in (or the first physical device devicectl lists) and installs it
+# straight onto it - no archive, no export, no App Store. The Debug build is
+# the one with the `#if DEBUG` doors (the Capture lab under About, the test
+# seams); an archive is always Release and never has them, which is why a
+# lab shot from `scripts/release.sh` without this flag found no lab.
+if [ "$DEBUG" -eq 1 ]; then
+  DEVICE="${TANKBOOK_DEVICE:-$(xcrun devicectl list devices 2>/dev/null | awk '/\(UDID\)/ && $0 !~ /simulated/ && $0 ~ /connected/ {print $(NF-4)}' | head -1)}"
+  if [ -z "$DEVICE" ]; then
+    echo "release --debug: no physical iPhone connected (xcrun devicectl list devices); plug one in, or set TANKBOOK_DEVICE to its UDID" >&2
+    exit 2
+  fi
+  DERIVED="build/debug-device"
+  xcodegen generate >/dev/null
+  xcodebuild -project Tankbook.xcodeproj -scheme Tankbook -configuration Debug \
+    -destination "id=${DEVICE}" -derivedDataPath "$DERIVED" \
+    -allowProvisioningUpdates DEVELOPMENT_TEAM="${TANKBOOK_TEAM_ID}" \
+    build | tail -3
+  BUILD_EXIT=${PIPESTATUS[0]}; echo "DEBUG_BUILD_EXIT=${BUILD_EXIT}"; [ "$BUILD_EXIT" -eq 0 ] || exit 1
+  APP="$(ls -d "${DERIVED}"/Build/Products/Debug-iphoneos/Tankbook.app | head -1)"
+  xcrun devicectl device install app --device "$DEVICE" "$APP" | tail -2
+  INSTALL_EXIT=${PIPESTATUS[0]}; echo "DEBUG_INSTALL_EXIT=${INSTALL_EXIT}"; [ "$INSTALL_EXIT" -eq 0 ] || exit 1
+  xcrun devicectl device process launch --device "$DEVICE" app.tankbook.Tankbook >/dev/null 2>&1 || true
+  echo "release --debug: Debug build $(git rev-parse --short HEAD) installed on ${DEVICE} (About shows '· debug'; the Capture lab is under About > Debug)"
+  exit 0
+fi
 
 validate_upload_credentials() {
 : "${ASC_KEY_ID:?set ASC_KEY_ID to the App Store Connect API key id}"

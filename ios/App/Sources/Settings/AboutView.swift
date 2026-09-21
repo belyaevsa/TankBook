@@ -149,8 +149,17 @@ struct AboutView: View {
     private var versionLine: String {
         let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
-        if let build { return "\(short) (\(build))" }
-        return short
+        var line = build.map { "\(short) (\($0))" } ?? short
+        // The commit the binary was built from and the configuration, so a
+        // build installed by hand can be told apart from an archive - the debug
+        // doors below exist only in one of them. Both are machine tokens.
+        if let commit = Bundle.main.object(forInfoDictionaryKey: "TankbookBuildCommit") as? String {
+            line += " · \(commit)"
+        }
+        #if DEBUG
+        line += " · debug"
+        #endif
+        return line
     }
 
     private var footer: some View {
