@@ -39,7 +39,11 @@ struct PumpReaderHarnessTests {
     // inter-cell gaps at half the run threshold, over the lower band extended
     // below it, so the mark lands on the right cell on 128/237 heldout windows
     // (0.540), up from 9/237. PU.37's count fix holds it at 128/237.
-    private static let dpAgreementFloor = 0.54
+    // Decision 9 amended 2026-09-22 (product owner): four night stills joined
+    // the heldout before any model saw them - 68 stills, 251 windows. The same
+    // slicer scores 129/250 (0.516) on the new yardstick; the floor follows the
+    // yardstick, the code did not move.
+    private static let dpAgreementFloor = 0.51
     private static let locatorMedianIoUFloor = 0.0
 
     // MARK: - The slicer ratchet
