@@ -1106,11 +1106,24 @@ function copyPrevQuads() {
   const r = currentRecord(); if (!frameMode || !r || frameIdx < 1) { setMsg('no previous frame'); return; }
   const prev = r.frames[r.tracked[frameIdx - 1]], cur = r.frames[r.tracked[frameIdx]];
   if (!prev || !cur) return;
-  cur.windows = prev.windows.map(w => ({...w, quad: w.quad.map(q => [...q])}));
-  frameQuadsEdited = true; draw(); renderWins();
+  // Quads only: the text over a box is this frame's own label, never the
+  // previous frame's numbers.
+  const own = Object.fromEntries(cur.windows.map(w => [w.field, w]));
+  cur.windows = prev.windows.map(w => ({...w, quad: w.quad.map(q => [...q]), text: (own[w.field] || {}).text || '', prefill: (own[w.field] || {}).prefill}));
+  frameQuadsEdited = true; syncFrameTexts(); draw(); renderWins();
   setMsg(`boxes copied from ${r.tracked[frameIdx - 1]} - ⇧⏎ pins them as an anchor`);
 }
 for (const id of ['#lfCopyPrev', '#vlCopyPrev']) { const b = $(id); if (b) b.onclick = copyPrevQuads; }
+// The text drawn over a video frame's boxes is the frame label: typing in the
+// label fields updates it at once (the label itself is written by Save label).
+function syncFrameTexts() {
+  if (!(frameMode && isVideo)) return;
+  const r = currentRecord(); const f = r && r.frames[r.tracked[frameIdx]]; if (!f) return;
+  const v = {total: $('#vlTotal').value.trim(), liters: $('#vlLiters').value.trim(), unitPrice: $('#vlPrice').value.trim()};
+  for (const w of f.windows) if (w.field in v) w.text = v[w.field];
+  draw();
+}
+for (const id of ['#vlTotal', '#vlLiters', '#vlPrice']) $(id).addEventListener('input', syncFrameTexts);
 function toggleHelp(show) { const h = $('#help'); h.style.display = (show === undefined ? h.style.display === 'none' : show) ? '' : 'none'; }
 $('#helpBtn').onclick = () => toggleHelp(true); $('#helpClose').onclick = () => toggleHelp(false); $('#help').onclick = () => toggleHelp(false);
 document.addEventListener('keydown', e => {
