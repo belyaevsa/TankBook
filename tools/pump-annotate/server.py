@@ -510,6 +510,18 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.send_error(HTTPStatus.NOT_FOUND)
             start_retrack(stem, read=True)
             return self.send_json({"ok": True, "reviewed": bool(videos[stem].get("reviewed"))})
+        if path == "/api/dump":
+            # Every corpus file written from the database (`corpus_db.py dump`),
+            # then the staleness check; the reply says what changed on disk.
+            import time  # noqa: PLC0415
+            started = time.time()
+            written = corpus_db.dump()
+            check = subprocess.run([sys.executable, str(ROOT / "scripts" / "corpus_db.py"), "check"],
+                                   capture_output=True, text=True)
+            changed = subprocess.run(["git", "status", "--short", "--", "Spike/ReceiptSpike/fixtures"], cwd=ROOT,
+                                     capture_output=True, text=True).stdout.strip().splitlines()
+            return self.send_json({"files": len(written), "ms": int((time.time() - started) * 1000),
+                                   "check": check.returncode, "changed": changed[:40], "changedCount": len(changed)})
         if path == "/api/check":
             r = subprocess.run([sys.executable, str(CHECK), "--check"], capture_output=True, text=True)
             return self.send_json({"exit": r.returncode, "output": (r.stdout + r.stderr).strip()})

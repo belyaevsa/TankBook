@@ -115,7 +115,7 @@
     <div class="row">unitPrice <input data-dis="unitPrice" style="flex:1"></div>
   </div>
   <div id="status">
-    <div class="row"><button id="save" class="primary">Save</button><button id="savenext" title="mark processed, save, open the next">✓ Save &amp; next</button><button id="check">Check</button>
+    <div class="row"><button id="save" class="primary">Save</button><button id="savenext" title="mark processed, save, open the next">✓ Save &amp; next</button><button id="check">Check</button><button id="dump" title="write every corpus file from the database (corpus_db.py dump) and run the staleness check">⤓ dump to JSON</button>
       <button id="read" title="run the reader on the annotated windows and fill empty texts (r); R runs the app's live path - detector, verifier, law - on the photo with no windows">▶ read</button>
       <button id="auto" title="auto-annotate (A): the live path locates the rows and each assigned row becomes a window with the CSV's text - adjust and save">✦ auto</button><span id="msg" class="dim"></span></div>
     <pre id="out"></pre>
@@ -639,6 +639,13 @@ $('#frameSlider').onchange = e => e.target.blur();
 $('#rec').onchange = () => { frameIdx = 0; showRecordInfo(); if (frameMode) showFrame(); };
 document.querySelectorAll('[name=tracking]').forEach(r => r.onchange = touch);
 $('#save').onclick = save; $('#check').onclick = check;
+$('#dump').onclick = async () => {
+  notify('busy', 'Dumping the database to the corpus files…');
+  let r; try { r = await (await fetch('/api/dump', {method: 'POST'})).json(); } catch (err) { notify('failed', 'Dump failed: ' + err); return; }
+  const lines = [`dump: ${r.files} files written in ${r.ms} ms · check exit ${r.check} · ${r.changedCount} file(s) differ from git`].concat(r.changed || []);
+  $('#out').textContent = lines.join('\n');
+  notify(r.check === 0 ? 'done' : 'failed', `Dump completed – ${r.files} files, check ${r.check === 0 ? 'ok' : 'FAILED'}, ${r.changedCount} changed vs git (stage them by path when the batch is done)`);
+};
 $('#reviewed').onchange = touch;
 $('#vlSave').onclick = saveVideoLabel;
 // A Live record reviewed in its frames: tracking ok on the still, saved, next.
