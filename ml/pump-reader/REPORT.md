@@ -1028,6 +1028,21 @@ locator's own round. The `classify`'s slow-path cap starts before `PumpPanelLoca
 Vision pass cannot be interrupted - a fallback frame can overshoot the cap by one locate, but the
 verifier's own loop is bounded per candidate.
 
+### The hand quads' own noise (live-6333, 2026-09-21)
 
+Leave-one-pin-out on the 22 frames the owner pinned in live-6333's tail: registered against
+the still, the tracked quad meets the hand quad at IoU 0.75; against the nearest pin (the
+tracker's actual choice - inliers favour the neighbour) 0.77; chained from the previous frame
+0.79; a local template refinement adds nothing. The residuals explain why none of it moves:
+between ADJACENT frames the hand quads differ by up to a quarter of the row height at the top
+edge (the total 175 px tall on 074, 219 on 075), with opposite signs on the two frames - the
+noise is in the pins, and the owner's own re-adjustments of one frame agree at 0.91-0.99. The
+detector's median IoU (0.80) is that noise, learned.
 
+Tried and dropped: a pixel snap of the quad's top and bottom to the ink band (the slicer's
+LCN band, thresholds 0.15-0.65 of the row maximum) - on exactly these glare-tail frames the
+band runs to the strip's edge, so the snap leaves the noisy quads alone and only tightens the
+clean ones. What ships instead is a rule in the annotator: on a frame a corner drag is a move
+("keep shape", on by default), so the still defines every window's shape and a frame only
+says where it went. The consistency is then structural, not estimated.
 

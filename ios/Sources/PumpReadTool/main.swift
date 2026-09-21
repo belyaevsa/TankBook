@@ -175,6 +175,15 @@ if let windows = request.windows, !windows.isEmpty {
         }
         reply["cellsPerRow"] = readsTimed.map { $0.cells.count }
     }
+    // The app's own path: the classification decision alone, and decision + read.
+    if let cg = PumpQuadWarp.makeImage(upright.pixels, width: upright.width, height: upright.height) {
+        let handle = PumpReaderHandle(reader: reader)
+        let decision = timed("appDecide") { PumpDisplayCapture.detect(image: cg, reader: handle) }
+        reply["appDecision"] = ["display": decision.isPumpDisplay, "rows": decision.displayRows, "textLines": decision.textLines]
+        _ = timed("appClassifyAndRead") {
+            PumpDisplayCapture.classify(image: cg, reader: handle, currency: currency, priceBand: nil)
+        }
+    }
     reply["timingsMs"] = timings
     if let reads = readsTimed {
         reply["rowTexts"] = reads.map { read in

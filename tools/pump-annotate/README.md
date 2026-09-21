@@ -55,7 +55,11 @@ the ml venv runs it); the converted images are cached under
   explicit action that re-registers every non-pinned frame to the still and
   its nearest anchors; **↻ from here** does the same for the current frame and
   the ones after it only, so the frames you already checked keep their quads.
-  A pinned frame is never moved by either.
+  A pinned frame is never moved by either. **keep shape** (toolbar, on by
+  default) makes a corner drag on a frame move the whole window: the still (or
+  a video's reference frame) defines a window's shape and a frame only says
+  where it went, so every frame's quad carries the same margins - the
+  detector learns those edges, and hand-resized frames taught it noise.
 - **Videos** (`🎞`, filter *videos*): the running-display clips from
   `pump-live/videos.json`. Their "still" is the hand-annotated reference frame;
   *View frames* steps the tracked frames, and a **frame label** row shows the

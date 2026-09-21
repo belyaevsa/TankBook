@@ -67,6 +67,7 @@
     <label title="frames per second">fps <input id="fps" type="number" min="1" max="60" value="12" style="width:52px"></label>
     <label title="start playing as soon as a Live photo or movie opens"><input type="checkbox" id="autoplay"> autoplay</label>
     <label><input type="checkbox" id="loop" checked> loop</label>
+    <label id="keepShapeLabel" style="display:none" title="on a frame, dragging a corner moves the whole window instead of resizing it - the shape comes from the still or the reference frame, so every frame's quad has the same margins"><input type="checkbox" id="keepShape" checked> keep shape</label>
     <span id="retrackBar" style="display:none"><button id="retrackAll" title="re-register every non-pinned frame of this record to the reference and its anchors">↻ re-track all</button><button id="retrackFrom" title="re-register this frame and the ones after it; earlier frames keep their quads">↻ from here</button></span>
     <span id="playInfo" class="dim"></span>
   </div>
@@ -261,7 +262,7 @@ async function enterFrames() {
 }
 function leaveFrames() {
   stopPlay(); $('#playInfo').textContent = '';
-  frameMode = false; img = stillImg; $('#videoLabel').style.display = 'none'; $('#liveFrame').style.display = 'none'; $('#retrackBar').style.display = 'none'; $('#frameStrip').style.display = 'none'; $('#frameSlider').style.display = 'none'; $('#framesToggle').textContent = 'View frames';
+  frameMode = false; img = stillImg; $('#videoLabel').style.display = 'none'; $('#liveFrame').style.display = 'none'; $('#retrackBar').style.display = 'none'; $('#keepShapeLabel').style.display = 'none'; $('#frameStrip').style.display = 'none'; $('#frameSlider').style.display = 'none'; $('#framesToggle').textContent = 'View frames';
   $('#frameName').textContent = ''; fit(); draw();
 }
 function runOf(r, name) { return (r.runs || []).find(run => run.includes(name)) || [name]; }
@@ -365,7 +366,7 @@ async function copyPrevious() {
 function nextUnlabelled() { nextAttention(); }
 function showFrame() {
   if (!frameMode) return;
-  refreshBanner(); $('#retrackBar').style.display = '';
+  refreshBanner(); $('#retrackBar').style.display = ''; $('#keepShapeLabel').style.display = '';
   frameQuadsEdited = false;
   const r = currentRecord(); const name = r && r.tracked[frameIdx]; if (!name) return;
   showVideoLabel();
@@ -564,6 +565,12 @@ canvas.onmousedown = e => {
     drag = {kind:'turn', cx, cy, a0: Math.atan2(y - cy, x - cx), quad: editable()[sel].quad.map(q => [...q])}; return;
   }
   const c = hitCorner([x, y]);
+  // On a frame, "keep shape" turns a corner drag into a move: the still (or
+  // the reference frame) defines the window's shape, a frame only says where
+  // it went. Hand pins on adjacent frames differed by a quarter of the row
+  // height when corners were free (live-6333), and the detector learns that
+  // noise as its own edge error.
+  if (c >= 0 && frameMode && $('#keepShape').checked) { sel = sel >= 0 ? sel : hitWindow([x, y]); drag = {kind:'move', x, y, quad: editable()[sel].quad.map(p => [...p])}; return; }
   if (c >= 0) { drag = {kind:'corner', c}; return; }
   const w = hitWindow([x, y]);
   if (w >= 0 && !e.shiftKey) { sel = w; drag = {kind:'move', x, y, quad: editable()[w].quad.map(p => [...p])}; renderWins(); draw(); return; }
