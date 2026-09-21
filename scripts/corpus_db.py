@@ -1,42 +1,64 @@
 #!/usr/bin/env python3
 """The corpus as one SQLite file - `Spike/ReceiptSpike/fixtures/corpus.sqlite`.
 
-The files in git stay the source of truth (`pump/expected.csv`,
-`receipts/expected.csv`, `pump/windows.json`, the `pump-live/README.md`
-pairing tables, `CorpusPairTests.swift`); the ratchets read them and nothing
-else. This script folds them into one database for querying, for the
-annotator and for the bucket, and rebuilds it from scratch every time - it is
-derived, committed (product owner, 2026-09-19: browsable from a checkout without
-a build), and never edited by hand - a rebuild from unchanged inputs is
-byte-identical, so the diff is only ever real corpus change.
+SQLite-first (product owner, 2026-09-21): the database is the canonical write
+store and the text files are a deterministic dump of it, committed beside it so
+diffs stay readable and the Swift ratchets keep reading files unchanged.
 
-    scripts/corpus_db.py build            # -> fixtures/corpus.sqlite
-    scripts/corpus_db.py build --s3       # also marks which media are in the bucket
+    scripts/corpus_db.py import   # files -> corpus.sqlite (the old `build`)
+    scripts/corpus_db.py dump     # corpus.sqlite -> the seven text files
+    scripts/corpus_db.py check    # exit 1 when a file differs from the dump
     scripts/corpus_db.py sql "select field, count(*) from windows group by 1"
 
-Tables: fixtures (every still with its truth row, size, sha256), entries
-(the per-fixture annotation state), windows (one row per number window,
-quad as JSON plus its bounding box), media (Live records and videos, with
-their bucket key and pairing; whether a movie is on THIS machine is not
-recorded - `ls` answers that), pairs (the matched pump/receipt fills).
+`import` reads `pump/windows.json`, `pump/expected.csv`,
+`pump-live/videos.json`, `pump-live/video-labels.json`,
+`pump-live/frames/<stem>/windows.json`, `pump-live/frames/<stem>/readings.json`
+and `pump-live/corrections.jsonl`; `dump` writes exactly those, in the byte
+format the old writers used, so `import` followed by `dump` on an unchanged
+corpus leaves `git diff Spike/` empty. Values that have no column live in an
+`extra` JSON column on their table, and record-level tables also carry a `keys`
+column - the original top-level key order - so the dump loses nothing.
+
+The tables the report and the annotator read (`fixtures`, `entries`, `windows`,
+`media`, `pairs`) are unchanged apart from `entries.tracking` and the two new
+columns. The frames writer (`pump_reader.track`) still writes its file; the
+annotator imports that one record after a retrack, the single remaining
+file-to-database direction, removed in PU.36b.
 """
 from __future__ import annotations
 
 import csv
 import hashlib
+import io
 import json
 import re
 import sqlite3
 import subprocess
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 FIX = ROOT / "Spike" / "ReceiptSpike" / "fixtures"
 DB = FIX / "corpus.sqlite"
+PUMP = FIX / "pump"
+LIVE = FIX / "pump-live"
+FRAMES = LIVE / "frames"
+WINDOWS_FILE = PUMP / "windows.json"
+EXPECTED_FILE = PUMP / "expected.csv"
+VIDEOS_FILE = LIVE / "videos.json"
+LABELS_FILE = LIVE / "video-labels.json"
+CORRECTIONS_FILE = LIVE / "corrections.jsonl"
 S3_ENDPOINT = "https://storage.yandexcloud.net"
 S3_BUCKET = "tankbook-corpus"
 S3_MEDIA_PREFIX = "pump-live/"
+
+SCHEMA_VERSION = "2"
+
+ENTRY_KEYS = ("windows", "rotationCW", "notOnDisplay", "csvDisagrees", "reviewed", "tracking", "liveAnchors")
+VIDEO_KEYS = ("reference", "currency", "unitPrice", "windows", "reviewed", "anchors", "firstFrame", "lastFrame", "note")
+FRAME_KEYS = ("windows", "inliers", "anchor", "verified")
+CORRECTION_ORDER = ("still", "record", "video", "frame", "field", "proposedBy", "proposed", "final", "iou", "inliers")
 
 SCHEMA = """
 create table meta (key text primary key, value text);
@@ -44,11 +66,11 @@ create table fixtures (
   name text primary key, kind text not null, path text not null, bytes integer, sha256 text,
   width integer, height integer,
   liters text, unitPrice text, total text, fuelKind text, currency text, station text,
-  split text);
+  split text, ord integer);
 create table entries (
   fixture text primary key references fixtures(name),
   rotationCW integer not null default 0, reviewed integer not null default 0,
-  notOnDisplay text, csvDisagrees text);
+  notOnDisplay text, csvDisagrees text, tracking text, keys text, extra text, ord integer);
 create table windows (
   id integer primary key, fixture text not null references fixtures(name), ord integer not null,
   field text not null, text text not null, legibility text, quad text not null,
@@ -60,6 +82,31 @@ create table media (
 create table pairs (
   pump text not null, receipt text not null, totalsAgree integer not null, note text,
   primary key (pump, receipt));
+create table live_anchors (
+  fixture text not null, record text not null, frame text not null, ord integer not null,
+  field text not null, quad text not null);
+create table videos (
+  stem text primary key, reference text, unitPrice text, currency text,
+  reviewed integer not null default 0, firstFrame text, lastFrame text, note text,
+  keys text, extra text, ord integer);
+create table video_windows (
+  stem text not null, ord integer not null, field text not null, quad text not null);
+create table video_anchors (
+  stem text not null, frame text not null, ord integer not null, field text not null, quad text not null);
+create table frames (
+  record text not null, frame text not null, still text, split text,
+  inliers integer, anchor integer, verified integer, keys text, extra text, ord integer,
+  primary key (record, frame));
+create table frame_windows (
+  record text not null, frame text not null, ord integer not null, field text not null,
+  text text, quad text not null, legibility text);
+create table labels (
+  video text not null, frame text not null, field text not null, text text, source text);
+create table readings (
+  record text not null, frame text not null, field text not null, text text, closes integer, ord integer);
+create table corrections (
+  at text, build text, kind text, still text, record text, video text, frame text, field text,
+  proposedBy text, proposed text, final text, iou real, inliers integer, extra text);
 """
 
 
@@ -82,8 +129,17 @@ def dimensions(path: Path) -> tuple[int | None, int | None]:
         return None, None
 
 
+def connect(path: Path | None = None) -> sqlite3.Connection:
+    """WAL and a busy timeout: the annotator threads and a CLI dump may meet."""
+    con = sqlite3.connect(str(path or DB), timeout=5.0)
+    con.row_factory = sqlite3.Row
+    con.execute("pragma journal_mode=wal")
+    con.execute("pragma busy_timeout=5000")
+    return con
+
+
 def previous(db: Path) -> tuple[dict[str, tuple[int, int]], dict[str, tuple[int, int]]]:
-    """What the last build knew and this one may not recompute: dimensions
+    """What the last import knew and this one may not recompute: dimensions
     (slow) by content hash, and each medium's size and bucket presence - the
     file is committed, so a build on a machine without the movies or without
     the S3 key must not blank what a machine with them recorded."""
@@ -99,37 +155,70 @@ def previous(db: Path) -> tuple[dict[str, tuple[int, int]], dict[str, tuple[int,
         return {}, {}
 
 
+# ---------------------------------------------------------------------------
+# import: the files -> the database
+# ---------------------------------------------------------------------------
+
 def load_fixtures(con: sqlite3.Connection, known: dict[str, tuple[int, int]]) -> None:
     # decision 9: the frozen heldout draw; a pump still not listed is train.
     split: dict[str, str] = {}
-    with (FIX / "pump" / "split.csv").open() as f:
-        split = {r["filename"]: r["split"] for r in csv.DictReader(f)}
+    split_file = PUMP / "split.csv"
+    if split_file.exists():
+        with split_file.open() as f:
+            split = {r["filename"]: r["split"] for r in csv.DictReader(f)}
+    ord_ = 0
     for kind in ("pump", "receipts"):
         folder = FIX / kind
-        with (folder / "expected.csv").open() as f:
+        expected = folder / "expected.csv"
+        if not expected.exists():
+            continue
+        with expected.open() as f:
             for row in csv.DictReader(f):
                 path = folder / row["filename"]
                 digest = sha256(path) if path.exists() else None
                 w, h = known.get(digest) if digest in known else (dimensions(path) if path.exists() else (None, None))
                 con.execute(
-                    "insert into fixtures values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "insert into fixtures values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (row["filename"], "pump" if kind == "pump" else "receipt",
                      str(path.relative_to(ROOT)), path.stat().st_size if path.exists() else None, digest, w, h,
                      row.get("liters") or None, row.get("unitPrice") or None, row.get("total") or None,
                      row.get("fuelKind") or None, row.get("currency") or None, row.get("station") or None,
-                     (split.get(row["filename"], "train") if kind == "pump" else None)))
+                     (split.get(row["filename"], "train") if kind == "pump" else None), ord_))
+                ord_ += 1
+
+
+def _residual(obj: dict, known: tuple[str, ...]) -> dict:
+    return {k: v for k, v in obj.items() if k not in known}
+
+
+def _live_anchors(con: sqlite3.Connection, fixture: str) -> list[dict]:
+    rows = con.execute("select record, frame, field, quad from live_anchors "
+                       "where fixture = ? order by ord", (fixture,)).fetchall()
+    out: list[dict] = []
+    for r in rows:
+        anchor = next((a for a in out if a["record"] == r["record"] and a["frame"] == r["frame"]), None)
+        if anchor is None:
+            anchor = {"record": r["record"], "frame": r["frame"], "windows": []}
+            out.append(anchor)
+        anchor["windows"].append({"field": r["field"], "quad": json.loads(r["quad"])})
+    return out
 
 
 def load_windows(con: sqlite3.Connection) -> None:
-    ann = json.loads((FIX / "pump" / "windows.json").read_text())
+    ann = json.loads(WINDOWS_FILE.read_text())
+    ord_ = 0
     for name, entry in ann.items():
         if name.startswith("_"):
-            con.execute("insert into meta values (?,?)", ("windows.json" + name, entry))
+            con.execute("insert into meta values (?,?)", ("windows.json:" + name, entry))
             continue
-        con.execute("insert into entries values (?,?,?,?,?)",
-                    (name, entry.get("rotationCW", 0), int(bool(entry.get("reviewed"))),
-                     json.dumps(entry["notOnDisplay"]) if entry.get("notOnDisplay") else None,
-                     json.dumps(entry["csvDisagrees"]) if entry.get("csvDisagrees") else None))
+        con.execute(
+            "insert into entries (fixture, rotationCW, reviewed, notOnDisplay, csvDisagrees, tracking, keys, extra, ord) "
+            "values (?,?,?,?,?,?,?,?,?)",
+            (name, entry.get("rotationCW", 0), int(bool(entry.get("reviewed"))),
+             json.dumps(entry["notOnDisplay"]) if entry.get("notOnDisplay") else None,
+             json.dumps(entry["csvDisagrees"]) if entry.get("csvDisagrees") else None,
+             entry.get("tracking"), json.dumps(list(entry.keys())), json.dumps(_residual(entry, ENTRY_KEYS)), ord_))
+        ord_ += 1
         for i, w in enumerate(entry.get("windows", [])):
             xs = [p[0] for p in w["quad"]]
             ys = [p[1] for p in w["quad"]]
@@ -137,6 +226,117 @@ def load_windows(con: sqlite3.Connection) -> None:
                         "values (?,?,?,?,?,?,?,?,?,?)",
                         (name, i, w["field"], w.get("text", ""), w.get("legibility"), json.dumps(w["quad"]),
                          min(xs), min(ys), max(xs), max(ys)))
+        for i, a in enumerate(entry.get("liveAnchors", [])):
+            for w in a["windows"]:
+                con.execute("insert into live_anchors values (?,?,?,?,?,?)",
+                            (name, a["record"], a["frame"], i, w["field"], json.dumps(w["quad"])))
+
+
+def load_videos(con: sqlite3.Connection) -> None:
+    if not VIDEOS_FILE.exists():
+        return
+    videos = json.loads(VIDEOS_FILE.read_text())
+    ord_ = 0
+    for stem, entry in videos.items():
+        if stem.startswith("_"):
+            con.execute("insert into meta values (?,?)", ("videos.json:" + stem, entry))
+            continue
+        con.execute(
+            "insert into videos (stem, reference, unitPrice, currency, reviewed, firstFrame, lastFrame, note, keys, extra, ord) "
+            "values (?,?,?,?,?,?,?,?,?,?,?)",
+            (stem, entry.get("reference"), entry.get("unitPrice"), entry.get("currency"),
+             int(bool(entry.get("reviewed"))), entry.get("firstFrame"), entry.get("lastFrame"),
+             entry.get("note"), json.dumps(list(entry.keys())), json.dumps(_residual(entry, VIDEO_KEYS)), ord_))
+        ord_ += 1
+        for i, w in enumerate(entry.get("windows", [])):
+            con.execute("insert into video_windows values (?,?,?,?)", (stem, i, w["field"], json.dumps(w["quad"])))
+        for i, a in enumerate(entry.get("anchors", [])):
+            for w in a["windows"]:
+                con.execute("insert into video_anchors values (?,?,?,?,?)",
+                            (stem, a["frame"], i, w["field"], json.dumps(w["quad"])))
+
+
+def _load_frames_file(con: sqlite3.Connection, path: Path) -> None:
+    tracked = json.loads(path.read_text())
+    stem = path.parent.name
+    con.execute("insert or replace into frames (record, frame, still, split, inliers, anchor, verified, keys, extra, ord) "
+                "values (?,?,?,?,?,?,?,?,?,?)",
+                (stem, "", tracked.get("_still") or tracked.get("_video"), tracked.get("_split"),
+                 None, None, None, json.dumps(list(tracked.keys())),
+                 json.dumps({k: v for k, v in tracked.items() if k != "frames"}), None))
+    for i, (frame, fr) in enumerate(tracked.get("frames", {}).items()):
+        con.execute(
+            "insert or replace into frames (record, frame, still, split, inliers, anchor, verified, keys, extra, ord) "
+            "values (?,?,?,?,?,?,?,?,?,?)",
+            (stem, frame, tracked.get("_still") or tracked.get("_video"), tracked.get("_split"),
+             fr.get("inliers"), fr.get("anchor"), (1 if fr.get("verified") else None) if "verified" in fr else None,
+             json.dumps(list(fr.keys())), json.dumps(_residual(fr, FRAME_KEYS)), i))
+        for j, w in enumerate(fr.get("windows", [])):
+            con.execute("insert into frame_windows values (?,?,?,?,?,?,?)",
+                        (stem, frame, j, w["field"], w.get("text", ""), json.dumps(w["quad"]), w.get("legibility")))
+
+
+def load_frames(con: sqlite3.Connection) -> None:
+    for path in sorted(FRAMES.glob("*/windows.json")):
+        _load_frames_file(con, path)
+
+
+def load_labels(con: sqlite3.Connection) -> None:
+    if not LABELS_FILE.exists():
+        return
+    labels = json.loads(LABELS_FILE.read_text())
+    for video, frames in labels.items():
+        if not frames:
+            con.execute("insert into labels values (?,?,?,?,?)", (video, "", "", None, None))
+        for frame, fields in frames.items():
+            source = fields.get("source")
+            for field, text in fields.items():
+                if field == "source":
+                    continue
+                con.execute("insert into labels values (?,?,?,?,?)", (video, frame, field, text, source))
+
+
+def load_readings(con: sqlite3.Connection) -> None:
+    for path in sorted(FRAMES.glob("*/readings.json")):
+        record = path.parent.name
+        raw = path.read_bytes()
+        # Two writers produced this file over time: the Swift reader writes
+        # compact sorted JSON, an older Python one wrote `json.dumps(sort_keys=True)`.
+        # The style is formatting, not data - carried in `meta` so the dump can
+        # reproduce the file byte for byte.
+        con.execute("insert into meta values (?,?)",
+                    ("readings-style:" + record, "spaced" if b'": ' in raw[:200] else "compact"))
+        readings = json.loads(raw)
+        if not readings:
+            con.execute("insert into readings values (?,?,?,?,?,?)", (record, "", "", None, None, -1))
+        for i, (frame, fields) in enumerate(readings.items()):
+            closes = int(bool(fields.get("closes")))
+            for field, text in fields.items():
+                if field == "closes":
+                    continue
+                con.execute("insert into readings values (?,?,?,?,?,?)", (record, frame, field, text, closes, i))
+
+
+def _correction_value(v):
+    return v if isinstance(v, str) else json.dumps(v)
+
+
+def load_corrections(con: sqlite3.Connection) -> None:
+    if not CORRECTIONS_FILE.exists():
+        return
+    for line in CORRECTIONS_FILE.read_text().splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        extra = {k: v for k, v in row.items() if k not in ("at", "build", *CORRECTION_ORDER)}
+        con.execute(
+            "insert into corrections (at, build, kind, still, record, video, frame, field, proposedBy, "
+            "proposed, final, iou, inliers, extra) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (row.get("at"), row.get("build"), row.get("kind"), row.get("still"), row.get("record"),
+             row.get("video"), row.get("frame"), row.get("field"), row.get("proposedBy"),
+             _correction_value(row.get("proposed")) if row.get("proposed") is not None else None,
+             _correction_value(row.get("final")) if row.get("final") is not None else None,
+             row.get("iou"), row.get("inliers"), json.dumps(extra) if extra else None))
 
 
 LIVE_ROW = re.compile(r"^\|\s*`?((?:live|video)-\d+[\w-]*?)(?:\.mov|\.mp4)?`?\s*\|\s*(\d+)[^|]*\|(.*)$")
@@ -145,7 +345,8 @@ LIVE_ROW = re.compile(r"^\|\s*`?((?:live|video)-\d+[\w-]*?)(?:\.mov|\.mp4)?`?\s*
 def load_media(con: sqlite3.Connection, in_bucket: set[str] | None, known: dict[str, tuple[int, int]]) -> None:
     """The README's pairing tables are the record of what each movie is; the
     folder says what is on this machine; the bucket key is deterministic."""
-    readme = (FIX / "pump-live" / "README.md").read_text().splitlines()
+    readme_path = LIVE / "README.md"
+    readme = readme_path.read_text().splitlines() if readme_path.exists() else []
     rows: dict[str, dict] = {}
     batch = None
     for line in readme:
@@ -161,13 +362,12 @@ def load_media(con: sqlite3.Connection, in_bucket: set[str] | None, known: dict[
         if "dropped" in note:
             continue  # a duplicate that was removed from the folder and the bucket
         rows.setdefault(name, {"frames": frames, "paired": paired, "note": note, "batch": batch})
-    folder = FIX / "pump-live"
-    for path in list(folder.glob("live-*.*")) + list(folder.glob("video-*.*")):
+    for path in list(LIVE.glob("live-*.*")) + list(LIVE.glob("video-*.*")):
         if path.suffix.lower() in (".mov", ".heic", ".mp4"):
             rows.setdefault(path.stem, {"frames": None, "paired": None, "note": None, "batch": None})
     for stem, info in sorted(rows.items()):
         for suffix in ((".mp4",) if stem.startswith("video-") else (".mov", ".heic")):
-            path = folder / f"{stem}{suffix}"
+            path = LIVE / f"{stem}{suffix}"
             key = S3_MEDIA_PREFIX + path.name
             was = known.get(path.name, (None, None))
             in_bucket_now = (key in in_bucket) if in_bucket is not None else was[1]
@@ -190,7 +390,10 @@ PAIR = re.compile(r'MatchedPair\(pump: "([^"]+)", receipt: "([^"]+)"(?:, totalsA
 
 
 def load_pairs(con: sqlite3.Connection) -> None:
-    source = (ROOT / "ios/Tests/TankbookCoreTests/CorpusPairTests.swift").read_text()
+    source_file = ROOT / "ios/Tests/TankbookCoreTests/CorpusPairTests.swift"
+    if not source_file.exists():
+        return
+    source = source_file.read_text()
     for pump, receipt, agree, note in PAIR.findall(source):
         full = lambda stem: (con.execute("select name from fixtures where name like ?", (stem + "%",)).fetchone() or [stem])[0]  # noqa: E731
         con.execute("insert or replace into pairs values (?,?,?,?)",
@@ -205,14 +408,53 @@ def bucket_keys() -> set[str]:
     return set(sync.remote_index(sync.client(), S3_MEDIA_PREFIX))
 
 
-def build(with_s3: bool = False) -> Path:
-    known, media_known = previous(DB)
-    tmp = DB.with_suffix(".sqlite.tmp")
+def _carry_forward(con: sqlite3.Connection, old_db: Path, tables: list[str]) -> None:
+    """Keep rows the files cannot reproduce. `frames/` is gitignored, so on a
+    checkout without it the committed database is the only carrier - an import
+    must not blank it, the same rule `previous()` already applies to media."""
+    if not old_db.exists() or not tables:
+        return
+    con.commit()
+    con.execute("attach database ? as old", (str(old_db),))
+    try:
+        for table in tables:
+            try:
+                con.execute(f"insert into {table} select * from old.{table}")
+            except sqlite3.DatabaseError:
+                pass  # the old database predates the table
+        con.commit()
+    finally:
+        con.execute("detach database old")
+        con.commit()
+
+
+def import_corpus(with_s3: bool = False, db: Path | None = None) -> Path:
+    """The files -> a fresh database, replacing it atomically. Renamed `build`."""
+    target = db or DB
+    known, media_known = previous(target)
+    tmp = target.with_suffix(".sqlite.tmp")
     tmp.unlink(missing_ok=True)
-    with sqlite3.connect(tmp) as con:
+    con = connect(tmp)
+    try:
         con.executescript(SCHEMA)
+        con.execute("insert into meta values ('schema_version', ?)", (SCHEMA_VERSION,))
         load_fixtures(con, known)
         load_windows(con)
+        load_videos(con)
+        load_frames(con)
+        load_labels(con)
+        load_readings(con)
+        load_corrections(con)
+        carry: list[str] = []
+        if not any(FRAMES.glob("*/windows.json")):
+            carry += ["frames", "frame_windows"]
+        if not any(FRAMES.glob("*/readings.json")):
+            carry.append("readings")
+        if not LABELS_FILE.exists():
+            carry.append("labels")
+        if not CORRECTIONS_FILE.exists():
+            carry.append("corrections")
+        _carry_forward(con, target, carry)
         load_media(con, bucket_keys() if with_s3 else None, media_known)
         load_pairs(con)
         # The file is committed: a rebuild from unchanged inputs must be
@@ -220,22 +462,552 @@ def build(with_s3: bool = False) -> Path:
         # settle page layout.
         con.commit()
         con.execute("vacuum")
-    tmp.replace(DB)
-    return DB
+    finally:
+        con.close()
+    tmp.replace(target)
+    return target
+
+
+# ---------------------------------------------------------------------------
+# dump: the database -> the files
+# ---------------------------------------------------------------------------
+
+def _group(rows, *keys) -> dict:
+    out: dict = {}
+    for r in rows:
+        out.setdefault(tuple(r[k] for k in keys), []).append(r)
+    return out
+
+
+def _window_list(rows) -> list[dict]:
+    return [{"field": r["field"], "text": r["text"], "quad": json.loads(r["quad"]),
+             **({"legibility": r["legibility"]} if r["legibility"] else {})} for r in rows]
+
+
+def _anchor_list(rows) -> list[dict]:
+    anchors: list[dict] = []
+    for r in rows:
+        anchor = next((a for a in anchors if a["frame"] == r["frame"]), None)
+        if anchor is None:
+            anchor = {"frame": r["frame"], "windows": []}
+            anchors.append(anchor)
+        anchor["windows"].append({"field": r["field"], "quad": json.loads(r["quad"])})
+    return anchors
+
+
+def _live_anchor_list(rows) -> list[dict]:
+    anchors: list[dict] = []
+    for r in rows:
+        anchor = next((a for a in anchors if a["record"] == r["record"] and a["frame"] == r["frame"]), None)
+        if anchor is None:
+            anchor = {"record": r["record"], "frame": r["frame"], "windows": []}
+            anchors.append(anchor)
+        anchor["windows"].append({"field": r["field"], "quad": json.loads(r["quad"])})
+    return anchors
+
+
+def _ordered(keys: list[str], values: dict, extra: dict) -> dict:
+    out: dict = {}
+    for k in keys:
+        if k in extra:
+            out[k] = extra[k]
+        elif k in values and values[k] is not None:
+            out[k] = values[k]
+    return out
+
+
+def _entry_obj(row: sqlite3.Row, windows: list, live: list) -> dict:
+    values = {
+        "windows": _window_list(windows),
+        "rotationCW": row["rotationCW"],
+        "reviewed": bool(row["reviewed"]),
+        "notOnDisplay": json.loads(row["notOnDisplay"]) if row["notOnDisplay"] else None,
+        "csvDisagrees": json.loads(row["csvDisagrees"]) if row["csvDisagrees"] else None,
+        "tracking": row["tracking"],
+        "liveAnchors": _live_anchor_list(live),
+    }
+    extra = json.loads(row["extra"]) if row["extra"] else {}
+    return _ordered(json.loads(row["keys"]), values, extra)
+
+
+def _render_windows(con: sqlite3.Connection) -> bytes:
+    out: dict = {}
+    for r in con.execute("select * from meta where key like 'windows.json:%' order by key"):
+        out[r["key"].split(":", 1)[1]] = r["value"]
+    windows = _group(con.execute("select * from windows order by fixture, ord"), "fixture")
+    live = _group(con.execute("select * from live_anchors order by fixture, ord"), "fixture")
+    for row in con.execute("select * from entries order by ord"):
+        out[row["fixture"]] = _entry_obj(row, windows.get((row["fixture"],), []), live.get((row["fixture"],), []))
+    return (json.dumps(out, indent=1) + "\n").encode()
+
+
+def _render_expected(con: sqlite3.Connection) -> bytes:
+    buf = io.StringIO()
+    writer = csv.writer(buf, lineterminator="\n")
+    writer.writerow(["filename", "liters", "unitPrice", "total", "fuelKind", "currency"])
+    for r in con.execute("select name, liters, unitPrice, total, fuelKind, currency from fixtures "
+                         "where kind = 'pump' order by ord"):
+        writer.writerow([r["name"], r["liters"], r["unitPrice"], r["total"], r["fuelKind"], r["currency"]])
+    return buf.getvalue().encode()
+
+
+def _video_obj(row: sqlite3.Row, windows: list, anchors: list) -> dict:
+    values = {"reference": row["reference"], "currency": row["currency"], "unitPrice": row["unitPrice"],
+              "windows": [{"field": r["field"], "quad": json.loads(r["quad"])} for r in windows],
+              "reviewed": bool(row["reviewed"]), "anchors": _anchor_list(anchors),
+              "firstFrame": row["firstFrame"], "lastFrame": row["lastFrame"], "note": row["note"]}
+    extra = json.loads(row["extra"]) if row["extra"] else {}
+    return _ordered(json.loads(row["keys"]), values, extra)
+
+
+def _render_videos(con: sqlite3.Connection) -> bytes:
+    out: dict = {}
+    for r in con.execute("select * from meta where key like 'videos.json:%' order by key"):
+        out[r["key"].split(":", 1)[1]] = r["value"]
+    windows = _group(con.execute("select * from video_windows order by stem, ord"), "stem")
+    anchors = _group(con.execute("select * from video_anchors order by stem, ord"), "stem")
+    for row in con.execute("select * from videos order by ord"):
+        out[row["stem"]] = _video_obj(row, windows.get((row["stem"],), []), anchors.get((row["stem"],), []))
+    return json.dumps(out, indent=1).encode()
+
+
+def _render_labels(con: sqlite3.Connection) -> bytes:
+    out: dict = {}
+    rows = _group(con.execute("select * from labels order by video, frame"), "video", "frame")
+    for (video, frame), group in rows.items():
+        frames = out.setdefault(video, {})
+        if frame == "":
+            continue
+        fields: dict = {}
+        for r in group:
+            fields[r["field"]] = r["text"]
+            if r["source"] is not None:
+                fields["source"] = r["source"]
+        frames[frame] = fields
+    return json.dumps(out, indent=1, sort_keys=True).encode()
+
+
+def _render_readings(con: sqlite3.Connection) -> dict[Path, bytes]:
+    out: dict[Path, bytes] = {}
+    styles = {r["key"].split(":", 1)[1]: r["value"]
+              for r in con.execute("select * from meta where key like 'readings-style:%'")}
+    rows = _group(con.execute("select * from readings order by record, ord"), "record")
+    for (record,), group in rows.items():
+        body: dict = {}
+        for r in group:
+            if r["frame"] == "":
+                continue
+            fields = body.setdefault(r["frame"], {"closes": bool(r["closes"])})
+            fields[r["field"]] = r["text"]
+        if styles.get(record) == "spaced":
+            out[FRAMES / record / "readings.json"] = json.dumps(body).encode()
+        else:
+            out[FRAMES / record / "readings.json"] = json.dumps(body, separators=(",", ":")).encode()
+    return out
+
+
+def _frame_obj(row: sqlite3.Row, windows: list) -> dict:
+    values = {"windows": _window_list(windows), "inliers": row["inliers"], "anchor": row["anchor"],
+              "verified": bool(row["verified"]) if row["verified"] is not None else None}
+    extra = json.loads(row["extra"]) if row["extra"] else {}
+    return _ordered(json.loads(row["keys"]), values, extra)
+
+
+def _render_frames(con: sqlite3.Connection) -> dict[Path, bytes]:
+    out: dict[Path, bytes] = {}
+    windows = _group(con.execute("select * from frame_windows order by record, frame, ord"), "record", "frame")
+    frames = _group(con.execute("select * from frames order by record, ord"), "record")
+    for (record,), group in frames.items():
+        meta = next((r for r in group if r["frame"] == ""), None)
+        if meta is None:
+            continue
+        body: dict = {}
+        for row in group:
+            if row["frame"] == "":
+                continue
+            body[row["frame"]] = _frame_obj(row, windows.get((record, row["frame"]), []))
+        values = {"frames": body, "_still": meta["still"], "_split": meta["split"]}
+        extra = json.loads(meta["extra"]) if meta["extra"] else {}
+        out[FRAMES / record / "windows.json"] = json.dumps(_ordered(json.loads(meta["keys"]), values, extra), indent=1).encode()
+    return out
+
+
+def _render_corrections(con: sqlite3.Connection) -> bytes | None:
+    rows = con.execute("select * from corrections order by rowid").fetchall()
+    if not rows:
+        return None
+    lines = []
+    for r in rows:
+        obj: dict = {"at": r["at"], "build": r["build"], "kind": r["kind"]}
+        for k in CORRECTION_ORDER:
+            v = r[k]
+            if v is None:
+                continue
+            obj[k] = json.loads(v) if k in ("proposed", "final") and r["kind"] == "quad" else v
+        obj.update(json.loads(r["extra"]) if r["extra"] else {})
+        lines.append(json.dumps(obj, ensure_ascii=False))
+    return ("\n".join(lines) + "\n").encode()
+
+
+def render() -> dict[Path, bytes]:
+    """Every dumped file's bytes, without writing."""
+    con = connect()
+    try:
+        out = {
+            WINDOWS_FILE: _render_windows(con),
+            EXPECTED_FILE: _render_expected(con),
+            VIDEOS_FILE: _render_videos(con),
+            LABELS_FILE: _render_labels(con),
+        }
+        out.update(_render_readings(con))
+        out.update(_render_frames(con))
+        corrections = _render_corrections(con)
+        if corrections is not None:
+            out[CORRECTIONS_FILE] = corrections
+        return out
+    finally:
+        con.close()
+
+
+def dump(paths: list[Path] | None = None) -> list[Path]:
+    """Write the database's files. `paths` limits the write to those files."""
+    rendered = render()
+    if paths is not None:
+        want = {Path(p) for p in paths}
+        rendered = {p: b for p, b in rendered.items() if p in want}
+    for path, body in rendered.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(body)
+    return list(rendered)
+
+
+def check() -> list[str]:
+    """The dump's stale files: [] when every file matches the database."""
+    stale: list[str] = []
+    for path, body in render().items():
+        if not path.exists():
+            stale.append(f"{path.relative_to(ROOT)}: missing (the database has it)")
+        elif path.read_bytes() != body:
+            stale.append(f"{path.relative_to(ROOT)}: differs from the database (run corpus_db.py dump)")
+    return stale
+
+
+# ---------------------------------------------------------------------------
+# the annotator's write path
+# ---------------------------------------------------------------------------
+
+def clean_entry(entry: dict) -> dict:
+    """Only the documented keys, in the file's order, empties dropped - the
+    same shape the annotator has always written."""
+    out: dict = {"windows": []}
+    for w in entry.get("windows", []):
+        quad = [[round(float(x), 4), round(float(y), 4)] for x, y in w["quad"]]
+        cw = {"field": w["field"], "text": w.get("text", ""), "quad": quad}
+        if w.get("legibility"):
+            cw["legibility"] = w["legibility"]
+        out["windows"].append(cw)
+    if entry.get("rotationCW"):
+        out["rotationCW"] = int(entry["rotationCW"])
+    if entry.get("notOnDisplay"):
+        out["notOnDisplay"] = list(entry["notOnDisplay"])
+    if entry.get("csvDisagrees"):
+        out["csvDisagrees"] = dict(entry["csvDisagrees"])
+    if entry.get("reviewed"):
+        out["reviewed"] = True
+    if entry.get("tracking") in ("ok", "bad"):
+        out["tracking"] = entry["tracking"]
+    if entry.get("liveAnchors"):
+        out["liveAnchors"] = [{"record": a["record"], "frame": a["frame"], "windows": a["windows"]}
+                              for a in entry["liveAnchors"]]
+    return out
+
+
+@contextmanager
+def transaction(con: sqlite3.Connection | None = None):
+    """One connection and one transaction. A caller that passes its own
+    connection owns the commit, so several writes are one transaction."""
+    if con is not None:
+        yield con
+        return
+    own = connect()
+    try:
+        with own:
+            yield own
+    finally:
+        own.close()
+
+
+def _write_entry(con: sqlite3.Connection, name: str, entry: dict) -> None:
+    # An existing entry keeps its file position; a new one is appended, the
+    # same order the annotator's whole-file rewrite produced.
+    existing = con.execute("select ord from entries where fixture = ?", (name,)).fetchone()
+    ord_ = existing["ord"] if existing is not None else con.execute(
+        "select coalesce(max(ord), -1) + 1 from entries").fetchone()[0]
+    con.execute("delete from windows where fixture = ?", (name,))
+    con.execute("delete from live_anchors where fixture = ?", (name,))
+    con.execute("delete from entries where fixture = ?", (name,))
+    con.execute(
+        "insert into entries (fixture, rotationCW, reviewed, notOnDisplay, csvDisagrees, tracking, keys, extra, ord) "
+        "values (?,?,?,?,?,?,?,?,?)",
+        (name, entry.get("rotationCW", 0), int(bool(entry.get("reviewed"))),
+         json.dumps(entry["notOnDisplay"]) if entry.get("notOnDisplay") else None,
+         json.dumps(entry["csvDisagrees"]) if entry.get("csvDisagrees") else None,
+         entry.get("tracking"), json.dumps(list(entry.keys())), "{}", ord_))
+    for i, w in enumerate(entry.get("windows", [])):
+        xs = [p[0] for p in w["quad"]]
+        ys = [p[1] for p in w["quad"]]
+        con.execute("insert into windows (fixture, ord, field, text, legibility, quad, x0, y0, x1, y1) "
+                    "values (?,?,?,?,?,?,?,?,?,?)",
+                    (name, i, w["field"], w.get("text", ""), w.get("legibility"), json.dumps(w["quad"]),
+                     min(xs), min(ys), max(xs), max(ys)))
+    for i, a in enumerate(entry.get("liveAnchors", [])):
+        for w in a["windows"]:
+            con.execute("insert into live_anchors values (?,?,?,?,?,?)",
+                        (name, a["record"], a["frame"], i, w["field"], json.dumps(w["quad"])))
+
+
+def save_entry(name: str, entry: dict, con: sqlite3.Connection | None = None) -> dict:
+    """One still's annotation. Live anchors the page did not carry are kept."""
+    entry = dict(entry)
+    with transaction(con) as con:
+        if "liveAnchors" not in entry:
+            existing = _live_anchors(con, name)
+            if existing:
+                entry["liveAnchors"] = existing
+        cleaned = clean_entry(entry)
+        _write_entry(con, name, cleaned)
+        return cleaned
+
+
+def save_live_anchor(still: str, record: str, frame: str, windows: list[dict],
+                     con: sqlite3.Connection | None = None) -> list[dict]:
+    """Replace one hand-placed frame on a Live record's still entry."""
+    with transaction(con) as con:
+        anchors = [a for a in _live_anchors(con, still) if not (a["record"] == record and a["frame"] == frame)]
+        anchors.append({"record": record, "frame": frame, "windows": windows})
+        anchors.sort(key=lambda a: (a["record"], int(a["frame"][:-4])))
+        row = con.execute("select * from entries where fixture = ?", (still,)).fetchone()
+        if row is None:
+            return []
+        entry = _entry_obj(row,
+                           con.execute("select * from windows where fixture = ? order by ord", (still,)).fetchall(),
+                           con.execute("select * from live_anchors where fixture = ? order by ord", (still,)).fetchall())
+        entry["liveAnchors"] = anchors
+        _write_entry(con, still, clean_entry(entry))
+        return anchors
+
+
+def save_video(stem: str, windows: list[dict], reviewed: bool, con: sqlite3.Connection | None = None) -> None:
+    with transaction(con) as con:
+        con.execute("update videos set reviewed = ? where stem = ?", (int(bool(reviewed)), stem))
+        con.execute("delete from video_windows where stem = ?", (stem,))
+        for i, w in enumerate(windows):
+            con.execute("insert into video_windows values (?,?,?,?)", (stem, i, w["field"], json.dumps(w["quad"])))
+
+
+def save_video_anchor(stem: str, frame: str, windows: list[dict],
+                      con: sqlite3.Connection | None = None) -> list[dict]:
+    """A hand-placed frame on a video: the reference's quads, or an anchor."""
+    with transaction(con) as con:
+        reference = con.execute("select reference from videos where stem = ?", (stem,)).fetchone()
+        if reference is None:
+            return []
+        if frame == reference["reference"]:
+            con.execute("delete from video_windows where stem = ?", (stem,))
+            for i, w in enumerate(windows):
+                con.execute("insert into video_windows values (?,?,?,?)", (stem, i, w["field"], json.dumps(w["quad"])))
+        else:
+            con.execute("delete from video_anchors where stem = ? and frame = ?", (stem, frame))
+            ord_ = con.execute("select coalesce(max(ord), -1) + 1 from video_anchors where stem = ?", (stem,)).fetchone()[0]
+            for i, w in enumerate(windows):
+                con.execute("insert into video_anchors values (?,?,?,?,?)",
+                            (stem, frame, ord_ + i, w["field"], json.dumps(w["quad"])))
+        return [r["frame"] for r in con.execute("select distinct frame from video_anchors where stem = ? order by ord", (stem,))]
+
+
+def quad_iou(a: list, b: list) -> float:
+    """Axis-aligned IoU of two normalised quads - enough to rank how far a
+    tracked quad sat from the hand-placed one."""
+    def box(q):
+        xs = [p[0] for p in q]
+        ys = [p[1] for p in q]
+        return min(xs), min(ys), max(xs), max(ys)
+    ax0, ay0, ax1, ay1 = box(a)
+    bx0, by0, bx1, by1 = box(b)
+    iw = max(0.0, min(ax1, bx1) - max(ax0, bx0))
+    ih = max(0.0, min(ay1, by1) - max(ay0, by0))
+    inter = iw * ih
+    union = (ax1 - ax0) * (ay1 - ay0) + (bx1 - bx0) * (by1 - by0) - inter
+    return round(inter / union, 3) if union > 0 else 0.0
+
+
+def _frame_windows(con: sqlite3.Connection, record: str, frame: str) -> list[dict]:
+    return [{"field": r["field"], "text": r["text"], "quad": json.loads(r["quad"]),
+             **({"legibility": r["legibility"]} if r["legibility"] else {})}
+            for r in con.execute("select * from frame_windows where record = ? and frame = ? order by ord",
+                                 (record, frame))]
+
+
+def import_frames(record: str) -> bool:
+    """PU.36b: `pump_reader.track` still writes `frames/<record>/windows.json`;
+    the server imports that one record's file so the database stays the store
+    every other tool reads. The single file-to-database direction that remains."""
+    path = FRAMES / record / "windows.json"
+    if not path.exists():
+        return False
+    con = connect()
+    try:
+        with con:
+            con.execute("delete from frame_windows where record = ?", (record,))
+            con.execute("delete from frames where record = ?", (record,))
+            _load_frames_file(con, path)
+        return True
+    finally:
+        con.close()
+
+
+def pin_frame(record: str, frame: str, windows: list[dict], texts: dict[str, str] | None = None,
+              con: sqlite3.Connection | None = None) -> bool:
+    """A frame's hand-placed quads become a verified anchor; the corrections
+    ledger takes the moved quads. No retrack."""
+    with transaction(con) as con:
+        row = con.execute("select * from frames where record = ? and frame = ?", (record, frame)).fetchone()
+        if row is None:
+            con.execute("delete from frame_windows where record = ?", (record,))
+            con.execute("delete from frames where record = ?", (record,))
+            if not import_frames_into(con, record):
+                return False
+            row = con.execute("select * from frames where record = ? and frame = ?", (record, frame)).fetchone()
+            if row is None:
+                return False
+        old = {w["field"]: w for w in _frame_windows(con, record, frame)}
+        was_anchor = bool(row["verified"])
+        corrections = []
+        for w in windows:
+            before = old.get(w["field"])
+            if before and before["quad"] != w["quad"]:
+                corrections.append({"kind": "quad", "record": record, "frame": frame, "field": w["field"],
+                                    "proposedBy": "operator" if was_anchor else "tracker",
+                                    "proposed": before["quad"], "final": w["quad"],
+                                    "iou": quad_iou(before["quad"], w["quad"]), "inliers": row["inliers"]})
+        out = []
+        for w in windows:
+            cw = dict(old.get(w["field"], {"field": w["field"], "text": ""}))
+            cw["quad"] = w["quad"]
+            if texts and w["field"] in texts:
+                cw["text"] = texts[w["field"]]
+            out.append(cw)
+        con.execute("update frames set inliers = -1, anchor = ?, verified = 1, keys = ? where record = ? and frame = ?",
+                    (int(frame[:-4]) if frame[:-4].isdigit() else 0, json.dumps(list(FRAME_KEYS)), record, frame))
+        meta = con.execute("select keys, extra from frames where record = ? and frame = ''", (record,)).fetchone()
+        if meta is not None:
+            extra = json.loads(meta["extra"]) if meta["extra"] else {}
+            anchors = [a for a in extra.get("_anchors", []) if a != frame] + [frame]
+            extra["_anchors"] = sorted(anchors, key=lambda n: int(n[:-4]))
+            keys = json.loads(meta["keys"]) if meta["keys"] else []
+            if "_anchors" not in keys:
+                keys.append("_anchors")
+            con.execute("update frames set extra = ?, keys = ? where record = ? and frame = ''",
+                        (json.dumps(extra), json.dumps(keys), record))
+        con.execute("delete from frame_windows where record = ? and frame = ?", (record, frame))
+        for i, w in enumerate(out):
+            con.execute("insert into frame_windows values (?,?,?,?,?,?,?)",
+                        (record, frame, i, w["field"], w.get("text", ""), json.dumps(w["quad"]), w.get("legibility")))
+        _insert_corrections(con, corrections)
+        return True
+
+
+def import_frames_into(con: sqlite3.Connection, record: str) -> bool:
+    path = FRAMES / record / "windows.json"
+    if not path.exists():
+        return False
+    con.execute("delete from frame_windows where record = ?", (record,))
+    con.execute("delete from frames where record = ?", (record,))
+    _load_frames_file(con, path)
+    return True
+
+
+def save_labels(stem: str, frames: dict[str, dict], con: sqlite3.Connection | None = None) -> None:
+    with transaction(con) as con:
+        con.execute("delete from labels where video = ?", (stem,))
+        if not frames:
+            con.execute("insert into labels values (?,?,?,?,?)", (stem, "", "", None, None))
+        for frame, fields in frames.items():
+            source = fields.get("source")
+            for field, text in fields.items():
+                if field == "source":
+                    continue
+                con.execute("insert into labels values (?,?,?,?,?)", (stem, frame, field, text, source))
+
+
+def _insert_corrections(con: sqlite3.Connection, rows: list[dict]) -> None:
+    for row in rows:
+        extra = {k: v for k, v in row.items() if k not in ("at", "build", *CORRECTION_ORDER)}
+        con.execute(
+            "insert into corrections (at, build, kind, still, record, video, frame, field, proposedBy, "
+            "proposed, final, iou, inliers, extra) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (row.get("at"), row.get("build"), row.get("kind"), row.get("still"), row.get("record"),
+             row.get("video"), row.get("frame"), row.get("field"), row.get("proposedBy"),
+             _correction_value(row["proposed"]) if row.get("proposed") is not None else None,
+             _correction_value(row["final"]) if row.get("final") is not None else None,
+             row.get("iou"), row.get("inliers"), json.dumps(extra) if extra else None))
+
+
+def add_corrections(rows: list[dict], con: sqlite3.Connection | None = None) -> None:
+    """Append the operator's corrections, stamped with the build they answered."""
+    if not rows:
+        return
+    import datetime  # noqa: PLC0415
+    stamp = datetime.datetime.now().replace(microsecond=0).isoformat()
+    try:
+        build = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT,
+                               capture_output=True, text=True).stdout.strip() or "unknown"
+    except Exception:  # noqa: BLE001
+        build = "unknown"
+    with transaction(con) as con:
+        _insert_corrections(con, [{"at": stamp, "build": build, **row} for row in rows])
+
+
+def ensure_schema() -> None:
+    """At server start: a missing or older database is imported from the files."""
+    try:
+        with sqlite3.connect(DB) as con:
+            version = con.execute("select value from meta where key = 'schema_version'").fetchone()
+        if version and version[0] == SCHEMA_VERSION:
+            return
+    except sqlite3.DatabaseError:
+        pass
+    import_corpus()
+
+
+def build(with_s3: bool = False) -> Path:
+    """Alias for `import`, kept for a release (callers still say `build`)."""
+    return import_corpus(with_s3)
 
 
 def main() -> int:
     args = sys.argv[1:]
-    if not args or args[0] not in ("build", "sql"):
+    if not args or args[0] not in ("import", "build", "dump", "check", "sql"):
         print(__doc__)
         return 2
-    if args[0] == "build":
-        build(with_s3="--s3" in args)
+    if args[0] in ("import", "build"):
+        import_corpus(with_s3="--s3" in args)
         with sqlite3.connect(DB) as con:
             counts = {t: con.execute(f"select count(*) from {t}").fetchone()[0]
-                      for t in ("fixtures", "entries", "windows", "media", "pairs")}
+                      for t in ("fixtures", "entries", "windows", "media", "pairs",
+                                "videos", "video_windows", "frames", "frame_windows",
+                                "labels", "readings", "corrections")}
         print(f"{DB.relative_to(ROOT)}: " + ", ".join(f"{v} {k}" for k, v in counts.items()))
         return 0
+    if args[0] == "dump":
+        for path in dump():
+            print(path.relative_to(ROOT))
+        return 0
+    if args[0] == "check":
+        stale = check()
+        for line in stale:
+            print(line)
+        return 1 if stale else 0
     with sqlite3.connect(DB) as con:
         for row in con.execute(" ".join(args[1:])):
             print("\t".join("" if v is None else str(v) for v in row))

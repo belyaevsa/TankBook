@@ -24,6 +24,7 @@ import json
 import os
 import subprocess
 import sys
+import threading
 import traceback
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -31,6 +32,9 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
+import corpus_db  # noqa: E402
+
 FIX = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "pump"
 WINDOWS = FIX / "windows.json"
 EXPECTED = FIX / "expected.csv"
@@ -38,62 +42,22 @@ CHECK = ROOT / "scripts" / "pump-windows-check.py"
 HERE = Path(__file__).resolve().parent
 CACHE = Path.home() / "Library" / "Caches" / "tankbook-pump-annotate"
 IMAGE_EDGE = 2000
-ENTRY_KEYS = ("windows", "rotationCW", "notOnDisplay", "csvDisagrees", "reviewed", "tracking", "liveAnchors")
 FRAMES = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "pump-live" / "frames"
 DB = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "corpus.sqlite"
 LIVE = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "pump-live"
 VIDEOS = LIVE / "videos.json"
 VIDEO_LABELS = LIVE / "video-labels.json"
-WINDOW_KEYS = ("field", "text", "quad", "legibility")
 READ_TOOL = ROOT / "ios" / ".build" / "debug" / "pump-read"
 CLASSIFIER = ROOT / "ios" / "App" / "Resources" / "PumpSegments.mlpackage"
 DETECTOR = ROOT / "ios" / "App" / "Resources" / "DigitRows.mlmodel"
 
+# Writes go database-first: one transaction and one dump per request, and no
+# two requests interleave between the two.
+WRITE_LOCK = threading.Lock()
+
 
 def load_windows() -> dict:
     return json.loads(WINDOWS.read_text())
-
-
-CORRECTIONS = LIVE / "corrections.jsonl"
-
-
-def build_commit() -> str:
-    try:
-        return subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip() or "unknown"
-    except Exception:  # noqa: BLE001
-        return "unknown"
-
-
-def quad_iou(a: list, b: list) -> float:
-    """Axis-aligned IoU of two normalised quads - enough to rank how far a
-    tracked quad sat from the hand-placed one."""
-    def box(q):
-        xs = [p[0] for p in q]; ys = [p[1] for p in q]
-        return min(xs), min(ys), max(xs), max(ys)
-    ax0, ay0, ax1, ay1 = box(a); bx0, by0, bx1, by1 = box(b)
-    iw = max(0.0, min(ax1, bx1) - max(ax0, bx0)); ih = max(0.0, min(ay1, by1) - max(ay0, by0))
-    inter = iw * ih; union = (ax1 - ax0) * (ay1 - ay0) + (bx1 - bx0) * (by1 - by0) - inter
-    return round(inter / union, 3) if union > 0 else 0.0
-
-
-def record_corrections(rows: list[dict]) -> None:
-    """The corrections ledger: one line per field an operator changed against a
-    tool's proposal (the tracker's quad, the reader's text), with the build the
-    proposal came from. Appended, never rewritten; `scripts/corrections-report.py`
-    reads it. Nothing is written for a field the operator left as proposed."""
-    if not rows:
-        return
-    import datetime  # noqa: PLC0415
-    stamp = datetime.datetime.now().replace(microsecond=0).isoformat()
-    build = build_commit()
-    with CORRECTIONS.open("a") as f:
-        for row in rows:
-            f.write(json.dumps({"at": stamp, "build": build, **row}, ensure_ascii=False) + "\n")
-
-
-def save_windows(data: dict) -> None:
-    # Byte-compatible with the committed file: indent 1, no trailing newline.
-    WINDOWS.write_text(json.dumps(data, indent=1))
 
 
 def load_rows() -> dict[str, dict]:
@@ -134,44 +98,6 @@ def oriented_jpeg(name: str) -> bytes:
         subprocess.run(["sips", "-s", "format", "jpeg", "-s", "formatOptions", "88", *cap,
                         str(src), "--out", str(cached)], check=True, capture_output=True)
     return cached.read_bytes()
-
-
-def rebuild_db() -> None:
-    """Startup and every save refresh `corpus.sqlite` (scripts/corpus_db.py)
-    so the committed database never lags the JSON it is derived from."""
-    sys.path.insert(0, str(ROOT / "scripts"))
-    try:
-        import corpus_db  # noqa: PLC0415
-        corpus_db.build()
-    except Exception:  # noqa: BLE001 - the JSON is saved; the DB is derived
-        traceback.print_exc()
-
-
-def clean_entry(entry: dict) -> dict:
-    """Only the documented keys, in the file's order, empties dropped."""
-    out: dict = {"windows": []}
-    for w in entry.get("windows", []):
-        quad = [[round(float(x), 4), round(float(y), 4)] for x, y in w["quad"]]
-        cw = {"field": w["field"], "text": w.get("text", ""), "quad": quad}
-        if w.get("legibility"):
-            cw["legibility"] = w["legibility"]
-        out["windows"].append(cw)
-    if entry.get("rotationCW"):
-        out["rotationCW"] = int(entry["rotationCW"])
-    if entry.get("notOnDisplay"):
-        out["notOnDisplay"] = list(entry["notOnDisplay"])
-    if entry.get("csvDisagrees"):
-        out["csvDisagrees"] = dict(entry["csvDisagrees"])
-    if entry.get("reviewed"):
-        out["reviewed"] = True
-    if entry.get("tracking") in ("ok", "bad"):
-        out["tracking"] = entry["tracking"]
-    if entry.get("liveAnchors"):
-        # A Live record's hand-placed frames (`pump_reader.track` anchors), per
-        # record: frame name plus its quads.
-        out["liveAnchors"] = [{"record": a["record"], "frame": a["frame"], "windows": a["windows"]}
-                              for a in entry["liveAnchors"]]
-    return out
 
 
 live_stems: dict[str, list[str]] = {}
@@ -272,41 +198,6 @@ def records_for(still: str) -> list[dict]:
     return out
 
 
-def pin_frame(stem: str, frame: str, windows: list[dict], texts: dict[str, str] | None = None) -> bool:
-    """Writes one frame's hand-placed quads straight into the record's tracked
-    file as a verified anchor - no retrack. Every other frame keeps what the
-    tracker gave it; a later retrack (the owner's call) registers them to
-    this frame as well."""
-    tracked = FRAMES / stem / "windows.json"
-    if not tracked.exists():
-        return False
-    t = json.loads(tracked.read_text())
-    old = {w["field"]: w for w in t["frames"].get(frame, {}).get("windows", [])}
-    was_anchor = bool(t["frames"].get(frame, {}).get("verified"))
-    corrections = []
-    for w in windows:
-        before = old.get(w["field"])
-        if before and before.get("quad") != w["quad"]:
-            corrections.append({"kind": "quad", "record": stem, "frame": frame, "field": w["field"],
-                                "proposedBy": "operator" if was_anchor else "tracker",
-                                "proposed": before["quad"], "final": w["quad"], "iou": quad_iou(before["quad"], w["quad"]),
-                                "inliers": t["frames"].get(frame, {}).get("inliers")})
-    record_corrections(corrections)
-    out = []
-    for w in windows:
-        cw = dict(old.get(w["field"], {"field": w["field"], "text": ""}))
-        cw["quad"] = w["quad"]
-        if texts and w["field"] in texts:
-            cw["text"] = texts[w["field"]]
-        out.append(cw)
-    t["frames"][frame] = {**t["frames"].get(frame, {}), "windows": out, "inliers": -1,
-                          "anchor": int(frame[:-4]), "verified": True}
-    anchors = [a for a in t.get("_anchors", []) if a != frame] + [frame]
-    t["_anchors"] = sorted(anchors, key=lambda n: int(n[:-4]))
-    tracked.write_text(json.dumps(t, indent=1))
-    return True
-
-
 # One retrack per video at a time, in the background; the page polls /api/retrack/<name>.
 # With `read`, the tracked frames are then read again by the app's reader
 # (PumpVideoReadTests regenerates the `arithmetic` labels); frames the owner
@@ -333,6 +224,13 @@ def start_retrack(name: str, read: bool = False) -> None:
                                     cwd=ml, env={**os.environ, "PYTHONPATH": "src"}, capture_output=True, text=True)
             lines = (result.stdout + result.stderr).strip().splitlines()
             retracks[name]["result"] = lines[-1] if lines else f"exit {result.returncode}"
+            # PU.36b: track.py still writes frames/<name>/windows.json; the one
+            # file-to-database direction left, so the store the next dump reads
+            # from is the file the tracker just wrote.
+            try:
+                corpus_db.import_frames(name)
+            except Exception:  # noqa: BLE001
+                traceback.print_exc()
             if retracks[name].get("read"):
                 retracks[name]["read"] = False
                 retracks[name]["phase"] = "read"
@@ -450,33 +348,29 @@ class Handler(SimpleHTTPRequestHandler):
                 # the record's own tracked file is derived from it.
                 tracked = FRAMES / stem / "windows.json"
                 still = json.loads(tracked.read_text()).get("_still") if tracked.exists() else None
-                ann = load_windows()
-                if not still or still not in ann:
+                if not still:
                     return self.send_error(HTTPStatus.NOT_FOUND)
-                anchors = [a for a in ann[still].get("liveAnchors", []) if not (a["record"] == stem and a["frame"] == frame)]
-                anchors.append({"record": stem, "frame": frame, "windows": windows})
-                ann[still]["liveAnchors"] = sorted(anchors, key=lambda a: (a["record"], int(a["frame"][:-4])))
-                ann[still] = clean_entry(ann[still])
-                save_windows(ann)
-                pin_frame(stem, frame, windows)
+                with WRITE_LOCK:
+                    with corpus_db.transaction() as con:
+                        anchors = corpus_db.save_live_anchor(still, stem, frame, windows, con=con)
+                        if not anchors:
+                            return self.send_error(HTTPStatus.NOT_FOUND)
+                        corpus_db.pin_frame(stem, frame, windows, con=con)
+                    corpus_db.dump([WINDOWS, tracked, corpus_db.CORRECTIONS_FILE])
                 if body.get("retrack"):
                     start_retrack(stem)
                 return self.send_json({"ok": True, "anchors": [a["frame"] for a in anchors if a["record"] == stem],
-                                       "liveAnchors": ann[still]["liveAnchors"], "retrack": bool(body.get("retrack"))})
+                                       "liveAnchors": anchors, "retrack": bool(body.get("retrack"))})
             if stem not in videos:
                 return self.send_error(HTTPStatus.NOT_FOUND)
-            anchors = [a for a in videos[stem].get("anchors", []) if a["frame"] != frame]
-            if frame == videos[stem]["reference"]:
-                videos[stem]["windows"] = windows
-            else:
-                anchors.append({"frame": frame, "windows": windows})
-            videos[stem]["anchors"] = sorted(anchors, key=lambda a: int(a["frame"][:-4]))
-            VIDEOS.write_text(json.dumps(videos, indent=1))
-            pin_frame(stem, frame, windows, {"unitPrice": videos[stem].get("unitPrice", "")})
+            with WRITE_LOCK:
+                with corpus_db.transaction() as con:
+                    anchors = corpus_db.save_video_anchor(stem, frame, windows, con=con)
+                    corpus_db.pin_frame(stem, frame, windows, {"unitPrice": videos[stem].get("unitPrice", "")}, con=con)
+                corpus_db.dump([VIDEOS, FRAMES / stem / "windows.json", corpus_db.CORRECTIONS_FILE])
             if body.get("retrack"):
                 start_retrack(stem)
-            return self.send_json({"ok": True, "anchors": [a["frame"] for a in videos[stem]["anchors"]],
-                                   "retrack": bool(body.get("retrack"))})
+            return self.send_json({"ok": True, "anchors": anchors, "retrack": bool(body.get("retrack"))})
         if path.startswith("/api/video-label/"):
             # /api/video-label/<stem>/<frame>: the owner's texts for one frame.
             rel = unquote(path[len("/api/video-label/"):])
@@ -498,7 +392,6 @@ class Handler(SimpleHTTPRequestHandler):
                 if before is not None and before != "" and before != final:
                     corrections.append({"kind": "text", "video": stem, "frame": frame, "field": field,
                                         "proposedBy": by, "proposed": before, "final": final})
-            record_corrections(corrections)
             # `frames` lists every frame of the run the label applies to.
             # The frame itself always takes the label; the rest of its run only
             # where no human label exists yet - a glitched frame inside a run
@@ -514,7 +407,11 @@ class Handler(SimpleHTTPRequestHandler):
                 else:
                     per.pop(target, None)
                 written.append(target)
-            VIDEO_LABELS.write_text(json.dumps(labels, indent=1, sort_keys=True))
+            with WRITE_LOCK:
+                with corpus_db.transaction() as con:
+                    corpus_db.add_corrections(corrections, con=con)
+                    corpus_db.save_labels(stem, per, con=con)
+                corpus_db.dump([VIDEO_LABELS, corpus_db.CORRECTIONS_FILE])
             return self.send_json({"ok": True, "written": written})
         if not path.startswith("/api/entry/"):
             return self.send_error(HTTPStatus.NOT_FOUND)
@@ -528,17 +425,18 @@ class Handler(SimpleHTTPRequestHandler):
             new_windows = [{"field": w["field"], "quad": [[round(float(x), 4), round(float(y), 4)] for x, y in w["quad"]]}
                            for w in entry.get("windows", []) if w["field"] in ("total", "liters", "unitPrice")]
             quads_changed = new_windows != videos[name].get("windows")
-            videos[name]["windows"] = new_windows
-            videos[name]["reviewed"] = bool(entry.get("reviewed"))
-            VIDEOS.write_text(json.dumps(videos, indent=1))
+            reviewed = bool(entry.get("reviewed"))
+            with WRITE_LOCK:
+                with corpus_db.transaction() as con:
+                    corpus_db.save_video(name, new_windows, reviewed, con=con)
+                corpus_db.dump([VIDEOS])
             if quads_changed:
                 start_retrack(name)
             return self.send_json({"ok": True,
-                                   "entry": {"windows": videos[name]["windows"], "reference": videos[name]["reference"], "reviewed": videos[name]["reviewed"]},
+                                   "entry": {"windows": new_windows, "reference": videos[name]["reference"], "reviewed": reviewed},
                                    "retrack": "started" if quads_changed else "unchanged"})
         ann = load_windows()
         prefilled = entry.pop("prefilled", None) or {}
-        previous = {w["field"]: w.get("text", "") for w in ann.get(name, {}).get("windows", [])}
         corrections = []
         for w in entry.get("windows", []):
             field, final = w["field"], w.get("text", "")
@@ -547,28 +445,27 @@ class Handler(SimpleHTTPRequestHandler):
                                     "proposed": prefilled[field], "final": final})
         if entry.get("tracking") and entry.get("tracking") != ann.get(name, {}).get("tracking"):
             corrections.append({"kind": "tracking", "still": name, "final": entry["tracking"]})
-        record_corrections(corrections)
-        # The anchors are owned by the anchor route (a drag on a Live frame); a
-        # still save carries whatever the file holds so a page loaded before the
-        # drag cannot drop them.
-        if "liveAnchors" not in entry and ann.get(name, {}).get("liveAnchors"):
-            entry["liveAnchors"] = ann[name]["liveAnchors"]
         before = ann.get(name, {})
-        ann[name] = clean_entry(entry)
-        save_windows(ann)
-        rebuild_db()
+        # The anchors are owned by the anchor route (a drag on a Live frame); a
+        # still save carries whatever the database holds so a page loaded before
+        # the drag cannot drop them (save_entry does this when the body omits them).
+        with WRITE_LOCK:
+            with corpus_db.transaction() as con:
+                corpus_db.add_corrections(corrections, con=con)
+                saved = corpus_db.save_entry(name, entry, con=con)
+            corpus_db.dump([WINDOWS, corpus_db.CORRECTIONS_FILE])
         # A still's windows are what the tracker carries into its Live record:
         # a record with no tracked frames yet, or one whose still's quads just
         # changed, is (re)tracked in the background so the frames view opens
         # without a shell step.
         tracked = []
-        if ann[name]["windows"]:
-            quads_changed = [w["quad"] for w in before.get("windows", [])] != [w["quad"] for w in ann[name]["windows"]]
+        if saved["windows"]:
+            quads_changed = [w["quad"] for w in before.get("windows", [])] != [w["quad"] for w in saved["windows"]]
             for rec in records_for(name):
                 if (FRAMES / rec["movie"]).exists() and (quads_changed or not rec["tracked"]):
                     start_retrack(rec["movie"])
                     tracked.append(rec["movie"])
-        return self.send_json({"ok": True, "entry": ann[name], "tracking": tracked})
+        return self.send_json({"ok": True, "entry": saved, "tracking": tracked})
 
     def do_POST(self):
         path = urlparse(self.path).path
@@ -626,8 +523,8 @@ class Handler(SimpleHTTPRequestHandler):
 def main() -> None:
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    rebuild_db()
-    print(f"pump annotator: http://127.0.0.1:{port}/  ({WINDOWS.relative_to(ROOT)}; corpus.sqlite rebuilt)")
+    corpus_db.ensure_schema()
+    print(f"pump annotator: http://127.0.0.1:{port}/  ({WINDOWS.relative_to(ROOT)}; writes go through corpus.sqlite)")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

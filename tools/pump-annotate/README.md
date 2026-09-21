@@ -5,6 +5,16 @@ quads that tell the locator ratchets where the number windows are and what
 each display shows. It is the manual step of `.claude/skills/corpus-intake`
 (step 3), which also carries the annotation conventions.
 
+**Writes go through the database** (product owner, 2026-09-21): every Save,
+anchor, label and correction is a row in `fixtures/corpus.sqlite`
+(`scripts/corpus_db.py`), and the JSON is dumped from it in the same byte
+format the old writers used, so the committed files stay readable and the
+ratchets keep reading them unchanged. `corpus_db.py import` is the one
+direction back from the files to the database; it rebuilds the database when it
+is missing or older. `pump_reader.track` still writes its own
+`frames/<stem>/windows.json`, which the server imports after a retrack (PU.36b
+moves that writer onto the database).
+
     python3 tools/pump-annotate/server.py
     # open http://127.0.0.1:8765/
 
@@ -99,9 +109,11 @@ the ml venv runs it); the converted images are cached under
   (`swift build --product pump-read` in `ios/`, built on first use) with the
   models from `ios/App/Resources`; the per-cell digits and margins print under
   the buttons. Nothing is written until you save.
-- `Save` (`⌘S`) writes the entry back in the file's own formatting and rebuilds
-  `fixtures/corpus.sqlite` (also rebuilt at startup) (`scripts/corpus_db.py`), which is committed with it; `Check`
-  runs `scripts/pump-windows-check.py --check` and shows the verdict.
+- `Save` (`⌘S`) writes the entry as rows in `fixtures/corpus.sqlite`
+  (`scripts/corpus_db.py`) and dumps the JSON back from it in the file's own
+  formatting; the database is committed with the files. `Check` runs
+  `scripts/pump-windows-check.py --check` and shows the verdict, which now also
+  fails when a file no longer matches the database.
 
 - **The corrections ledger** - `pump-live/corrections.jsonl`, appended by every save: one line
   per field the operator changed against a tool's proposal (the tracker's quad with its IoU

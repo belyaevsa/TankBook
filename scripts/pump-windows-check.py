@@ -28,6 +28,7 @@ from decimal import Decimal
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
 FIX = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "pump"
 FIELDS = ("total", "liters", "unitPrice")
 
@@ -112,6 +113,14 @@ def main() -> int:
             tol = Decimal("0.05") * max(1, len(t.split(".")[0]) // 3)
             if abs(prod - Decimal(t)) > max(tol, Decimal(t) * Decimal("0.005")):
                 problems.append(f"{name}: {l} x {p} = {prod} vs total {t}")
+    if check:
+        # SQLite-first (product owner, 2026-09-21): the JSON is a dump of
+        # corpus.sqlite, so a file that no longer matches the database is stale.
+        import corpus_db  # noqa: PLC0415
+        try:
+            problems.extend(corpus_db.check())
+        except Exception as exc:  # noqa: BLE001
+            problems.append(f"corpus.sqlite: cannot check the dump ({exc}); run scripts/corpus_db.py import")
     print(f"{sum(1 for k in ann if not k.startswith(chr(95)))} fixtures, {windows} windows, {len(problems)} problems")
     for p in problems:
         print("  " + p)
