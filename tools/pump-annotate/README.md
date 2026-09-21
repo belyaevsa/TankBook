@@ -140,6 +140,10 @@ the ml venv runs it); the converted images are cached under
 - **Zoom** (`+` / `-` / the slider) keeps the selected window - else the
   centroid of all windows - at the same spot in the viewport, so zooming in
   lands on the digits instead of the image's top-left corner; `0` refits.
+- **⇤ boxes from previous** (`C`, on a frame): copies the previous frame's
+  quads onto this one - for a frame the tracker drifted on when the one before
+  was right - and counts as a quad edit, so `⇧⏎` (or a drag) pins it as an
+  anchor and the retrack registers the neighbours to it.
 - **Anchors**: on any video frame the quads can be dragged (corners and body);
   the frame is pinned as an anchor by itself (`videos.json` and the tracked
   file) and nothing else moves. **↻ re-track all** / **↻ from here** (toolbar) re-register every other frame,
