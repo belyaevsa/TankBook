@@ -32,10 +32,13 @@ the ml venv runs it); the converted images are cached under
   `Esc` back), and a frame strip (grey = tracked, white outline = anchor).
   Mark **tracking ok / bad** on the still; `bad` makes the glyph extractor
   skip that record; `⇧⏎` in the frames view marks tracking ok and saves - that
-  is a Live record's "processed". A wrong quad on a frame is dragged into
-  place like a video's: the frame becomes an **anchor** (`liveAnchors` on the
-  still's entry in `windows.json`) and the record retracks in the background,
-  every other frame registering to the still and its nearest anchors.
+  is a Live record's "processed" (also the **✓ tracking ok** button). A wrong
+  quad on a frame is dragged into place like a video's and saved with **Save
+  frame** (`⇧⏎` while the frame is edited, or just wait - a drag saves itself):
+  the frame becomes an **anchor** (`liveAnchors` on the still's entry in
+  `windows.json`, kept by every later save of the still) and the record
+  retracks in the background, every other frame registering to the still and
+  its nearest anchors; an anchored frame is never moved by a retrack.
 - **Videos** (`🎞`, filter *videos*): the running-display clips from
   `pump-live/videos.json`. Their "still" is the hand-annotated reference frame;
   *View frames* steps the tracked frames, and a **frame label** row shows the

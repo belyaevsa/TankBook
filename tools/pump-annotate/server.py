@@ -387,7 +387,8 @@ class Handler(SimpleHTTPRequestHandler):
                 ann[still] = clean_entry(ann[still])
                 save_windows(ann)
                 start_retrack(stem)
-                return self.send_json({"ok": True, "anchors": [a["frame"] for a in anchors if a["record"] == stem]})
+                return self.send_json({"ok": True, "anchors": [a["frame"] for a in anchors if a["record"] == stem],
+                                       "liveAnchors": ann[still]["liveAnchors"]})
             if stem not in videos:
                 return self.send_error(HTTPStatus.NOT_FOUND)
             anchors = [a for a in videos[stem].get("anchors", []) if a["frame"] != frame]
@@ -445,6 +446,11 @@ class Handler(SimpleHTTPRequestHandler):
                                    "entry": {"windows": videos[name]["windows"], "reference": videos[name]["reference"], "reviewed": videos[name]["reviewed"]},
                                    "retrack": "started" if quads_changed else "unchanged"})
         ann = load_windows()
+        # The anchors are owned by the anchor route (a drag on a Live frame); a
+        # still save carries whatever the file holds so a page loaded before the
+        # drag cannot drop them.
+        if "liveAnchors" not in entry and ann.get(name, {}).get("liveAnchors"):
+            entry["liveAnchors"] = ann[name]["liveAnchors"]
         ann[name] = clean_entry(entry)
         save_windows(ann)
         rebuild_db()
