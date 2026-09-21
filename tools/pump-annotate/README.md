@@ -103,5 +103,14 @@ the ml venv runs it); the converted images are cached under
   `fixtures/corpus.sqlite` (also rebuilt at startup) (`scripts/corpus_db.py`), which is committed with it; `Check`
   runs `scripts/pump-windows-check.py --check` and shows the verdict.
 
+- **The corrections ledger** - `pump-live/corrections.jsonl`, appended by every save: one line
+  per field the operator changed against a tool's proposal (the tracker's quad with its IoU
+  against the hand-placed one, the reader's pre-fill or arithmetic label against the typed
+  text, a tracking verdict), stamped with the build the proposal came from. Nothing is written
+  for a field left as proposed. `scripts/corrections-report.py` turns it into the tracker's IoU
+  histogram per record and make, the reader's pre-fill accuracy per build split into slicer
+  misses (mark or leading zero only) and classifier misses, and the list of hard frames the
+  next training export should weight.
+
 Loopback only. Nothing is committed - stage the JSON by path when the batch
 is done.

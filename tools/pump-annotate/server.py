@@ -54,6 +54,43 @@ def load_windows() -> dict:
     return json.loads(WINDOWS.read_text())
 
 
+CORRECTIONS = LIVE / "corrections.jsonl"
+
+
+def build_commit() -> str:
+    try:
+        return subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip() or "unknown"
+    except Exception:  # noqa: BLE001
+        return "unknown"
+
+
+def quad_iou(a: list, b: list) -> float:
+    """Axis-aligned IoU of two normalised quads - enough to rank how far a
+    tracked quad sat from the hand-placed one."""
+    def box(q):
+        xs = [p[0] for p in q]; ys = [p[1] for p in q]
+        return min(xs), min(ys), max(xs), max(ys)
+    ax0, ay0, ax1, ay1 = box(a); bx0, by0, bx1, by1 = box(b)
+    iw = max(0.0, min(ax1, bx1) - max(ax0, bx0)); ih = max(0.0, min(ay1, by1) - max(ay0, by0))
+    inter = iw * ih; union = (ax1 - ax0) * (ay1 - ay0) + (bx1 - bx0) * (by1 - by0) - inter
+    return round(inter / union, 3) if union > 0 else 0.0
+
+
+def record_corrections(rows: list[dict]) -> None:
+    """The corrections ledger: one line per field an operator changed against a
+    tool's proposal (the tracker's quad, the reader's text), with the build the
+    proposal came from. Appended, never rewritten; `scripts/corrections-report.py`
+    reads it. Nothing is written for a field the operator left as proposed."""
+    if not rows:
+        return
+    import datetime  # noqa: PLC0415
+    stamp = datetime.datetime.now().replace(microsecond=0).isoformat()
+    build = build_commit()
+    with CORRECTIONS.open("a") as f:
+        for row in rows:
+            f.write(json.dumps({"at": stamp, "build": build, **row}, ensure_ascii=False) + "\n")
+
+
 def save_windows(data: dict) -> None:
     # Byte-compatible with the committed file: indent 1, no trailing newline.
     WINDOWS.write_text(json.dumps(data, indent=1))
@@ -245,6 +282,16 @@ def pin_frame(stem: str, frame: str, windows: list[dict], texts: dict[str, str] 
         return False
     t = json.loads(tracked.read_text())
     old = {w["field"]: w for w in t["frames"].get(frame, {}).get("windows", [])}
+    was_anchor = bool(t["frames"].get(frame, {}).get("verified"))
+    corrections = []
+    for w in windows:
+        before = old.get(w["field"])
+        if before and before.get("quad") != w["quad"]:
+            corrections.append({"kind": "quad", "record": stem, "frame": frame, "field": w["field"],
+                                "proposedBy": "operator" if was_anchor else "tracker",
+                                "proposed": before["quad"], "final": w["quad"], "iou": quad_iou(before["quad"], w["quad"]),
+                                "inliers": t["frames"].get(frame, {}).get("inliers")})
+    record_corrections(corrections)
     out = []
     for w in windows:
         cw = dict(old.get(w["field"], {"field": w["field"], "text": ""}))
@@ -438,6 +485,20 @@ class Handler(SimpleHTTPRequestHandler):
             body = json.loads(self.rfile.read(length))
             labels = video_labels()
             entry = {k: body[k] for k in ("total", "liters", "unitPrice") if k in body}
+            readings_path = FRAMES / stem / "readings.json"
+            readings = json.loads(readings_path.read_text()) if readings_path.exists() else {}
+            proposed = dict(readings.get(frame, {}))
+            prior = labels.get(stem, {}).get(frame, {})
+            corrections = []
+            for field, final in entry.items():
+                if field == "unitPrice":
+                    continue
+                before, by = (prior.get(field), "operator") if prior.get("source") == "owner" else (
+                    prior.get(field), "reader") if prior.get("source") == "arithmetic" else (proposed.get(field), "reader")
+                if before is not None and before != "" and before != final:
+                    corrections.append({"kind": "text", "video": stem, "frame": frame, "field": field,
+                                        "proposedBy": by, "proposed": before, "final": final})
+            record_corrections(corrections)
             # `frames` lists every frame of the run the label applies to.
             # The frame itself always takes the label; the rest of its run only
             # where no human label exists yet - a glitched frame inside a run
@@ -476,6 +537,17 @@ class Handler(SimpleHTTPRequestHandler):
                                    "entry": {"windows": videos[name]["windows"], "reference": videos[name]["reference"], "reviewed": videos[name]["reviewed"]},
                                    "retrack": "started" if quads_changed else "unchanged"})
         ann = load_windows()
+        prefilled = entry.pop("prefilled", None) or {}
+        previous = {w["field"]: w.get("text", "") for w in ann.get(name, {}).get("windows", [])}
+        corrections = []
+        for w in entry.get("windows", []):
+            field, final = w["field"], w.get("text", "")
+            if field in prefilled and prefilled[field] != final:
+                corrections.append({"kind": "text", "still": name, "field": field, "proposedBy": "reader",
+                                    "proposed": prefilled[field], "final": final})
+        if entry.get("tracking") and entry.get("tracking") != ann.get(name, {}).get("tracking"):
+            corrections.append({"kind": "tracking", "still": name, "final": entry["tracking"]})
+        record_corrections(corrections)
         # The anchors are owned by the anchor route (a drag on a Live frame); a
         # still save carries whatever the file holds so a page loaded before the
         # drag cannot drop them.

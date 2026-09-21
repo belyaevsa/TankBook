@@ -369,6 +369,7 @@ async function save() {
   if (isVideo) { dirty = false; const fx = fixtures.find(x => x.name === current); if (fx) fx.reviewed = !!entry.reviewed; renderList();
     if (r.retrack === 'started') { setMsg('reference saved, retracking in the background'); notify('busy', `Reference saved – tracking ${current} in progress…`); watchRetrack(current); } else setMsg('saved'); return; }
   entry = r.entry; entry.windows = entry.windows || []; dirty = false; setMsg('saved');
+  delete entry.prefilled;
   const fx = fixtures.find(x => x.name === current); if (fx) { fx.windows = entry.windows.length; fx.reviewed = !!entry.reviewed; fx.tracking = entry.tracking || null; }
   renderList(); renderWins(); draw();
   for (const stem of r.tracking || []) { notify('busy', `Saved – tracking ${stem} from the windows…`); watchRetrack(stem); }
@@ -689,7 +690,8 @@ async function runReader(live, onDone) {
     $('#vlSource').textContent = '(reader – confirm with ⇧⏎)';
   } else if (entry) {
     let touched = false;
-    for (const w of entry.windows) { const v = fill(w.field); if (v && !w.text) { w.text = v; touched = true; } }
+    entry.prefilled = entry.prefilled || {};
+    for (const w of entry.windows) { const v = fill(w.field); if (v && !w.text) { w.text = v; entry.prefilled[w.field] = v; touched = true; } }
     if (touched) { touch(); renderWins(); }
   }
   draw();
