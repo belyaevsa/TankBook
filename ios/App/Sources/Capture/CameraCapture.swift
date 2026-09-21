@@ -19,6 +19,13 @@ final class CameraController: NSObject {
     private let photoOutput = AVCapturePhotoOutput()
     private var didConfigure = false
     private var captureContinuation: CheckedContinuation<UIImage?, Never>?
+    /// The video device `start()` attached, retained so the DEBUG Capture Lab
+    /// can configure it per preset. Nil on the simulator.
+    private var device: AVCaptureDevice?
+    #if DEBUG
+    /// Retains the lab capture's delegate until its continuation resumes.
+    private var labDelegate: LabCaptureDelegate?
+    #endif
 
     /// True once a camera is attached and running (false on the simulator).
     private(set) var isReady = false
@@ -58,6 +65,7 @@ final class CameraController: NSObject {
         }
         #endif
         guard let device = AVCaptureDevice.default(for: .video) else { return }
+        self.device = device
         do {
             let input = try AVCaptureDeviceInput(device: device)
             guard session.canAddInput(input), session.canAddOutput(photoOutput) else { return }
@@ -155,6 +163,206 @@ extension CameraController: AVCapturePhotoCaptureDelegate {
 }
 
 #if DEBUG
+/// PU.39 - the Capture Lab's camera door. Everything here is DEBUG-only: the
+/// lab never ships, and the Release gate is the proof. The ordinary `capture()`
+/// above is untouched.
+extension CameraController {
+
+    /// One captured frame exactly as the camera delivered it: the JPEG bytes
+    /// (untouched, so the corpus intake can take them), the decoded image, the
+    /// capture metadata and the delivered pixel size.
+    struct CaptureLabFrame: @unchecked Sendable {
+        let data: Data
+        let image: UIImage
+        let metadata: [String: Any]
+        let pixelWidth: Int
+        let pixelHeight: Int
+    }
+
+    /// The live device's capabilities, read from AVFoundation. No device (the
+    /// simulator) reports none, so every preset records what it could not do.
+    var labCapabilities: CaptureLabCapabilities {
+        guard let device else { return .none }
+        var capabilities = CaptureLabCapabilities()
+        capabilities.focusPointOfInterest = device.isFocusPointOfInterestSupported
+        capabilities.exposurePointOfInterest = device.isExposurePointOfInterestSupported
+        capabilities.continuousAutoFocus = device.isFocusModeSupported(.continuousAutoFocus)
+        capabilities.continuousAutoExposure = device.isExposureModeSupported(.continuousAutoExposure)
+        capabilities.lockedFocus = device.isFocusModeSupported(.locked)
+        capabilities.lockedExposure = device.isExposureModeSupported(.locked)
+        // No `isExposureTargetBiasSupported` exists; a device whose bias range
+        // is a single point cannot take a bias, and the setter would throw.
+        capabilities.exposureBias = device.maxExposureTargetBias > device.minExposureTargetBias
+        capabilities.zoom = device.activeFormat.videoMaxZoomFactor > 1
+        if device.isVirtualDevice {
+            // A switch-over factor in the telephoto range is the honest 2×
+            // point on a wide+telephoto pair.
+            for number in device.virtualDeviceSwitchOverVideoZoomFactors where number.doubleValue >= 1.9 {
+                capabilities.telephotoSwitchOverZoom = CGFloat(number.doubleValue)
+                break
+            }
+        }
+        capabilities.flash = device.hasFlash
+        capabilities.highSessionPreset = session.canSetSessionPreset(.high)
+        return capabilities
+    }
+
+    /// Applies `plan` to the live session, device and output. Every preset
+    /// starts from the control: focus and exposure continuous, bias 0, zoom 1,
+    /// the `.photo` session - so one preset never rides the previous one's
+    /// settings. `locked` waits for convergence before it locks.
+    func applyLabPlan(_ plan: CaptureLabPlan) async {
+        applySessionPreset(plan)
+        photoOutput.maxPhotoQualityPrioritization = plan.qualityPrioritization ?? .balanced
+        guard let device else { return }
+        resetToControl(device)
+        applyFocusAndExposure(plan, to: device)
+        // The convergence wait happens OUTSIDE the configuration lock:
+        // `isAdjustingFocus` and `isAdjustingExposure` are read-only
+        // observations, and holding the lock while the lens hunts blocks the
+        // session.
+        if plan.waitForConvergence { await waitForConvergence(device) }
+        guard plan.focusMode == .locked || plan.exposureMode == .locked else { return }
+        try? device.lockForConfiguration()
+        if let mode = plan.focusMode, device.isFocusModeSupported(mode) { device.focusMode = mode }
+        if let mode = plan.exposureMode, device.isExposureModeSupported(mode) { device.exposureMode = mode }
+        device.unlockForConfiguration()
+    }
+
+    private func applySessionPreset(_ plan: CaptureLabPlan) {
+        if plan.sessionPresetHigh {
+            if session.canSetSessionPreset(.high) { session.sessionPreset = .high }
+        } else if session.canSetSessionPreset(.photo) {
+            session.sessionPreset = .photo
+        }
+    }
+
+    /// The control baseline every preset starts from: continuous focus and
+    /// exposure, no bias, no zoom.
+    private func resetToControl(_ device: AVCaptureDevice) {
+        try? device.lockForConfiguration()
+        if device.isFocusModeSupported(.continuousAutoFocus) {
+            device.focusMode = .continuousAutoFocus
+        }
+        if device.isExposureModeSupported(.continuousAutoExposure) {
+            device.exposureMode = .continuousAutoExposure
+        }
+        if device.maxExposureTargetBias > device.minExposureTargetBias {
+            device.setExposureTargetBias(0, completionHandler: nil)
+        }
+        if device.activeFormat.videoMaxZoomFactor > 1 { device.videoZoomFactor = 1 }
+        device.unlockForConfiguration()
+    }
+
+    /// Applies the plan's points, bias and zoom, each behind its capability.
+    private func applyFocusAndExposure(_ plan: CaptureLabPlan, to device: AVCaptureDevice) {
+        try? device.lockForConfiguration()
+        if let point = plan.focusPoint, device.isFocusPointOfInterestSupported {
+            device.focusPointOfInterest = point
+        }
+        if let point = plan.exposurePoint, device.isExposurePointOfInterestSupported {
+            device.exposurePointOfInterest = point
+        }
+        if let bias = plan.exposureBias, device.maxExposureTargetBias > device.minExposureTargetBias {
+            device.setExposureTargetBias(min(max(bias, device.minExposureTargetBias),
+                                            device.maxExposureTargetBias),
+                                         completionHandler: nil)
+        }
+        if let zoom = plan.zoomFactor, device.activeFormat.videoMaxZoomFactor >= zoom {
+            device.videoZoomFactor = min(max(zoom, device.minAvailableVideoZoomFactor),
+                                         device.maxAvailableVideoZoomFactor)
+        }
+        device.unlockForConfiguration()
+    }
+
+    /// Polls until focus and exposure stop adjusting, capped at 1.5 s so a lens
+    /// that never settles cannot stall the run.
+    private func waitForConvergence(_ device: AVCaptureDevice) async {
+        let deadline = Date().addingTimeInterval(1.5)
+        while Date() < deadline, device.isAdjustingFocus || device.isAdjustingExposure {
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+    }
+
+    /// Captures one frame under `plan`. On the simulator's `-captureCameraTestFrame`
+    /// double it hands back the fixture as JPEG bytes, so a UI test can drive a
+    /// whole run without a camera.
+    func captureLabFrame(_ plan: CaptureLabPlan) async -> CaptureLabFrame? {
+        guard isReady else { return nil }
+        if let testFrame {
+            let pixels = CGSize(width: testFrame.size.width * testFrame.scale,
+                                height: testFrame.size.height * testFrame.scale)
+            let data = testFrame.jpegData(compressionQuality: 1) ?? Data()
+            return CaptureLabFrame(data: data, image: testFrame, metadata: [:],
+                                   pixelWidth: Int(pixels.width), pixelHeight: Int(pixels.height))
+        }
+        guard captureContinuation == nil, labDelegate == nil else { return nil }
+        let settings = AVCapturePhotoSettings()
+        if let quality = plan.qualityPrioritization {
+            settings.photoQualityPrioritization = quality
+        }
+        if plan.flashOff, photoOutput.supportedFlashModes.contains(.off) {
+            settings.flashMode = .off
+        }
+        applyRotation()
+        let frame = await withCheckedContinuation { continuation in
+            let delegate = LabCaptureDelegate(continuation: continuation)
+            labDelegate = delegate
+            photoOutput.capturePhoto(with: settings, delegate: delegate)
+        }
+        labDelegate = nil
+        return frame
+    }
+}
+
+/// The lab capture's delegate: builds the delivered bytes, image, metadata and
+/// pixel size and resumes the continuation once. Separate from
+/// `CameraController`'s own delegate so the ordinary `capture()` path is
+/// byte-for-byte unchanged.
+private final class LabCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate {
+    private let continuation: CheckedContinuation<CameraController.CaptureLabFrame?, Never>
+    private let lock = NSLock()
+    private var finished = false
+
+    init(continuation: CheckedContinuation<CameraController.CaptureLabFrame?, Never>) {
+        self.continuation = continuation
+    }
+
+    func photoOutput(_ output: AVCapturePhotoOutput,
+                     didFinishProcessingPhoto photo: AVCapturePhoto,
+                     error: Error?) {
+        let data = error == nil ? photo.fileDataRepresentation() : nil
+        let image = data.flatMap { UIImage(data: $0) }
+            ?? photo.cgImageRepresentation().map { UIImage(cgImage: $0) }
+        let dimensions = photo.resolvedSettings.photoDimensions
+        let frame: CameraController.CaptureLabFrame?
+        if let data, let image {
+            frame = CameraController.CaptureLabFrame(data: data, image: image, metadata: photo.metadata,
+                                                     pixelWidth: Int(dimensions.width),
+                                                     pixelHeight: Int(dimensions.height))
+        } else {
+            frame = nil
+        }
+        finish(frame)
+    }
+
+    func photoOutput(_ output: AVCapturePhotoOutput,
+                     didFinishCaptureFor resolvedSettings: AVCaptureResolvedPhotoSettings,
+                     error: Error?) {
+        // A capture that never delivered a photo (an error before processing)
+        // must still resume, or the run would hang.
+        if error != nil { finish(nil) }
+    }
+
+    private func finish(_ frame: CameraController.CaptureLabFrame?) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !finished else { return }
+        finished = true
+        continuation.resume(returning: frame)
+    }
+}
+
 extension Array where Element == String {
     /// The `-captureCameraTestFrame <path>` override, if present. It makes
     /// `CameraController.start()` succeed with a simulated camera and

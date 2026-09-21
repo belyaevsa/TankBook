@@ -14,6 +14,7 @@ struct AboutView: View {
     @State private var feedbackModel: FeedbackModel?
     @State private var diagnosticsModel: DiagnosticsModel?
     @State private var showsDiagnosticsPreview = false
+    @State private var showsCaptureLab = false
 
     var body: some View {
         ScrollView {
@@ -30,6 +31,9 @@ struct AboutView: View {
                 if let feedbackModel {
                     FeedbackComposerView(model: feedbackModel)
                 }
+                #if DEBUG
+                debugSection
+                #endif
                 footer
             }
             .padding(.horizontal, Theme.Spacing.screenMargin)
@@ -41,6 +45,11 @@ struct AboutView: View {
             if let diagnosticsModel {
                 DiagnosticsPreviewView(model: diagnosticsModel)
             }
+        }
+        .sheet(isPresented: $showsCaptureLab) {
+            #if DEBUG
+            CaptureLabView()
+            #endif
         }
         .task {
             if feedbackModel == nil {
@@ -60,8 +69,50 @@ struct AboutView: View {
                 diagnosticsModel = DiagnosticsService.makeModel()
             }
             presentDiagnosticsPreviewIfRequested()
+            #if DEBUG
+            presentCaptureLabIfRequested()
+            #endif
         }
     }
+
+    /// DEBUG-only section: the doors that exist only in a development build.
+    #if DEBUG
+    private var debugSection: some View {
+        VStack(spacing: 8) {
+            SectionEyebrow("Debug")
+            Button {
+                showsCaptureLab = true
+            } label: {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text("Capture lab")
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.Palette.ink)
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
+                .formCard()
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("captureLabRow")
+        }
+    }
+
+    /// DEBUG/screenshot only: `-presentCaptureLab` opens the lab a beat after
+    /// About appears, so the lab can be screenshotted without a UI test driving
+    /// a tap (`simctl` cannot tap). Production never passes the argument.
+    private func presentCaptureLabIfRequested() {
+        guard ProcessInfo.processInfo.arguments.contains("-presentCaptureLab") else { return }
+        Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            showsCaptureLab = true
+        }
+    }
+    #endif
 
     /// The artboard's identity block: the 58 pt app mark, the name, and the
     /// version line read from the bundle (never hardcoded).

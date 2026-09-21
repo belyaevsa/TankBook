@@ -1485,6 +1485,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "PU.39-capture-lab": {
+      "commit": "e1aa90c6",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PU.39-capture-lab-ru": {
+      "commit": "e1aa90c6",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "RV.10-date-picker-open": {
       "commit": "3611237",
       "device": "iPhone 17",

@@ -1706,6 +1706,18 @@ capture RV.275-garage-photo-ru                            ru -seedHomeCarSwitche
 capture RV.275-switcher-photo                             en -seedHomeCarSwitcherPhoto -presentScreen carSwitcher
 capture RV.275-switcher-photo-ru                          ru -seedHomeCarSwitcherPhoto -presentScreen carSwitcher
 
+# PU.39: the DEBUG Capture Lab shooting every camera preset on one scene and
+# rendering the results table. The simulator has no camera, so the run reads a
+# corpus pump fixture as its frame (`-captureCameraTestFrame`); `-presentCaptureLab`
+# opens the lab a beat after About (`simctl` cannot tap) and `-captureLabAutoRun`
+# runs the presets so the table is on screen. RU is where the column headers run
+# longest and must not truncate. A longer sleep: seven real pipeline runs.
+LAB_FIXTURE="${PWD}/Spike/ReceiptSpike/fixtures/pump/pump-007-lukoil-spb-comma-decimals-ru.png"
+CAPTURE_SLEEP=90
+capture PU.39-capture-lab    en -presentScreen about -presentCaptureLab -captureCameraTestFrame "${LAB_FIXTURE}" -captureLabAutoRun
+capture PU.39-capture-lab-ru ru -presentScreen about -presentCaptureLab -captureCameraTestFrame "${LAB_FIXTURE}" -captureLabAutoRun
+CAPTURE_SLEEP=6
+
 # Merge this run's frames into the manifest. `frames` is the script's record;
 # `legacy` (frames no line can reproduce) is hand-maintained and preserved.
 if [ "${#CAPTURED[@]}" -gt 0 ]; then

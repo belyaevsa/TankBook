@@ -129,6 +129,8 @@ enum PostSweepCorpusAdditions {
             "receipt-083-circlek-peetri-pump1-d-b0-miles-4325l-2099-ee.jpg",
             "receipt-084-circlek-peetri-pump3-d-b0-miles-2143l-2099-pair-ee.jpg",
             "receipt-085-circlek-peetri-pump5-98miles-1790l-1959-discount-pair-ee.jpg",
+            "receipt-086-circlek-peetri-night-pump4-95eo-miles-3497l-1999-pair-ee.jpg",
+            "receipt-087-circlek-peetri-night-pump3-98eo-miles-800l-2059-pair-ee.jpg",
         ],
         "pump": [
             // 2026-09-09: the owner's own fills, three of them the matched
@@ -469,6 +471,15 @@ enum PostSweepCorpusAdditions {
             "pump-271-gilbarco-circlek-five-grade-1125l-2232-ee.jpg",
             "pump-272-gilbarco-circlek-five-grade-pump4-4049l-2132-ee.jpg",
             "pump-273-gilbarco-circlek-five-grade-pump2-3546l-1919-ee.jpg",
+            // 2026-09-21 (night): the owner's Neste night sweep.
+            "pump-274-wayne-neste-night-3024-1513l-board-ee.jpg",
+            "pump-275-wayne-neste-night-10337-5171l-board-ee.jpg",
+            "pump-276-wayne-neste-night-8605-3913l-board-ee.jpg",
+            "pump-277-gilbarco-circlek-peetri-night-pump2-1754l-1959-ee.jpg",
+            "pump-278-gilbarco-circlek-peetri-night-pump4-3497l-1999-off-by-a-cent-pair-ee.jpg",
+            "pump-279-gilbarco-circlek-peetri-night-pump3-800l-2059-pair-ee.jpg",
+            "pump-280-gilbarco-circlek-night-pump11-323l-2184-ee.jpg",
+            "pump-281-gilbarco-circlek-night-pump12-2349l-1949-ee.jpg",
         ],
         "screenshots": [
             // 2026-09-14: an OFD-rendered Lukoil AI-100 e-receipt. Declared,
