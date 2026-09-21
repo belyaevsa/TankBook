@@ -51,9 +51,11 @@ the ml venv runs it); the converted images are cached under
   frame** (`⇧⏎` while the frame is edited, or just wait - a drag saves itself):
   the frame is **pinned** as an anchor (`liveAnchors` on the still's entry in
   `windows.json`, kept by every later save of the still) and nothing else
-  moves. **↻ re-track** is the separate, explicit action that re-registers
-  every non-anchored frame to the still and its nearest anchors; a pinned
-  frame is never moved by it.
+  moves. **↻ re-track all** (in the toolbar above the image) is the separate,
+  explicit action that re-registers every non-pinned frame to the still and
+  its nearest anchors; **↻ from here** does the same for the current frame and
+  the ones after it only, so the frames you already checked keep their quads.
+  A pinned frame is never moved by either.
 - **Videos** (`🎞`, filter *videos*): the running-display clips from
   `pump-live/videos.json`. Their "still" is the hand-annotated reference frame;
   *View frames* steps the tracked frames, and a **frame label** row shows the
@@ -84,8 +86,8 @@ the ml venv runs it); the converted images are cached under
   lands on the digits instead of the image's top-left corner; `0` refits.
 - **Anchors**: on any video frame the quads can be dragged (corners and body);
   the frame is pinned as an anchor by itself (`videos.json` and the tracked
-  file) and nothing else moves. **↻ re-track** re-registers every other frame
-  to its nearest anchors and takes the best - a pinned frame is written back
+  file) and nothing else moves. **↻ re-track all** / **↻ from here** (toolbar) re-register every other frame,
+  or this one and the following, to its nearest anchors and take the best - a pinned frame is written back
   verbatim and never re-registered - so one corrected frame fixes the stretch
   around it when you ask for it, and a single bad frame costs a single pin.
 - **✦ auto** (`A`, shift+a): auto-annotate a still - the live path locates

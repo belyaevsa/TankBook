@@ -345,7 +345,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--only", action="append", default=[])
     parser.add_argument("--min-inliers", type=int, default=30)
     parser.add_argument("--videos", action="store_true", help="track the running-display videos in the database")
+    parser.add_argument("--from", dest="from_frame", default=None,
+                        help="re-register only this frame and the ones after it (e.g. 047.jpg); earlier frames keep their rows")
     args = parser.parse_args(argv)
+
+    def keep_earlier(stem: str, result: dict) -> dict:
+        """With --from, the frames before it keep what the database holds."""
+        if not args.from_frame:
+            return result
+        start = int(args.from_frame[:-4])
+        existing = corpus_db.tracked(stem, con=con) or {"frames": {}}
+        merged = {n: f for n, f in result["frames"].items() if int(n[:-4]) >= start}
+        for n, f in existing["frames"].items():
+            if int(n[:-4]) < start:
+                merged[n] = f
+        result["frames"] = dict(sorted(merged.items(), key=lambda kv: int(kv[0][:-4])))
+        result["_kept"] = len(result["frames"])
+        return result
     con = corpus_db.connect()
     paths: list[Path] = []
     try:
@@ -358,6 +374,7 @@ def main(argv: list[str] | None = None) -> int:
                 if result is None:
                     print(f"{stem}: no frames or no entry")
                     continue
+                result = keep_earlier(stem, result)
                 with con:
                     corpus_db.save_tracked(stem, result, con=con)
                 sheet(FRAMES / stem, result)
@@ -375,6 +392,7 @@ def main(argv: list[str] | None = None) -> int:
             if result is None:
                 print(f"{stem}: no frames or no annotation for {still[:12]}")
                 continue
+            result = keep_earlier(stem, result)
             with con:
                 corpus_db.save_tracked(stem, result, con=con)
             sheet(FRAMES / stem, result)

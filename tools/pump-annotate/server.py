@@ -217,14 +217,15 @@ def propagate_texts(record: str, windows: list[dict]) -> None:
 retracks: dict[str, dict] = {}
 
 
-def start_retrack(name: str, read: bool = False) -> None:
+def start_retrack(name: str, read: bool = False, from_frame: str | None = None) -> None:
     import threading  # noqa: PLC0415
     current = retracks.get(name)
     if current and current.get("running"):
         current["again"] = True   # a save during a run queues one more run
         current["read"] = current.get("read", False) or read
         return
-    retracks[name] = {"running": True, "again": False, "read": read, "phase": "track", "result": None}
+    retracks[name] = {"running": True, "again": False, "read": read, "phase": "track", "result": None,
+                      "from": from_frame}
 
     def run() -> None:
         while True:
@@ -232,7 +233,9 @@ def start_retrack(name: str, read: bool = False) -> None:
             python = ml / ".venv" / "bin" / "python"
             retracks[name]["phase"] = "track"
             mode = ["--videos"] if name.startswith("video-") else []
-            result = subprocess.run([str(python), "-m", "pump_reader.track", *mode, "--only", name],
+            start = retracks[name].pop("from", None)
+            scope = ["--from", start] if start else []
+            result = subprocess.run([str(python), "-m", "pump_reader.track", *mode, "--only", name, *scope],
                                     cwd=ml, env={**os.environ, "PYTHONPATH": "src"}, capture_output=True, text=True)
             lines = (result.stdout + result.stderr).strip().splitlines()
             retracks[name]["result"] = lines[-1] if lines else f"exit {result.returncode}"
@@ -498,8 +501,11 @@ class Handler(SimpleHTTPRequestHandler):
             stem = unquote(path[len("/api/retrack-now/"):])
             if not (FRAMES / stem).exists():
                 return self.send_error(HTTPStatus.NOT_FOUND)
-            start_retrack(stem)
-            return self.send_json({"ok": True})
+            # ?from=NNN.jpg re-registers only that frame and the ones after it.
+            query = dict(p.split("=", 1) for p in urlparse(self.path).query.split("&") if "=" in p)
+            from_frame = unquote(query.get("from", "")) or None
+            start_retrack(stem, from_frame=from_frame)
+            return self.send_json({"ok": True, "from": from_frame})
         if path.startswith("/api/rerun/"):
             # /api/rerun/<stem>: retrack the clip from its anchors, then read every
             # tracked frame again. Owner labels, anchored frames and a reviewed

@@ -67,6 +67,7 @@
     <label title="frames per second">fps <input id="fps" type="number" min="1" max="60" value="12" style="width:52px"></label>
     <label title="start playing as soon as a Live photo or movie opens"><input type="checkbox" id="autoplay"> autoplay</label>
     <label><input type="checkbox" id="loop" checked> loop</label>
+    <span id="retrackBar" style="display:none"><button id="retrackAll" title="re-register every non-pinned frame of this record to the reference and its anchors">↻ re-track all</button><button id="retrackFrom" title="re-register this frame and the ones after it; earlier frames keep their quads">↻ from here</button></span>
     <span id="playInfo" class="dim"></span>
   </div>
   <div id="banner" class="idle"></div>
@@ -90,7 +91,6 @@
     <div id="frameStrip" style="display:none"></div>
     <div class="row" id="liveFrame" style="display:none"><b>frame</b> <span id="lfName" class="mono dim"></span>
       <button id="lfSave">Save frame</button> <span class="dim"><kbd>⇧⏎</kbd> – the frame's quads are pinned as an anchor; nothing else moves</span>
-      <button id="lfRetrack" title="re-register every non-anchored frame to the still and the anchors">↻ re-track</button>
       <button id="lfOk" title="mark the record's tracking ok and save the still">✓ tracking ok</button>
       <span id="lfState" class="dim"></span></div>
     <div class="row" id="videoLabel" style="display:none"><b>frame label</b>
@@ -102,7 +102,7 @@
       <label title="the reader read these frames as one value; the label applies to all of them"><input type="checkbox" id="vlRun" checked> whole run</label>
       <span class="dim"><kbd>⇧→</kbd> next run</span>
       <span class="dim" title="a dragged quad on a frame pins it as an anchor by itself; nothing else moves until ↻ re-track">⚓ a drag pins the frame</span><button id="vlAnchor" style="display:none"></button>
-      <button id="vlRetrack" title="re-register every non-anchored frame to the reference and the anchors">↻ re-track</button>
+
       <button id="vlRerun" title="retrack the clip from its anchors, then read every tracked frame again; your labels and anchored frames are kept">⟳ retrack + read all</button></div>
   </div>
   <div id="wins"></div>
@@ -261,7 +261,7 @@ async function enterFrames() {
 }
 function leaveFrames() {
   stopPlay(); $('#playInfo').textContent = '';
-  frameMode = false; img = stillImg; $('#videoLabel').style.display = 'none'; $('#liveFrame').style.display = 'none'; $('#frameStrip').style.display = 'none'; $('#frameSlider').style.display = 'none'; $('#framesToggle').textContent = 'View frames';
+  frameMode = false; img = stillImg; $('#videoLabel').style.display = 'none'; $('#liveFrame').style.display = 'none'; $('#retrackBar').style.display = 'none'; $('#frameStrip').style.display = 'none'; $('#frameSlider').style.display = 'none'; $('#framesToggle').textContent = 'View frames';
   $('#frameName').textContent = ''; fit(); draw();
 }
 function runOf(r, name) { return (r.runs || []).find(run => run.includes(name)) || [name]; }
@@ -365,7 +365,7 @@ async function copyPrevious() {
 function nextUnlabelled() { nextAttention(); }
 function showFrame() {
   if (!frameMode) return;
-  refreshBanner();
+  refreshBanner(); $('#retrackBar').style.display = '';
   frameQuadsEdited = false;
   const r = currentRecord(); const name = r && r.tracked[frameIdx]; if (!name) return;
   showVideoLabel();
@@ -665,14 +665,16 @@ async function saveAnchor(retrack = false) {
   if (retrack) { setMsg(`anchor at ${name}, retracking`); notify('busy', `Anchor saved at ${name} – tracking ${r.movie} in progress…`); watchRetrack(r.movie); }
   else { setMsg(`frame ${name} saved (${res.anchors.length} anchors)`); notify('done', `Frame ${name} saved as an anchor – ${res.anchors.length} anchor${res.anchors.length === 1 ? '' : 's'} on ${r.movie}; the other frames are untouched (↻ re-track to move them)`); }
 }
-async function retrackNow() {
+async function retrackNow(fromHere = false) {
   const r = currentRecord(); if (!r) return;
-  await fetch('/api/retrack-now/' + encodeURIComponent(r.movie), {method: 'POST'});
-  notify('busy', `Tracking ${r.movie} in progress…`); watchRetrack(r.movie);
+  const name = fromHere && frameMode ? r.tracked[frameIdx] : null;
+  await fetch('/api/retrack-now/' + encodeURIComponent(r.movie) + (name ? '?from=' + encodeURIComponent(name) : ''), {method: 'POST'});
+  notify('busy', name ? `Tracking ${r.movie} from ${name} on – earlier frames keep their quads…` : `Tracking ${r.movie}, every non-pinned frame…`); watchRetrack(r.movie);
 }
 $('#vlAnchor').onclick = saveAnchor;
 $('#lfSave').onclick = () => { clearTimeout(anchorTimer); saveAnchor(); };
-for (const id of ['#lfRetrack', '#vlRetrack', '#recTrack']) { const b = $(id); if (b) b.onclick = retrackNow; }
+for (const id of ['#recTrack', '#retrackAll']) { const b = $(id); if (b) b.onclick = () => retrackNow(false); }
+if ($('#retrackFrom')) $('#retrackFrom').onclick = () => retrackNow(true);
 $('#lfOk').onclick = markTrackingOk;
 async function rerunVideo() {
   const r = currentRecord(); if (!r) return;
