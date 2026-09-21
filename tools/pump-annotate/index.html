@@ -20,6 +20,7 @@
   button { cursor:pointer; background:#222833 } button.quick { padding:1px 6px; font-size:12px } button:hover { background:#2c3442 } button.primary { background:#2456a5 }
   #list div { padding:3px 6px; cursor:pointer; border-radius:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
   #list div.sel { background:#2456a5 } #list div .n { color:var(--dim); float:right }
+  #list .held { display:inline-block; background:#5b3d00; color:var(--unitPrice); border-radius:3px; padding:0 3px; font-size:10px; font-weight:600 }
   #list div.todo { color:var(--dim) }
   #list .live { color:#4cc3ff } #list .live.ok { color:var(--ok) } #list .live.bad { color:var(--bad) }
   canvas { display:block; cursor:crosshair }
@@ -31,10 +32,14 @@
   #status { position:sticky; bottom:0; background:var(--panel); padding:6px 0; border-top:1px solid var(--line) }
   pre { white-space:pre-wrap; font-size:11px; max-height:200px; overflow:auto; margin:4px 0 }
   .ok { color:var(--ok) } .bad { color:var(--bad) }
+  .cells { font-size:11px; padding:0 4px; border:1px solid var(--line); border-radius:3px; white-space:nowrap }
+  .cells.ok { color:var(--ok); border-color:var(--ok) } .cells.bad { color:var(--bad); border-color:var(--bad) }
+  .warn { color:var(--bad); cursor:help }
   input.prefill { color:#ffc857; font-style:italic }
   #frameStrip { display:flex; flex-wrap:wrap; gap:1px; margin:4px 0; row-gap:12px }
   #frameStrip span { width:6px; height:14px; background:#2a303a; cursor:pointer; border-radius:1px }
   #frameStrip span.owner { background:var(--ok) } #frameStrip span.arithmetic { background:#2e8b57 }
+  #frameStrip span.interpolated { background:#2f9e9e }
   #frameStrip span.tracked { background:#555 }
   #frameStrip span.attention { background:var(--bad) } #frameStrip span.prefill { background:#6b5a1e }
   #frameStrip span.cur { outline:2px solid #fff; outline-offset:-1px }
@@ -67,6 +72,8 @@
     <label title="frames per second">fps <input id="fps" type="number" min="1" max="60" value="12" style="width:52px"></label>
     <label title="start playing as soon as a Live photo or movie opens"><input type="checkbox" id="autoplay"> autoplay</label>
     <label><input type="checkbox" id="loop" checked> loop</label>
+    <label title="while a box is dragged, nudged or turned, the slicer's cells are drawn on it as it will be cut (resident pump-read, ~20 ms)"><input type="checkbox" id="liveSlice"> live slicers</label>
+    <span id="sliceInfo" class="dim mono"></span>
     <label id="keepShapeLabel" style="display:none" title="on a frame, dragging a corner moves the whole window instead of resizing it - the shape comes from the still or the reference frame, so every frame's quad has the same margins"><input type="checkbox" id="keepShape" checked> keep shape</label>
     <span id="retrackBar" style="display:none"><button id="retrackAll" title="re-register every non-pinned frame of this record to the reference and its anchors">↻ re-track all</button><button id="retrackFrom" title="re-register this frame and the ones after it; earlier frames keep their quads">↻ from here</button></span>
     <span id="playInfo" class="dim"></span>
@@ -80,6 +87,7 @@
   <div class="row">Zoom <input id="zoom" type="range" min="0.25" max="4" step="0.05" value="1" style="flex:1">
     Rotate <select id="rot"><option>0</option><option>90</option><option>180</option><option>270</option></select></div>
   <div class="row mono" id="csv"></div>
+  <div class="row mono" id="arith"></div>
   <div class="win" id="live" style="display:none">
     <div class="row"><b>Live record</b> <select id="rec"></select> <span id="recinfo" class="dim"></span></div>
     <div class="row"><button id="framesToggle">View frames</button> <button id="recTrack" title="carry the still's windows into this record's frames (pump_reader.track); saving a still with changed windows does this by itself">↻ track</button> <input id="frameSlider" type="range" min="0" max="0" value="0" style="flex:1;display:none">
@@ -96,7 +104,8 @@
       <span id="lfState" class="dim"></span></div>
     <div class="row" id="videoLabel" style="display:none"><b>frame label</b>
       total <input id="vlTotal" class="mono" style="width:80px"> liters <input id="vlLiters" class="mono" style="width:70px"> price <input id="vlPrice" class="mono" style="width:60px">
-      <span id="vlSource" class="dim"></span> <button id="vlSave">Save label</button> <span class="dim"><kbd>⇧⏎</kbd></span>
+      <span id="vlMargin" class="mono dim" title="the reader's lowest cell margin for this frame (from readings)">–</span>
+      <span id="vlSource" class="dim"></span> <button id="vlSave">Save label</button> <span class="dim"><kbd>⇧⏎</kbd> run · <kbd>⌥⏎</kbd> keyframe</span>
       <button id="vlCopy" title="copy the previous labelled frame's numbers here and save">← same as previous</button> <span class="dim"><kbd>⇧←</kbd></span>
       <button id="vlSkip" title="jump to the next frame that needs you">next attention ▸</button>
       <button id="vlRead" title="run the reader on this frame's windows and fill the label (nothing saved)">▶ read</button> <span class="dim"><kbd>r</kbd> / <kbd>R</kbd> live path</span>
@@ -125,10 +134,26 @@
 <script>
 const FIELDS = ['total','liters','unitPrice','board'];
 const COLORS = {total:'#ff5a5f', liters:'#4cc3ff', unitPrice:'#ffc857', board:'#9b8cff'};
+// The glyph-count oracle, ported from PumpReaderTestSupport: digits plus
+// leading blanks, never separators. dpCellIndex is the cell index of the digit
+// immediately before the `.`/`,` (nil when the text has no separator).
+function glyphCount(text) {
+  let n = 0; for (const ch of String(text || '')) if (/[0-9]/.test(ch) || ch === ' ') n++;
+  return n;
+}
+function dpCellIndex(text) {
+  let cell = 0, result = null;
+  for (const ch of String(text || '')) {
+    if (ch === '.' || ch === ',') result = cell > 0 ? cell - 1 : null;
+    else if (/[0-9]/.test(ch) || ch === ' ') cell++;
+  }
+  return result;
+}
 const $ = s => document.querySelector(s);
 const canvas = $('#c'), ctx = canvas.getContext('2d');
 let fixtures = [], current = null, entry = null, row = null, img = null, dirty = false;
-let sel = -1, zoom = 1, drag = null;
+let sel = -1, zoom = 1, drag = null, activeCorner = 0;
+let confirmLoop = null;
 let records = [], frameMode = false, frameIdx = 0, frameImg = null, stillImg = null, isVideo = false;
 // The rail: photos (every still), live (stills with a Live record, opened on
 // their frames), movies (the clips). Remembered per browser.
@@ -148,14 +173,15 @@ async function loadList() {
 function renderList() {
   const f = $('#filter').value.toLowerCase(), st = $('#state').value;
   const done = fixtures.filter(x => x.windows).length, rev = fixtures.filter(x => x.reviewed).length;
-  $('#counts').textContent = `${rev} processed · ${done} with windows · ${fixtures.length - done} empty`;
+  const held = fixtures.filter(x => !x.video && x.split === 'heldout');
+  $('#counts').textContent = `${rev} processed · ${done} with windows · ${fixtures.length - done} empty · heldout ${held.length} (${held.filter(x => x.reviewed).length} reviewed)`;
   const inMode = x => mode === 'photos' ? !x.video : mode === 'live' ? (x.live && !x.video) : x.video;
   const pass = x => inMode(x) && (st === 'all' || (st === 'todo' && !x.windows) || (st === 'reviewed' && x.reviewed) || (st === 'unreviewed' && !x.reviewed)
     || (st === 'live' && x.live) || (st === 'liveunchecked' && x.live && !x.tracking && !x.video) || (st === 'video' && x.video)
     || (st === 'work' && ((x.video && !x.reviewed) || (!x.video && !x.reviewed) || (x.live && x.tracked && !x.tracking && !x.video))));
   const shown = fixtures.filter(x => x.name.toLowerCase().includes(f) && pass(x));
   $('#list').innerHTML = shown.map(x =>
-    `<div data-n="${x.name}" class="${x.name===current?'sel':''} ${x.windows?'':'todo'}" title="${x.name}">${x.reviewed?'✓ ':''}${x.video?'🎞 ':''}${x.name.replace(/\.(jpe?g|heic|png)$/i,'')}<span class="n">${x.live ? `<span class="live ${x.tracking||''}" data-play="${x.name}" title="${x.live} Live record(s), ${x.tracked} tracked frames${x.tracking ? ', tracking ' + x.tracking : ''} – click to play">▶${x.tracked ? '' : '?'}</span> ` : ''}${x.windows||'·'}</span></div>`).join('');
+    `<div data-n="${x.name}" class="${x.name===current?'sel':''} ${x.windows?'':'todo'}" title="${x.name}">${x.reviewed?'✓ ':''}${x.split==='heldout'?'<span class="held" title="heldout - measured once reviewed">H</span> ':''}${x.video?'🎞 ':''}${x.name.replace(/\.(jpe?g|heic|png)$/i,'')}<span class="n">${x.live ? `<span class="live ${x.tracking||''}" data-play="${x.name}" title="${x.live} Live record(s), ${x.tracked} tracked frames${x.tracking ? ', tracking ' + x.tracking : ''} – click to play">▶${x.tracked ? '' : '?'}</span> ` : ''}${x.windows||'·'}</span></div>`).join('');
   document.querySelectorAll('#list div').forEach(d => d.onclick = () => openFixture(d.dataset.n));
   // The ▶ marker: open the photo, go straight to its frames and play.
   document.querySelectorAll('#list [data-play]').forEach(el => el.onclick = async e => {
@@ -225,7 +251,7 @@ try { $('#autoplay').checked = localStorage.getItem('annotator.autoplay') === '1
 $('#autoplay').onchange = e => { try { localStorage.setItem('annotator.autoplay', e.target.checked ? '1' : '0'); } catch (err) {} };
 let recordsLoaded = Promise.resolve();
 function resetFrames() {
-  frameMode = false; frameIdx = 0; records = []; $('#frameStrip').style.display = 'none'; $('#frameStrip').innerHTML = '';
+  frameMode = false; frameIdx = 0; records = []; confirmLoop = null; $('#frameStrip').style.display = 'none'; $('#frameStrip').innerHTML = '';
   $('#frameSlider').style.display = 'none'; $('#frameSlider').value = 0; $('#frameSlider').max = 0;
   $('#framesToggle').textContent = 'View frames'; $('#frameName').textContent = ''; $('#recinfo').textContent = '';
 }
@@ -257,21 +283,33 @@ function showRecordInfo() {
 async function enterFrames() {
   await recordsLoaded;
   const r = currentRecord(); if (!r || !r.tracked.length) return;
-  frameMode = true; frameIdx = Math.min(frameIdx, r.tracked.length - 1); $('#frameSlider').style.display = '';
+  frameMode = true; sel = -1; frameIdx = Math.min(frameIdx, r.tracked.length - 1); $('#frameSlider').style.display = '';
   $('#framesToggle').textContent = 'Back to still'; showFrame();
 }
 function leaveFrames() {
-  stopPlay(); $('#playInfo').textContent = '';
+  stopPlay(); $('#playInfo').textContent = ''; confirmLoop = null;
   frameMode = false; img = stillImg; $('#videoLabel').style.display = 'none'; $('#liveFrame').style.display = 'none'; $('#retrackBar').style.display = 'none'; $('#keepShapeLabel').style.display = 'none'; $('#frameStrip').style.display = 'none'; $('#frameSlider').style.display = 'none'; $('#framesToggle').textContent = 'View frames';
   $('#frameName').textContent = ''; fit(); draw();
 }
 function runOf(r, name) { return (r.runs || []).find(run => run.includes(name)) || [name]; }
+function num(t) { return parseFloat(String(t ?? '').replace(',', '.')); }
+// The display's arithmetic law: liters x price rounds to the shown total
+// within the display's own rounding slack. `null` when a value is missing or
+// unusable, false when the three do not close. Shared by the video frame
+// states and the still's live mark so the two can never diverge.
+function closesWithin(total, liters, price) {
+  const t = num(total), l = num(liters), p = num(price);
+  if (!isFinite(t) || !isFinite(l) || !isFinite(p) || l <= 0) return null;
+  return Math.abs(t - Math.round(l * p * 100) / 100) <= 0.06;
+}
 // A frame needs attention when it has no label, or when its value breaks the
 // fill's order: total and liters never decrease between labelled frames, and
-// total / liters stays at the price.
+// total / liters stays at the price. An `interpolated` frame is labelled but
+// not confirmed, so it keeps its own strip colour; an `arithmetic` frame whose
+// reading margin is under the classifier's verify floor is attention too.
 function frameStates(r) {
-  const num = t => parseFloat((t || '').replace(',', '.'));
   const price = num((r.frames[r.tracked[0]].windows.find(w => w.field === 'unitPrice') || {}).text);
+  const verify = r.verifyMargin;
   const states = {}; let lastT = -1, lastL = -1;
   for (const name of r.tracked) {
     const f = r.frames[name]; const get = k => (f.windows.find(w => w.field === k) || {}).text;
@@ -279,13 +317,27 @@ function frameStates(r) {
     let st = f.source || ((f.windows.some(w => w.prefill)) ? 'prefill' : 'none');
     if (f.source && get('total') !== 'skip') {
       const bad = (isFinite(t) && t < lastT - 0.005) || (isFinite(l) && l < lastL - 0.005)
-        || (isFinite(t) && isFinite(l) && isFinite(price) && l > 0 && Math.abs(t - Math.round(l * price * 100) / 100) > 0.06);
+        || closesWithin(get('total'), get('liters'), price) === false;
       if (bad) st = 'attention';
+      else if (st === 'arithmetic' && Number.isFinite(f.margin) && Number.isFinite(verify) && f.margin < verify) st = 'attention';
       if (isFinite(t)) lastT = Math.max(lastT, t); if (isFinite(l)) lastL = Math.max(lastL, l);
     } else if (!f.source) { st = st === 'prefill' ? 'prefill' : 'attention'; }
     states[name] = st;
   }
   return states;
+}
+// The still's live arithmetic mark, beside the CSV line: reads the WINDOW
+// texts (what the display shows), never the CSV row. Informational - it never
+// blocks Save; the corpus has legitimate off-by-a-cent displays.
+function updateArith() {
+  const el = $('#arith'); if (!el) return;
+  const text = f => ((entry && entry.windows.find(w => w.field === f)) || {}).text || '';
+  const t = text('total'), l = text('liters'), p = text('unitPrice');
+  if (!t || !l || !p) { el.textContent = ''; el.className = 'row mono'; return; }
+  if (closesWithin(t, l, p) === true) { el.className = 'row mono ok'; el.textContent = '✓ closes'; return; }
+  const computed = Math.round(num(l) * num(p) * 100) / 100;
+  el.className = 'row mono bad';
+  el.textContent = `✗ ${l} x ${p} = ${computed.toFixed(2)}, shown ${t}`;
 }
 function renderStrip() {
   const strip = $('#frameStrip'); strip.style.display = frameMode ? '' : 'none';
@@ -303,7 +355,7 @@ function renderStrip() {
   const curRun = runOf(r, cur); const runs = r.runs || []; const ri = runs.findIndex(run => run === curRun);
   const nextRunFirst = runs[ri + 1] ? runs[ri + 1][0] : null;
   strip.innerHTML = r.tracked.map((n, i) => `<span class="${states[n]} ${n === cur ? 'cur' : ''} ${runStart.has(n) ? 'runstart' : ''} ${n === nextRunFirst ? 'nextrun' : ''} ${r.frames[n].verified ? 'anchor' : ''}" data-i="${i}" title="${n} ${states[n]}${runStart.has(n) ? ' · new value' : ''}${r.frames[n].verified ? ' · anchor (quads placed by hand)' : ''}"></span>`).join('')
-    + `<span class="legend">red = needs you (unlabelled or breaks the sequence) · yellow = reader pre-fill to confirm · green = labelled · ▲ next unique value (<kbd>⇧→</kbd>) · gap = value changes</span>`;
+    + `<span class="legend">red = needs you (unlabelled or breaks the sequence) · yellow = reader pre-fill to confirm · green = labelled · teal = interpolated between keyframes · ▲ next unique value (<kbd>⇧→</kbd>) · gap = value changes</span>`;
   strip.querySelectorAll('span[data-i]').forEach(el => el.onclick = () => { frameIdx = +el.dataset.i; showFrame(); });
 }
 function nextAttention() {
@@ -324,23 +376,108 @@ function showVideoLabel() {
   const win = k => f.windows.find(w => w.field === k) || {};
   const get = k => win(k).text || '';
   const pre = k => win(k).prefill || '';
-  $('#vlTotal').value = get('total') || pre('total'); $('#vlLiters').value = get('liters') || pre('liters'); $('#vlPrice').value = get('unitPrice');
-  $('#vlTotal').classList.toggle('prefill', !get('total') && !!pre('total')); $('#vlLiters').classList.toggle('prefill', !get('liters') && !!pre('liters'));
+  const loop = (confirmLoop && confirmLoop.run.includes(name)) ? confirmLoop : null;
+  const typed = loop ? loop.fields : null;
+  $('#vlTotal').value = typed ? typed.total : (get('total') || pre('total'));
+  $('#vlLiters').value = typed ? typed.liters : (get('liters') || pre('liters'));
+  $('#vlPrice').value = typed ? typed.unitPrice : get('unitPrice');
+  $('#vlTotal').classList.toggle('prefill', !typed && !get('total') && !!pre('total'));
+  $('#vlLiters').classList.toggle('prefill', !typed && !get('liters') && !!pre('liters'));
+  $('#vlMargin').textContent = Number.isFinite(f.margin) ? f.margin.toFixed(2) : '–';
   const run = runOf(r, name); renderStrip();
+  if (loop) {
+    $('#vlSource').textContent = `confirming ${loop.i + 1}/${loop.run.length} · → or ⏎ confirm · ⌥⏎ confirm the rest when the arithmetic closes · Esc leave`;
+    return;
+  }
   $('#vlSource').textContent = (f.source ? `(${f.source})` : (pre('total') ? '(reader pre-fill – confirm)' : '(unlabelled)')) + ` · run of ${run.length}` + (f.verified ? ' · ⚓ hand-placed quads' : '');
 }
 let frameQuadsEdited = false;
-async function saveVideoLabel() {
+async function putVideoLabel(movie, frame, body) {
+  return await (await fetch('/api/video-label/' + encodeURIComponent(movie) + '/' + encodeURIComponent(frame),
+    {method:'PUT', body: JSON.stringify(body)})).json();
+}
+function applyWritten(r, written, fields) {
+  for (const fr of written) {
+    const f = r.frames[fr]; if (!f) continue;
+    for (const w of f.windows) if (fields[w.field] !== undefined) w.text = fields[w.field];
+    f.source = (fields.total || fields.liters) ? 'owner' : null;
+  }
+}
+async function refreshRecord(movie) {
+  if (current !== movie) return;
+  await loadRecords(current);
+  if (frameMode) showFrame();
+}
+// A run is no longer written in one go: after ⇧⏎ the page steps through the
+// run's frames with the typed label overlaid and the owner confirms each by
+// hand, or ⌥⏎ confirms the rest only where the arithmetic closes.
+function startConfirmLoop(r, name, fields) {
+  const run = runOf(r, name);
+  confirmLoop = {run, i: run.indexOf(name) + 1, fields, movie: r.movie};
+  applyWritten(r, [name], fields);
+  if (confirmLoop.i >= run.length) { endConfirmLoop('label saved (run of one)'); return; }
+  frameIdx = r.tracked.indexOf(run[confirmLoop.i]);
+  showFrame();
+  setMsg('confirming the run: → or ⏎ confirms each frame, ⌥⏎ confirms the rest when the arithmetic closes, Esc leaves the rest unlabelled');
+}
+function endConfirmLoop(message) {
+  confirmLoop = null;
+  if (message) setMsg(message);
+  showVideoLabel(); draw();
+}
+async function confirmOne() {
+  if (!confirmLoop) return;
+  const r = currentRecord(); const frame = confirmLoop.run[confirmLoop.i];
+  const res = await putVideoLabel(confirmLoop.movie, frame, {...confirmLoop.fields, run: confirmLoop.run, confirm: true});
+  applyWritten(r, res.written || [frame], confirmLoop.fields);
+  confirmLoop.i += 1;
+  if (confirmLoop.i >= confirmLoop.run.length) { endConfirmLoop('run confirmed to the end'); return; }
+  frameIdx = r.tracked.indexOf(confirmLoop.run[confirmLoop.i]);
+  showFrame();
+}
+async function confirmAll() {
+  if (!confirmLoop) return;
+  const r = currentRecord();
+  const remaining = confirmLoop.run.slice(confirmLoop.i);
+  const price = confirmLoop.fields.unitPrice;
+  for (const frame of remaining) {
+    const f = r.frames[frame]; const win = k => (f.windows.find(w => w.field === k) || {});
+    const t = win('total').text || win('total').prefill || '';
+    const l = win('liters').text || win('liters').prefill || '';
+    if (f.source !== 'arithmetic' || closesWithin(t, l, price) !== true) {
+      frameIdx = r.tracked.indexOf(frame); showFrame();
+      setMsg(`cannot confirm the rest: ${frame} has no closing arithmetic reading (${t || '–'} / ${l || '–'} x ${price})`);
+      return;
+    }
+  }
+  const res = await putVideoLabel(confirmLoop.movie, remaining[0],
+    {...confirmLoop.fields, run: confirmLoop.run, frames: remaining, confirm: true});
+  applyWritten(r, res.written || remaining, confirmLoop.fields);
+  endConfirmLoop(`run confirmed (${remaining.length} frames, the arithmetic closed on each)`);
+}
+async function saveVideoLabel(opts = {}) {
   const r = currentRecord(); const name = r.tracked[frameIdx];
   if (frameQuadsEdited) { await saveAnchor(); }
-  const run = $('#vlRun').checked ? runOf(r, name) : [name];
-  const body = {total: $('#vlTotal').value.trim(), liters: $('#vlLiters').value.trim(), unitPrice: $('#vlPrice').value.trim(), frames: run, copied: !!copiedFromPrevious};
+  const fields = {total: $('#vlTotal').value.trim(), liters: $('#vlLiters').value.trim(), unitPrice: $('#vlPrice').value.trim()};
+  if (opts.keyframe) {
+    const res = await putVideoLabel(r.movie, name, {...fields, run: runOf(r, name), keyframe: true});
+    await refreshRecord(r.movie);
+    const n = (res.interpolated || []).length;
+    setMsg(`keyframe saved${n ? `, ${n} frame(s) interpolated` : ''}`);
+    return;
+  }
+  if ($('#vlRun').checked && !opts.single) {
+    await putVideoLabel(r.movie, name, fields);
+    startConfirmLoop(r, name, fields);
+    return;
+  }
+  const body = {...fields, copied: !!copiedFromPrevious};
   copiedFromPrevious = false;
-  const res = await (await fetch('/api/video-label/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name), {method:'PUT', body: JSON.stringify(body)})).json();
+  const res = await putVideoLabel(r.movie, name, body);
   const written = res.written || [name];
-  for (const fr of written) { const f = r.frames[fr]; for (const w of f.windows) if (body[w.field] !== undefined) w.text = body[w.field]; f.source = (body.total || body.liters) ? 'owner' : null; }
-  const kept = run.length - written.length;
-  setMsg(`label saved to ${written.length} frame(s)` + (kept ? `, ${kept} hand-labelled frame(s) in the run kept their own` : '')); showVideoLabel(); draw();
+  applyWritten(r, written, fields);
+  setMsg(`label saved to ${written.length} frame(s)`);
+  showVideoLabel(); draw();
 }
 function stepRun(dir) {
   const r = currentRecord(); const name = r.tracked[frameIdx]; const runs = r.runs || [];
@@ -361,7 +498,7 @@ async function copyPrevious() {
   const get = k => (p.windows.find(w => w.field === k) || {}).text || '';
   $('#vlTotal').value = get('total'); $('#vlLiters').value = get('liters'); $('#vlPrice').value = get('unitPrice') || $('#vlPrice').value;
   copiedFromPrevious = true;
-  await saveVideoLabel();
+  await saveVideoLabel({single: true});
 }
 function nextUnlabelled() { nextAttention(); }
 function showFrame() {
@@ -392,6 +529,10 @@ async function save() {
   if (isVideo) { dirty = false; const fx = fixtures.find(x => x.name === current); if (fx) fx.reviewed = !!entry.reviewed; renderList();
     if (r.retrack === 'started') { setMsg('reference saved, retracking in the background'); notify('busy', `Reference saved – tracking ${current} in progress…`); watchRetrack(current); } else setMsg('saved'); return; }
   entry = r.entry; entry.windows = entry.windows || []; dirty = false; setMsg('saved');
+  if (r.reviewedCleared) {
+    entry.reviewed = false; $('#reviewed').checked = false;
+    notify('failed', 'heldout still changed - review again before it measures');
+  }
   delete entry.prefilled;
   const fx = fixtures.find(x => x.name === current); if (fx) { fx.windows = entry.windows.length; fx.reviewed = !!entry.reviewed; fx.tracking = entry.tracking || null; }
   renderList(); renderWins(); draw();
@@ -423,17 +564,53 @@ function renderWins() {
       <div class="row"><span class="swatch" style="background:${COLORS[w.field]}"></span>
         <select data-f="${i}">${FIELDS.map(f => `<option ${f===w.field?'selected':''}>${f}</option>`).join('')}</select>
         <input data-t="${i}" value="${w.text||''}" placeholder="what the display shows" class="mono" style="flex:1">
+        <span data-cells="${i}" class="cells dim" title="slicer cells vs typed glyphs">cells –</span>
+        <span data-warn="${i}" class="warn" style="display:none" title="">⚠</span>
         <label title="digits only partly readable"><input type="checkbox" data-l="${i}" ${w.legibility==='partial'?'checked':''}>partial</label>
         <button data-r="${i}" data-d="-1" title="turn the box 1° counter-clockwise ([, shift = 0.1°)">↺</button><button data-r="${i}" data-d="1" title="turn the box 1° clockwise (], shift = 0.1°)">↻</button>
         <button data-x="${i}" title="delete">×</button></div>
-      <div class="row dim mono">${w.quad.map(p => p.map(v => (+v).toFixed(3)).join(',')).join('  ')}</div>
+      <div class="row dim mono">${w.quad.map(p => p.map(v => (+v).toFixed(3)).join(',')).join('  ')}${w.placedBy ? `  ${w.placedBy}${w.zoom != null ? ` @${(+w.zoom).toFixed(1)}x` : ''}` : ''}</div>
     </div>`).join('');
   document.querySelectorAll('#wins .win').forEach(d => d.onclick = e => { if (e.target.tagName === 'DIV') { sel = +d.dataset.i; renderWins(); draw(); } });
   document.querySelectorAll('[data-f]').forEach(s => s.onchange = () => { entry.windows[+s.dataset.f].field = s.value; touch(); renderWins(); draw(); });
-  document.querySelectorAll('[data-t]').forEach(s => s.oninput = () => { entry.windows[+s.dataset.t].text = s.value; touch(); });
+  document.querySelectorAll('[data-t]').forEach(s => s.oninput = () => { entry.windows[+s.dataset.t].text = s.value; updateCells(+s.dataset.t); touch(); updateArith(); });
   document.querySelectorAll('[data-l]').forEach(s => s.onchange = () => { entry.windows[+s.dataset.l].legibility = s.checked ? 'partial' : undefined; touch(); });
   document.querySelectorAll('[data-x]').forEach(b => b.onclick = e => { e.stopPropagation(); removeWindow(+b.dataset.x); });
   document.querySelectorAll('[data-r]').forEach(b => b.onclick = e => { e.stopPropagation(); sel = +b.dataset.r; turnWindow(sel, +b.dataset.d * (e.shiftKey ? 0.1 : 1)); });
+  entry.windows.forEach((w, i) => updateCells(i));
+  updateArith();
+}
+// The slicer's last read for one window's field, or null before a read (the
+// image guard keeps a read on another fixture from colouring this one's cards).
+function slicerCellsFor(w) {
+  if (!readCells || readCells.image !== readImageKey() || !readCells.byField) return null;
+  return readCells.byField[w.field] || null;
+}
+// `cells N` beside the input: the slicer's cell count against glyphCount(text),
+// green when equal, red when they differ, grey before a read; plus a warning
+// when the typed separator's cell differs from the cell the slicer marked `dp`.
+function updateCells(i) {
+  const w = entry.windows[i]; if (!w) return;
+  const badge = document.querySelector(`[data-cells="${i}"]`);
+  const warn = document.querySelector(`[data-warn="${i}"]`);
+  const cells = slicerCellsFor(w);
+  if (badge) {
+    if (!cells) { badge.className = 'cells dim'; badge.textContent = 'cells –'; badge.title = 'no read yet (press r)'; }
+    else {
+      const typed = glyphCount(w.text);
+      const ok = cells.length === typed;
+      badge.className = 'cells ' + (ok ? 'ok' : 'bad');
+      badge.textContent = `cells ${cells.length}`;
+      badge.title = `slicer ${cells.length} cells, typed ${typed} glyphs`;
+    }
+  }
+  if (warn) {
+    const typedDp = dpCellIndex(w.text);
+    const slicerDp = cells ? cells.findIndex(c => c.dp) : -1;
+    const mismatch = typedDp !== null && slicerDp >= 0 && typedDp !== slicerDp;
+    warn.style.display = mismatch ? '' : 'none';
+    warn.title = mismatch ? `separator after cell ${typedDp}, the slicer marks cell ${slicerDp}` : '';
+  }
 }
 // Turn one window's quad about its centre by `deg` (clockwise positive), in
 // display space so the turn matches what is on screen whatever the 90-degree
@@ -444,12 +621,20 @@ function turnWindow(i, deg) {
   const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
   w.quad = pts.map(([x, y]) => toImg([cx + (x - cx) * c - (y - cy) * s, cy + (x - cx) * s + (y - cy) * c]).map(v => Math.round(v * 10000) / 10000));
   if (frameMode && isVideo) frameQuadsEdited = true;
-  touch(); renderWins(); draw();
+  markHand(i);
+  touch(); renderWins(); draw(); liveSlice();
 }
 function addWindow(field, text, quad) {
   quad = quad || [[0.3,0.4],[0.7,0.4],[0.7,0.5],[0.3,0.5]];
-  entry.windows.push({field: field || 'total', text: text || '', quad});
+  entry.windows.push({field: field || 'total', text: text || '', quad, placedBy: 'hand', zoom});
   sel = entry.windows.length - 1; touch(); renderWins(); draw();
+}
+// The page owns the provenance: the server cannot know the zoom a quad was
+// drawn or edited at, so every still-window edit stamps who and where.
+function markHand(i) {
+  if (frameMode) return;
+  const w = entry.windows[i]; if (!w) return;
+  w.placedBy = 'hand'; w.zoom = zoom;
 }
 function removeWindow(i) { entry.windows.splice(i, 1); sel = -1; touch(); renderWins(); draw(); }
 
@@ -496,7 +681,15 @@ function draw() {
     ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(pts[0][0] - 2 / zoom, pts[0][1] - th - 4 / zoom, tw + 4 / zoom, th + 2 / zoom);
     ctx.fillStyle = ctx.strokeStyle; ctx.fillText(label, pts[0][0], pts[0][1] - 4 / zoom);
     if (i === sel) {
-      pts.forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 6 / zoom, 0, 7); ctx.fill(); });
+      // The active corner (the last one dragged, or corner 0) is filled; the
+      // others are hollow, so an alt-arrow nudge says which one it moves.
+      const field = ctx.strokeStyle;
+      pts.forEach((p, k) => {
+        ctx.beginPath(); ctx.arc(p[0], p[1], 6 / zoom, 0, 7);
+        if (k === activeCorner) { ctx.fillStyle = field; ctx.fill(); }
+        else { ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5 / zoom; ctx.stroke(); }
+      });
+      ctx.strokeStyle = field;
       const h = turnHandle(pts), m = [(pts[0][0] + pts[1][0]) / 2, (pts[0][1] + pts[1][1]) / 2];
       ctx.beginPath(); ctx.moveTo(m[0], m[1]); ctx.lineTo(h[0], h[1]); ctx.lineWidth = 1 / zoom; ctx.stroke();
       ctx.beginPath(); ctx.arc(h[0], h[1], 7 / zoom, 0, 7); ctx.fillStyle = '#fff'; ctx.fill(); ctx.stroke();
@@ -571,7 +764,7 @@ canvas.onmousedown = e => {
   // height when corners were free (live-6333), and the detector learns that
   // noise as its own edge error.
   if (c >= 0 && frameMode && $('#keepShape').checked) { sel = sel >= 0 ? sel : hitWindow([x, y]); drag = {kind:'move', x, y, quad: editable()[sel].quad.map(p => [...p])}; return; }
-  if (c >= 0) { drag = {kind:'corner', c}; return; }
+  if (c >= 0) { activeCorner = c; drag = {kind:'corner', c}; return; }
   const w = hitWindow([x, y]);
   if (w >= 0 && !e.shiftKey) { sel = w; drag = {kind:'move', x, y, quad: editable()[w].quad.map(p => [...p])}; renderWins(); draw(); return; }
   if (frameMode) return;   // no new windows on a frame: a frame carries its reference's windows
@@ -580,7 +773,7 @@ canvas.onmousedown = e => {
 canvas.onmousemove = e => {
   if (!drag) return; const [x, y] = mouse(e);
   if (drag.kind === 'new') { drag.x = x; drag.y = y; }
-  else if (drag.kind === 'corner') { editable()[sel].quad[drag.c] = toImg([x, y]); if (frameMode) frameQuadsEdited = true; else touch(); }
+  else if (drag.kind === 'corner') { editable()[sel].quad[drag.c] = toImg([x, y]); if (frameMode) frameQuadsEdited = true; else { markHand(sel); touch(); } }
   else if (drag.kind === 'turn') {
     // Rotate the quad the drag started with by the angle the mouse has swept
     // about the box centre; shift snaps to whole degrees.
@@ -588,14 +781,41 @@ canvas.onmousemove = e => {
     if (e.shiftKey) deg = Math.round(deg);
     const a = deg * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
     editable()[sel].quad = drag.quad.map(toDisp).map(([px, py]) => toImg([drag.cx + (px - drag.cx) * c - (py - drag.cy) * sn, drag.cy + (px - drag.cx) * sn + (py - drag.cy) * c]).map(v => Math.round(v * 10000) / 10000));
-    if (frameMode && isVideo) frameQuadsEdited = true; else touch();
+    if (frameMode && isVideo) frameQuadsEdited = true; else { markHand(sel); touch(); }
   }
   else if (drag.kind === 'move') {
     const d0 = toImg([drag.x, drag.y]), d1 = toImg([x, y]);
-    editable()[sel].quad = drag.quad.map(p => [Math.min(1, Math.max(0, p[0] + d1[0] - d0[0])), Math.min(1, Math.max(0, p[1] + d1[1] - d0[1]))]); if (frameMode && isVideo) frameQuadsEdited = true; else touch();
+    editable()[sel].quad = drag.quad.map(p => [Math.min(1, Math.max(0, p[0] + d1[0] - d0[0])), Math.min(1, Math.max(0, p[1] + d1[1] - d0[1]))]); if (frameMode && isVideo) frameQuadsEdited = true; else { markHand(sel); touch(); }
   }
   draw();
+  if (drag.kind !== 'new') liveSlice();
 };
+// ---- live slicers: the slicer's cells on the selected box while it moves ----
+// One request in flight; a newer drag position replaces a waiting one on the
+// server (`superseded`), so the overlay follows the mouse without a backlog.
+let sliceInFlight = false, sliceAgain = false;
+try { $('#liveSlice').checked = localStorage.getItem('annotator.liveSlice') === '1'; } catch (e) {}
+$('#liveSlice').onchange = e => { try { localStorage.setItem('annotator.liveSlice', e.target.checked ? '1' : '0'); } catch (err) {} if (!e.target.checked) $('#sliceInfo').textContent = ''; };
+async function liveSlice() {
+  if (!$('#liveSlice').checked || sel < 0 || !editable()[sel]) return;
+  if (sliceInFlight) { sliceAgain = true; return; }
+  sliceInFlight = true;
+  const image = readImageKey(), w = editable()[sel];
+  try {
+    const res = await (await fetch('/api/slice', {method: 'POST', body: JSON.stringify({image, rotationCW: rot(), windows: [{field: w.field, quad: w.quad}]})})).json();
+    if (!res.superseded && !res.error && res.windows && res.windows[0]) {
+      const win = res.windows[0];
+      readCells = readCells && readCells.image === image ? readCells : {image, cells: [], byField: {}};
+      readCells.byField[win.field] = win.sliced;
+      readCells.cells = Object.values(readCells.byField).flat();
+      const gc = typeof glyphCount === 'function' ? glyphCount(w.text || '') : null;
+      $('#sliceInfo').textContent = `${win.field}: ${win.cells} cells${win.dpCell !== null && win.dpCell !== undefined ? ` · dp at ${win.dpCell + 1}` : ''}${gc !== null && w.text ? (gc === win.cells ? ' · matches text' : ` · text has ${gc}`) : ''} · ${res.roundTripMs ?? res.ms} ms`;
+      draw();
+    } else if (res.error) { $('#sliceInfo').textContent = 'live slicer: ' + res.error; }
+  } catch (err) { $('#sliceInfo').textContent = 'live slicer: ' + err; }
+  sliceInFlight = false;
+  if (sliceAgain) { sliceAgain = false; liveSlice(); }
+}
 canvas.onmouseup = e => {
   if (!drag) return;
   if (drag.kind === 'new') {
@@ -654,7 +874,7 @@ $('#dump').onclick = async () => {
   notify(r.check === 0 ? 'done' : 'failed', `Dump completed – ${r.files} files, check ${r.check === 0 ? 'ok' : 'FAILED'}, ${r.changedCount} changed vs git (stage them by path when the batch is done)`);
 };
 $('#reviewed').onchange = touch;
-$('#vlSave').onclick = saveVideoLabel;
+$('#vlSave').onclick = () => saveVideoLabel();
 // A Live record reviewed in its frames: tracking ok on the still, saved, next.
 async function markTrackingOk() {
   const radio = document.querySelector('input[name="tracking"][value="ok"]'); if (radio) { radio.checked = true; entry.tracking = 'ok'; touch(); }
@@ -723,7 +943,10 @@ async function runReader(live, onDone) {
   if (res.timingsMs) lines.push(`  ms ${Object.entries(res.timingsMs).map(([k, v]) => k + ' ' + v).join('  ')}`);
   $('#out').textContent = lines.join('\n');
   readRows = {image, rows: res.rows || []};
-  readCells = {image, cells: (res.windows || []).flatMap(w => w.sliced || [])};
+  // `cells` is the flat list the overlay draws; `byField` is what the window
+  // cards count against the typed text (board windows are never sent).
+  readCells = {image, cells: (res.windows || []).flatMap(w => w.sliced || []),
+               byField: Object.fromEntries((res.windows || []).map(w => [w.field, w.sliced || []]))};
   const raw = f => { const w = (res.windows || []).find(x => x.field === f); return w ? w.text : ''; };
   const fill = f => c[f] ?? raw(f);
   if (frameMode && isVideo) {
@@ -738,6 +961,9 @@ async function runReader(live, onDone) {
     for (const w of entry.windows) { const v = fill(w.field); if (v && !w.text) { w.text = v; entry.prefilled[w.field] = v; touched = true; } }
     if (touched) { touch(); renderWins(); }
   }
+  // The read just measured the cells: refresh every card's count against the
+  // typed text even when the read changed no text.
+  if (entry) entry.windows.forEach((w, i) => updateCells(i));
   draw();
   setMsg('read done');
   if (onDone) onDone(res);
@@ -759,7 +985,7 @@ function autoAnnotate() {
       const quad = rr.quad.map(([nx, ny]) => toImg([nx * w, ny * h]));
       // A board cell has no CSV truth: its text is left for the owner to type.
       const truth = f !== 'board' && row && row[f] ? String(row[f]) : '';
-      entry.windows.push({field: f, text: truth, quad}); have.add(f);
+      entry.windows.push({field: f, text: truth, quad, placedBy: 'auto', zoom}); have.add(f);
       if (first < 0) first = entry.windows.length - 1;
     }
     if (first < 0) { setMsg('auto-annotate: the reader placed no new row'); return; }
@@ -768,6 +994,46 @@ function autoAnnotate() {
   });
 }
 $('#auto').onclick = autoAnnotate;
+// The pad key's oracle: the make's modal convention, derived server-side from
+// the reviewed entries (`corpus_db.convention`), fetched once per still.
+let conventionCache = {};
+async function conventionFor(name) {
+  if (!conventionCache[name]) {
+    const r = await (await fetch('/api/convention/' + encodeURIComponent(name))).json();
+    conventionCache[name] = r;
+  }
+  return conventionCache[name];
+}
+// Pad a typed string to the make's convention: leading zeros to the modal
+// digit count, the modal separator in place of the typed one. The decimal
+// place is the typed text's own - only the separator character and the
+// leading-zero count come from the convention.
+function padToConvention(text, digits, separator) {
+  const m = /^([0-9]*)([.,]?)([0-9]*)$/.exec(text);
+  if (!m || (!m[1] && !m[3])) return text;
+  let int = m[1]; const frac = m[3];
+  const total = int.length + frac.length;
+  if (total < digits) int = '0'.repeat(digits - total) + int;
+  return int + (frac ? (separator || m[2]) : '') + frac;
+}
+async function padConventions() {
+  if (!entry || !current) return;
+  const conv = await conventionFor(current);
+  const fields = conv.fields || {};
+  const did = [];
+  for (const w of entry.windows) {
+    if (!['total','liters','unitPrice'].includes(w.field) || !w.text) continue;
+    const c = fields[w.field]; if (!c) continue;
+    const after = padToConvention(w.text, c.digits, c.separator);
+    if (after !== w.text) did.push({field: w.field, before: w.text, after});
+  }
+  if (!did.length) { setMsg('pad: nothing to change'); return; }
+  for (const d of did) { const w = entry.windows.find(x => x.field === d.field); if (w) w.text = d.after; }
+  touch(); renderWins();
+  const c = fields[did[0].field];
+  const sep = c.separator === ',' ? 'comma' : c.separator === '.' ? 'point' : 'none';
+  setMsg(`padded ${did.map(d => `${d.field} ${d.before} -> ${d.after}`).join(', ')} (${conv.make}: ${c.digits} digits, ${sep})`);
+}
 $('#vlRead').onclick = () => runReader(false);
 function next() { const names = [...document.querySelectorAll('#list div')].map(d => d.dataset.n); const n = names[names.indexOf(current) + 1]; if (n) openFixture(n); }
 $('#savenext').onclick = async () => { $('#reviewed').checked = true; await save(); next(); };
@@ -779,13 +1045,43 @@ document.querySelectorAll('[data-nod],[data-dis]').forEach(i => i.oninput = touc
 document.addEventListener('keydown', e => {
   const t = e.target; const typing = t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !['range','checkbox','radio'].includes(t.type));
   if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); save(); return; }
+  // The run-confirm loop owns the keys that advance or leave it.
+  if (confirmLoop) {
+    if (e.key === 'Escape') { e.preventDefault(); endConfirmLoop('confirm loop left - the rest stays unlabelled'); return; }
+    if (e.key === 'Enter' && e.altKey) { e.preventDefault(); confirmAll(); return; }
+    if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); confirmOne(); return; }
+  }
   if (typing && frameMode && isVideo && e.key === 'Enter' && e.shiftKey) { e.preventDefault(); saveVideoLabel(); return; }
+  if (typing && frameMode && isVideo && e.key === 'Enter' && e.altKey) { e.preventDefault(); saveVideoLabel({keyframe: true}); return; }
   if (frameMode && !isVideo && e.key === 'Enter' && e.shiftKey) { e.preventDefault(); if (frameQuadsEdited) { clearTimeout(anchorTimer); saveAnchor(); } else { markTrackingOk(); } return; }
+  // Arrow keys nudge the selected window: one screen pixel at the current
+  // zoom (shift = 10), in display space so the step is the same whatever the
+  // still's 90-degree rotation; alt moves only the active corner.
+  // In the frames view a plain ← / → always steps frames (that is what the
+  // view is for); a horizontal nudge there needs shift or alt.
+  const plainHorizontal = (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.shiftKey && !e.altKey;
+  if (!typing && sel >= 0 && !(frameMode && plainHorizontal) && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) {
+    e.preventDefault();
+    const step = (e.shiftKey ? 10 : 1) / zoom;
+    const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+    const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+    const w = editable()[sel];
+    if (e.altKey) {
+      const p = toDisp(w.quad[activeCorner]);
+      w.quad[activeCorner] = toImg([p[0] + dx, p[1] + dy]).map(v => Math.round(v * 10000) / 10000);
+    } else {
+      w.quad = w.quad.map(q => { const p = toDisp(q); return toImg([p[0] + dx, p[1] + dy]).map(v => Math.round(v * 10000) / 10000); });
+    }
+    if (frameMode && isVideo) frameQuadsEdited = true;
+    touch(); renderWins(); draw(); liveSlice();
+    return;
+  }
   if (frameMode && isVideo && e.key === 'ArrowLeft' && e.shiftKey) { e.preventDefault(); copyPrevious(); return; }
   if (frameMode && isVideo && e.key === 'ArrowRight' && e.shiftKey) { e.preventDefault(); stepRun(1); return; }
   if (!typing && e.key === 'r') { runReader(false); return; }
   if (!typing && e.key === 'R') { runReader(true); return; }
   if (!typing && e.key === 'A') { autoAnnotate(); return; }
+  if (!typing && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); padConventions(); return; }
   if (!typing && sel >= 0 && (e.key === '[' || e.key === ']' || e.key === '{' || e.key === '}')) { e.preventDefault(); const step = (e.key === '{' || e.key === '}') ? 0.1 : 1; turnWindow(sel, (e.key === ']' || e.key === '}') ? step : -step); return; }
   if (!typing && (e.key === '+' || e.key === '=')) { setZoom(zoom * 1.2); return; }
   if (!typing && e.key === '-') { setZoom(zoom / 1.2); return; }
@@ -796,7 +1092,9 @@ document.addEventListener('keydown', e => {
   if (!typing && frameMode && e.key === ' ') { e.preventDefault(); togglePlay(); return; }
   if (frameMode && e.key === 'ArrowRight') { e.preventDefault(); stopPlay(); frameIdx = Math.min(frameIdx + 1, currentRecord().tracked.length - 1); showFrame(); return; }
   if (frameMode && e.key === 'ArrowLeft') { e.preventDefault(); stopPlay(); frameIdx = Math.max(frameIdx - 1, 0); showFrame(); return; }
+  if (e.key === 'Escape' && sel >= 0) { e.preventDefault(); sel = -1; renderWins(); draw(); return; }
   if (frameMode && e.key === 'Escape') { leaveFrames(); return; }
+  if (frameMode && isVideo && e.key === 'Enter' && e.altKey) { e.preventDefault(); saveVideoLabel({keyframe: true}); return; }
   if (frameMode && isVideo && e.key === 'Enter' && e.shiftKey) { e.preventDefault(); saveVideoLabel(); return; }
   if (frameMode) return;
   if ((e.key === 'Backspace' || e.key === 'Delete') && sel >= 0) { e.preventDefault(); removeWindow(sel); }

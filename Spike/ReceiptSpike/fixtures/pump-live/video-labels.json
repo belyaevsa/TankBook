@@ -22278,6 +22278,44 @@
   }
  },
  "video-016-topaz-gdrive-gazpromneft-running-display-ru": {
+  "003.jpg": {
+   "liters": "36.42",
+   "source": "owner",
+   "total": "2531.68",
+   "unitPrice": "69.59"
+  },
+  "004.jpg": {
+   "liters": "36.42",
+   "source": "owner",
+   "total": "2534.47",
+   "unitPrice": "69.59"
+  },
+  "005.jpg": {
+   "liters": "36.42",
+   "source": "owner",
+   "total": "2534.47",
+   "unitPrice": "69.59",
+   "via": "copied"
+  },
+  "006.jpg": {
+   "liters": "36.46",
+   "source": "owner",
+   "total": "2537.25",
+   "unitPrice": "69.59"
+  },
+  "007.jpg": {
+   "liters": "36.46",
+   "source": "owner",
+   "total": "2537.25",
+   "unitPrice": "69.59",
+   "via": "run"
+  },
+  "008.jpg": {
+   "liters": "36.50",
+   "source": "owner",
+   "total": "2537.25",
+   "unitPrice": "69.59"
+  },
   "009.jpg": {
    "liters": "36.50",
    "source": "arithmetic",
@@ -22288,6 +22326,31 @@
    "liters": "36.50",
    "source": "arithmetic",
    "total": "2540.04",
+   "unitPrice": "69.59"
+  },
+  "011.jpg": {
+   "liters": "36.54",
+   "source": "owner",
+   "total": "2542.82",
+   "unitPrice": "69.59"
+  },
+  "012.jpg": {
+   "liters": "36.54",
+   "source": "owner",
+   "total": "2542.82",
+   "unitPrice": "69.59",
+   "via": "run"
+  },
+  "013.jpg": {
+   "liters": "36.58",
+   "source": "owner",
+   "total": "2542.82",
+   "unitPrice": "69.59"
+  },
+  "014.jpg": {
+   "liters": "36.58",
+   "source": "owner",
+   "total": "2545.60",
    "unitPrice": "69.59"
   },
   "015.jpg": {
@@ -22305,6 +22368,12 @@
   "017.jpg": {
    "liters": "36.62",
    "source": "arithmetic",
+   "total": "2548.39",
+   "unitPrice": "69.59"
+  },
+  "018.jpg": {
+   "liters": "36.66",
+   "source": "owner",
    "total": "2548.39",
    "unitPrice": "69.59"
   },
@@ -22330,6 +22399,18 @@
    "liters": "36.70",
    "source": "arithmetic",
    "total": "2553.95",
+   "unitPrice": "69.59"
+  },
+  "023.jpg": {
+   "liters": "36.74",
+   "source": "owner",
+   "total": "2558.99",
+   "unitPrice": "69.59"
+  },
+  "024.jpg": {
+   "liters": "36.74",
+   "source": "owner",
+   "total": "2556.74",
    "unitPrice": "69.59"
   }
  },
@@ -22979,6 +23060,25 @@
    "source": "owner",
    "total": "0014,98",
    "unitPrice": "1,969"
+  },
+  "033.jpg": {
+   "liters": "0007,67",
+   "source": "owner",
+   "total": "0015,10",
+   "unitPrice": "1,969"
+  },
+  "034.jpg": {
+   "liters": "0007,67",
+   "source": "owner",
+   "total": "0015,10",
+   "unitPrice": "1,969"
+  },
+  "035.jpg": {
+   "liters": "0007,67",
+   "source": "owner",
+   "total": "0015,10",
+   "unitPrice": "1,969",
+   "via": "run"
   },
   "049.jpg": {
    "liters": "008.07",

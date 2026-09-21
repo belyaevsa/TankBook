@@ -16,14 +16,25 @@ import Testing
 /// is a video marked `reviewed` in `videos.json` or a frame the owner anchored
 /// by hand (`verified` in the tracked `windows.json`).
 ///
+/// An `interpolated` label (PU.45) is a keyframe pair's arithmetic fill: the
+/// reader skips it only while the nearest owner keyframe on BOTH sides is still
+/// `owner`, and regenerates it as `arithmetic` otherwise, because an
+/// interpolation whose keyframe changed is stale. The reader also stages the
+/// lowest cell margin of the total and liters windows as the frame's `margin`,
+/// which the annotator shows beside the label.
+///
 /// Opt-in (`PUMP_VIDEO_READ=1`; `PUMP_VIDEO_READ_ONLY=video-002` for one clip):
-/// four thousand frames through the reader.
+/// four thousand frames through the reader. `PUMP_CORPUS_LABELS`,
+/// `PUMP_CORPUS_FRAMES` and `PUMP_ANNOTATE_DB` redirect the write path to a
+/// scratch copy when the interpolation check runs.
 @Suite("PU.19 video labels by arithmetic")
 struct PumpVideoReadTests {
     private static var enabled: Bool { ProcessInfo.processInfo.environment["PUMP_VIDEO_READ"] == "1" }
     private static let live = PumpReaderTestSupport.repoRoot.appendingPathComponent("Spike/ReceiptSpike/fixtures/pump-live")
     private static let modelURL = PumpReaderTestSupport.repoRoot.appendingPathComponent("ios/App/Resources/PumpSegments.mlpackage")
     private static let stagingDirectory = PumpReaderTestSupport.outRoot.appendingPathComponent("video-read")
+    private static let scratchRoot = PumpReaderTestSupport.outRoot.appendingPathComponent("pu45-scratch")
+    private static let realLabelsURL = live.appendingPathComponent("video-labels.json")
 
     /// A failed import must be loud: the old writer wrote the files directly and
     /// a missing `python3` would silently leave the database stale.
@@ -36,22 +47,45 @@ struct PumpVideoReadTests {
         }
     }
 
-    /// One record's readings plus its arithmetic labels to a staging file, then
-    /// through `scripts/corpus_db.py import-readings`, which writes both tables
-    /// in one transaction and dumps the two files.
-    private static func stage(_ stem: String, readings: [String: Any], arithmetic: [String: Any]) throws {
-        let staging = stagingDirectory.appendingPathComponent("\(stem).json")
-        let staged: [String: Any] = ["record": stem, "readings": readings, "labels": arithmetic]
-        try JSONSerialization.data(withJSONObject: staged, options: [.sortedKeys]).write(to: staging)
-        try importReadings(staging)
+    /// The labels file under test: a scratch copy when the runner redirects it,
+    /// else the checkout's own.
+    private static var labelsURL: URL {
+        if let path = ProcessInfo.processInfo.environment["PUMP_CORPUS_LABELS"] {
+            return URL(fileURLWithPath: path)
+        }
+        return realLabelsURL
     }
 
-    private static func importReadings(_ staging: URL) throws {
+    private static func loadJSON(_ url: URL) -> [String: Any] {
+        (try? JSONSerialization.jsonObject(with: Data(contentsOf: url))) as? [String: Any] ?? [:]
+    }
+
+    private static func writeJSON(_ object: [String: Any], to url: URL) throws {
+        try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys]).write(to: url)
+    }
+
+    /// One record's readings plus its arithmetic labels to a staging file, then
+    /// through `scripts/corpus_db.py import-readings`, which writes both tables
+    /// in one transaction and dumps the two files. `extraEnv` redirects the
+    /// write path to a scratch copy.
+    private static func stage(_ stem: String, readings: [String: Any], arithmetic: [String: Any],
+                              env: [String: String]? = nil) throws {
+        let staging = stagingDirectory.appendingPathComponent("\(stem).json")
+        let staged: [String: Any] = ["record": stem, "readings": readings, "labels": arithmetic]
+        try FileManager.default.createDirectory(at: stagingDirectory, withIntermediateDirectories: true)
+        try JSONSerialization.data(withJSONObject: staged, options: [.sortedKeys]).write(to: staging)
+        try importReadings(staging, extraEnv: env)
+    }
+
+    private static func importReadings(_ staging: URL, extraEnv: [String: String]? = nil) throws {
         let script = PumpReaderTestSupport.repoRoot.appendingPathComponent("scripts/corpus_db.py")
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         process.arguments = ["python3", script.path, "import-readings", staging.path]
         process.currentDirectoryURL = PumpReaderTestSupport.repoRoot
+        if let extraEnv {
+            process.environment = ProcessInfo.processInfo.environment.merging(extraEnv) { _, new in new }
+        }
         let stderr = Pipe()
         process.standardError = stderr
         process.standardOutput = Pipe()
@@ -67,13 +101,149 @@ struct PumpVideoReadTests {
         }
     }
 
+    /// Frames the reader must not regenerate: every `owner` label, and an
+    /// `interpolated` label whose nearest owner keyframe on both sides is still
+    /// `owner`. An interpolation whose keyframe was changed is not skipped.
+    private static func humanSkipped(_ frameNames: [String], labels: [String: Any]) -> Set<String> {
+        var skip = Set<String>()
+        for (i, name) in frameNames.enumerated() {
+            guard let lab = labels[name] as? [String: Any], let source = lab["source"] as? String else { continue }
+            if source == "owner" { skip.insert(name); continue }
+            guard source == "interpolated" else { continue }
+            let before = (0..<i).reversed().contains { index in
+                (labels[frameNames[index]] as? [String: Any])?["source"] as? String == "owner"
+            }
+            let after = ((i + 1)..<frameNames.count).contains { index in
+                (labels[frameNames[index]] as? [String: Any])?["source"] as? String == "owner"
+            }
+            if before && after { skip.insert(name) }
+        }
+        return skip
+    }
+
+    /// One record's reader output: the per-frame readings to pre-fill, the
+    /// arithmetic labels for the frames that closed, and the counts for the run
+    /// summary.
+    private struct ReadResult {
+        let readings: [String: Any]
+        let arithmetic: [String: Any]
+        let closed: Int
+        let read: Int
+    }
+
+    /// Read every frame the skip set leaves in, and stage a reading per frame
+    /// (`closes` plus the lowest cell margin of the total and liters windows)
+    /// and an arithmetic label for each closing frame.
+    private static func readFrames(stem: String, video: [String: Any], frameNames: [String],
+                                   skip: Set<String>) throws -> ReadResult {
+        guard let priceText = video["unitPrice"] as? String,
+              let price = Double(priceText.replacingOccurrences(of: ",", with: ".")) else {
+            return ReadResult(readings: [:], arithmetic: [:], closed: 0, read: 0)
+        }
+        let trackedURL = live.appendingPathComponent("frames/\(stem)/windows.json")
+        guard let tracked = try? JSONSerialization.jsonObject(with: Data(contentsOf: trackedURL)) as? [String: Any],
+              let frames = tracked["frames"] as? [String: Any] else {
+            return ReadResult(readings: [:], arithmetic: [:], closed: 0, read: 0)
+        }
+        let model = try PumpSegmentsModel(contentsOf: modelURL)
+        let reader = PumpReader(model: model)
+        let comma = priceText.contains(",")
+        var readings: [String: Any] = [:]
+        var arithmetic: [String: Any] = [:]
+        var closed = 0, read = 0
+        for frameName in frameNames {
+            if skip.contains(frameName) { continue }
+            guard let frame = frames[frameName] as? [String: Any], let windows = frame["windows"] as? [[String: Any]],
+                  // A frame whose quads the owner placed by hand (a tracking anchor)
+                  // is human-reviewed; it keeps whatever it has.
+                  (frame["verified"] as? Bool) != true,
+                  let image = PumpReaderTestSupport.loadRGB(url: live.appendingPathComponent("frames/\(stem)/\(frameName)")) else { continue }
+            var located: [PumpReader.Window] = []
+            for w in windows {
+                guard let field = w["field"] as? String, let quad = (w["quad"] as? [[NSNumber]])?.map({ $0.map(\.doubleValue) }),
+                      field != "unitPrice", let role = PumpField(rawValue: field) else { continue }
+                located.append(PumpReader.Window(field: role, quad: PumpReaderTestSupport.quadPixels(quad, width: image.width, height: image.height)))
+            }
+            guard let reads = try? reader.read(image: image, windows: located) else { continue }
+            read += 1
+            // The cells as strings, no law: the arithmetic is the whole check.
+            var strings: [PumpField: String] = [:]
+            var margins: [Double] = []
+            for r in reads {
+                let digits = r.cells.map { cell -> String in
+                    guard let best = cell.ranked.first else { return "?" }
+                    return String(best.digit) + (cell.decimalPoint ? (comma ? "," : ".") : "")
+                }.joined()
+                strings[r.field] = digits
+                if r.field == .total || r.field == .liters { margins.append(contentsOf: r.cells.map(\.margin)) }
+            }
+            let t = strings[.total] ?? "", l = strings[.liters] ?? ""
+            let total = Double(t.replacingOccurrences(of: ",", with: "."))
+            let liters = Double(l.replacingOccurrences(of: ",", with: "."))
+            let closes = !t.contains("?") && !l.contains("?") && total != nil && liters != nil && liters! > 0
+                && (abs(total! - (liters! * price * 100).rounded() / 100) < 0.011 || abs(total! - (liters! * price * 10).rounded() / 10) < 0.06)
+            // Every reading is kept for the annotator's pre-fill; only a closing
+            // one is a label.
+            var reading: [String: Any] = ["total": t, "liters": l, "closes": closes]
+            if let margin = margins.min() { reading["margin"] = margin }
+            readings[frameName] = reading
+            guard closes else { continue }
+            closed += 1
+            arithmetic[frameName] = ["total": t, "liters": l, "unitPrice": priceText, "source": "arithmetic"]
+        }
+        return ReadResult(readings: readings, arithmetic: arithmetic, closed: closed, read: read)
+    }
+
+    private static func copyDatabase(to dest: URL) throws {
+        let real = live.deletingLastPathComponent().appendingPathComponent("corpus.sqlite")
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = ["sqlite3", real.path, ".backup \(dest.path)"]
+        process.standardError = Pipe()
+        process.standardOutput = Pipe()
+        try process.run()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else {
+            throw ImportError(path: dest.path, status: process.terminationStatus, detail: "sqlite3 .backup failed")
+        }
+    }
+
+    private static func runPython(_ code: String, env: [String: String]) throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = ["python3", "-c", code]
+        process.currentDirectoryURL = PumpReaderTestSupport.repoRoot
+        process.environment = ProcessInfo.processInfo.environment.merging(env) { _, new in new }
+        process.standardError = Pipe()
+        process.standardOutput = Pipe()
+        try process.run()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else {
+            throw ImportError(path: "python3 -c", status: process.terminationStatus, detail: "migrate failed")
+        }
+    }
+
+    /// Replace a record's labels in the scratch database (the reader's write
+    /// store) and dump them to the scratch labels file, so the test's scenario
+    /// and the reader see the same labels.
+    private static func seedLabels(_ stem: String, frames: [String: Any], scratch: URL,
+                                   env: [String: String]) throws {
+        let scenarioURL = scratch.appendingPathComponent("scenario.json")
+        try writeJSON(frames, to: scenarioURL)
+        let code = """
+        import json, sys
+        sys.path.insert(0, 'scripts')
+        import corpus_db
+        corpus_db.save_labels(\(String(reflecting: stem)), json.load(open(\(String(reflecting: scenarioURL.path)))))
+        corpus_db.dump([corpus_db.LABELS_FILE])
+        """
+        try runPython(code, env: env)
+    }
+
     @Test("every tracked video frame whose reading closes gets its label", .enabled(if: enabled, "PUMP_VIDEO_READ=1"))
     func label() throws {
-        let model = try PumpSegmentsModel(contentsOf: Self.modelURL)
-        let reader = PumpReader(model: model)
-        let videos = try JSONSerialization.jsonObject(with: Data(contentsOf: Self.live.appendingPathComponent("videos.json"))) as? [String: Any] ?? [:]
-        let labelsURL = Self.live.appendingPathComponent("video-labels.json")
-        let labels = (try? JSONSerialization.jsonObject(with: Data(contentsOf: labelsURL)) as? [String: Any]) ?? [:]
+        let videos = Self.loadJSON(Self.live.appendingPathComponent("videos.json"))
+        let labels = Self.loadJSON(Self.labelsURL)
         try FileManager.default.createDirectory(at: Self.stagingDirectory, withIntermediateDirectories: true)
         var summary: [String] = []
         let only = ProcessInfo.processInfo.environment["PUMP_VIDEO_READ_ONLY"]
@@ -84,57 +254,90 @@ struct PumpVideoReadTests {
                   // pre-fills are not regenerated.
                   (video["reviewed"] as? Bool) != true,
                   let priceText = video["unitPrice"] as? String,
-                  let price = Double(priceText.replacingOccurrences(of: ",", with: ".")) else { continue }
+                  Double(priceText.replacingOccurrences(of: ",", with: ".")) != nil else { continue }
             let trackedURL = Self.live.appendingPathComponent("frames/\(stem)/windows.json")
             guard let tracked = try? JSONSerialization.jsonObject(with: Data(contentsOf: trackedURL)) as? [String: Any],
                   let frames = tracked["frames"] as? [String: Any] else { continue }
-            let comma = priceText.contains(",")
+            let names = frames.keys.sorted { (Int($0.dropLast(4)) ?? 0) < (Int($1.dropLast(4)) ?? 0) }
             let existing = labels[stem] as? [String: Any] ?? [:]
-            var readings: [String: Any] = [:]
-            var arithmetic: [String: Any] = [:]
-            var closed = 0, read = 0
-            for (frameName, frameValue) in frames.sorted(by: { Int($0.key.dropLast(4)) ?? 0 < Int($1.key.dropLast(4)) ?? 0 }) {
-                if let existing = existing[frameName] as? [String: Any], existing["source"] as? String == "owner" { continue }
-                guard let frame = frameValue as? [String: Any], let windows = frame["windows"] as? [[String: Any]],
-                      // A frame whose quads the owner placed by hand (a tracking anchor)
-                      // is human-reviewed; it keeps whatever it has.
-                      (frame["verified"] as? Bool) != true,
-                      let image = PumpReaderTestSupport.loadRGB(url: Self.live.appendingPathComponent("frames/\(stem)/\(frameName)")) else { continue }
-                var located: [PumpReader.Window] = []
-                for w in windows {
-                    guard let field = w["field"] as? String, let quad = (w["quad"] as? [[NSNumber]])?.map({ $0.map(\.doubleValue) }),
-                          field != "unitPrice", let role = PumpField(rawValue: field) else { continue }
-                    located.append(PumpReader.Window(field: role, quad: PumpReaderTestSupport.quadPixels(quad, width: image.width, height: image.height)))
-                }
-                guard let reads = try? reader.read(image: image, windows: located) else { continue }
-                read += 1
-                // The cells as strings, no law: the arithmetic is the whole check.
-                var strings: [PumpField: String] = [:]
-                for r in reads {
-                    let digits = r.cells.map { cell -> String in
-                        guard let best = cell.ranked.first else { return "?" }
-                        return String(best.digit) + (cell.decimalPoint ? (comma ? "," : ".") : "")
-                    }.joined()
-                    strings[r.field] = digits
-                }
-                let t = strings[.total] ?? "", l = strings[.liters] ?? ""
-                let total = Double(t.replacingOccurrences(of: ",", with: "."))
-                let liters = Double(l.replacingOccurrences(of: ",", with: "."))
-                let closes = !t.contains("?") && !l.contains("?") && total != nil && liters != nil && liters! > 0
-                    && (abs(total! - (liters! * price * 100).rounded() / 100) < 0.011 || abs(total! - (liters! * price * 10).rounded() / 10) < 0.06)
-                // Every reading is kept for the annotator's pre-fill; only a closing one is a label.
-                readings[frameName] = ["total": t, "liters": l, "closes": closes]
-                guard closes else { continue }
-                closed += 1
-                arithmetic[frameName] = ["total": t, "liters": l, "unitPrice": priceText, "source": "arithmetic"]
-            }
+            let skip = Self.humanSkipped(names, labels: existing)
+            let result = try Self.readFrames(stem: stem, video: video, frameNames: names, skip: skip)
             // One staging file per record: readings plus the arithmetic labels
-            // the reader would write. `import-readings` keeps owner rows.
-            try Self.stage(stem, readings: readings, arithmetic: arithmetic)
-            let labelled = Set(existing.keys).union(arithmetic.keys)
-            summary.append("\(stem.prefix(9)): \(closed) of \(read) frames closed (\(labelled.count) labelled)")
+            // the reader would write. `import-readings` keeps owner and
+            // surviving interpolated rows.
+            try Self.stage(stem, readings: result.readings, arithmetic: result.arithmetic)
+            let labelled = Set(existing.keys).union(result.arithmetic.keys)
+            summary.append("\(stem.prefix(9)): \(result.closed) of \(result.read) frames closed (\(labelled.count) labelled)")
         }
         for line in summary { print("PU.19 \(line)") }
         #expect(!summary.isEmpty)
+    }
+
+    @Test("interpolated frames follow their keyframes across a re-run", .enabled(if: enabled, "PUMP_VIDEO_READ=1"))
+    func interpolatedFramesFollowTheirKeyframes() throws {
+        guard let only = ProcessInfo.processInfo.environment["PUMP_VIDEO_READ_ONLY"] else {
+            print("PU.45: set PUMP_VIDEO_READ_ONLY=<stem> to run the interpolation check")
+            return
+        }
+        let videos = Self.loadJSON(Self.live.appendingPathComponent("videos.json"))
+        guard let video = videos[only] as? [String: Any], let priceText = video["unitPrice"] as? String else {
+            print("PU.45: no video \(only)"); return
+        }
+        let trackedURL = Self.live.appendingPathComponent("frames/\(only)/windows.json")
+        guard let tracked = try? JSONSerialization.jsonObject(with: Data(contentsOf: trackedURL)) as? [String: Any],
+              let frames = tracked["frames"] as? [String: Any] else { print("PU.45: no tracked frames for \(only)"); return }
+        let names = frames.keys.sorted { (Int($0.dropLast(4)) ?? 0) < (Int($1.dropLast(4)) ?? 0) }
+        guard names.count >= 3 else { print("PU.45: \(only) has fewer than 3 frames"); return }
+
+        // A scratch copy of the database and the labels: this check never writes
+        // the checkout's own corpus.
+        let scratch = Self.scratchRoot.appendingPathComponent(only)
+        try FileManager.default.createDirectory(at: scratch.appendingPathComponent("frames"), withIntermediateDirectories: true)
+        let scratchDB = scratch.appendingPathComponent("corpus.sqlite")
+        let scratchLabels = scratch.appendingPathComponent("video-labels.json")
+        let scratchFrames = scratch.appendingPathComponent("frames")
+        try Self.copyDatabase(to: scratchDB)
+        let env = ["PUMP_ANNOTATE_DB": scratchDB.path, "PUMP_CORPUS_LABELS": scratchLabels.path,
+                   "PUMP_CORPUS_FRAMES": scratchFrames.path]
+        try Self.runPython("import sys; sys.path.insert(0, 'scripts'); import corpus_db; corpus_db.migrate()", env: env)
+
+        let real = Self.loadJSON(Self.realLabelsURL)
+        var scenario = real[only] as? [String: Any] ?? [:]
+        let first = names.first!, last = names.last!
+        let middles = Array(names.dropFirst().dropLast())
+        scenario[first] = ["unitPrice": priceText, "total": "1.00", "liters": "1.00", "source": "owner"]
+        scenario[last] = ["unitPrice": priceText, "total": "9.99", "liters": "9.99", "source": "owner"]
+        for middle in middles {
+            scenario[middle] = ["unitPrice": priceText, "total": "5.00", "liters": "5.00", "source": "interpolated"]
+        }
+        try Self.seedLabels(only, frames: scenario, scratch: scratch, env: env)
+
+        // Both keyframes owner: every interpolated frame is skipped, so it survives.
+        let skip1 = Self.humanSkipped(names, labels: scenario)
+        #expect(Set(middles).isSubset(of: skip1))
+        let r1 = try Self.readFrames(stem: only, video: video, frameNames: names, skip: skip1)
+        try Self.stage(only, readings: r1.readings, arithmetic: r1.arithmetic, env: env)
+        let after1 = Self.loadJSON(scratchLabels)[only] as? [String: Any] ?? [:]
+        for middle in middles {
+            #expect((after1[middle] as? [String: Any])?["source"] as? String == "interpolated", "\(middle) survived")
+        }
+
+        // One keyframe reverted to arithmetic: the middle is no longer bounded by
+        // two owners, so it is regenerated (or left unlabelled), never interpolated.
+        scenario[last] = ["unitPrice": priceText, "total": "9.99", "liters": "9.99", "source": "arithmetic"]
+        try Self.seedLabels(only, frames: scenario, scratch: scratch, env: env)
+        let skip2 = Self.humanSkipped(names, labels: scenario)
+        #expect(!skip2.contains(middles.first!))
+        let r2 = try Self.readFrames(stem: only, video: video, frameNames: names, skip: skip2)
+        try Self.stage(only, readings: r2.readings, arithmetic: r2.arithmetic, env: env)
+        let after2 = Self.loadJSON(scratchLabels)[only] as? [String: Any] ?? [:]
+        // A hand-anchored frame (`verified`) is human-reviewed and skipped by the
+        // reader whatever its label; every other middle frame is regenerated.
+        let regenerated = middles.filter { (frames[$0] as? [String: Any])?["verified"] as? Bool != true }
+        #expect(!regenerated.isEmpty)
+        for middle in regenerated {
+            #expect((after2[middle] as? [String: Any])?["source"] as? String != "interpolated", "\(middle) regenerated")
+        }
+        print("PU.45 interpolation: \(middles.count) middle frames survived two owner keyframes and were regenerated after one was reverted")
     }
 }

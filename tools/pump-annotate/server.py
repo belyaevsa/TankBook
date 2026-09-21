@@ -34,6 +34,7 @@ from urllib.parse import unquote, urlparse
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 import corpus_db  # noqa: E402
+from slicer import ResidentSlicer  # noqa: E402
 
 FIX = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "pump"
 WINDOWS = FIX / "windows.json"
@@ -43,17 +44,49 @@ HERE = Path(__file__).resolve().parent
 CACHE = Path.home() / "Library" / "Caches" / "tankbook-pump-annotate"
 IMAGE_EDGE = 2000
 FRAMES = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "pump-live" / "frames"
-DB = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "corpus.sqlite"
+DB = Path(os.environ.get("PUMP_ANNOTATE_DB") or (ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "corpus.sqlite"))
+# A test run points the server at a copy of the database and must leave the
+# checkout alone: the database is redirected and the JSON dump is skipped.
+REDIRECTED_DB = "PUMP_ANNOTATE_DB" in os.environ
 LIVE = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "pump-live"
 VIDEOS = LIVE / "videos.json"
 VIDEO_LABELS = LIVE / "video-labels.json"
 READ_TOOL = ROOT / "ios" / ".build" / "debug" / "pump-read"
+# The optimised build the live overlay uses: the debug configuration keeps
+# `@testable import` working, `-O` makes the slicer's pixel loops ~30x faster
+# (17 ms against 630 ms for three windows). Built here on first use.
+SLICE_TOOL = ROOT / "ios" / ".build" / "opt" / "debug" / "pump-read"
+
+
+def build_slice_tool() -> bool:
+    r = subprocess.run(["swift", "build", "--product", "pump-read", "-Xswiftc", "-O", "--scratch-path", ".build/opt"],
+                       cwd=ROOT / "ios", capture_output=True, text=True)
+    return r.returncode == 0 and SLICE_TOOL.exists()
+
+
+SLICER = ResidentSlicer(SLICE_TOOL, build=build_slice_tool, cwd=ROOT)
 CLASSIFIER = ROOT / "ios" / "App" / "Resources" / "PumpSegments.mlpackage"
 DETECTOR = ROOT / "ios" / "App" / "Resources" / "DigitRows.mlmodel"
 
 # Writes go database-first: one transaction and one dump per request, and no
 # two requests interleave between the two.
 WRITE_LOCK = threading.Lock()
+
+corpus_db.DB = DB
+
+
+def dump_files(paths: list[Path] | None = None) -> list[Path]:
+    """Write the database's corpus files. A redirected (test) run writes
+    nothing into the checkout - the database copy is the only store it touches."""
+    if REDIRECTED_DB:
+        return []
+    return corpus_db.dump(paths)
+
+
+def windows_differ(a: list[dict], b: list[dict]) -> bool:
+    """True when two window lists differ in field, text or quad, in order."""
+    key = lambda w: (w.get("field"), w.get("text", ""), [tuple(p) for p in w.get("quad", [])])
+    return [key(w) for w in a] != [key(w) for w in b]
 
 
 def load_windows() -> dict:
@@ -134,10 +167,116 @@ def video_entries() -> dict:
 
 
 def video_labels() -> dict:
+    if REDIRECTED_DB:
+        return corpus_db.labels()
     try:
         return json.loads(VIDEO_LABELS.read_text())
     except (OSError, ValueError):
         return {}
+
+
+def _num(text) -> float | None:
+    try:
+        return float(str(text).replace(",", "."))
+    except (TypeError, ValueError):
+        return None
+
+
+# `PumpReader.minimumMeanMargin` - the classifier's verify floor, the mean cell
+# margin below which a row is not digits. Read from the Swift source that defines
+# it so the page compares against the constant and never copies the number.
+PUMP_READER_SWIFT = (ROOT / "ios" / "Sources" / "TankbookCore" / "Extraction"
+                     / "PumpReader" / "PumpReader.swift")
+
+
+def _read_verify_margin() -> float | None:
+    import re  # noqa: PLC0415
+    try:
+        text = PUMP_READER_SWIFT.read_text()
+    except OSError:
+        return None
+    m = re.search(r"minimumMeanMargin\s*=\s*([0-9]+(?:\.[0-9]+)?)", text)
+    return float(m.group(1)) if m else None
+
+
+VERIFY_MARGIN = _read_verify_margin()
+
+
+def interpolate_frames(order: list[str], prev_name: str, prev_label: dict,
+                       cur_name: str, cur_label: dict, price: float | None,
+                       step: float = 0.01, tolerance: float = 0.02) -> dict[str, dict]:
+    """The frames strictly between two keyframes, filled by linear interpolation
+    of liters and total snapped to the nearest closing pair
+    (`total == round(liters x price, 2)`), monotone non-decreasing in both. A
+    frame with no closing pair within `tolerance` litres of its interpolation is
+    left out, so it stays unlabelled and `frameStates` marks it attention."""
+    try:
+        i0, i1 = order.index(prev_name), order.index(cur_name)
+    except ValueError:
+        return {}
+    if i1 <= i0 + 1 or not price:
+        return {}
+    l0, t0 = _num(prev_label.get("liters")), _num(prev_label.get("total"))
+    l1, t1 = _num(cur_label.get("liters")), _num(cur_label.get("total"))
+    if None in (l0, t0, l1, t1):
+        return {}
+    out: dict[str, dict] = {}
+    last_l, last_t = l0, t0
+    span = i1 - i0
+    for k in range(i0 + 1, i1):
+        l_lin = l0 + (l1 - l0) * (k - i0) / span
+        base = round(l_lin / step) * step
+        best = None
+        for d in range(-3, 4):
+            l = round(base + d * step, 2)
+            if abs(l - l_lin) > tolerance + 1e-9:
+                continue
+            t = round(l * price, 2)
+            if l < last_l - 1e-9 or t < last_t - 1e-9:
+                continue
+            dist = abs(l - l_lin)
+            if best is None or dist < best[0]:
+                best = (dist, l, t)
+        if best is None:
+            continue
+        last_l, last_t = best[1], best[2]
+        out[order[k]] = {"liters": f"{best[1]:.2f}", "total": f"{best[2]:.2f}"}
+    return out
+
+
+def _owner(per: dict, name: str) -> bool:
+    return per.get(name, {}).get("source") == "owner"
+
+
+def _nearest_owner(per: dict, run: list[str], frame: str, direction: int) -> str | None:
+    """The nearest owner-labelled frame before (direction -1) or after (+1) the
+    given frame, within the run. `frame` itself is never returned."""
+    if frame not in run:
+        return None
+    i = run.index(frame)
+    rng = range(i - 1, -1, -1) if direction < 0 else range(i + 1, len(run))
+    for j in rng:
+        if _owner(per, run[j]):
+            return run[j]
+    return None
+
+
+def invalidate_interpolated(per: dict, run: list[str], frame: str,
+                            cleared: list[str]) -> None:
+    """A label write to `frame` invalidates the interpolations it bounds: every
+    `interpolated` label strictly between the nearest owner frames on either side
+    is removed, so a stale middle is never left claiming an old keyframe pair."""
+    if frame not in run:
+        return
+    i = run.index(frame)
+    prev = _nearest_owner(per, run, frame, -1)
+    nxt = _nearest_owner(per, run, frame, +1)
+    lo = run.index(prev) if prev else i
+    hi = run.index(nxt) if nxt else i
+    for k in range(lo + 1, hi):
+        if per.get(run[k], {}).get("source") == "interpolated":
+            per.pop(run[k], None)
+            cleared.append(run[k])
 
 
 def video_record(stem: str) -> dict:
@@ -161,6 +300,10 @@ def video_record(stem: str) -> dict:
             elif w["field"] in ("total", "liters") and rd.get(w["field"]) and "?" not in rd[w["field"]]:
                 w["prefill"] = rd[w["field"]]
         frame["source"] = lab.get("source")
+        # The reading's confidence: the lowest cell margin of the window that
+        # produced the label, as the reader staged it. Never from the label.
+        if rd.get("margin") is not None:
+            frame["margin"] = _num(rd.get("margin"))
     runs: list[list[str]] = []
     prev = None
     for name in order:
@@ -173,7 +316,8 @@ def video_record(stem: str) -> dict:
         prev = key
     return {"movie": stem, "tracked": order, "frames": frames, "runs": runs,
             "extracted": len(list((FRAMES / stem).glob("*.jpg"))) if (FRAMES / stem).exists() else 0,
-            "labelled": sum(1 for n in frames if n in labels)}
+            "labelled": sum(1 for n in frames if n in labels),
+            "verifyMargin": VERIFY_MARGIN}
 
 
 def records_for(still: str) -> list[dict]:
@@ -207,7 +351,7 @@ def propagate_texts(record: str, windows: list[dict]) -> None:
         for ord_, w in enumerate(windows):
             con.execute("update frame_windows set text = ?, legibility = ? where record = ? and ord = ?",
                         (w.get("text", ""), w.get("legibility"), record, ord_))
-    corpus_db.dump([FRAMES / record / "windows.json"])
+    dump_files([FRAMES / record / "windows.json"])
 
 
 # One retrack per video at a time, in the background; the page polls /api/retrack/<name>.
@@ -288,6 +432,7 @@ class Handler(SimpleHTTPRequestHandler):
             names = list(rows) + [n for n in ann if not n.startswith("_") and n not in rows]
             live = live_counts()
             labels = video_labels()
+            splits = corpus_db.split()
             out = [{
                 "name": n,
                 "inCsv": n in rows,
@@ -296,6 +441,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "tracking": ann.get(n, {}).get("tracking"),
                 "live": live.get(n, 0),
                 "tracked": tracked_count(live_stems.get(n, [])),
+                "split": splits.get(n, "train"),
             } for n in names]
             for stem, v in video_entries().items():
                 out.append({"name": stem, "video": True, "inCsv": True, "windows": len(v["windows"]),
@@ -312,6 +458,13 @@ class Handler(SimpleHTTPRequestHandler):
                                        "row": {"liters": "", "unitPrice": v["unitPrice"], "total": "", "currency": v["currency"]}})
             ann, rows = load_windows(), load_rows()
             return self.send_json({"entry": ann.get(name, {"windows": []}), "row": rows.get(name)})
+        if path.startswith("/api/convention/"):
+            # The pad key's oracle: the modal digit count and separator per
+            # transaction field over the reviewed entries of the still's make,
+            # derived from the corpus (`corpus_db.convention`), never a table.
+            name = unquote(path[len("/api/convention/"):])
+            make = corpus_db.make_of(name)
+            return self.send_json({"make": make, "fields": corpus_db.convention(make)})
         if path.startswith("/api/retrack/"):
             name = unquote(path[len("/api/retrack/"):])
             return self.send_json(retracks.get(name, {"running": False, "result": None}))
@@ -365,7 +518,7 @@ class Handler(SimpleHTTPRequestHandler):
                         if not anchors:
                             return self.send_error(HTTPStatus.NOT_FOUND)
                         corpus_db.pin_frame(stem, frame, windows, con=con)
-                    corpus_db.dump([WINDOWS, tracked, corpus_db.CORRECTIONS_FILE])
+                    dump_files([WINDOWS, tracked, corpus_db.CORRECTIONS_FILE])
                 if body.get("retrack"):
                     start_retrack(stem)
                 return self.send_json({"ok": True, "anchors": [a["frame"] for a in anchors if a["record"] == stem],
@@ -376,7 +529,7 @@ class Handler(SimpleHTTPRequestHandler):
                 with corpus_db.transaction() as con:
                     anchors = corpus_db.save_video_anchor(stem, frame, windows, con=con)
                     corpus_db.pin_frame(stem, frame, windows, {"unitPrice": videos[stem].get("unitPrice", "")}, con=con)
-                corpus_db.dump([VIDEOS, FRAMES / stem / "windows.json", corpus_db.CORRECTIONS_FILE])
+                dump_files([VIDEOS, FRAMES / stem / "windows.json", corpus_db.CORRECTIONS_FILE])
             if body.get("retrack"):
                 start_retrack(stem)
             return self.send_json({"ok": True, "anchors": anchors, "retrack": bool(body.get("retrack"))})
@@ -408,28 +561,58 @@ class Handler(SimpleHTTPRequestHandler):
                 if before is not None and before != "" and before != final:
                     corrections.append({"kind": "text", "video": stem, "frame": frame, "field": field,
                                         "proposedBy": by, "proposed": before, "final": final})
-            # `frames` lists every frame of the run the label applies to.
-            # The frame itself always takes the label; the rest of its run only
-            # where no human label exists yet - a glitched frame inside a run
-            # that the owner labelled by hand keeps its own reading.
-            targets = body.get("frames") or [frame]
+            # `run` is the ordered frames of the run the label belongs to - the
+            # context for interpolation and invalidation. `frames` (a list) is the
+            # set to write owner in one go (the confirm-all shortcut); `keyframe`
+            # writes this frame owner and fills the gap to the previous owner;
+            # `confirm` writes just this frame owner, one step of the loop.
             per = labels.setdefault(stem, {})
-            written = []
-            for target in targets:
-                if target != frame and per.get(target, {}).get("source") == "owner":
-                    continue
+            run = body.get("run") or body.get("frames") or [frame]
+            keyframe = bool(body.get("keyframe"))
+            written: list[str] = []
+            interpolated: list[str] = []
+            cleared: list[str] = []
+            if keyframe:
                 if any(entry.values()):
-                    via = "copied" if body.get("copied") else ("run" if target != frame else None)
-                    per[target] = dict(entry, source="owner", **({"via": via} if via else {}))
+                    per[frame] = dict(entry, source="owner")
                 else:
-                    per.pop(target, None)
-                written.append(target)
+                    per.pop(frame, None)
+                written.append(frame)
+                invalidate_interpolated(per, run, frame, cleared)
+                prev_name = _nearest_owner(per, run, frame, -1)
+                price = _num(video_entries().get(stem, {}).get("unitPrice"))
+                if prev_name is not None:
+                    filled = interpolate_frames(run, prev_name, per[prev_name], frame, per[frame], price)
+                    for name, fields in filled.items():
+                        per[name] = {**fields, "unitPrice": body.get("unitPrice", ""),
+                                     "source": "interpolated"}
+                        interpolated.append(name)
+            else:
+                targets = body.get("frames") if body.get("frames") else [frame]
+                for target in targets:
+                    if target != frame and per.get(target, {}).get("source") == "owner":
+                        continue
+                    if any(entry.values()):
+                        via = "copied" if body.get("copied") else (
+                            "run" if (body.get("confirm") or target != frame) else None)
+                        per[target] = dict(entry, source="owner", **({"via": via} if via else {}))
+                    else:
+                        per.pop(target, None)
+                    written.append(target)
+                invalidate_interpolated(per, run, frame, cleared)
+            # A run write's ledger line says how many frames the owner confirmed
+            # and how many the arithmetic filled, so `via: run` volume can be read
+            # against `interpolated` (PU.42 item A3/B6).
+            if len(run) > 1 or keyframe:
+                corrections.append({"kind": "label", "video": stem, "frame": frame,
+                                    "confirmed": len(written), "interpolated": len(interpolated)})
             with WRITE_LOCK:
                 with corpus_db.transaction() as con:
                     corpus_db.add_corrections(corrections, con=con)
                     corpus_db.save_labels(stem, per, con=con)
-                corpus_db.dump([VIDEO_LABELS, corpus_db.CORRECTIONS_FILE])
-            return self.send_json({"ok": True, "written": written})
+                dump_files([VIDEO_LABELS, corpus_db.CORRECTIONS_FILE])
+            return self.send_json({"ok": True, "written": written,
+                                   "interpolated": interpolated, "cleared": cleared})
         if not path.startswith("/api/entry/"):
             return self.send_error(HTTPStatus.NOT_FOUND)
         name = unquote(path[len("/api/entry/"):])
@@ -446,7 +629,7 @@ class Handler(SimpleHTTPRequestHandler):
             with WRITE_LOCK:
                 with corpus_db.transaction() as con:
                     corpus_db.save_video(name, new_windows, reviewed, con=con)
-                corpus_db.dump([VIDEOS])
+                dump_files([VIDEOS])
             if quads_changed:
                 start_retrack(name)
             return self.send_json({"ok": True,
@@ -462,7 +645,15 @@ class Handler(SimpleHTTPRequestHandler):
                                     "proposed": prefilled[field], "final": final})
         if entry.get("tracking") and entry.get("tracking") != ann.get(name, {}).get("tracking"):
             corrections.append({"kind": "tracking", "still": name, "final": entry["tracking"]})
-        before = ann.get(name, {})
+        before = corpus_db.entry(name) or ann.get(name, {})
+        # Decision 9: a heldout still measures only once reviewed, so editing a
+        # reviewed heldout entry's windows clears reviewed - a changed heldout
+        # still never measures silently. Identical windows keep it.
+        reviewed_cleared = False
+        if (before.get("reviewed") and name in corpus_db.heldout_names()
+                and windows_differ(entry.get("windows", []), before.get("windows", []))):
+            entry["reviewed"] = False
+            reviewed_cleared = True
         # The anchors are owned by the anchor route (a drag on a Live frame); a
         # still save carries whatever the database holds so a page loaded before
         # the drag cannot drop them (save_entry does this when the body omits them).
@@ -470,7 +661,7 @@ class Handler(SimpleHTTPRequestHandler):
             with corpus_db.transaction() as con:
                 corpus_db.add_corrections(corrections, con=con)
                 saved = corpus_db.save_entry(name, entry, con=con)
-            corpus_db.dump([WINDOWS, corpus_db.CORRECTIONS_FILE])
+            dump_files([WINDOWS, corpus_db.CORRECTIONS_FILE])
         # A still's windows are what the tracker carries into its Live record:
         # a record with no tracked frames yet, or one whose still's quads just
         # changed, is (re)tracked in the background so the frames view opens
@@ -491,7 +682,7 @@ class Handler(SimpleHTTPRequestHandler):
                     # edit needs no homography, so the frames take it directly.
                     propagate_texts(rec["movie"], saved["windows"])
                     tracked.append(rec["movie"] + " (texts)")
-        return self.send_json({"ok": True, "entry": saved, "tracking": tracked})
+        return self.send_json({"ok": True, "entry": saved, "tracking": tracked, "reviewedCleared": reviewed_cleared})
 
     def do_POST(self):
         path = urlparse(self.path).path
@@ -521,7 +712,7 @@ class Handler(SimpleHTTPRequestHandler):
             # then the staleness check; the reply says what changed on disk.
             import time  # noqa: PLC0415
             started = time.time()
-            written = corpus_db.dump()
+            written = dump_files()
             check = subprocess.run([sys.executable, str(ROOT / "scripts" / "corpus_db.py"), "check"],
                                    capture_output=True, text=True)
             changed = subprocess.run(["git", "status", "--short", "--", "Spike/ReceiptSpike/fixtures"], cwd=ROOT,
@@ -531,6 +722,23 @@ class Handler(SimpleHTTPRequestHandler):
         if path == "/api/check":
             r = subprocess.run([sys.executable, str(CHECK), "--check"], capture_output=True, text=True)
             return self.send_json({"exit": r.returncode, "output": (r.stdout + r.stderr).strip()})
+        if path == "/api/slice":
+            # The live overlay: the slicer's cells for the given windows, from
+            # the resident process - no model, no write. A drag sends one of
+            # these per mouse move; stale ones are superseded, never queued.
+            length = int(self.headers.get("Content-Length", "0"))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            image = body.get("image", "")
+            if image.startswith("frame/"):
+                _, stem, file = image.split("/", 2)
+                target = FRAMES / stem / file
+            else:
+                target = FIX / image
+            if "/" in target.name or not target.exists():
+                return self.send_json({"error": f"no such image: {image}"}, HTTPStatus.NOT_FOUND)
+            reply = SLICER.slice({"image": str(target), "rotationCW": body.get("rotationCW", 0),
+                                  "windows": [w for w in body.get("windows", []) if w.get("field") != "board"]})
+            return self.send_json(reply)
         if path == "/api/read":
             # The reader on the current still or frame: with the page's windows it
             # slices and classifies each and lets the law commit; with `live` it
@@ -564,7 +772,10 @@ class Handler(SimpleHTTPRequestHandler):
 def main() -> None:
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    corpus_db.ensure_schema()
+    # A redirected run is a copy of the live database, already current: it is
+    # not migrated or re-imported, so the run cannot write to the checkout.
+    if not REDIRECTED_DB:
+        corpus_db.ensure_schema()
     print(f"pump annotator: http://127.0.0.1:{port}/  ({WINDOWS.relative_to(ROOT)}; writes go through corpus.sqlite)")
     try:
         server.serve_forever()

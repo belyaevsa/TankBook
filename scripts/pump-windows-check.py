@@ -14,6 +14,9 @@ display shows. This script is what keeps the two files from disagreeing:
     show, and `csvDisagrees` names one where the display and the CSV differ on
     purpose, with the reason - both are read as declared exceptions;
   * liters x unitPrice ~ total within the precision the display shows;
+  * a `board` window's string is price-shaped (digits with at most one
+    separator, or the `-00-` idle marker) or empty - a board cell has no CSV
+    truth, so only the shape can be checked;
   * every quad is four points inside [0, 1].
 
 `--check` exits 1 on any disagreement, which is how CI keeps the annotations
@@ -23,6 +26,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 import sys
 from decimal import Decimal
 from pathlib import Path
@@ -31,6 +35,19 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 FIX = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "pump"
 FIELDS = ("total", "liters", "unitPrice")
+BOARD_PRICE = re.compile(r"^[0-9]+(?:[.,][0-9]+)?$")
+BOARD_IDLE = re.compile(r"^-[0-9]+-$")
+
+
+def board_problem(text: str) -> str | None:
+    """A `board` window's text is a price-shaped number (digits with at most
+    one separator) or empty - the shape the display shows, since a board cell
+    has no CSV truth to compare against. `-00-` is the idle/closed marker the
+    Wayne heads show (`pump-263`)."""
+    t = text.strip()
+    if not t or BOARD_PRICE.match(t) or BOARD_IDLE.match(t):
+        return None
+    return f"board text {text!r} is not a price-shaped number"
 
 
 def normalise(text: str) -> Decimal | None:
@@ -89,6 +106,10 @@ def main() -> int:
                 if w["field"] in byfield:
                     problems.append(f"{name}: two {w['field']} windows")
                 byfield[w["field"]] = w["text"]
+            elif w["field"] == "board":
+                problem = board_problem(w.get("text", ""))
+                if problem:
+                    problems.append(f"{name}: {problem}")
         for f in FIELDS:
             truth = row[f].strip()
             shown = byfield.get(f)

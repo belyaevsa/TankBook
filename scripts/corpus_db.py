@@ -41,29 +41,34 @@ import csv
 import hashlib
 import io
 import json
+import os
 import re
 import sqlite3
 import subprocess
 import sys
+from collections import Counter
 from contextlib import contextmanager
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 FIX = ROOT / "Spike" / "ReceiptSpike" / "fixtures"
-DB = FIX / "corpus.sqlite"
+# The reader's write path (`import-readings`) may run against a scratch copy so a
+# test never touches the checkout's corpus: `PUMP_ANNOTATE_DB` is the same
+# redirect the annotator server uses, and the two file paths move with it.
+DB = Path(os.environ["PUMP_ANNOTATE_DB"]) if os.environ.get("PUMP_ANNOTATE_DB") else FIX / "corpus.sqlite"
 PUMP = FIX / "pump"
 LIVE = FIX / "pump-live"
-FRAMES = LIVE / "frames"
+FRAMES = Path(os.environ["PUMP_CORPUS_FRAMES"]) if os.environ.get("PUMP_CORPUS_FRAMES") else LIVE / "frames"
 WINDOWS_FILE = PUMP / "windows.json"
 EXPECTED_FILE = PUMP / "expected.csv"
 VIDEOS_FILE = LIVE / "videos.json"
-LABELS_FILE = LIVE / "video-labels.json"
+LABELS_FILE = Path(os.environ["PUMP_CORPUS_LABELS"]) if os.environ.get("PUMP_CORPUS_LABELS") else LIVE / "video-labels.json"
 CORRECTIONS_FILE = LIVE / "corrections.jsonl"
 S3_ENDPOINT = "https://storage.yandexcloud.net"
 S3_BUCKET = "tankbook-corpus"
 S3_MEDIA_PREFIX = "pump-live/"
 
-SCHEMA_VERSION = "3"
+SCHEMA_VERSION = "4"
 
 ENTRY_KEYS = ("windows", "rotationCW", "notOnDisplay", "csvDisagrees", "reviewed", "tracking", "liveAnchors")
 VIDEO_KEYS = ("reference", "currency", "unitPrice", "windows", "reviewed", "anchors", "firstFrame", "lastFrame", "note")
@@ -84,7 +89,7 @@ create table entries (
 create table windows (
   id integer primary key, fixture text not null references fixtures(name), ord integer not null,
   field text not null, text text not null, legibility text, quad text not null,
-  x0 real, y0 real, x1 real, y1 real);
+  x0 real, y0 real, x1 real, y1 real, placed_by text, zoom real);
 create table media (
   name text primary key, kind text not null, path text not null, bytes integer,
   s3_key text not null, s3_url text not null, in_bucket integer,
@@ -202,6 +207,26 @@ def _residual(obj: dict, known: tuple[str, ...]) -> dict:
     return {k: v for k, v in obj.items() if k not in known}
 
 
+def make_of(name: str) -> str:
+    """The make token after `pump-NNN-` / `receipt-NNN-`, the way
+    `scripts/corrections-report.py` attributes a record's make."""
+    parts = name.split("-")
+    return parts[2] if len(parts) > 2 else "?"
+
+
+def _auto_placed_batch(name: str) -> bool:
+    """The reader auto-placed the stills pump-244..pump-281 on 2026-09-21
+    (the batch-6 pass); every earlier entry was hand-drawn."""
+    match = re.match(r"pump-(\d+)", name)
+    return bool(match) and 244 <= int(match.group(1)) <= 281
+
+
+def default_placed_by(name: str, pending: bool = False) -> str:
+    """Who placed a window that carries no `placedBy`: the reader for the
+    auto-placed batch and any still flagged `pendingWindows`, else the hand."""
+    return "auto" if (pending or _auto_placed_batch(name)) else "hand"
+
+
 def _live_anchors(con: sqlite3.Connection, fixture: str) -> list[dict]:
     rows = con.execute("select record, frame, field, quad from live_anchors "
                        "where fixture = ? order by ord", (fixture,)).fetchall()
@@ -230,13 +255,15 @@ def load_windows(con: sqlite3.Connection) -> None:
              json.dumps(entry["csvDisagrees"]) if entry.get("csvDisagrees") else None,
              entry.get("tracking"), json.dumps(list(entry.keys())), json.dumps(_residual(entry, ENTRY_KEYS)), ord_))
         ord_ += 1
+        pending = bool(entry.get("pendingWindows"))
         for i, w in enumerate(entry.get("windows", [])):
             xs = [p[0] for p in w["quad"]]
             ys = [p[1] for p in w["quad"]]
-            con.execute("insert into windows (fixture, ord, field, text, legibility, quad, x0, y0, x1, y1) "
-                        "values (?,?,?,?,?,?,?,?,?,?)",
+            con.execute("insert into windows (fixture, ord, field, text, legibility, quad, x0, y0, x1, y1, placed_by, zoom) "
+                        "values (?,?,?,?,?,?,?,?,?,?,?,?)",
                         (name, i, w["field"], w.get("text", ""), w.get("legibility"), json.dumps(w["quad"]),
-                         min(xs), min(ys), max(xs), max(ys)))
+                         min(xs), min(ys), max(xs), max(ys),
+                         w.get("placedBy") or default_placed_by(name, pending), w.get("zoom")))
         for i, a in enumerate(entry.get("liveAnchors", [])):
             for w in a["windows"]:
                 con.execute("insert into live_anchors values (?,?,?,?,?,?)",
@@ -531,8 +558,20 @@ def _group(rows, *keys) -> dict:
 
 
 def _window_list(rows) -> list[dict]:
-    return [{"field": r["field"], "text": r["text"], "quad": json.loads(r["quad"]),
-             **({"legibility": r["legibility"]} if r["legibility"] else {})} for r in rows]
+    """A window as the file spells it. `placedBy`/`zoom` follow `legibility`;
+    a row without them (a frame window, or a migrated entry) dumps unchanged."""
+    out: list[dict] = []
+    for r in rows:
+        keys = r.keys()
+        w = {"field": r["field"], "text": r["text"], "quad": json.loads(r["quad"])}
+        if r["legibility"]:
+            w["legibility"] = r["legibility"]
+        if "placed_by" in keys and r["placed_by"]:
+            w["placedBy"] = r["placed_by"]
+        if "zoom" in keys and r["zoom"] is not None:
+            w["zoom"] = r["zoom"]
+        out.append(w)
+    return out
 
 
 def _anchor_list(rows) -> list[dict]:
@@ -831,6 +870,31 @@ def heldout_names(con: sqlite3.Connection | None = None) -> set[str]:
         return {r["name"] for r in con.execute("select name from fixtures where split = 'heldout'")}
 
 
+def convention(make: str, con: sqlite3.Connection | None = None) -> dict[str, dict]:
+    """Per transaction field, the modal (digit count, separator) over the
+    reviewed entries of one make - the convention the annotator's pad key
+    targets. Derived from the corpus, never a hard-coded table."""
+    with transaction(con) as con:
+        rows = con.execute(
+            "select e.fixture, w.field, w.text from windows w join entries e on e.fixture = w.fixture "
+            "where e.reviewed = 1").fetchall()
+    counts: dict[str, Counter] = {}
+    for r in rows:
+        if r["field"] not in ("total", "liters", "unitPrice") or make_of(r["fixture"]) != make:
+            continue
+        text = r["text"] or ""
+        if not text:
+            continue
+        digits = sum(ch.isdigit() for ch in text)
+        separator = "," if "," in text else ("." if "." in text else "")
+        counts.setdefault(r["field"], Counter())[(digits, separator)] += 1
+    out: dict[str, dict] = {}
+    for field, tally in counts.items():
+        (digits, separator), _ = tally.most_common(1)[0]
+        out[field] = {"digits": digits, "separator": separator}
+    return out
+
+
 def labels(con: sqlite3.Connection | None = None) -> dict:
     """The video labels, the `video-labels.json` object."""
     with transaction(con) as con:
@@ -887,6 +951,10 @@ def clean_entry(entry: dict) -> dict:
         cw = {"field": w["field"], "text": w.get("text", ""), "quad": quad}
         if w.get("legibility"):
             cw["legibility"] = w["legibility"]
+        if w.get("placedBy"):
+            cw["placedBy"] = w["placedBy"]
+        if w.get("zoom") is not None:
+            cw["zoom"] = float(w["zoom"])
         out["windows"].append(cw)
     if entry.get("rotationCW"):
         out["rotationCW"] = int(entry["rotationCW"])
@@ -938,10 +1006,10 @@ def _write_entry(con: sqlite3.Connection, name: str, entry: dict) -> None:
     for i, w in enumerate(entry.get("windows", [])):
         xs = [p[0] for p in w["quad"]]
         ys = [p[1] for p in w["quad"]]
-        con.execute("insert into windows (fixture, ord, field, text, legibility, quad, x0, y0, x1, y1) "
-                    "values (?,?,?,?,?,?,?,?,?,?)",
+        con.execute("insert into windows (fixture, ord, field, text, legibility, quad, x0, y0, x1, y1, placed_by, zoom) "
+                    "values (?,?,?,?,?,?,?,?,?,?,?,?)",
                     (name, i, w["field"], w.get("text", ""), w.get("legibility"), json.dumps(w["quad"]),
-                     min(xs), min(ys), max(xs), max(ys)))
+                     min(xs), min(ys), max(xs), max(ys), w.get("placedBy"), w.get("zoom")))
     for i, a in enumerate(entry.get("liveAnchors", [])):
         for w in a["windows"]:
             con.execute("insert into live_anchors values (?,?,?,?,?,?)",
@@ -1149,9 +1217,11 @@ def import_readings(path: Path) -> None:
     The staging file is `{"record": stem, "readings": {...}, "labels": {...}}`:
     `readings` is the per-frame readings object the old writer wrote to
     `frames/<stem>/readings.json`; `labels` carries only arithmetic rows. An
-    owner label for a frame is kept and no arithmetic row is added for it.
-    The old writer emitted compact readings JSON, so the style is reset to
-    `compact` for the record."""
+    owner label for a frame is kept and no arithmetic row is added for it. A
+    frame the test regenerated has its staged arithmetic label written over any
+    earlier one; an `interpolated` label the test did NOT stage is kept, so an
+    interpolation whose keyframes are still owner survives a re-run. The old
+    writer emitted compact readings JSON, so the style is reset to `compact`."""
     data = json.loads(Path(path).read_text())
     record = data["record"]
     readings = data.get("readings") or {}
@@ -1173,8 +1243,19 @@ def import_readings(path: Path) -> None:
                                 (record, frame, field, text, closes, i))
             owner = {r["frame"] for r in con.execute(
                 "select distinct frame from labels where video = ? and source = 'owner'", (record,))}
-            con.execute("delete from labels where video = ? and (source is null or source != 'owner')", (record,))
-            if not labels and not owner:
+            interpolated = {r["frame"] for r in con.execute(
+                "select distinct frame from labels where video = ? and source = 'interpolated'", (record,))}
+            con.execute("delete from labels where video = ? and (source is null or source not in ('owner','interpolated'))",
+                        (record,))
+            # A frame the test read or labelled is regenerated: its old
+            # interpolated row is replaced (by an arithmetic label, or by
+            # nothing when the reading did not close).
+            regenerated = sorted(set(labels) | set(readings))
+            if regenerated:
+                marks = ",".join("?" * len(regenerated))
+                con.execute(f"delete from labels where video = ? and source = 'interpolated' and frame in ({marks})",
+                            (record, *regenerated))
+            if not labels and not owner and not interpolated:
                 con.execute("insert into labels values (?,?,?,?,?)", (record, "", "", None, None))
             for frame, fields in labels.items():
                 if frame in owner:
@@ -1249,6 +1330,20 @@ def migrate(db: Path | None = None) -> bool:
             columns = {r[1] for r in con.execute("pragma table_info(frames)")}
             if "s3_key" not in columns:
                 con.execute("alter table frames add column s3_key text")
+            wcolumns = {r[1] for r in con.execute("pragma table_info(windows)")}
+            placed_added = "placed_by" not in wcolumns
+            if placed_added:
+                con.execute("alter table windows add column placed_by text")
+            if "zoom" not in wcolumns:
+                con.execute("alter table windows add column zoom real")
+            if placed_added:
+                # Backfill the same default `load_windows` applies: a migrated
+                # database must dump the provenance the files already carry.
+                # The connection here has no row factory, so index positionally.
+                for fixture, extra_json in con.execute("select fixture, extra from entries"):
+                    extra = json.loads(extra_json) if extra_json else {}
+                    con.execute("update windows set placed_by = ? where fixture = ? and placed_by is null",
+                                (default_placed_by(fixture, bool(extra.get("pendingWindows"))), fixture))
             version = con.execute("select value from meta where key = 'schema_version'").fetchone()
             if not version or version[0] != SCHEMA_VERSION:
                 con.execute("insert or replace into meta values ('schema_version', ?)", (SCHEMA_VERSION,))

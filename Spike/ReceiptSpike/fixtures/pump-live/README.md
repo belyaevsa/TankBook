@@ -278,6 +278,15 @@ right when `total == round(liters x 1.729, 2)`. That is a self-check no still ca
 material for the running-display behaviour (`docs/EXTRACTION.md`: a pump mid-fill is not a
 transaction until the numbers stop). Frames extract with the `ffmpeg` line above.
 
+A frame's label carries a **source** in `video-labels.json` (written through `corpus_db.py`):
+`arithmetic` when the reader read the display and the arithmetic closed, `owner` when the product
+owner typed it, and `interpolated` when the owner keyframed a run's two ends in
+`tools/pump-annotate` (`⌥⏎`) and the middle was filled by the same closure. An `interpolated` frame
+is a head start, not a fact: the reader keeps it only while the nearest owner keyframe on both sides
+is still `owner`, and regenerates it as `arithmetic` otherwise. Each reading also stages the lowest
+cell margin of the total and liters windows; the annotator shows it beside the label and flags a
+low-confidence `arithmetic` frame as attention.
+
 ## Batch 7 (2026-09-20, product owner): a second running display, Cyrillic head
 
 Same kind of medium as Batch 5, cut the same way (the 4.5 s forecourt pan removed, no audio, no

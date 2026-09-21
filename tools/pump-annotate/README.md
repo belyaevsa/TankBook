@@ -22,16 +22,34 @@ the ml venv runs it); the converted images are cached under
 `~/Library/Caches/tankbook-pump-annotate/` by content hash.
 
 - Left: every fixture in `expected.csv` (grey = no windows yet). `J`/`K` walk it.
+  A heldout still (`fixtures.split`, decision 9) carries a small `H` badge
+  ("heldout - measured once reviewed"); `#counts` tallies
+  `heldout N (M reviewed)`.
 - Middle: drag a rectangle to add a window (the first three go to
   total / liters / unitPrice and pre-fill the text from `expected.csv`; the rest
   are `board`); click to select; drag a corner to adjust; drag inside to move;
   `1`-`4` set the field; `⌫` deletes.
+- **Nudge** (window selected, not typing): `←↑→↓` move the whole quad by one
+  screen pixel at the current zoom (`⇧` = 10 px); `⌥`+arrow moves only the
+  active corner - the last one dragged, else corner 0, shown as the filled dot.
+  `Esc` deselects. In the frames view a plain `←`/`→` always steps frames
+  (opening the view deselects); a horizontal nudge there needs `⇧` or `⌥`,
+  `↑`/`↓` nudge as usual.
 - Right: the text as the display SHOWS it (zero padding, comma), `partial`
   legibility, `rotationCW` (rotates the view only - quads stay in image space),
   `notOnDisplay` and `csvDisagrees`.
+- **Live arithmetic** beside the CSV line: when the still's total, liters and
+  unitPrice windows all carry text, the page shows `✓ closes` or
+  `✗ liters x price = computed, shown total`, from the WINDOW texts (never the
+  CSV row) and the same law `frameStates` runs on video frames. It is
+  informational - it never blocks Save, because the corpus has legitimate
+  off-by-a-cent displays.
 - `processed` (`P`) marks the entry as checked by a human - `reviewed: true` in
   the JSON - and `✓ Save & next` (`⏎`) sets it, saves and opens the next one in
   the filtered list; the list filter separates empty / not processed / processed.
+  Editing a `reviewed` heldout entry's windows (a quad or a text) clears
+  `reviewed` on save and the page says so - a changed heldout still never
+  measures silently; a save with identical windows keeps it.
 - A `▶` in the list marks a still with a Live record (blue = tracking unreviewed,
   green = ok, red = bad; `▶?` = not tracked yet); the filter has *with Live record* and
   *Live, tracking unreviewed*.
@@ -64,15 +82,37 @@ the ml venv runs it); the converted images are cached under
   `pump-live/videos.json`. Their "still" is the hand-annotated reference frame;
   *View frames* steps the tracked frames, and a **frame label** row shows the
   frame's total / liters / price - filled by the reader where the arithmetic
-  closed (`arithmetic`), empty otherwise. Correct or fill it and **Save label**
-  (`⇧⏎`; `⌥←`/`⌥→` step frames from the input); owner labels are kept by every
-  re-run of the reader. Stored in `pump-live/video-labels.json`.
+  closed (`arithmetic`), empty otherwise. Beside the label is the reader's
+  **margin** for that frame (the lowest cell margin of the total and liters
+  windows, from `readings`; `–` when none), and an `arithmetic` frame under the
+  classifier's verify floor (`PumpReader.minimumMeanMargin`) is marked attention.
+  Correct or fill it and **Save label** (`⇧⏎`; `⌥←`/`⌥→` step frames from the
+  input); owner labels are kept by every re-run of the reader. Stored in
+  `pump-live/video-labels.json`.
+  - **A run is labelled by its keyframes.** `⌥⏎` saves the frame as `owner` and
+    fills the frames between it and the nearest earlier owner-labelled frame of
+    the run with the arithmetic closure at the clip's constant price: liters and
+    total interpolated by frame index, snapped to a pair where
+    `total == round(liters x price, 2)`, monotone in both, written
+    `source: interpolated` (the teal strip colour). A frame with no closing pair
+    within 0.02 L of its interpolation is left unlabelled and stays attention.
+    A later write to a frame invalidates the interpolations it bounds.
+  - **`whole run` is a confirm loop, not a one-shot write.** With it checked,
+    `⇧⏎` saves the typed frame and then shows the run's next frame with the typed
+    label overlaid: `→` or `⏎` confirms one frame (`owner`, `via: run`), `⌥⏎`
+    confirms the rest only while the arithmetic closes on each frame's existing
+    `arithmetic` reading (it stops on the first that does not and says why), and
+    `Esc` leaves the loop with the rest unlabelled. The ledger line for a run
+    write carries `confirmed: N` and `interpolated: M`.
 - **⟳ retrack + read all** (video frame label row): retracks the clip from its
   anchors and then runs the reader over every tracked frame
   (`PumpVideoReadTests` with `PUMP_VIDEO_READ_ONLY=<stem>`), rewriting the
   `arithmetic` labels. Frames with an owner label, frames anchored by hand and
   a video marked reviewed are skipped - the run never touches what a human
-  wrote. Progress shows in the status line (`retracking…`, `reading…`).
+  wrote. An `interpolated` frame is skipped only while the nearest owner
+  keyframe on both sides is still `owner`; otherwise it is regenerated as
+  `arithmetic` (a changed keyframe makes the interpolation stale). Progress
+  shows in the status line (`retracking…`, `reading…`).
 - **The rail** (far left): 🖼 photos (every still), ▶ Live photos (stills with a
   Live record - opening one lands on its frames), 🎞 movies (the running-display
   clips and the 4K held-display records). The filter and search apply inside the
@@ -85,6 +125,13 @@ the ml venv runs it); the converted images are cached under
   shift for 0.1°): rotates the selected window's quad about its centre
   so a skewed number gets a level box without dragging four corners. Works on
   a still's windows and on a video frame's (where it counts as a quad edit).
+- **live slicers** (toolbar switch, remembered per browser): while the selected
+  box is dragged, nudged or turned, the slicer's cells are drawn on it exactly
+  as the reader will cut them, with `cells N · dp at k · matches text / text
+  has M · 20 ms` in the toolbar. A resident `pump-read --slice-serve` answers
+  (`slicer.py`; the optimised build under `ios/.build/opt`, made on first use -
+  the first request on a still also pays its decode, ~100-400 ms); no model
+  runs and nothing is written. Off, the overlay only appears after ▶ read.
 - **Zoom** (`+` / `-` / the slider) keeps the selected window - else the
   centroid of all windows - at the same spot in the viewport, so zooming in
   lands on the digits instead of the image's top-left corner; `0` refits.
@@ -114,6 +161,19 @@ the ml venv runs it); the converted images are cached under
   (`swift build --product pump-read` in `ios/`, built on first use) with the
   models from `ios/App/Resources`; the per-cell digits and margins print under
   the buttons. Nothing is written until you save.
+- **Text conventions**: beside each window's text input a `cells N` badge
+  compares the last `▶ read`'s slicer cell count for that field against
+  `glyphCount(text)` (digits plus leading blanks) - green when equal, red when
+  they differ, grey before a read - and a ⚠ appears when the typed separator's
+  cell index differs from the cell the slicer marked `dp`. `Z` pads the three
+  transaction texts to the still's make convention, derived from the same make's
+  reviewed entries (`corpus_db.convention`, never a table): leading zeros to the
+  modal digit count and the modal separator, and `#msg` says what it did.
+- **Provenance**: every window carries `placedBy` (`hand` / `auto` / `reader` /
+  `tracker` / `template`) and `zoom` - the canvas zoom at the last quad edit -
+  written by the page, stored by `clean_entry` and the `windows` table, and
+  shown on the card as `hand @1.4x`. A `▶ read` pre-fill that only changes text
+  leaves them alone; the reader's auto-placed pump-244..pump-281 batch is `auto`.
 - `Save` (`⌘S`) writes the entry as rows in `fixtures/corpus.sqlite`
   (`scripts/corpus_db.py`) through the database, dumped; the database is
   committed with the files. `Check` runs
