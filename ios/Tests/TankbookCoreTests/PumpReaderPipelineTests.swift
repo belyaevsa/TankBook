@@ -38,7 +38,7 @@ struct PumpReaderPipelineTests {
     // without the detector file (ml/pump-reader/.out/det/DigitRows.mlmodel)
     // falls back to Vision and reads 11 - the floor assumes the detector is
     // present.
-    private static let liveCommittedFloor = PumpReaderTestSupport.detectorURL == nil ? 11 : 29
+    private static let liveCommittedFloor = PumpReaderTestSupport.detectorURL == nil ? 11 : 37
     private static let livePrecisionFloor = 0.99
 
     /// The make a fixture's file name names, for the per-head read table. The

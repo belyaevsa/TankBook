@@ -37,7 +37,6 @@ struct PumpReader {
     /// Fewer detector rows than this and the frame falls back to the Vision +
     /// classical proposals: a display has at least total and volume.
     static let detectorMinimumRows = 2
-    static let refineDetectedBoxes = false
 
     /// The locator's candidates for an upright frame: the detector's rows
     /// first (ranked by confidence, each flagged as detected so the verifier
@@ -46,12 +45,116 @@ struct PumpReader {
     func candidates(for upright: PumpRGBImage) -> [PumpPanelLocator.Candidate] {
         var out: [PumpPanelLocator.Candidate] = []
         if let detector, let cg = PumpQuadWarp.makeImage(upright.pixels, width: upright.width, height: upright.height) {
-            out = detector.detect(in: cg).map { PumpPanelLocator.Candidate(quad: $0.quad, glyphCount: 0, detected: true) }
+            let rows = Self.rescueStackedRows(detector.detect(in: cg))
+            out = rows.map { PumpPanelLocator.Candidate(quad: $0.quad, glyphCount: 0, detected: true) }
         }
         if out.count < Self.detectorMinimumRows {
             out += PumpPanelLocator.locate(upright, rotationCW: 0)
         }
         return out
+    }
+
+    /// The detector's rows the reader will use: every row above the confidence
+    /// cut, plus a low-confidence row rescued from beside a passing row when it
+    /// shares that row's x-span. Transaction rows stack on one column on every
+    /// head; a keypad row sits off the display's span, so it is never rescued.
+    static func rescueStackedRows(_ rows: [PumpRowDetector.Row]) -> [PumpRowDetector.Row] {
+        let passing = rows.filter { $0.confidence >= PumpRowDetector.minimumConfidence }
+        var kept = passing
+        for row in rows where row.confidence < PumpRowDetector.minimumConfidence {
+            if passing.contains(where: { sharesSpan(row.quad, $0.quad) && stacks(row.quad, $0.quad) }) {
+                kept.append(row)
+            }
+        }
+        return kept.sorted { $0.confidence > $1.confidence }
+    }
+
+    /// Whether two rows share an x-span: one contains the other, or both edges
+    /// line up within a quarter of the passing row's width.
+    static func sharesSpan(_ a: [CGPoint], _ b: [CGPoint]) -> Bool {
+        let ra = PumpRowAssignment.bounds(a, rotationCW: 0)
+        let rb = PumpRowAssignment.bounds(b, rotationCW: 0)
+        if (ra.minX >= rb.minX && ra.maxX <= rb.maxX) || (rb.minX >= ra.minX && rb.maxX <= ra.maxX) {
+            return true
+        }
+        let tolerance = 0.25 * rb.width
+        return abs(ra.minX - rb.minX) <= tolerance && abs(ra.maxX - rb.maxX) <= tolerance
+    }
+
+    /// Whether two rows sit above or below each other within three row heights.
+    static func stacks(_ a: [CGPoint], _ b: [CGPoint]) -> Bool {
+        let ra = PumpRowAssignment.bounds(a, rotationCW: 0)
+        let rb = PumpRowAssignment.bounds(b, rotationCW: 0)
+        let gap: CGFloat
+        if ra.maxY <= rb.minY { gap = rb.minY - ra.maxY }
+        else if rb.maxY <= ra.minY { gap = ra.minY - rb.maxY }
+        else { return true }
+        return gap <= 3 * max(ra.height, rb.height)
+    }
+
+    /// A detected box hugs or clips the digits (median IoU 0.80 on the heldout
+    /// stills; video-003 loses a thin leading `1` and a trailing `2`), so a
+    /// detected quad is widened sideways before slicing. The margin is small
+    /// and horizontal only, by measurement on the heldout live path: 0.1 row
+    /// heights each side keeps 29 cells and adds a photo, 0.2 keeps 29, 0.5
+    /// drops to 3 - the slicer's pitch and band come from what is inside the
+    /// box, and panel, bezel and the neighbouring row's ink poison both. Any
+    /// vertical margin (0.15) does the same (29 -> 3 to 15 cells). Clamped to
+    /// the frame.
+    static let detectedMarginHorizontal: CGFloat = 0.1
+    static let detectedMarginVertical: CGFloat = 0
+
+    /// The strip and cells a candidate is judged on. A detected box is sliced
+    /// widened and as it came, and the widened slice stands only when it found
+    /// at least as many cells: the margin exists to recover a clipped edge
+    /// digit, and a margin that brings in bezel or a neighbour's ink loses
+    /// cells instead (pump-209: 6 -> 1), so the margin may never cost a digit.
+    struct SlicedCandidate {
+        let quad: [CGPoint]
+        let strip: CGImage
+        let rgb: PumpRGBImage
+        let cells: [GlyphCell]
+    }
+
+    static func sliceDetectedOrOriginal(_ original: [CGPoint], detected: Bool, in image: PumpRGBImage) -> SlicedCandidate? {
+        func slice(_ quad: [CGPoint]) -> SlicedCandidate? {
+            guard let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: quad, stripHeight: Self.stripHeight) else { return nil }
+            let rgb = PumpQuadWarp.rgbImage(from: strip)
+            return SlicedCandidate(quad: quad, strip: strip, rgb: rgb, cells: PumpGlyphSlicer.slice(rgb.grayscale()).filter { !$0.isBlank })
+        }
+        guard let plain = slice(original) else { return nil }
+        guard detected, let wide = slice(widened(original, in: image)), wide.cells.count >= plain.cells.count else {
+            return plain
+        }
+        return wide
+    }
+
+    static func widened(_ quad: [CGPoint], in image: PumpRGBImage) -> [CGPoint] {
+        let b = PumpRowAssignment.bounds(quad, rotationCW: 0)
+        let dx = detectedMarginHorizontal * b.height
+        let dy = detectedMarginVertical * b.height
+        let minX = max(0, b.minX - dx), maxX = min(CGFloat(image.width), b.maxX + dx)
+        let minY = max(0, b.minY - dy), maxY = min(CGFloat(image.height), b.maxY + dy)
+        return [CGPoint(x: minX, y: minY), CGPoint(x: maxX, y: minY),
+                CGPoint(x: maxX, y: maxY), CGPoint(x: minX, y: maxY)]
+    }
+
+    /// A keypad row is printed digits in a grid of keys, and the detector's
+    /// shape check cannot tell it from a display row. Two things single it out,
+    /// both structural (decision 10: a detected row is never judged by the
+    /// classifier): it shares its x-span with no other detected row and lies
+    /// outside the widest one's span (a transaction row stacks with the
+    /// column), and its cells are the tall ones of a key grid - a printed key
+    /// row's band spans more than one key, so its pitch is under three quarters
+    /// of the band, where a seven-segment row's pitch is around the band's
+    /// height. Measured: pump-224's keypad 0.57, a true ladder price cell 0.94
+    /// (pump-056); see `verdicts`.
+    static let keypadMaximumCellAspect: CGFloat = 0.75
+
+    static func isKeypadRow(_ box: CGRect, widest: CGRect, siblings: [CGRect], cellAspect: CGFloat) -> Bool {
+        guard cellAspect < Self.keypadMaximumCellAspect else { return false }
+        guard box.maxX <= widest.minX || box.minX >= widest.maxX else { return false }
+        return !siblings.contains { $0.minX < box.maxX && $0.maxX > box.minX }
     }
 
     /// Classifies every window's cells. Windows the slicer finds nothing in
@@ -222,29 +325,31 @@ struct PumpReader {
     }
 
     func verdicts(image: PumpRGBImage, candidates: [PumpPanelLocator.Candidate]) throws -> [Verdict] {
+        let considered = Array(candidates.prefix(Self.maximumCandidates))
+        // The detected rows' boxes before the margin, for the keypad test.
+        let detectedBoxes: [(index: Int, box: CGRect)] = considered.enumerated().compactMap { index, candidate in
+            guard candidate.detected else { return nil }
+            let pixels = candidate.quad.map { CGPoint(x: $0.x * CGFloat(image.width), y: $0.y * CGFloat(image.height)) }
+            return (index, PumpRowAssignment.bounds(pixels, rotationCW: 0))
+        }
+        let widestDetected = detectedBoxes.max { $0.box.width < $1.box.width }?.box
         var out: [Verdict] = []
-        for candidate in candidates.prefix(Self.maximumCandidates) {
-            var quad = candidate.quad.map { CGPoint(x: $0.x * CGFloat(image.width), y: $0.y * CGFloat(image.height)) }
-            // A detected box carries panel around the digits; PumpBoxRefiner
-            // tightens it to the ink, measured on the heldout split as no
-            // gain (22 -> 21 committed), so it stays off until the read
-            // stage's losses are understood (PumpLivePathDiagnosticTests).
-            if candidate.detected && Self.refineDetectedBoxes {
-                quad = PumpBoxRefiner.refine(quad: quad, in: image)
-            }
-            let ys = quad.map(\.y)
-            let heightFraction = (ys.max()! - ys.min()!) / CGFloat(image.height)
+        for (index, candidate) in considered.enumerated() {
+            let original = candidate.quad.map { CGPoint(x: $0.x * CGFloat(image.width), y: $0.y * CGFloat(image.height)) }
+            let originalYs = original.map(\.y)
+            let heightFraction = (originalYs.max()! - originalYs.min()!) / CGFloat(image.height)
             // A row against the frame's top or bottom edge is a banner or a
-            // sign the photo cut, never a display row the user framed.
+            // sign the photo cut, never a display row the user framed. Judged
+            // on the detected box, before the margin, so a margin that reaches
+            // the edge does not reject a row the detector placed inside it.
             let edge = Self.frameEdgeFraction * CGFloat(image.height)
-            let touchesEdge = ys.min()! <= edge || ys.max()! >= CGFloat(image.height) - edge
+            let touchesEdge = originalYs.min()! <= edge || originalYs.max()! >= CGFloat(image.height) - edge
             guard heightFraction >= Self.minimumRowHeightFraction, !touchesEdge,
-                  let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: quad, stripHeight: Self.stripHeight) else {
-                out.append(Verdict(quad: quad, heightFraction: heightFraction, cells: 0, meanMargin: 0, kept: false))
+                  let sliced = Self.sliceDetectedOrOriginal(original, detected: candidate.detected, in: image) else {
+                out.append(Verdict(quad: original, heightFraction: heightFraction, cells: 0, meanMargin: 0, kept: false))
                 continue
             }
-            let stripRGB = PumpQuadWarp.rgbImage(from: strip)
-            let cells = PumpGlyphSlicer.slice(stripRGB.grayscale()).filter { !$0.isBlank }
+            let quad = sliced.quad, strip = sliced.strip, stripRGB = sliced.rgb, cells = sliced.cells
             guard cells.count >= Self.minimumVerifiedCells, cells.count <= PumpReadingLaw.maxCells else {
                 out.append(Verdict(quad: quad, heightFraction: heightFraction, cells: cells.count, meanMargin: 0, kept: false))
                 continue
@@ -261,8 +366,20 @@ struct PumpReader {
             let shaped = aspect <= Self.maximumAspectPerCell * CGFloat(cells.count) + 1
             // A detected row is kept on count and size alone: the detector's
             // confidence already vouched for it, and gating it on the
-            // classifier's margin coupled the live number to every retrain.
-            let kept = candidate.detected ? shaped : (shaped && mean >= Self.minimumMeanMargin)
+            // classifier's margin coupled the live number to every retrain. The
+            // exception is a keypad row, which the shape check cannot see; it is
+            // judged on its cell geometry, never the classifier.
+            var keypad = false
+            if candidate.detected, let widestDetected,
+               let box = detectedBoxes.first(where: { $0.index == index })?.box {
+                let cellAspect = cells.first.map { $0.rect.width / max($0.rect.height, 1) } ?? 1
+                keypad = Self.isKeypadRow(box, widest: widestDetected,
+                                          siblings: detectedBoxes.filter { $0.index != index }.map(\.box),
+                                          cellAspect: cellAspect)
+            }
+            let kept = candidate.detected
+                ? (shaped && !keypad)
+                : (shaped && mean >= Self.minimumMeanMargin)
             out.append(Verdict(quad: quad, heightFraction: heightFraction, cells: cells.count, meanMargin: mean, kept: kept,
                                detected: candidate.detected))
         }

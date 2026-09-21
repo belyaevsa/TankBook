@@ -896,6 +896,21 @@ rows. Measured: live path 11 → 22 committed on the heldout split, all correct,
 instead of 15. The three-tier ladder (oracle strings / annotated windows / live) is the way the
 reader's numbers are read from here: a change is judged by which tier it moves.
 
+**Decision 10, amended 2026-09-21 (PU.35): three geometric rules on the detector's rows, and one
+finding against the obvious one.** A detected row is sliced both as the detector drew it and
+widened sideways by a tenth of its height, and the widened slice stands only when it found at
+least as many cells - the margin exists to recover a clipped edge digit and may never cost one
+(pump-209 lost its row to a tenth of a margin; any vertical margin, or half a height sideways,
+collapsed the live read from 29 to 3-15 cells: the slicer's band and pitch come from what is inside
+the box, and panel, bezel and a neighbour's ink poison both). A row the detector saw but was not
+sure of (down to 0.15) is rescued when it shares the x-span of a passing row and stacks with it -
+transaction rows stack on one column on every head, a keypad row does not. A detected row whose
+cells are as wide as tall, off the display's span and sharing it with no other row is a keypad
+and is dropped - on geometry alone, never the classifier's margin, which is what decision 10
+forbids. Measured on the heldout: two rows verified 50 → 52, roles right 44 → 45, live path 29 → 37
+cells at precision 1.000, photos fully right 8 → 11. The detector retrained on the whole corpus the
+same day (926 images) moved nothing - the lever on the locator is geometric, not more frames.
+
 **Where it lives.** Training, rendering, export and scoring are Python under `ml/pump-reader/`
 (PyTorch → coremltools), outside every gate except their own `pytest`; the exported `.mlpackage` is
 an app resource (`PumpSegments.mlpackage`, the cell classifier; `DigitRows.mlmodel`, the row

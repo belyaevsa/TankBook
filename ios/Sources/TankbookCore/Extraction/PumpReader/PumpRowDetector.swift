@@ -17,10 +17,15 @@ final class PumpRowDetector: @unchecked Sendable {
     }
 
     private let model: VNCoreMLModel
-    /// Below this the detector's proposals are noise; measured on the heldout
+    /// The confidence a detected row needs on its own. Measured on the heldout
     /// stills (ml/pump-reader/detector/measure.swift): 0.3 keeps 86 % of the
     /// annotated rows at 0.7 false rows per photo, 0.5 keeps 81 % at 0.3.
     static let minimumConfidence: Double = 0.3
+    /// Rows down to this are returned so the reader can rescue one stacked under
+    /// a passing row (a transaction row the detector saw but was not sure of);
+    /// a row below `minimumConfidence` is a candidate only through that rescue
+    /// (`PumpReader.rescueStackedRows`), never on its own.
+    static let rescueConfidence: Double = 0.15
 
     init(contentsOf url: URL) throws {
         var modelURL = url
@@ -36,7 +41,7 @@ final class PumpRowDetector: @unchecked Sendable {
         guard (try? VNImageRequestHandler(cgImage: image, options: [:]).perform([request])) != nil else { return [] }
         let observations = request.results as? [VNRecognizedObjectObservation] ?? []
         return observations.compactMap { observation in
-            guard Double(observation.confidence) >= Self.minimumConfidence else { return nil }
+            guard Double(observation.confidence) >= Self.rescueConfidence else { return nil }
             let b = observation.boundingBox  // Vision: bottom-left origin
             let top = 1 - b.maxY, bottom = 1 - b.minY
             return Row(quad: [CGPoint(x: b.minX, y: top), CGPoint(x: b.maxX, y: top),

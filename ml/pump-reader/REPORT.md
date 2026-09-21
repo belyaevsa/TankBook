@@ -756,3 +756,28 @@ median IoU 0.796 → 0.779, false rows 42 → 44, photos with every row 49 → 4
 locator's next lever is geometric (PU.35: a margin on detected boxes before slicing, a stacked-row
 rescue below the confidence cut, keypad negatives), not more frames.
 
+### The locator's geometry (PU.35, 2026-09-21)
+
+Started as a flash dispatch that swept the three parts behind environment switches for 1 h 40 min
+and was stopped at the owner's pause; finished by the orchestrator from its sweep. The sweep's
+finding is the useful part: the margin idea is mostly wrong.
+
+| margin (× row height) | rescue | keypad | live cells / photos |
+|---|---|---|---|
+| 0 / 0 (HEAD) | off | off | 29 / 8 |
+| 0.5 sideways, 0.15 vertical | off | off | **3** / 1 |
+| 0.5 sideways, 0 | off | off | 6 (4 right) / 1 |
+| 0.2 / 0.15 | off | off | 15 / 4 |
+| 0.2 / 0 | off | off | 29 / 9 |
+| 0.1 / 0 | off | off | 29 / 9 |
+| 0.1 / 0 | on | on | 29 / 9 - and pump-209 loses its only row (60 → 59 verified) |
+| **0.1 / 0, kept only when the count holds** | **on** | **on** | **37 / 11**; funnel 61 → 60 → 52 → 45 → 14 |
+
+The slicer's band and pitch come from what is inside the box, so panel, bezel and a neighbour's
+ink poison the read faster than a clipped edge digit costs it. The rule that ships slices a
+detected row both ways and keeps the widened slice only when it found at least as many cells.
+The keypad test is geometry alone (cell aspect < 0.75, off the widest row's span, no sibling
+sharing the span) - the sweep's version was gated on the classifier's margin, which decision 10
+forbids; on geometry alone it drops pump-224's keys and no true row. `PumpBoxRefiner` (the
+opposite bet, tightening; 22 → 21) is deleted. Live floor 29 → 37.
+
