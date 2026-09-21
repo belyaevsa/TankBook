@@ -235,6 +235,31 @@ def records_for(still: str) -> list[dict]:
     return out
 
 
+def pin_frame(stem: str, frame: str, windows: list[dict], texts: dict[str, str] | None = None) -> bool:
+    """Writes one frame's hand-placed quads straight into the record's tracked
+    file as a verified anchor - no retrack. Every other frame keeps what the
+    tracker gave it; a later retrack (the owner's call) registers them to
+    this frame as well."""
+    tracked = FRAMES / stem / "windows.json"
+    if not tracked.exists():
+        return False
+    t = json.loads(tracked.read_text())
+    old = {w["field"]: w for w in t["frames"].get(frame, {}).get("windows", [])}
+    out = []
+    for w in windows:
+        cw = dict(old.get(w["field"], {"field": w["field"], "text": ""}))
+        cw["quad"] = w["quad"]
+        if texts and w["field"] in texts:
+            cw["text"] = texts[w["field"]]
+        out.append(cw)
+    t["frames"][frame] = {**t["frames"].get(frame, {}), "windows": out, "inliers": -1,
+                          "anchor": int(frame[:-4]), "verified": True}
+    anchors = [a for a in t.get("_anchors", []) if a != frame] + [frame]
+    t["_anchors"] = sorted(anchors, key=lambda n: int(n[:-4]))
+    tracked.write_text(json.dumps(t, indent=1))
+    return True
+
+
 # One retrack per video at a time, in the background; the page polls /api/retrack/<name>.
 # With `read`, the tracked frames are then read again by the app's reader
 # (PumpVideoReadTests regenerates the `arithmetic` labels); frames the owner
@@ -386,9 +411,11 @@ class Handler(SimpleHTTPRequestHandler):
                 ann[still]["liveAnchors"] = sorted(anchors, key=lambda a: (a["record"], int(a["frame"][:-4])))
                 ann[still] = clean_entry(ann[still])
                 save_windows(ann)
-                start_retrack(stem)
+                pin_frame(stem, frame, windows)
+                if body.get("retrack"):
+                    start_retrack(stem)
                 return self.send_json({"ok": True, "anchors": [a["frame"] for a in anchors if a["record"] == stem],
-                                       "liveAnchors": ann[still]["liveAnchors"]})
+                                       "liveAnchors": ann[still]["liveAnchors"], "retrack": bool(body.get("retrack"))})
             if stem not in videos:
                 return self.send_error(HTTPStatus.NOT_FOUND)
             anchors = [a for a in videos[stem].get("anchors", []) if a["frame"] != frame]
@@ -398,8 +425,11 @@ class Handler(SimpleHTTPRequestHandler):
                 anchors.append({"frame": frame, "windows": windows})
             videos[stem]["anchors"] = sorted(anchors, key=lambda a: int(a["frame"][:-4]))
             VIDEOS.write_text(json.dumps(videos, indent=1))
-            start_retrack(stem)
-            return self.send_json({"ok": True, "anchors": [a["frame"] for a in videos[stem]["anchors"]]})
+            pin_frame(stem, frame, windows, {"unitPrice": videos[stem].get("unitPrice", "")})
+            if body.get("retrack"):
+                start_retrack(stem)
+            return self.send_json({"ok": True, "anchors": [a["frame"] for a in videos[stem]["anchors"]],
+                                   "retrack": bool(body.get("retrack"))})
         if path.startswith("/api/video-label/"):
             # /api/video-label/<stem>/<frame>: the owner's texts for one frame.
             rel = unquote(path[len("/api/video-label/"):])
@@ -458,6 +488,14 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
+        if path.startswith("/api/retrack-now/"):
+            # /api/retrack-now/<stem>: re-register every non-anchored frame to the
+            # reference and the anchors - the owner's call after pinning frames.
+            stem = unquote(path[len("/api/retrack-now/"):])
+            if not (FRAMES / stem).exists():
+                return self.send_error(HTTPStatus.NOT_FOUND)
+            start_retrack(stem)
+            return self.send_json({"ok": True})
         if path.startswith("/api/rerun/"):
             # /api/rerun/<stem>: retrack the clip from its anchors, then read every
             # tracked frame again. Owner labels, anchored frames and a reviewed

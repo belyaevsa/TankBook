@@ -35,10 +35,11 @@ the ml venv runs it); the converted images are cached under
   is a Live record's "processed" (also the **✓ tracking ok** button). A wrong
   quad on a frame is dragged into place like a video's and saved with **Save
   frame** (`⇧⏎` while the frame is edited, or just wait - a drag saves itself):
-  the frame becomes an **anchor** (`liveAnchors` on the still's entry in
-  `windows.json`, kept by every later save of the still) and the record
-  retracks in the background, every other frame registering to the still and
-  its nearest anchors; an anchored frame is never moved by a retrack.
+  the frame is **pinned** as an anchor (`liveAnchors` on the still's entry in
+  `windows.json`, kept by every later save of the still) and nothing else
+  moves. **↻ re-track** is the separate, explicit action that re-registers
+  every non-anchored frame to the still and its nearest anchors; a pinned
+  frame is never moved by it.
 - **Videos** (`🎞`, filter *videos*): the running-display clips from
   `pump-live/videos.json`. Their "still" is the hand-annotated reference frame;
   *View frames* steps the tracked frames, and a **frame label** row shows the
@@ -56,10 +57,11 @@ the ml venv runs it); the converted images are cached under
   centroid of all windows - at the same spot in the viewport, so zooming in
   lands on the digits instead of the image's top-left corner; `0` refits.
 - **Anchors**: on any video frame the quads can be dragged (corners and body);
-  the frame is saved as an anchor by itself (`videos.json`) and the clip
-  retracks in the background - every other frame registers to its nearest
-  anchors and takes the best, an anchored frame is written back verbatim and
-  never re-registered - so one corrected frame fixes the stretch around it.
+  the frame is pinned as an anchor by itself (`videos.json` and the tracked
+  file) and nothing else moves. **↻ re-track** re-registers every other frame
+  to its nearest anchors and takes the best - a pinned frame is written back
+  verbatim and never re-registered - so one corrected frame fixes the stretch
+  around it when you ask for it, and a single bad frame costs a single pin.
 - **▶ read** (`r`): runs the app's own reader on what is on
   screen and fills the fields as a prefill - the annotated windows (or a video
   frame's carried quads) are sliced, classified and judged by the law, and the
