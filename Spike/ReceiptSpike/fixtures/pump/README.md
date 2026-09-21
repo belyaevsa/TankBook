@@ -1363,7 +1363,8 @@ board-only Wayne heads assert two cells each, two glare stills two). Totals only
 
 ## Added 2026-09-21 (batch 7: the same day at night - eight stills)
 
-The first **night** captures of the Estonian faces, all **train**, auto-annotated through the
+The first **night** captures of the Estonian faces - `pump-275`, `277`, `280`, `281` **heldout**
+(decision 9 amended, `docs/EXTRACTION.md`), the other four **train** - auto-annotated through the
 live path (unreviewed; `pump-280` pending its price window, which the reader did not place).
 `pump-274`..`276`: Neste Dresser Wayne under the canopy lights, `30.24 / 15.13`, `103.37 /
 51.71` (a 51-litre fill, the corpus's largest Neste), `86.05 / 39.13`; the three-cell board lit
@@ -1375,6 +1376,6 @@ and the receipt prints 69,91 as well - **pair** with `receipt-086`), pump 3 `001
 Circle K Gilbarco at night, pumps 11 and 12 - `0007,05 / 0003,23` at `2,184` (a 3-litre fill,
 the corpus's highest Estonian price) and `0045,78 / 0023,49` at `1,949`.
 
-**The Live records of this batch were lost at intake**: the orchestrator's cleanup deleted the
-`.mov` files after the conversion step failed, before they were copied (2026-09-21). They can
-be re-exported from the phone; until then these stills have no record. Pump cells: 753 → 774.
+The Live records were lost at the first intake (the orchestrator's cleanup deleted the `.mov`
+files after a failed conversion step) and **re-exported by the owner the same evening** -
+`../pump-live/live-6339`..`6349`, batch 7 there. Pump cells: 753 → 774.

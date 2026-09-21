@@ -177,6 +177,24 @@ and a longer 4K video walking the angle with the LCD flickering; plus a third fi
 | `live-6285` | 224 | 4K video, moving angle, flicker | `pump-116` (same fill) |
 | `live-6279` | 149 | 4K video, moving angle, flicker | **new fill, video only** - 62.12 / 32.37 / 1.919 (read by eye from the frames) |
 
+## Batch 7 (2026-09-21, product owner): the night set
+
+Eight night stills (`pump-274`..`281`) and two receipts (`receipt-086`/`087`) with their Live
+records. The records were lost at the first intake and re-exported by the owner the same evening.
+
+| live | frames | what | paired still / truth |
+|---|---|---|---|
+| `live-6339` | 70 | Live record of the pump still | `pump-274` |
+| `live-6340` | 70 | Live record of the pump still | `pump-275` |
+| `live-6341` | 60 | Live record of the pump still | `pump-276` |
+| `live-6343` | 83 | Live record of the pump still | `pump-277` |
+| `live-6344` | 76 | Live record of the pump still | `pump-278` |
+| `live-6345` | 50 | Live record of the receipt | `receipt-086` |
+| `live-6346` | 54 | Live record of the pump still | `pump-279` |
+| `live-6347` | 62 | Live record of the receipt | `receipt-087` |
+| `live-6348` | 73 | Live record of the pump still | `pump-280` |
+| `live-6349` | 36 | Live record of the pump still | `pump-281` |
+
 ## Batch 6 (2026-09-21, product owner): a morning across Peetri, Olerex and a second Circle K
 
 Thirty-two pump stills and three receipts, every one with its Live record, plus five 4K movies of a

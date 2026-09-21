@@ -1093,5 +1093,4 @@ Receipt cells: 389 → 404, stations 68 → 71.
 `receipt-086` (95EO miles 34,97 L at 1,999, KOKKU 69,91, pump 4, 20:31 - **pair** with
 `pump-278`) and `receipt-087` (98EO miles+ 8,00 L at 2,059, 16,47, pump 3, 20:31 - **pair** with
 `pump-279`), held over the paving under the forecourt lights, the first receipt photographed
-at night. Station `circle k|circlek`. Their Live records were lost at intake (see the pump
-README). Receipt cells: 404 → 414, stations 71 → 73.
+at night. Station `circle k|circlek`. Their Live records (`../pump-live/live-6345`, `6347`) were re-exported after a lost first intake. Receipt cells: 404 → 414, stations 71 → 73.

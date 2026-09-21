@@ -126,7 +126,7 @@ struct PumpTrainSliceExportTests {
         var trainStills: [String: [String: Any]] = [:]
         for (name, value) in root.sorted(by: { $0.key < $1.key }) {
             guard name != "_about", let ann = value as? [String: Any],
-                  !PumpReaderTestSupport.isHeldout(name) else { continue }
+                  PumpReaderTestSupport.isTrain(name) else { continue }
             trainStills[name] = ann
             let rotation = (ann["rotationCW"] as? NSNumber)?.intValue ?? 0
             let url = PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent(name)

@@ -11,6 +11,15 @@ decisions.
 
 ---
 
+## 2026-09-21 · The frozen heldout set takes four night stills
+
+| | |
+|---|---|
+| **Commits** | this entry's commit (batch 7 of the corpus) |
+| **Reason** | Product owner: *"move some night photos captured from train"* - the 64-still heldout draw of 2026-09-19 (decision 9, `docs/EXTRACTION.md`) held no owner-captured night display, so the only honest measurement of the reader said nothing about a forecourt at night. |
+| **Evidence** | `pump/split.csv` at the draw: the four night stills in heldout are all third-party (`pump-186`, `187`, `201`, `208`); the 2026-09-21 night set (`pump-274`..`281`) was the first owner-captured one. |
+| **What changed** | Decision 9's "never add a heldout row" is amended once, in writing: a still may join the heldout set only **before any model has trained on it**, and the move is recorded in `EXTRACTION.md` under the decision. Four of the eight (`pump-275`, `277`, `280`, `281`) moved; the other four stay train so the classifier sees night glyphs too. The heldout set is 68. The marks measured on the heldout (`PumpReaderHarnessTests`, `PumpReaderPipelineTests`, `PumpDisplayCaptureTests`) carry the added cells as totals only until the measured runtime runs. |
+
 ## 2026-09-18 · Pump displays get a trained reader; Python training code enters the repo
 
 | | |

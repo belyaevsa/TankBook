@@ -39,8 +39,10 @@ enum PumpReaderTestSupport {
     /// The fixtures a trained model may be scored on (decision 9,
     /// docs/EXTRACTION.md): `pump/split.csv` names each still `train` or
     /// `heldout`. The heldout set was drawn once (64 of the 211 stills on
-    /// 2026-09-19) and is frozen; every still added since is training
-    /// material, so a fixture absent from the file is `train`. The
+    /// 2026-09-19) and is frozen except for the one written amendment in
+    /// docs/EXTRACTION.md (four night stills, none trained on); every other
+    /// still added since is training material, so a fixture absent from the
+    /// file is `train`. The
     /// classifier learns from the train part's real glyphs, so a number
     /// measured on it is memorisation; every ratchet that runs the model
     /// reads the heldout set and nothing else.
@@ -55,7 +57,24 @@ enum PumpReaderTestSupport {
         return result
     }()
 
-    static func isHeldout(_ name: String) -> Bool { split[name] == "heldout" }
+    /// Entries a human has confirmed (`reviewed: true` in windows.json). An
+    /// unreviewed heldout still - boxes auto-placed by the reader, texts not
+    /// yet the display's own - measures nothing: its miscounts are the
+    /// annotation's, not the reader's, so the model-scored ratchets leave it
+    /// out until the owner marks it processed. It is never train material
+    /// either (`isTrain`), so no model learns from it in the meantime.
+    private static let reviewed: Set<String> = {
+        guard let data = try? Data(contentsOf: windowsURL),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return [] }
+        return Set(json.compactMap { name, value in
+            ((value as? [String: Any])?["reviewed"] as? Bool) == true ? name : nil
+        })
+    }()
+
+    /// A still the model-scored ratchets measure: in the heldout split AND reviewed.
+    static func isHeldout(_ name: String) -> Bool { split[name] == "heldout" && reviewed.contains(name) }
+    /// A still a model may train on: in the train split (absent from the file = train).
+    static func isTrain(_ name: String) -> Bool { (split[name] ?? "train") == "train" }
 
     /// The glyph-count oracle: digits plus leading spaces, never separators.
     static func glyphCount(_ text: String) -> Int {

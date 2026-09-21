@@ -882,6 +882,19 @@ only thing a model-scored ratchet may measure (`PumpReaderHarnessTests`,
 `PumpReaderTestSupport.isHeldout`). Ratchets that run no model - the law's oracle, row
 assignment, the windows checker - still walk the whole corpus. A heldout number is therefore
 what a user's phone sees; a train number is memorisation and is never written into a mark.
+**Amended 2026-09-21 (product owner): four night stills join the heldout set.** The 64 drawn on
+2026-09-19 held no owner-captured night display - the only night stills were third-party
+(`pump-186`, `187`, `201`, `208`) - so the heldout number said nothing about the forecourt at
+night, which is where the app is used half the year. The owner moved four of the eight night
+captures of 2026-09-21 (`pump-275` Neste Wayne, `pump-277`/`280`/`281` Circle K Gilbarco) from
+`train` to `heldout` **before any model trained on them** (their windows were auto-placed that
+evening and no retrain has run since - the classifier and detector in `ios/App/Resources` predate
+them). The set is 68. The rule stays: a still that a model has trained on never moves to heldout,
+and a heldout still never moves back. **A heldout still measures only once its entry is
+`reviewed`** (`PumpReaderTestSupport.isHeldout`): the four arrived with auto-placed boxes, and an
+unreviewed box's miscount is the annotation's, not the reader's - counted, it dropped the slicer's
+dp agreement from 128/237 to 128/247 for nothing the reader did. Until the owner marks them
+processed they are neither measured nor trained on.
 
 **Decision 10 (orchestrator, 2026-09-20, from PU.32's two reviews): the locator is a learned
 row detector, and the verifier no longer judges by the classifier.** Both reviewers found the
