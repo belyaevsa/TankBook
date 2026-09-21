@@ -31,12 +31,14 @@ struct PumpReaderHarnessTests {
     // Heldout split (decision 9): 184/238 on 2026-09-20 after the slicer
     // learned to prefer the fundamental pitch over its harmonic (177 before),
     // 210/238 once the pitch was checked against the glyph body, 209/238 after
-    // PU.34b - the mark pass is mark-only and does not move the count.
-    private static let countAgreementFloor = 0.85
+    // PU.34b - the mark pass is mark-only and does not move the count. PU.37
+    // measured 211/238 with the split-merge body guard, which stops two real
+    // glyphs (a `1` beside a body) being fused into one cell.
+    private static let countAgreementFloor = 0.88
     // PU.34b: the mark-specific second look finds a dot or comma in the
     // inter-cell gaps at half the run threshold, over the lower band extended
     // below it, so the mark lands on the right cell on 128/237 heldout windows
-    // (0.540), up from 9/237.
+    // (0.540), up from 9/237. PU.37's count fix holds it at 128/237.
     private static let dpAgreementFloor = 0.54
     private static let locatorMedianIoUFloor = 0.0
 
@@ -47,6 +49,7 @@ struct PumpReaderHarnessTests {
         let score = try Self.scoreSlicer()
         print("PU.4 slicer: count agreement \(score.countAgreementText), dp agreement \(score.dpAgreementText)")
         print(score.perMakeTable())
+        for line in score.miscounts { print("PU.4 miscount \(line)") }
 
         #expect(score.countAgreement >= Self.countAgreementFloor,
                 Comment(stringLiteral: "count agreement \(score.countAgreementText) below "
@@ -175,6 +178,7 @@ struct PumpReaderHarnessTests {
         var dpTotal = 0
         var perMake: [String: (ok: Int, total: Int)] = [:]
         var skipped: [String] = []
+        var miscounts: [String] = []
         var slices: [String: [SlicesWindow?]] = [:]
 
         var countAgreement: Double { countTotal > 0 ? Double(countOK) / Double(countTotal) : 0 }
@@ -234,8 +238,9 @@ struct PumpReaderHarnessTests {
                 if result.cells.count == expectedCount {
                     score.countOK += 1
                     score.perMake[make]!.ok += 1
+                } else {
+                    score.miscounts.append("\(name) \(window.field) exp=\(expectedCount) got=\(result.cells.count)")
                 }
-
                 let hasDP = result.cells.contains(where: \.hasDecimalPoint)
                 if expectedDP != nil || hasDP {
                     score.dpTotal += 1
@@ -373,29 +378,23 @@ struct PumpReaderHarnessTests {
     }
 
     private static func iou(_ a: [CGPoint], _ b: [CGPoint]) -> Double {
-        let ra = rect(a)
-        let rb = rect(b)
+        let ra = rect(a), rb = rect(b)
         let ix = max(0, min(ra.maxX, rb.maxX) - max(ra.minX, rb.minX))
         let iy = max(0, min(ra.maxY, rb.maxY) - max(ra.minY, rb.minY))
-        let inter = ix * iy
-        let union = ra.width * ra.height + rb.width * rb.height - inter
-        return union > 0 ? Double(inter / union) : 0
+        let union = ra.width * ra.height + rb.width * rb.height - ix * iy
+        return union > 0 ? Double(ix * iy / union) : 0
     }
 
     private static func rect(_ quad: [CGPoint]) -> CGRect {
-        let xs = quad.map(\.x)
-        let ys = quad.map(\.y)
-        let minX = xs.min() ?? 0
-        let maxX = xs.max() ?? 0
-        let minY = ys.min() ?? 0
-        let maxY = ys.max() ?? 0
+        let xs = quad.map(\.x), ys = quad.map(\.y)
+        let minX = xs.min() ?? 0, maxX = xs.max() ?? 0
+        let minY = ys.min() ?? 0, maxY = ys.max() ?? 0
         return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
     }
 
     private static func median(_ values: [Double]) -> Double {
         guard !values.isEmpty else { return 0 }
-        let sorted = values.sorted()
-        let mid = sorted.count / 2
+        let sorted = values.sorted(), mid = sorted.count / 2
         return sorted.count.isMultiple(of: 2) ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
     }
 }

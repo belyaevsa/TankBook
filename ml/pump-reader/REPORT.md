@@ -899,4 +899,69 @@ still's row matched to each frame's row across frames, and a cell-count agreemen
 frame is fused. Only then does the median run. That is the detector-per-frame plus row-matching
 work the row already names, and one cell on 17 records does not earn it yet.
 
+## PU.37 - the slicer's count (2026-09-21)
+
+The read stage's largest loss after PU.34b was the count: 29 of 238 heldout windows got the wrong
+number of cells, and a miscounted window never reaches the law. The harness now prints every
+miscount (`PumpReaderHarnessTests.slicerRatchet`), so the table below is the before, measured with
+the strips the same run writes to `ios/.build/pump-reader-out/`.
+
+### The 29, by failure class
+
+| class | windows | still / field (expected -> got) |
+|---|---|---|
+| **dim or lost glyph** (runs under the one global Otsu, or washed out by glare) | 12 | 014 total 7.01 3->2, 014 board 1.774 4->3, 028 liters 0025,51 6->5, 035 total 82.01 4->3, 038 total 77.45 4->2, 062 total 39.55 4->3, 070 total 0067,05 6->3, 070 liters 0034,94 6->5, 083 total 1437,2 5->4, 092 total 1915.5 5->4, 092 liters 30.00 4->3, 139 total 103.88 5->3 |
+| **pitch harmonic** (autocorrelation on 0.35-0.42 or 1.09-1.20 of the band height) | 6 | 035 liters 44.96 4->5, 038 liters 44.03 4->8, 050 liters 0010,54 6->11, 056 board 1.944 4->7, 083 liters 21,00 4->3, 175 total 08038,17 7->3 |
+| **over-merge** (split-merge fused two real glyphs) | 4 | 061 total 62.40 4->3, 062 board 1.834 4->3, 095 unitPrice 1,944 4->3, 208 total 4816,61 6->5 |
+| **mark over-fire** (`classify` reclassified a fragmented digit's lower stroke as a mark) | 3 | 076 total 0150,00 6->4, 096 total 1426,00 6->5, 142 total 1600.11 6->5 |
+| **split over-count** (a glyph split into runs the merge did not rejoin) | 2 | 050 total 0020,33 6->7, 165 liters 78,41 4->5 |
+| **snap / blank** (right runs, one spurious grid cell) | 2 | 041 board 1.814 4->5, 055 board 1.884 4->5 |
+
+### What shipped, and what did not
+
+**Shipped: the split-merge body guard** (`splitMergeBodyGuard`). A split glyph's two fragments are
+both narrower than a glyph body; two adjacent glyphs where one is a `1` can also sit closer than
+`splitMergeGapFraction` and together fit one cell, and the old rule fused them. The guard refuses a
+merge whose right fragment is already a full body (`bodyMinimumFraction` of the band height). It
+fixes 062 board and 095 unitPrice, and does not touch a real split (both halves sub-body).
+
+| check | before | after |
+|---|---|---|
+| `PU.4 slicer` count agreement | 209/238 | **211/238** (floor 0.85 -> 0.88) |
+| `PU.4 slicer` dp agreement | 128/237 | **128/237** (held) |
+| annotated (`PumpReaderPipelineTests`) | 79 / 0.987 / 22 photos | **80 / 0.988 / 22** |
+| live (detector) | 37 / 1.000 | **37 / 1.000** (held) |
+| law oracle strings | 648 / 0.998 | 648 / 0.998 |
+| law fragility | 0.071 | 0.071 |
+
+**Measured and not shipped**, each because it fails a floor the brief names:
+
+- **The local threshold (lever 1): 218/238 count, but dp 126/237 and annotated 77.** Leveling the
+  column profile by its own local background before Otsu (a dim glyph measured against the
+  background beside it, as the vertical LCN already does) recovers the dim-glyph class, but it
+  changes the digit segmentation, which moves the mark's cell index on 26 windows: 22 dp gains,
+  26 losses, and the annotated read loses 3 committed cells. A count bought with a wrong digit is
+  the trade the brief forbids.
+- **The leading-blank tolerance (lever 3): 211/238 count, but annotated 76.** Raising the
+  quarter-cell tolerance to the nearest cell adds the dim leading zero's cell, but extending the
+  grid also moves every later cell's rect (the occupied cells' left edge is `firstCellStart`, which
+  the tolerance shifts), and three annotated rows commit a different digit.
+- **The decimal size check: 210/238 count, dp 126/237.** Rejecting a bottom-only run that is wider
+  or taller than a mark fixes 076, but it re-admits the fragments as digits and loses two marks.
+- **A pitch-band sanity rule** (double a pitch under half the band height) cannot separate the
+  wrong windows from the correct narrow-pitch ones: `pump-140` unitPrice is correct at 0.41 of the
+  band height while `pump-035` liters is wrong at 0.41. No geometric threshold divides them.
+
+**Named mutation.** Remove the guard's `!rightIsBody` branch from `splitMerge`:
+`PumpGlyphSlicerTests.splitMergeBodyGuardKeepsTwoGlyphs` goes red (`guarded.count == 2` -> got 1)
+and the ratchet's count falls 211 -> 209. Restored, the test is green and the count is 211.
+
+**Found and not fixed.** The dim-glyph class (12 windows) needs a threshold that is local without
+moving the grid or the mark; the pitch class (6) needs a discriminator between a subharmonic and a
+genuinely narrow display; the mark over-fire (3) needs a mark rule that does not also reject a real
+comma under a digit. Each is its own row; this round's write set could not carry them past the
+annotated floor. The two synthetic tests live in `PumpGlyphSlicerTests`; the miscount table is the
+ratchet's own print.
+
+
 

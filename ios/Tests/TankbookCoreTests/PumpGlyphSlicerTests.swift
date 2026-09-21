@@ -159,6 +159,25 @@ struct PumpGlyphSlicerTests {
 
     // MARK: - Synthetic strips
 
+    @Test("a thin glyph close to a body stays two runs, not one merged run")
+    func splitMergeBodyGuardKeepsTwoGlyphs() {
+        // A `1` (columns 10-20) and a body (30-60) sit 10 columns apart on a
+        // 60-column pitch, closer than the split-merge gap, and together fit
+        // one cell. The body is a real glyph, not a fragment, so the guard
+        // refuses to fuse them; without it the old rule did.
+        let runs = [
+            PumpGlyphSlicer.Run(start: 10, end: 20, isDecimalPoint: false),
+            PumpGlyphSlicer.Run(start: 30, end: 60, isDecimalPoint: false)
+        ]
+        var options = PumpGlyphSlicer.Options()
+        options.splitMergeBodyGuard = true
+        let guarded = PumpGlyphSlicer.splitMerge(runs, pitch: 60, band: 40, options: options)
+        #expect(guarded.count == 2, "the `1` and the body are two glyphs, got \(guarded.count)")
+        options.splitMergeBodyGuard = false
+        let merged = PumpGlyphSlicer.splitMerge(runs, pitch: 60, band: 40, options: options)
+        #expect(merged.count == 1, "without the guard the old split-merge fuses them, got \(merged.count)")
+    }
+
     /// Scales every pixel toward the strip mean until the ink/background
     /// contrast is `remaining` of the original, matching a faint display.
     private static func collapseContrast(_ gray: PumpGrayscale, remaining: Float) -> PumpGrayscale {

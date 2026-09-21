@@ -1,35 +1,27 @@
 import CoreGraphics
 import Foundation
 
-// PU.4 - the digit slicer. Turns an already-warped number strip into a sequence
-// of glyph cells on the display's fixed pitch. Deterministic, no model.
+// PU.4 - the digit slicer. Turns an already-warped number strip into glyph
+// cells on the display's fixed pitch. Deterministic, no model.
 //
-// The strip is noisy: glare and canopy leave a gradient under the digits, faint
-// digits sit close to the background, and a glyph can split into two column runs
-// when its middle segment is dim. The steps that make the column profile
-// tractable:
+// The strip is noisy: glare leaves a gradient under the digits, faint digits
+// sit near the background, and a glyph can split into two column runs when its
+// middle segment is dim. What makes the column profile tractable:
 //
 // - Local contrast normalisation divides the strip by a column-wide box blur
-//   before any projection, so a glare gradient is flattened and a faint digit
-//   keeps its contrast relative to the background beside it (PU.8).
-// - Polarity + background subtraction zero the panel's own level, and each
-//   projection then subtracts its own low percentile, so a residual gradient
-//   baseline does not read as ink.
-// - The run threshold is Otsu's split on the profile's own histogram, not a
-//   fixed fraction of the max, so a glare-hot column cannot price a faint
-//   digit out of the threshold (PU.8).
-// - The pitch is the first peak of the column profile's autocorrelation, which
-//   survives splitting and stray narrow runs that would shrink a median of run
-//   gaps (the "every pitch comes out short" trap).
+//   before any projection, so a glare gradient flattens and a faint digit keeps
+//   its contrast beside it (PU.8); polarity and background subtraction zero the
+//   panel's level and each projection subtracts its own low percentile.
+// - The run threshold is Otsu's split on the profile histogram, not a fraction
+//   of the max (PU.8); the pitch is the first peak of the profile's
+//   autocorrelation, which survives splitting and stray narrow runs.
 // - A split glyph (two runs closer than a third of a pitch whose combined width
-//   fits one cell) is re-merged before snapping, so a dim middle segment does
-//   not become a phantom cell (PU.8).
-// - Runs are snapped to the pitch grid and merged by cell, so a split glyph and
-//   a `1` each occupy one full cell and a decimal point is attached to its host
-//   cell rather than counted on its own.
-// - When the snapped count falls short of what the pitch grid allows for the
-//   strip width, a second pass at half the threshold is tried and the more
-//   uniform of the two wins (PU.8).
+//   fits one cell) is re-merged before snapping, unless the right run is already
+//   a full body - a glyph of its own (PU.8, PU.37).
+// - Runs snap to the pitch grid and merge by cell, so a split glyph and a `1`
+//   each occupy one cell and a mark attaches to its host cell; when the count
+//   falls short of the grid, a second pass at half the threshold is tried and
+//   the more uniform wins (PU.8).
 
 /// One glyph cell on the strip, in strip coordinates.
 struct GlyphCell: Equatable, Sendable {
@@ -84,6 +76,8 @@ enum PumpGlyphSlicer {
         var splitMergeWidthFraction: Float = 1.1
         /// Re-merge a glyph that a dim middle segment split into two runs.
         var splitMerge: Bool = true
+        /// A split-merge needs a fragment on the right, not a full body (PU.37).
+        var splitMergeBodyGuard: Bool = true
         /// A second pass at half the threshold when the snapped count is short.
         var shortCountRetry: Bool = true
         /// The pitch-to-body check: a glyph body (the widest ink run) is at
@@ -94,7 +88,7 @@ enum PumpGlyphSlicer {
         var pitchToBodyMinimum: Float = 0.9
     }
 
-    private struct Run {
+    struct Run {
         var start: Int
         var end: Int
         var isDecimalPoint: Bool
@@ -296,7 +290,7 @@ enum PumpGlyphSlicer {
         // Re-merge a glyph that a dim middle segment split into two runs.
         digitRuns.sort { $0.start < $1.start }
         if options.splitMerge {
-            digitRuns = Self.splitMerge(digitRuns, pitch: context.pitch, options: options)
+            digitRuns = Self.splitMerge(digitRuns, pitch: context.pitch, band: context.bandHeight, options: options)
         }
 
         // The mark-specific second look (PU.34b); it attaches to its left run.
@@ -368,13 +362,15 @@ enum PumpGlyphSlicer {
         return mean / (mean + std)
     }
 
-    private static func splitMerge(_ runs: [Run], pitch: Int, options: Options) -> [Run] {
+    static func splitMerge(_ runs: [Run], pitch: Int, band: Int, options: Options) -> [Run] {
         var result: [Run] = []
         for run in runs {
             if let last = result.last,
                Float(run.start - last.end) <= options.splitMergeGapFraction * Float(pitch) {
                 let combinedWidth = run.end - last.start + 1
-                if Float(combinedWidth) <= options.splitMergeWidthFraction * Float(pitch) {
+                let rightIsBody = options.splitMergeBodyGuard
+                    && Float(run.end - run.start + 1) >= options.bodyMinimumFraction * Float(band)
+                if !rightIsBody, Float(combinedWidth) <= options.splitMergeWidthFraction * Float(pitch) {
                     result[result.count - 1].end = run.end
                     continue
                 }
