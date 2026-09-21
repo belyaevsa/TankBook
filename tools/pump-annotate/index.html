@@ -50,6 +50,7 @@
   #banner { flex:0 0 auto; padding:6px 10px; font-size:13px; background:rgba(20,20,20,0.92); border-bottom:1px solid var(--line); min-height:1.4em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
   #banner.idle { color:var(--dim) } #banner.busy { color:#ffc857 } #banner.done { color:#7fff7f } #banner.failed { color:var(--bad) }
   kbd { border:1px solid var(--line); border-radius:3px; padding:0 4px; font-size:11px; color:var(--dim) }
+  table.keys { border-collapse:collapse; margin:4px 0 10px; width:100% } table.keys td { padding:2px 6px 2px 0; vertical-align:top; font-size:12px } table.keys td:first-child { white-space:nowrap; color:var(--fg) }
 </style>
 </head>
 <body>
@@ -83,23 +84,7 @@
 </main>
 <section class="right">
   <div class="row"><b id="name" style="flex:1">–</b> <label title="reviewed by a human; P toggles"><input type="checkbox" id="reviewed"> processed</label></div>
-  <div class="row dim">Drag = new window · click = select · drag corner = adjust · <kbd>⌫</kbd> delete · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> field · <kbd>⌘S</kbd> save · <kbd>+</kbd>/<kbd>-</kbd>/<kbd>0</kbd> zoom · arrows nudge the selected box (<kbd>⇧</kbd> 10 px, <kbd>⌥</kbd> corner; in frames <kbd>,</kbd>/<kbd>.</kbd> for left/right) · <kbd>[</kbd>/<kbd>]</kbd> or the ring handle: turn · <kbd>A</kbd> auto-annotate · <kbd>Z</kbd> pad · <kbd>P</kbd> processed · <kbd>⏎</kbd> save &amp; next · <kbd>J</kbd>/<kbd>K</kbd> next/prev · <a href="#keys" onclick="document.getElementById('keys').style.display='';return false">all keys</a></div>
-  <pre id="keys" style="display:none">STILL (not typing)          FRAMES VIEW (Live record or movie)
-⌘S save                     ← →        prev / next frame (always)
-⏎  save & next              space      play / pause
-J K next / prev fixture     ⇧←         copy the previous label (video)
-P  toggle processed         ⇧→         next run (video)
-⌫  delete selected box      ⌥← ⌥→     step frames while typing a label
-1-4 field of selected box   ⇧⏎         save label (video) / pin anchor or tracking ok (Live)
-A  auto-annotate (reader)   ⌥⏎         keyframe: label + fill to the previous keyframe
-r  read the boxes           ⏎ →        in the confirm loop: confirm this frame
-R  read, live path          ⌥⏎         in the confirm loop: confirm the rest if the arithmetic closes
-Z  pad texts to convention  Esc        leave the loop → deselect → back to the still
-+ - 0 zoom                  , .        nudge selected box left / right (⇧ 10 px)
-arrows nudge box (⇧ 10 px)  ↑ ↓        nudge selected box up / down (⇧ 10 px)
-⌥arrows move active corner  ⌥arrows    move the active corner
-[ ] { } turn box 1° / 0.1°  [ ] { }    turn the selected box
-Esc deselect                (a box is selected by clicking it; entering frames deselects)</pre>
+  <div class="row dim">Drag = new window · click = select · drag a corner or the ring = adjust / turn · <kbd>?</kbd> all keys <button id="helpBtn" class="quick">keys</button></div>
   <div class="row">Zoom <input id="zoom" type="range" min="0.25" max="4" step="0.05" value="1" style="flex:1">
     Rotate <select id="rot"><option>0</option><option>90</option><option>180</option><option>270</option></select></div>
   <div class="row mono" id="csv"></div>
@@ -147,6 +132,48 @@ Esc deselect                (a box is selected by clicking it; entering frames d
     <pre id="out"></pre>
   </div>
 </section>
+<div id="help" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:50" title="click outside or press ? / Esc to close">
+  <div style="position:absolute;top:6vh;left:50%;transform:translateX(-50%);width:min(1100px,94vw);max-height:88vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 18px" onclick="event.stopPropagation()">
+    <div class="row"><b style="flex:1;font-size:15px">Keys</b><span class="dim">mouse: drag on the image = new window · click = select · drag a corner = adjust · drag the ring above the box = turn (⇧ snaps to 1°) · on a video frame a drag pins the frame as an anchor</span><button id="helpClose">close</button></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-top:8px">
+      <div><b>Everywhere (not typing)</b><table class="keys">
+        <tr><td><kbd>⌘S</kbd></td><td>save</td></tr>
+        <tr><td><kbd>J</kbd> <kbd>K</kbd></td><td>next / previous fixture in the list (still only)</td></tr>
+        <tr><td><kbd>P</kbd></td><td>toggle processed</td></tr>
+        <tr><td><kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd></td><td>zoom in / out / fit - about the selected box</td></tr>
+        <tr><td><kbd>r</kbd></td><td>read the annotated boxes (prefill)</td></tr>
+        <tr><td><kbd>R</kbd></td><td>read with the app's live path (rows drawn dashed)</td></tr>
+        <tr><td><kbd>A</kbd></td><td>auto-annotate: the live path's rows become boxes with the CSV text</td></tr>
+        <tr><td><kbd>Z</kbd></td><td>pad texts to the make's convention (derived from its reviewed entries)</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>leave the confirm loop → deselect → back to the still</td></tr>
+      </table></div>
+      <div><b>Selected box</b><table class="keys">
+        <tr><td><kbd>1</kbd>-<kbd>4</kbd></td><td>field: total / liters / unitPrice / board</td></tr>
+        <tr><td><kbd>⌫</kbd></td><td>delete (still only)</td></tr>
+        <tr><td>arrows</td><td>nudge 1 px at the zoom · <kbd>⇧</kbd> 10 px</td></tr>
+        <tr><td><kbd>⌥</kbd>+arrow</td><td>move the active corner (the filled dot; the last one dragged)</td></tr>
+        <tr><td><kbd>,</kbd> <kbd>.</kbd></td><td>nudge left / right in the frames view (arrows step frames there) · <kbd>⇧</kbd> 10 px</td></tr>
+        <tr><td><kbd>[</kbd> <kbd>]</kbd></td><td>turn 1° · <kbd>{</kbd> <kbd>}</kbd> 0.1° · ↺ ↻ on the card (⇧ 0.1°)</td></tr>
+        <tr><td><kbd>⏎</kbd></td><td>save &amp; next (still, not typing)</td></tr>
+      </table>
+      <b>Toolbar</b><table class="keys">
+        <tr><td>live slicers</td><td>slicer cells follow the box while it moves</td></tr>
+        <tr><td>autoplay · loop · fps</td><td>playback of a Live record or movie</td></tr>
+      </table></div>
+      <div><b>Frames view (Live record or movie)</b><table class="keys">
+        <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>previous / next frame (always)</td></tr>
+        <tr><td>space</td><td>play / pause</td></tr>
+        <tr><td><kbd>⇧←</kbd></td><td>copy the previous frame's label here and save (video)</td></tr>
+        <tr><td><kbd>⇧→</kbd></td><td>jump to the next run (video)</td></tr>
+        <tr><td><kbd>⌥←</kbd> <kbd>⌥→</kbd></td><td>step frames while typing a label</td></tr>
+        <tr><td><kbd>⇧⏎</kbd></td><td>video: save the label · Live record: pin the edited quads as an anchor, else mark tracking ok</td></tr>
+        <tr><td><kbd>⌥⏎</kbd></td><td>keyframe: save as owner and fill back to the previous keyframe by the arithmetic (interpolated)</td></tr>
+        <tr><td>confirm loop</td><td>after <kbd>⇧⏎</kbd> with <i>whole run</i>: <kbd>→</kbd> / <kbd>⏎</kbd> confirm this frame · <kbd>⌥⏎</kbd> confirm the rest where the arithmetic closes · <kbd>Esc</kbd> leave, the rest unlabelled</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>back to the still (after deselecting)</td></tr>
+      </table></div>
+    </div>
+  </div>
+</div>
 <script>
 const FIELDS = ['total','liters','unitPrice','board'];
 const COLORS = {total:'#ff5a5f', liters:'#4cc3ff', unitPrice:'#ffc857', board:'#9b8cff'};
@@ -1058,9 +1085,13 @@ document.querySelectorAll('.quick').forEach(b => b.onclick = () => { $('#state')
 document.querySelectorAll('nav.rail button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
 setMode(mode);
 document.querySelectorAll('[data-nod],[data-dis]').forEach(i => i.oninput = touch);
+function toggleHelp(show) { const h = $('#help'); h.style.display = (show === undefined ? h.style.display === 'none' : show) ? '' : 'none'; }
+$('#helpBtn').onclick = () => toggleHelp(true); $('#helpClose').onclick = () => toggleHelp(false); $('#help').onclick = () => toggleHelp(false);
 document.addEventListener('keydown', e => {
   const t = e.target; const typing = t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !['range','checkbox','radio'].includes(t.type));
   if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); save(); return; }
+  if ($('#help').style.display !== 'none') { if (e.key === 'Escape' || e.key === '?') { e.preventDefault(); toggleHelp(false); } return; }
+  if (!typing && e.key === '?') { e.preventDefault(); toggleHelp(true); return; }
   // The run-confirm loop owns the keys that advance or leave it.
   if (confirmLoop) {
     if (e.key === 'Escape') { e.preventDefault(); endConfirmLoop('confirm loop left - the rest stays unlabelled'); return; }

@@ -35,8 +35,9 @@ the ml venv runs it); the converted images are cached under
   `Esc` deselects. In the frames view the horizontal arrows belong to the
   frames - `←`/`→` step, `⇧←` copies the previous label, `⇧→` jumps to the next
   run - so a horizontal nudge there is `,`/`.` (`⇧` = 10 px); `↑`/`↓` and
-  `⌥`+arrow work as on a still. Entering the frames view deselects. The page's
-  "all keys" link opens the full table.
+  `⌥`+arrow work as on a still. Entering the frames view deselects. `?` (or the
+  **keys** button) opens the help screen with every key in one place; `Esc` or
+  `?` closes it.
 - Right: the text as the display SHOWS it (zero padding, comma), `partial`
   legibility, `rotationCW` (rotates the view only - quads stay in image space),
   `notOnDisplay` and `csvDisagrees`.
