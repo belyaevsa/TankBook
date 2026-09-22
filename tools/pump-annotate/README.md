@@ -178,9 +178,14 @@ the ml venv runs it); the converted images are cached under
   anchor and the retrack registers the neighbours to it.
 - **Correcting a frame and carrying it forward** is one Save: open the frame,
   move / resize / turn its boxes (a drag pins the frame by itself; a turn or a
-  nudge pins on Save), then press **Save** (or `⇧⏎`). The frames AFTER it are
-  re-fitted to the anchors and, on a video, re-read with those boxes - frames
-  before it are not touched. The tracker prefers, for each frame, the nearest
+  nudge pins on Save), then press **Save** (or `⇧⏎`). The frames after it are
+  re-fitted **up to the next pinned frame** (past it, every frame is fitted from
+  that one, so re-fitting it is wasted), and on a video **only the frames whose
+  boxes moved** (any box overlapping its stored self by less than 0.97) are read
+  again - an unmoved box reads the same pixels and cannot change its label.
+  Frames before it are not touched. Each anchor's matcher is built the first
+  time a frame tries it, so a Save on a record with 36 pins re-fits in about a
+  second (12.8 s when every matcher was built up front). The tracker prefers, for each frame, the nearest
   pinned frame at or before it, then the nearest after it, and the still only
   last; inliers are a gate, not a ranking. (It used to rank the reference, or
   the still, and the two nearest anchors by inlier count, so a fresh correction
