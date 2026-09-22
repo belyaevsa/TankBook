@@ -40,6 +40,8 @@
   .warn { color:var(--bad); cursor:help }
   input.prefill { color:#ffc857; font-style:italic }
   #framebar { flex:none; border-top:1px solid var(--line); background:var(--panel); padding:5px 8px; min-height:44px }
+  #frameNav { gap:6px; align-items:center; flex-wrap:wrap; margin-top:4px }
+  #frameNav .sep { width:1px; height:18px; background:var(--line); margin:0 2px }
   #frameStrip { display:flex; flex-wrap:nowrap; gap:2px; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; padding-bottom:2px }
   #frameStrip span { flex:none; width:11px; height:26px; background:#2a303a; cursor:pointer; border-radius:2px }
   #frameLegend { font-size:11px; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
@@ -87,6 +89,7 @@
   <!-- Row 2: what is the same whatever is open - the one Save (its label and
        target follow the view), undo, reload, zoom and the retrack group. -->
   <div id="toolbar2">
+    <button id="framesToggle" style="display:none">View frames</button>
     <button id="save" class="primary" title="⌘S">Save</button>
     <button id="savenext" title="mark processed, save, open the next">✓ &amp; next</button>
     <button id="undo" title="undo the last box or text change (⌘Z)" disabled>↶ undo</button>
@@ -104,46 +107,51 @@
        view opens, filled only in that view. -->
   <div id="framebar">
     <div id="frameStrip"></div>
+    <div class="row" id="frameNav" style="display:none">
+      <button id="fnResume" title="jump to the last frame you saved in this record" style="display:none">⏮ where I left</button>
+      <label title="jump to a frame by its number">go to <input id="fnGo" type="number" min="1" step="1" style="width:76px"></label>
+      <span id="fnCount" class="dim mono"></span>
+      <span class="sep"></span>
+      <button id="vlCopy" title="copy the previous labelled frame's numbers here and save (⇧←)">← same as previous</button>
+      <button id="vlSkip" title="jump to the next frame that needs you (⇧←/⇧→ walk the runs)">next attention ▸</button>
+      <button id="vlRead" title="run the reader on this frame's windows and fill the label - nothing saved (r; R = live path)">▶ read</button>
+      <label title="the reader read these frames as one value; the label applies to all of them"><input type="checkbox" id="vlRun" checked> whole run</label>
+      <button id="vlCopyPrev" title="put the previous frame's boxes on this frame (C); ⇧⏎ or a drag then pins them as an anchor">⇤ boxes from previous</button>
+      <button id="lfOk" title="mark the record's tracking ok and save the still">✓ tracking ok</button>
+      <span id="vlMargin" class="mono dim" title="the reader's lowest cell margin for this frame (from readings)">–</span>
+      <span id="vlSource" class="dim"></span>
+      <span id="lfState" class="dim"></span>
+    </div>
     <div id="frameLegend" class="dim"></div>
   </div>
 </main>
 <section class="right">
-  <div class="row"><label title="reviewed by a human; P toggles"><input type="checkbox" id="reviewed"> processed</label></div>
-  <div class="row dim">Drag = new window · click = select · drag a corner or the ring = adjust / turn · <kbd>?</kbd> all keys <button id="helpBtn" class="quick">keys</button></div>
-  <div class="row"><input id="zoom" type="range" min="0.25" max="4" step="0.05" value="1" style="display:none">
-    Rotate <select id="rot"><option>0</option><option>90</option><option>180</option><option>270</option></select></div>
-  <div class="row mono" id="csv"></div>
-  <div class="row mono" id="arith"></div>
-  <div class="win" id="live" style="display:none">
-    <div class="row"><b>Live record</b> <select id="rec"></select> <span id="recinfo" class="dim"></span></div>
-    <div class="row"><button id="framesToggle">View frames</button> <input id="frameSlider" type="range" min="0" max="0" value="0" style="flex:1;display:none">
-      <span id="frameName" class="mono dim"></span></div>
-    <div class="row"><b>tracking</b>
-      <label><input type="radio" name="tracking" value=""> unreviewed</label>
-      <label><input type="radio" name="tracking" value="ok"> ok</label>
-      <label><input type="radio" name="tracking" value="bad"> bad – skip this record</label>
-      <span class="dim">(<kbd>←</kbd>/<kbd>→</kbd> step frames, <kbd>Esc</kbd> back to the still)</span></div>
-    <div class="row" id="liveFrame" style="display:none"><b>frame</b> <span id="lfName" class="mono dim"></span>
-      <button id="lfCopyPrev" title="put the previous frame's boxes on this frame (C); ⇧⏎ then pins them as an anchor">⇤ boxes from previous</button>
-      <span class="dim"><kbd>⇧⏎</kbd> or Save – the frame's boxes are pinned as an anchor the tracker registers its neighbours to; nothing else moves</span>
-      <button id="lfOk" title="mark the record's tracking ok and save the still">✓ tracking ok</button>
-      <span id="lfState" class="dim"></span></div>
-    <div class="row" id="videoLabel" style="display:none"><b>frame label</b>
-      <span class="dim">type it on the window cards below</span>
-      <span id="vlMargin" class="mono dim" title="the reader's lowest cell margin for this frame (from readings)">–</span>
-      <span id="vlSource" class="dim"></span> <span class="dim">Save (<kbd>⇧⏎</kbd>) writes this frame · <kbd>⌥⏎</kbd> keyframe</span>
-      <button id="vlCopy" title="copy the previous labelled frame's numbers here and save">← same as previous</button> <span class="dim"><kbd>⇧←</kbd></span>
-      <button id="vlSkip" title="jump to the next frame that needs you">next attention ▸</button>
-      <button id="vlRead" title="run the reader on this frame's windows and fill the label (nothing saved)">▶ read</button> <span class="dim"><kbd>r</kbd> / <kbd>R</kbd> live path</span>
-      <label title="the reader read these frames as one value; the label applies to all of them"><input type="checkbox" id="vlRun" checked> whole run</label>
-      <span class="dim"><kbd>⇧→</kbd> next run</span>
-      <button id="vlCopyPrev" title="put the previous frame's boxes on this frame (C); ⇧⏎ or a drag then pins them as an anchor">⇤ boxes from previous</button>
-      <span class="dim" title="a dragged quad on a frame pins it as an anchor by itself; nothing else moves until ↻ re-track">⚓ a drag pins the frame</span><button id="vlAnchor" style="display:none"></button>
-</div>
-  </div>
+  <!-- The windows first: they are the work. Everything below is what the work
+       is checked against (the CSV row, the arithmetic), then the record it
+       belongs to, then the per-image notes. The frame's own buttons live under
+       the image, with the frames they act on. -->
   <div id="wins"></div>
   <div class="row"><button id="add">+ window</button> <span class="dim">or drag on the image</span> <label title="drawn boxes are 'not a window' regions (n toggles); ⇧-click a live-read row rejects it the same way"><input type="checkbox" id="negMode"> not a window</label></div>
   <div id="negs"></div>
+  <div class="row mono" id="csv"></div>
+  <div class="row mono" id="arith"></div>
+  <div class="row"><label title="reviewed by a human; P toggles"><input type="checkbox" id="reviewed"> processed</label>
+    <input id="zoom" type="range" min="0.25" max="4" step="0.05" value="1" style="display:none">
+    Rotate <select id="rot"><option>0</option><option>90</option><option>180</option><option>270</option></select>
+    <button id="helpBtn" class="quick" title="every key (?)">keys</button></div>
+  <div class="win" id="live" style="display:none">
+    <div class="row"><b>Live record</b> <select id="rec"></select> <span id="recinfo" class="dim"></span></div>
+    <div class="row"><b>tracking</b>
+      <label><input type="radio" name="tracking" value=""> unreviewed</label>
+      <label><input type="radio" name="tracking" value="ok"> ok</label>
+      <label><input type="radio" name="tracking" value="bad"> bad – skip this record</label></div>
+    <div class="row dim" id="liveFrame" style="display:none"><span id="lfName" class="mono"></span>
+      <span>a drag pins the frame as an anchor; <kbd>⇧⏎</kbd> or Save does the same</span></div>
+    <div class="row dim" id="videoLabel" style="display:none"><span id="frameName" class="mono"></span>
+      <span>type the numbers on the cards above · Save (<kbd>⇧⏎</kbd>) writes this frame · <kbd>⌥⏎</kbd> keyframe</span>
+      <input id="frameSlider" type="range" min="0" max="0" value="0" style="flex:1;display:none">
+      <button id="vlAnchor" style="display:none"></button></div>
+  </div>
   <div class="win">
     <div class="row"><b>notOnDisplay</b> <label><input type="checkbox" data-nod="total">total</label> <label><input type="checkbox" data-nod="liters">liters</label> <label><input type="checkbox" data-nod="unitPrice">unitPrice</label></div>
     <div class="row"><b>csvDisagrees</b> <span class="dim">reason per field, blank = none</span></div>
@@ -352,6 +360,7 @@ function showRecordInfo() {
   const r = currentRecord(); if (!r) return;
   $('#recinfo').textContent = `${r.tracked.length} tracked of ${r.extracted} frames` + (r.extracted ? (r.tracked.length ? '' : ' – not tracked yet: save the windows, or ↻ track') : ' – frames not extracted: pump_reader.frames');
   $('#recTrack').style.display = (r.extracted && !frameMode) ? '' : 'none';
+  $('#framesToggle').style.display = r.tracked.length ? '' : 'none';
   $('#frameSlider').max = Math.max(0, r.tracked.length - 1);
   labelSaveButtons();
 }
@@ -380,6 +389,7 @@ function labelSaveButtons() {
   $('#save').textContent = t.label; $('#save').title = t.title;
   $('#savenext').style.display = frameMode ? 'none' : '';
   $('#trackBar').style.display = (current && (currentRecord() || isVideo)) ? '' : 'none';
+  $('#framesToggle').style.display = (currentRecord() || {}).tracked?.length ? '' : 'none';
   $('#recTrack').style.display = frameMode ? 'none' : '';
   for (const id of ['#retrackAll', '#retrackFrom']) $(id).style.display = frameMode ? '' : 'none';
   $('#vlRerun').style.display = (frameMode && isVideo) ? '' : 'none';
@@ -448,11 +458,44 @@ function centreStrip() {
   if (!el) return;
   strip.scrollLeft = el.offsetLeft - strip.clientWidth / 2 + el.offsetWidth / 2;
 }
+// Where the operator left off in a record: the last frame they SAVED (a label,
+// a keyframe or an anchor), remembered per record in this browser. Not the last
+// frame merely looked at - a scroll past forty frames is not progress.
+function resumeKey(movie) { return `annotator.resume.${movie}`; }
+function markResume(movie, frame) {
+  try { localStorage.setItem(resumeKey(movie), frame); } catch (e) {}
+  updateFrameNav();
+}
+function resumeFrame(movie) {
+  try { return localStorage.getItem(resumeKey(movie)) || ''; } catch (e) { return ''; }
+}
+function goToFrame(i) {
+  const r = currentRecord(); if (!r) return;
+  const n = Math.max(0, Math.min(r.tracked.length - 1, i));
+  if (n === frameIdx) { centreStrip(); return; }
+  stopPlay(); frameIdx = n; showFrame();
+}
+function updateFrameNav() {
+  const nav = $('#frameNav'); const r = frameMode && currentRecord();
+  nav.style.display = r ? 'flex' : 'none';
+  if (!r) return;
+  const at = resumeFrame(r.movie); const i = at ? r.tracked.indexOf(at) : -1;
+  const btn = $('#fnResume');
+  btn.style.display = (i >= 0 && i !== frameIdx) ? '' : 'none';
+  btn.textContent = `⏮ where I left (${i + 1})`;
+  btn.title = `the last frame you saved in this record: ${at}`;
+  $('#fnGo').max = r.tracked.length; $('#fnGo').value = frameIdx + 1;
+  $('#fnCount').textContent = `/ ${r.tracked.length} · ${r.tracked[frameIdx]}`;
+  for (const id of ['#vlCopy', '#vlSkip', '#vlRun']) $(id).closest('label, button').style.display = isVideo ? '' : 'none';
+  $('#lfOk').style.display = isVideo ? 'none' : '';
+  $('#vlMargin').style.display = isVideo ? '' : 'none';
+}
 function renderStrip() {
   const strip = $('#frameStrip'), legend = $('#frameLegend');
   if (!frameMode) {
     strip.innerHTML = '';
     legend.textContent = current ? 'frames appear here in the frames view (View frames)' : '';
+    updateFrameNav();
     return;
   }
   if (!isVideo) {
@@ -461,7 +504,7 @@ function renderStrip() {
     strip.innerHTML = r.tracked.map((n, i) => `<span class="tracked ${n === cur ? 'cur' : ''} ${r.frames[n].verified ? 'anchor' : ''} ${r.frames[n].skipped ? 'skipped' : ''}" data-i="${i}" title="${n} · inliers ${r.frames[n].inliers}${r.frames[n].verified ? ' · anchor (quads placed by hand)' : ''}${r.frames[n].skipped ? ' · skipped (no display)' : ''}"></span>`).join('');
     legend.innerHTML = `${frameIdx + 1}/${r.tracked.length} · grey = tracked from the still · white outline = anchor (quads you placed) · drag a quad to anchor a frame · <kbd>⇧⏎</kbd> marks tracking ok and saves`;
     strip.querySelectorAll('span[data-i]').forEach(el => el.onclick = () => { frameIdx = +el.dataset.i; showFrame(); });
-    centreStrip();
+    centreStrip(); updateFrameNav();
     return;
   }
   const r = currentRecord(); const states = frameStates(r); const cur = r.tracked[frameIdx];
@@ -471,7 +514,7 @@ function renderStrip() {
   strip.innerHTML = r.tracked.map((n, i) => `<span class="${states[n]} ${n === cur ? 'cur' : ''} ${runStart.has(n) ? 'runstart' : ''} ${n === nextRunFirst ? 'nextrun' : ''} ${r.frames[n].verified ? 'anchor' : ''} ${r.frames[n].skipped ? 'skipped' : ''}" data-i="${i}" title="${n} ${states[n]}${runStart.has(n) ? ' · new value' : ''}${r.frames[n].verified ? ' · anchor (quads placed by hand)' : ''}${r.frames[n].skipped ? ' · skipped (no display)' : ''}"></span>`).join('');
   legend.innerHTML = `${frameIdx + 1}/${r.tracked.length} · red = needs you (unlabelled or breaks the sequence) · yellow = reader pre-fill to confirm · green = labelled · teal = interpolated between keyframes · ▲ next unique value (<kbd>⇧→</kbd>) · gap = value changes`;
   strip.querySelectorAll('span[data-i]').forEach(el => el.onclick = () => { frameIdx = +el.dataset.i; showFrame(); });
-  centreStrip();
+  centreStrip(); updateFrameNav();
 }
 function nextAttention() {
   const r = currentRecord(); const states = frameStates(r);
@@ -595,6 +638,7 @@ async function saveVideoLabel(opts = {}) {
   const fields = labelFields();
   if (opts.keyframe) {
     const res = await putVideoLabel(r.movie, name, {...fields, run: runOf(r, name), keyframe: true});
+    markResume(r.movie, name);
     await refreshRecord(r.movie);
     const n = (res.interpolated || []).length;
     setMsg(`keyframe saved${n ? `, ${n} frame(s) interpolated` : ''}`);
@@ -610,6 +654,7 @@ async function saveVideoLabel(opts = {}) {
   const res = await putVideoLabel(r.movie, name, body);
   const written = res.written || [name];
   applyWritten(r, written, fields);
+  markResume(r.movie, name);
   setMsg(`label saved to ${written.length} frame(s)`);
   showVideoLabel(); draw();
 }
@@ -1156,6 +1201,8 @@ $('#reload').onclick = async () => {
 $('#rot').onchange = () => { touch(); fit(); draw(); };
 $('#add').onclick = () => addWindow();
 $('#framesToggle').onclick = e => { e.target.blur(); frameMode ? leaveFrames() : enterFrames(); };
+$('#fnResume').onclick = () => { const r = currentRecord(); if (r) goToFrame(r.tracked.indexOf(resumeFrame(r.movie))); };
+$('#fnGo').onchange = e => { goToFrame((+e.target.value || 1) - 1); e.target.blur(); };
 $('#frameSlider').oninput = e => { frameIdx = +e.target.value; showFrame(); };
 $('#frameSlider').onchange = e => e.target.blur();
 $('#rec').onchange = () => { frameIdx = 0; showRecordInfo(); if (frameMode) showFrame(); };
@@ -1182,6 +1229,7 @@ async function saveAnchor(retrack = false) {
   r.frames[name].windows.forEach(w => delete w.carried);
   const res = await (await fetch('/api/video-anchor/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name), {method:'PUT', body: JSON.stringify({windows: r.frames[name].windows, retrack})})).json();
   r.frames[name].verified = true; frameQuadsEdited = false;
+  markResume(r.movie, name);
   if (res.liveAnchors && entry) entry.liveAnchors = res.liveAnchors;
   if (!isVideo) $('#lfState').textContent = '⚓ anchor (quads placed by hand)';
   renderStrip();
@@ -1355,7 +1403,7 @@ function copyPrevQuads() {
   frameQuadsEdited = true; renderWins(); draw();
   setMsg(`boxes copied from ${r.tracked[frameIdx - 1]} - ⇧⏎ pins them as an anchor`);
 }
-for (const id of ['#lfCopyPrev', '#vlCopyPrev']) { const b = $(id); if (b) b.onclick = copyPrevQuads; }
+$('#vlCopyPrev').onclick = copyPrevQuads;
 function toggleHelp(show) { const h = $('#help'); h.style.display = (show === undefined ? h.style.display === 'none' : show) ? '' : 'none'; }
 $('#helpBtn').onclick = () => toggleHelp(true); $('#helpClose').onclick = () => toggleHelp(false); $('#help').onclick = () => toggleHelp(false);
 document.addEventListener('keydown', e => {

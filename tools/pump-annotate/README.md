@@ -189,6 +189,23 @@ the ml venv runs it); the converted images are cached under
   video frame. A button with no meaning in the current view is hidden, not
   disabled, so the row reads as what can be done now. The right panel keeps only
   what is about THIS image: its windows, its negatives, its CSV row, its record.
+- **Where each control lives.** The **toolbar** carries what is the same
+  whatever is open (Save, next, undo, reload, zoom, retrack, View frames). The
+  **frames bar** under the image carries what acts on the frame you are looking
+  at: **⏮ where I left**, **go to** a frame by number, ← same as previous, next
+  attention, ▶ read, whole run, ⇤ boxes from previous, ✓ tracking ok, and the
+  frame's own state (margin, source, anchor/skip). The **right panel** carries
+  the image's annotation, top down: the window cards first, then `+ window` and
+  the negatives, then the CSV row and the arithmetic it is checked against, then
+  processed / rotate, then the record it belongs to (which record, tracking
+  verdict), then notOnDisplay and csvDisagrees.
+- **⏮ where I left** jumps to the last frame you **saved** in this record - a
+  label, a keyframe or an anchor - remembered per record in this browser. Not
+  the last frame merely looked at: scrolling past forty frames is not progress.
+  The button hides when there is nothing to resume or you are already there.
+- **go to** takes a frame number (1-based, the count beside it names the total
+  and the current file) - the way to a frame the strip would take a long scroll
+  to reach.
 - **The frames bar sits under the image**, not in the right panel: always
   present so the picture never jumps when the frames view opens, filled only in
   that view. It scrolls horizontally and **keeps the current frame in the
