@@ -13,7 +13,7 @@ adds:
   technology is a palette, not a geometry: the digit is carried by the segment
   geometry, which the make controls. Binding the two would let the classifier
   lean on colour as a proxy for the wrong reason. Here the make supplies
-  geometry and a technology palette (LCD 0.6 / LED 0.3 / VFD 0.1) supplies the
+  geometry and a technology palette (``TECHNOLOGY_PRIORS``) supplies the
   colours, so a make appears in every technology across the draw.
 - **Crop jitter.** The real slicer (PU.4) cuts cells slightly off, so a training
   glyph is shifted by up to +-20 % of the cell width and +-10 % of the height and
@@ -39,8 +39,21 @@ from .row import render_row_of_labels
 TECHNOLOGIES: tuple[str, ...] = ("lcd", "led", "vfd")
 # The corpus is almost entirely LCD (every Gilbarco, Wayne, Dresser, Scheidt and
 # Tokheim head in it); LED and VFD are kept as a minority so the reader does not
-# forget them.
-TECHNOLOGY_PRIORS: dict[str, float] = {"lcd": 0.85, "led": 0.10, "vfd": 0.05}
+# forget them. The real pool measures ~90 % grey LCD, so LCD dominates.
+TECHNOLOGY_PRIORS: dict[str, float] = {"lcd": 0.80, "led": 0.15, "vfd": 0.05}
+
+# The real pool's ink-vs-panel luminance contrast, measured on the 40 755 real
+# cells of the train split (`.out/real-r11`, the round-10 export): p10 28,
+# p25 37, p50 52, p75 91, p90 121. The synthetic palettes' own ranges sit at
+# 80-165, far above the corpus median, so the grey-panel palette draws its
+# contrast from these quantiles instead.
+REAL_CONTRAST_QUANTILES: tuple[float, ...] = (28.0, 37.0, 52.0, 91.0, 121.0)
+# Share of LCD samples drawn from the grey, corpus-contrast band rather than
+# the named hue families below; the corpus is mostly grey panels.
+GREY_PALETTE_PROB: float = 0.75
+# The fraction of real cells whose ink is darker than its panel (the slicer's
+# polarity rule, measured on the same pool: 0.944).
+DARK_ON_LIGHT_PROB: float = 0.94
 
 # LCD palette families, by eye from the cell sheets (never fitted to a fixture):
 # (ground, on, ghost). Grey-blue transflective (Gilbarco), dark olive with black
@@ -66,6 +79,33 @@ LCD_PALETTES: tuple[tuple[ColorRange, ColorRange, ColorRange], ...] = (
 BLANK_PRIOR: float = 0.08
 DP_ONLY_PRIOR: float = 0.08
 
+
+def grey_lcd_palette(
+    rng: np.random.Generator,
+) -> tuple[ColorRange, ColorRange, ColorRange]:
+    """A grey LCD panel whose ink-vs-panel contrast is drawn from the real pool.
+
+    Panel luminance is grey (70-215) with a small per-channel tint; the contrast
+    is one of ``REAL_CONTRAST_QUANTILES`` and the polarity is dark-on-light on
+    ~94 % of samples, the corpus's own split. The returned ranges are narrow
+    (a +-6 band) so the resolved colours sit on the sampled pair. The ghost is
+    the third element but LCD ``resolve`` derives it from ground and on.
+    """
+    panel = float(rng.uniform(70.0, 215.0))
+    contrast = float(REAL_CONTRAST_QUANTILES[int(rng.integers(0, len(REAL_CONTRAST_QUANTILES)))])
+    on_level = panel - contrast if rng.random() < DARK_ON_LIGHT_PROB else panel + contrast
+    tint = rng.integers(-10, 11, size=3)
+
+    def band(level: float) -> ColorRange:
+        lo = tuple(int(v) for v in np.clip(level + tint - 6, 0, 255))
+        hi = tuple(int(v) for v in np.clip(level + tint + 6, 0, 255))
+        return ColorRange(lo, hi)
+
+    ground = band(panel)
+    on = band(on_level)
+    return ground, on, ground
+
+
 _MIN_VISIBLE_FRAC: float = 0.7
 
 # gap 2 (neighbour spill): a real slicer's cells overlap, so a cell carries the
@@ -88,8 +128,9 @@ SLICER_X_JITTER: float = 0.03
 SLICER_Y_JITTER: float = 0.03
 
 
-def _sample_technology(rng: np.random.Generator) -> str:
-    return str(rng.choice(TECHNOLOGIES, p=[TECHNOLOGY_PRIORS[t] for t in TECHNOLOGIES]))
+def _sample_technology(rng: np.random.Generator, priors: dict[str, float] | None = None) -> str:
+    p = priors or TECHNOLOGY_PRIORS
+    return str(rng.choice(TECHNOLOGIES, p=[p[t] for t in TECHNOLOGIES]))
 
 
 def _resolve_technology_palette(
@@ -102,6 +143,9 @@ def _resolve_technology_palette(
     makes' LED colours (red / green / amber); LCD and VFD each have one.
     """
     if tech == "lcd":
+        if rng.random() < GREY_PALETTE_PROB:
+            ground, on, ghost = grey_lcd_palette(rng)
+            return ground, on, ghost, 0.0
         ground, on, ghost = LCD_PALETTES[int(rng.integers(0, len(LCD_PALETTES)))]
         return ground, on, ghost, 0.0
     if tech == "vfd":
@@ -392,6 +436,8 @@ class SyntheticDataset:
         spill_prob: float = 0.0,
         contrast_prob: float = 0.0,
         framing: str = "slicer",
+        technology_priors: dict[str, float] | None = None,
+        dp_bits: bool = True,
     ) -> None:
         # Both knobs were ablated against the held-out corpus (REPORT.md): with
         # cells framed like the slicer's, contrast collapse HELPS and is on in
@@ -399,10 +445,14 @@ class SyntheticDataset:
         # ``framing`` picks the cell renderer: "slicer" cuts the cell as the
         # slicer hands it over (PU.9), "glyph" keeps the lone-glyph renderer
         # with its crop jitter, so the ablation can re-run the old framing.
+        # ``technology_priors`` overrides the LCD-heavy prior for the ablation
+        # control, which reproduces the round-10 (lcd 0.85) profile.
         self.seed = seed
         self.length = length
         self.spill_prob = spill_prob
         self.framing = framing
+        self.priors = technology_priors
+        self.dp_bits = dp_bits
         self.overrides = {"contrast_collapse": contrast_prob}
         self._cache: list[tuple[np.ndarray, np.ndarray] | None] = (
             [None] * length if cache else []
@@ -419,13 +469,13 @@ class SyntheticDataset:
         """
         rng = np.random.default_rng(self.seed + index)
         make = str(rng.choice(list(PROFILES)))
-        tech = _sample_technology(rng)
+        tech = _sample_technology(rng, self.priors)
         return make, tech
 
     def _render(self, index: int) -> tuple[np.ndarray, np.ndarray]:
         rng = np.random.default_rng(self.seed + index)
         make = str(rng.choice(list(PROFILES)))
-        tech = _sample_technology(rng)
+        tech = _sample_technology(rng, self.priors)
         label = _sample_dataset_label(rng)
         profile = with_technology(PROFILES[make], tech, rng)
         if self.framing == "slicer":
@@ -438,7 +488,10 @@ class SyntheticDataset:
             ground = img.getpixel((0, 0))
             img = _jitter(img, rng, ground)
         arr = np.asarray(img, dtype=np.uint8).transpose(2, 0, 1)  # CHW uint8
-        return arr, bits_to_target(label.bits)
+        target = bits_to_target(label.bits)
+        if not self.dp_bits:
+            target[7] = 0.0
+        return arr, target
 
     def __getitem__(self, index: int) -> tuple[np.ndarray, np.ndarray]:
         if self._cache:

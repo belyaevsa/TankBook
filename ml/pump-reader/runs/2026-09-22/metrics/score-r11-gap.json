@@ -1,0 +1,1403 @@
+{
+  "fixtures": 281,
+  "windows_scored": 185,
+  "skipped_empty": 4,
+  "per_segment_accuracy": {
+    "a": 0.9425,
+    "b": 0.9793,
+    "c": 0.9942,
+    "d": 0.9448,
+    "e": 0.954,
+    "f": 0.9448,
+    "g": 0.9643,
+    "dp": 0.7572
+  },
+  "per_segment_mean": 0.9351,
+  "per_glyph_accuracy": 0.6835,
+  "per_digit_accuracy": 0.8872,
+  "frontier": {
+    "n": 869,
+    "deciles": [
+      [
+        10,
+        1.0
+      ],
+      [
+        20,
+        0.9943
+      ],
+      [
+        30,
+        0.9923
+      ],
+      [
+        40,
+        0.9914
+      ],
+      [
+        50,
+        0.9862
+      ],
+      [
+        60,
+        0.9808
+      ],
+      [
+        70,
+        0.9655
+      ],
+      [
+        80,
+        0.9612
+      ],
+      [
+        90,
+        0.9373
+      ],
+      [
+        100,
+        0.8872
+      ]
+    ],
+    "coverage_0.99": 0.427,
+    "coverage_0.95": 0.852
+  },
+  "per_window_digits_accuracy": 0.6649,
+  "per_window_accuracy": 0.0919,
+  "dp_auc": 0.5511,
+  "per_make": {
+    "circlek": {
+      "windows": 6,
+      "correct": 1
+    },
+    "dresser": {
+      "windows": 9,
+      "correct": 0
+    },
+    "gilbarco": {
+      "windows": 75,
+      "correct": 7
+    },
+    "scheidt": {
+      "windows": 9,
+      "correct": 0
+    },
+    "tatsuno": {
+      "windows": 6,
+      "correct": 0
+    },
+    "tokheim": {
+      "windows": 29,
+      "correct": 3
+    },
+    "topaz": {
+      "windows": 3,
+      "correct": 0
+    },
+    "unknown": {
+      "windows": 3,
+      "correct": 0
+    },
+    "wayne": {
+      "windows": 45,
+      "correct": 6
+    }
+  },
+  "by_name": {
+    "pump-008-topaz-video-overlay-92-ru/total": {
+      "field": "total",
+      "truth": "1098.00",
+      "read": "1.7980.0",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-008-topaz-video-overlay-92-ru/liters": {
+      "field": "liters",
+      "truth": "20.00",
+      "read": "2000",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-008-topaz-video-overlay-92-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "54.90",
+      "read": "5490",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-014-dresser-wayne-ee-glare-partial/total": {
+      "field": "total",
+      "truth": "7.01",
+      "read": "7.07",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-014-dresser-wayne-ee-glare-partial/liters": {
+      "field": "liters",
+      "truth": "3.92",
+      "read": "392",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-019-gilbarco-circlek-sikupilli-pump8-ee/total": {
+      "field": "total",
+      "truth": "0079,32",
+      "read": "007932",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-019-gilbarco-circlek-sikupilli-pump8-ee/liters": {
+      "field": "liters",
+      "truth": "0045,22",
+      "read": "004522",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-019-gilbarco-circlek-sikupilli-pump8-ee/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1,754",
+      "read": "1.154",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-023-wayne-circlek-glare-ee/total": {
+      "field": "total",
+      "truth": "51.71",
+      "read": "5171.",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-023-wayne-circlek-glare-ee/liters": {
+      "field": "liters",
+      "truth": "29.65",
+      "read": "2.163",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-028-gilbarco-circlek-ee-comma-decimal-b/total": {
+      "field": "total",
+      "truth": "0049,08",
+      "read": "004908",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-028-gilbarco-circlek-ee-comma-decimal-b/liters": {
+      "field": "liters",
+      "truth": "0025,51",
+      "read": "002551.",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-028-gilbarco-circlek-ee-comma-decimal-b/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1,924",
+      "read": "1.924",
+      "correct": true,
+      "digits_correct": true
+    },
+    "pump-030-tokheim-zolotaya-seredina-tver-ru-comma/total": {
+      "field": "total",
+      "truth": "3695,76",
+      "read": "369576",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-030-tokheim-zolotaya-seredina-tver-ru-comma/liters": {
+      "field": "liters",
+      "truth": "54,00",
+      "read": "5400",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-030-tokheim-zolotaya-seredina-tver-ru-comma/unitPrice": {
+      "field": "unitPrice",
+      "truth": "68,44",
+      "read": "6844",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-031-gilbarco-circlek-ee-discount-mismatch/total": {
+      "field": "total",
+      "truth": "0032,58",
+      "read": "003258",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-031-gilbarco-circlek-ee-discount-mismatch/liters": {
+      "field": "liters",
+      "truth": "0016,80",
+      "read": "001080",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-031-gilbarco-circlek-ee-discount-mismatch/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1,939",
+      "read": "1939",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-032-gilbarco-circlek-ee-clean/total": {
+      "field": "total",
+      "truth": "0020,02",
+      "read": "002002",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-032-gilbarco-circlek-ee-clean/liters": {
+      "field": "liters",
+      "truth": "0011,38",
+      "read": "001136",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-032-gilbarco-circlek-ee-clean/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1,759",
+      "read": "1.159",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-035-dresser-wayne-circlek-ee-rain-pump8/total": {
+      "field": "total",
+      "truth": "82.01",
+      "read": "820.1",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-038-dresser-wayne-circlek-ee-reflection-95/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1.759",
+      "read": "1759",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-041-dresser-wayne-circlek-ee-glare-total/total": {
+      "field": "total",
+      "truth": "54.93",
+      "read": "5443",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-041-dresser-wayne-circlek-ee-glare-total/liters": {
+      "field": "liters",
+      "truth": "30.62",
+      "read": "502.2",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-041-dresser-wayne-circlek-ee-glare-total/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1.784",
+      "read": "1.78.4",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-042-dresser-wayne-circlek-ee-preset-20eur/total": {
+      "field": "total",
+      "truth": "20.00",
+      "read": "2070",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-042-dresser-wayne-circlek-ee-preset-20eur/liters": {
+      "field": "liters",
+      "truth": "11.34",
+      "read": "1134",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-046-gilbarco-circlek-ee-pump7-95-badge/total": {
+      "field": "total",
+      "truth": "0022,22",
+      "read": "002222",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-046-gilbarco-circlek-ee-pump7-95-badge/liters": {
+      "field": "liters",
+      "truth": "0012,63",
+      "read": "001263",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-046-gilbarco-circlek-ee-pump7-95-badge/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1,759",
+      "read": "1759",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-050-gilbarco-circlek-ee-1929/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1,929",
+      "read": "1929",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-055-wayne-circlek-ee-liitrid-variant/total": {
+      "field": "total",
+      "truth": "108.68",
+      "read": "3.006.8",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-055-wayne-circlek-ee-liitrid-variant/liters": {
+      "field": "liters",
+      "truth": "56.05",
+      "read": "56.05",
+      "correct": true,
+      "digits_correct": true
+    },
+    "pump-056-wayne-circlek-ee-preset-72eur/total": {
+      "field": "total",
+      "truth": "72.00",
+      "read": "1200",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-056-wayne-circlek-ee-preset-72eur/liters": {
+      "field": "liters",
+      "truth": "38.32",
+      "read": "3832",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-061-wayne-circlek-ee-discount-below-board/total": {
+      "field": "total",
+      "truth": "62.40",
+      "read": "6247.",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-061-wayne-circlek-ee-discount-below-board/liters": {
+      "field": "liters",
+      "truth": "33.84",
+      "read": "3384",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-062-wayne-circlek-ee-pump8-1894/total": {
+      "field": "total",
+      "truth": "39.55",
+      "read": "3955.",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-062-wayne-circlek-ee-pump8-1894/liters": {
+      "field": "liters",
+      "truth": "20.88",
+      "read": "2088",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-062-wayne-circlek-ee-pump8-1894/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1.894",
+      "read": "1894",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-063-wayne-circlek-ee-insect-on-price-display/total": {
+      "field": "total",
+      "truth": "13.15",
+      "read": "7313.",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-063-wayne-circlek-ee-insect-on-price-display/liters": {
+      "field": "liters",
+      "truth": "7.17",
+      "read": "7.17",
+      "correct": true,
+      "digits_correct": true
+    },
+    "pump-063-wayne-circlek-ee-insect-on-price-display/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1.834",
+      "read": "1834",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-065-tokheim-gazpromneft-edrovo-truncated-total-pair-ru/total": {
+      "field": "total",
+      "truth": "3765,7",
+      "read": "37691.",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-065-tokheim-gazpromneft-edrovo-truncated-total-pair-ru/liters": {
+      "field": "liters",
+      "truth": "53,00",
+      "read": "5300",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-065-tokheim-gazpromneft-edrovo-truncated-total-pair-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "71,05",
+      "read": "71.05",
+      "correct": true,
+      "digits_correct": true
+    },
+    "pump-068-circlek-jarvevana-dmiles-7070l-pair-ee/total": {
+      "field": "total",
+      "truth": "148.40",
+      "read": "1.4040",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-068-circlek-jarvevana-dmiles-7070l-pair-ee/liters": {
+      "field": "liters",
+      "truth": "70.70",
+      "read": "1.070",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-068-circlek-jarvevana-dmiles-7070l-pair-ee/unitPrice": {
+      "field": "unitPrice",
+      "truth": "2.099",
+      "read": "2099",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-070-circlek-gilbarco-3494l-ee/total": {
+      "field": "total",
+      "truth": "0067,05",
+      "read": "006905",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-070-circlek-gilbarco-3494l-ee/liters": {
+      "field": "liters",
+      "truth": "0034,94",
+      "read": "003494",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-070-circlek-gilbarco-3494l-ee/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1,919",
+      "read": "1.919",
+      "correct": true,
+      "digits_correct": true
+    },
+    "pump-076-gilbarco-circlek-ee-preset-150/total": {
+      "field": "total",
+      "truth": "0150,00",
+      "read": "01.5000",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-076-gilbarco-circlek-ee-preset-150/liters": {
+      "field": "liters",
+      "truth": "0077,56",
+      "read": "007756",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-076-gilbarco-circlek-ee-preset-150/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1,934",
+      "read": "1.934",
+      "correct": true,
+      "digits_correct": true
+    },
+    "pump-079-gilbarco-circlek-peetri-6900l-ee/total": {
+      "field": "total",
+      "truth": "0135,86",
+      "read": "01.3586.",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-079-gilbarco-circlek-peetri-6900l-ee/liters": {
+      "field": "liters",
+      "truth": "0069,00",
+      "read": "006900",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-079-gilbarco-circlek-peetri-6900l-ee/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1,969",
+      "read": "1.969",
+      "correct": true,
+      "digits_correct": true
+    },
+    "pump-080-gilbarco-circlek-peetri-1039l-ee/total": {
+      "field": "total",
+      "truth": "0020,15",
+      "read": "002015",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-080-gilbarco-circlek-peetri-1039l-ee/liters": {
+      "field": "liters",
+      "truth": "0010,39",
+      "read": "071039",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-080-gilbarco-circlek-peetri-1039l-ee/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1,939",
+      "read": "1.939",
+      "correct": true,
+      "digits_correct": true
+    },
+    "pump-083-tokheim-gazpromneft-azs12089-truncated-total-pair-ru/total": {
+      "field": "total",
+      "truth": "1437,2",
+      "read": "34372",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-083-tokheim-gazpromneft-azs12089-truncated-total-pair-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "68,44",
+      "read": "6844",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-089-scheidt-bachmann-rn-1500l-6830-ru/total": {
+      "field": "total",
+      "truth": "1024.5",
+      "read": "1.0345",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-089-scheidt-bachmann-rn-1500l-6830-ru/liters": {
+      "field": "liters",
+      "truth": "15.00",
+      "read": "1.51.1.",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-089-scheidt-bachmann-rn-1500l-6830-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "68.30",
+      "read": "6830",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-091-scheidt-bachmann-rn-2000l-7135-labels-cropped-ru/total": {
+      "field": "total",
+      "truth": "1427.0",
+      "read": "1.4210",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-091-scheidt-bachmann-rn-2000l-7135-labels-cropped-ru/liters": {
+      "field": "liters",
+      "truth": "20.00",
+      "read": "2010",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-091-scheidt-bachmann-rn-2000l-7135-labels-cropped-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "71.35",
+      "read": "7135",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-092-scheidt-bachmann-rn-3000l-6385-ru/total": {
+      "field": "total",
+      "truth": "1915.5",
+      "read": "191.59",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-092-scheidt-bachmann-rn-3000l-6385-ru/liters": {
+      "field": "liters",
+      "truth": "30.00",
+      "read": "3007",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-092-scheidt-bachmann-rn-3000l-6385-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "63.85",
+      "read": "6385",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-095-gilbarco-circlek-peetri-pump5-2307l-pair-ee/total": {
+      "field": "total",
+      "truth": "0044,85",
+      "read": "004485",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-095-gilbarco-circlek-peetri-pump5-2307l-pair-ee/liters": {
+      "field": "liters",
+      "truth": "0023,07",
+      "read": "002307",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-095-gilbarco-circlek-peetri-pump5-2307l-pair-ee/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1,944",
+      "read": "1.944",
+      "correct": true,
+      "digits_correct": true
+    },
+    "pump-096-tokheim-rn-tver-tc252-2000l-pair-ru/total": {
+      "field": "total",
+      "truth": "1426,00",
+      "read": "1.4260.0",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-096-tokheim-rn-tver-tc252-2000l-pair-ru/liters": {
+      "field": "liters",
+      "truth": "20,00",
+      "read": "2000",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-096-tokheim-rn-tver-tc252-2000l-pair-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "71,30",
+      "read": "7130",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-104-gilbarco-circlek-sikupilli-pump1-2650l-price-washed-pair-ee/total": {
+      "field": "total",
+      "truth": "0051,65",
+      "read": "705165",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-104-gilbarco-circlek-sikupilli-pump1-2650l-price-washed-pair-ee/liters": {
+      "field": "liters",
+      "truth": "0026,50",
+      "read": "002060",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-104-gilbarco-circlek-sikupilli-pump1-2650l-price-washed-pair-ee/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1,949",
+      "read": "11.98",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-106-wayne-gazpromneft-gdrive95-5100l-7031-truncated-total-ru/total": {
+      "field": "total",
+      "truth": "3585.8",
+      "read": "35858",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-106-wayne-gazpromneft-gdrive95-5100l-7031-truncated-total-ru/liters": {
+      "field": "liters",
+      "truth": "51.00",
+      "read": "51.00",
+      "correct": true,
+      "digits_correct": true
+    },
+    "pump-106-wayne-gazpromneft-gdrive95-5100l-7031-truncated-total-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "70.31",
+      "read": "7031",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-112-gilbarco-circlek-ee-461l-2199/total": {
+      "field": "total",
+      "truth": "0010,14",
+      "read": "001014",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-112-gilbarco-circlek-ee-461l-2199/liters": {
+      "field": "liters",
+      "truth": "0004,61",
+      "read": "000461",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-112-gilbarco-circlek-ee-461l-2199/unitPrice": {
+      "field": "unitPrice",
+      "truth": "2,199",
+      "read": "2199",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-116-gilbarco-circlek-sikupilli-pump8-98miles-2786l-1979-pair-ee/total": {
+      "field": "total",
+      "truth": "0055,13",
+      "read": "705513",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-116-gilbarco-circlek-sikupilli-pump8-98miles-2786l-1979-pair-ee/liters": {
+      "field": "liters",
+      "truth": "0027,86",
+      "read": "002746",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-116-gilbarco-circlek-sikupilli-pump8-98miles-2786l-1979-pair-ee/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1,979",
+      "read": "1913",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-119-wayne-circlek-95miles-1369-drive2-third-party-ee/total": {
+      "field": "total",
+      "truth": "59.58",
+      "read": "5958",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-119-wayne-circlek-95miles-1369-drive2-third-party-ee/liters": {
+      "field": "liters",
+      "truth": "43.52",
+      "read": "4352",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-119-wayne-circlek-95miles-1369-drive2-third-party-ee/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1.369",
+      "read": "1.369",
+      "correct": true,
+      "digits_correct": true
+    },
+    "pump-120-wayne-circlek-four-prices-drive2-third-party-ee/total": {
+      "field": "total",
+      "truth": "56.17",
+      "read": "9611",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-120-wayne-circlek-four-prices-drive2-third-party-ee/liters": {
+      "field": "liters",
+      "truth": "41.03",
+      "read": "4103",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-120-wayne-circlek-four-prices-drive2-third-party-ee/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1.369",
+      "read": "1.365",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-123-unknown-comma-1911-drive2-third-party-ru/total": {
+      "field": "total",
+      "truth": "1911,53",
+      "read": "1.91153",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-123-unknown-comma-1911-drive2-third-party-ru/liters": {
+      "field": "liters",
+      "truth": "41,70",
+      "read": "4170",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-123-unknown-comma-1911-drive2-third-party-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "45,84",
+      "read": "4581",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-125-wayne-circlek-price-out-of-frame-drive2-third-party-ee/total": {
+      "field": "total",
+      "truth": "59.52",
+      "read": "599.8",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-125-wayne-circlek-price-out-of-frame-drive2-third-party-ee/liters": {
+      "field": "liters",
+      "truth": "41.36",
+      "read": "41.38",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-134-tokheim-kronur-5000-third-party-is/total": {
+      "field": "total",
+      "truth": "5000",
+      "read": "5000",
+      "correct": true,
+      "digits_correct": true
+    },
+    "pump-134-tokheim-kronur-5000-third-party-is/liters": {
+      "field": "liters",
+      "truth": "21,45",
+      "read": "2145",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-134-tokheim-kronur-5000-third-party-is/unitPrice": {
+      "field": "unitPrice",
+      "truth": "233,1",
+      "read": "2.33.1",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-139-wayne-euro-1613-third-party-fr/total": {
+      "field": "total",
+      "truth": "103.88",
+      "read": "1.0388",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-139-wayne-euro-1613-third-party-fr/liters": {
+      "field": "liters",
+      "truth": "64.40",
+      "read": "64.40",
+      "correct": true,
+      "digits_correct": true
+    },
+    "pump-139-wayne-euro-1613-third-party-fr/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1.613",
+      "read": "1.613",
+      "correct": true,
+      "digits_correct": true
+    },
+    "pump-140-wayne-circlek-1849-rounding-third-party-lt/total": {
+      "field": "total",
+      "truth": "62.30",
+      "read": "6.230.",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-140-wayne-circlek-1849-rounding-third-party-lt/liters": {
+      "field": "liters",
+      "truth": "33.69",
+      "read": "3369",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-140-wayne-circlek-1849-rounding-third-party-lt/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1.849",
+      "read": "1.941",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-142-wayne-1600-not-closing-third-party-ru/total": {
+      "field": "total",
+      "truth": "1600.11",
+      "read": "1.60.0.11",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-142-wayne-1600-not-closing-third-party-ru/liters": {
+      "field": "liters",
+      "truth": "48.49",
+      "read": "4849",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-142-wayne-1600-not-closing-third-party-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "33.00",
+      "read": "7300",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-152-wayne-305-third-party-ru/total": {
+      "field": "total",
+      "truth": "305.88",
+      "read": "30588",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-152-wayne-305-third-party-ru/liters": {
+      "field": "liters",
+      "truth": "6.73",
+      "read": "673",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-152-wayne-305-third-party-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "45.45",
+      "read": "4.545",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-160-gilbarco-veeder-root-zero-padded-not-closing-third-party-ru/total": {
+      "field": "total",
+      "truth": "00260,75",
+      "read": "0026086",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-160-gilbarco-veeder-root-zero-padded-not-closing-third-party-ru/liters": {
+      "field": "liters",
+      "truth": "00004,22",
+      "read": "0000428",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-160-gilbarco-veeder-root-zero-padded-not-closing-third-party-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "061,79",
+      "read": "06179",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-161-gilbarco-veeder-root-tv-still-800px-third-party-ru/total": {
+      "field": "total",
+      "truth": "1619,83",
+      "read": "1.61983",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-161-gilbarco-veeder-root-tv-still-800px-third-party-ru/liters": {
+      "field": "liters",
+      "truth": "24,38",
+      "read": "1.11.1.",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-161-gilbarco-veeder-root-tv-still-800px-third-party-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "66,44",
+      "read": "664.4",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-165-gilbarco-veeder-root-four-prices-680px-third-party-ru/total": {
+      "field": "total",
+      "truth": "3602,16",
+      "read": "360218",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-165-gilbarco-veeder-root-four-prices-680px-third-party-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "45,94",
+      "read": "4594",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-166-gilbarco-veeder-root-angled-watermark-third-party-ru/total": {
+      "field": "total",
+      "truth": "1014,25",
+      "read": "1.0142.8",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-166-gilbarco-veeder-root-angled-watermark-third-party-ru/liters": {
+      "field": "liters",
+      "truth": "15,12",
+      "read": "1512",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-166-gilbarco-veeder-root-angled-watermark-third-party-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "67,08",
+      "read": "6708",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-167-gilbarco-veeder-root-shell-zero-padded-third-party-ru/total": {
+      "field": "total",
+      "truth": "2249,27",
+      "read": "224921",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-167-gilbarco-veeder-root-shell-zero-padded-third-party-ru/liters": {
+      "field": "liters",
+      "truth": "0042,77",
+      "read": "004277",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-167-gilbarco-veeder-root-shell-zero-padded-third-party-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "52,59",
+      "read": "52.59",
+      "correct": true,
+      "digits_correct": true
+    },
+    "pump-169-gilbarco-veeder-root-total-not-closing-video-still-third-party-ru/total": {
+      "field": "total",
+      "truth": "91225,73",
+      "read": "9122573",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-169-gilbarco-veeder-root-total-not-closing-video-still-third-party-ru/liters": {
+      "field": "liters",
+      "truth": "00130,72",
+      "read": "001.3072",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-169-gilbarco-veeder-root-total-not-closing-video-still-third-party-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "039,90",
+      "read": "73990",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-170-gilbarco-veeder-root-teboil-zero-padded-preset-11-litres-third-party-ru/total": {
+      "field": "total",
+      "truth": "00560,89",
+      "read": "0056089",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-170-gilbarco-veeder-root-teboil-zero-padded-preset-11-litres-third-party-ru/liters": {
+      "field": "liters",
+      "truth": "00011,00",
+      "read": "0001100",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-170-gilbarco-veeder-root-teboil-zero-padded-preset-11-litres-third-party-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "050,99",
+      "read": "75099",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-174-wayne-keypad-lukoil-ekto-diesel-680px-third-party-ru/total": {
+      "field": "total",
+      "truth": "2834.56",
+      "read": "283456",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-174-wayne-keypad-lukoil-ekto-diesel-680px-third-party-ru/liters": {
+      "field": "liters",
+      "truth": "68.80",
+      "read": "6190",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-174-wayne-keypad-lukoil-ekto-diesel-680px-third-party-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "41.20",
+      "read": "4120",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-175-gilbarco-veeder-root-zero-padded-189-third-party-ru/liters": {
+      "field": "liters",
+      "truth": "00042,53",
+      "read": "0004253",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-175-gilbarco-veeder-root-zero-padded-189-third-party-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "189,00",
+      "read": "18900",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-179-gilbarco-veeder-root-lukoil-winter-four-prices-third-party-ru/total": {
+      "field": "total",
+      "truth": "3533,58",
+      "read": "353358",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-179-gilbarco-veeder-root-lukoil-winter-four-prices-third-party-ru/liters": {
+      "field": "liters",
+      "truth": "0065,68",
+      "read": "006568",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-179-gilbarco-veeder-root-lukoil-winter-four-prices-third-party-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "53,80",
+      "read": "5380",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-180-gilbarco-veeder-root-cents-per-litre-portrait-third-party-au/total": {
+      "field": "total",
+      "truth": "44.82",
+      "read": "4482",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-180-gilbarco-veeder-root-cents-per-litre-portrait-third-party-au/liters": {
+      "field": "liters",
+      "truth": "20.76",
+      "read": "2076",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-180-gilbarco-veeder-root-cents-per-litre-portrait-third-party-au/unitPrice": {
+      "field": "unitPrice",
+      "truth": "215.9",
+      "read": "21.59",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-186-tatsuno-amber-led-night-third-party-ru/total": {
+      "field": "total",
+      "truth": "887.00",
+      "read": "87117",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-186-tatsuno-amber-led-night-third-party-ru/liters": {
+      "field": "liters",
+      "truth": "22.01",
+      "read": "2201",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-186-tatsuno-amber-led-night-third-party-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "40.30",
+      "read": "4037",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-187-tatsuno-amber-led-night-preset-20-third-party-ru/total": {
+      "field": "total",
+      "truth": "876.00",
+      "read": "81111",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-187-tatsuno-amber-led-night-preset-20-third-party-ru/liters": {
+      "field": "liters",
+      "truth": "20.00",
+      "read": "2111",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-187-tatsuno-amber-led-night-preset-20-third-party-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "43.80",
+      "read": "4711",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-190-tokheim-tenge-fog-third-party-kz/total": {
+      "field": "total",
+      "truth": "7200,7",
+      "read": "1.2001",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-190-tokheim-tenge-fog-third-party-kz/liters": {
+      "field": "liters",
+      "truth": "49,66",
+      "read": "4966",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-190-tokheim-tenge-fog-third-party-kz/unitPrice": {
+      "field": "unitPrice",
+      "truth": "145,0",
+      "read": "1450",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-194-tokheim-4968-dusk-third-party-ru/total": {
+      "field": "total",
+      "truth": "4968,21",
+      "read": "496821.",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-194-tokheim-4968-dusk-third-party-ru/liters": {
+      "field": "liters",
+      "truth": "96,47",
+      "read": "9641",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-194-tokheim-4968-dusk-third-party-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "51,50",
+      "read": "51.50",
+      "correct": true,
+      "digits_correct": true
+    },
+    "pump-198-tokheim-lukoil-426-reflection-third-party-ru/total": {
+      "field": "total",
+      "truth": "426,43",
+      "read": "42643",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-198-tokheim-lukoil-426-reflection-third-party-ru/liters": {
+      "field": "liters",
+      "truth": "7,15",
+      "read": "715",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-198-tokheim-lukoil-426-reflection-third-party-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "59,64",
+      "read": "5964",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-199-tokheim-1630-large-cells-third-party-ru/total": {
+      "field": "total",
+      "truth": "1630,88",
+      "read": "963088",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-199-tokheim-1630-large-cells-third-party-ru/liters": {
+      "field": "liters",
+      "truth": "30,09",
+      "read": "3009",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-199-tokheim-1630-large-cells-third-party-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "54,20",
+      "read": "5420",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-201-tokheim-belarus-night-third-party-by/total": {
+      "field": "total",
+      "truth": "64,92",
+      "read": "6492",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-201-tokheim-belarus-night-third-party-by/liters": {
+      "field": "liters",
+      "truth": "24,97",
+      "read": "2491",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-201-tokheim-belarus-night-third-party-by/unitPrice": {
+      "field": "unitPrice",
+      "truth": "2,60",
+      "read": "260",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-208-gilbarco-veeder-root-night-rain-price-dim-third-party-ru/liters": {
+      "field": "liters",
+      "truth": "97,07",
+      "read": "9107",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-208-gilbarco-veeder-root-night-rain-price-dim-third-party-ru/unitPrice": {
+      "field": "unitPrice",
+      "truth": "49,63",
+      "read": "11.1.7.",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-209-wayne-pesos-three-decimal-litres-third-party-ph/total": {
+      "field": "total",
+      "truth": "3450.08",
+      "read": "945001.",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-209-wayne-pesos-three-decimal-litres-third-party-ph/liters": {
+      "field": "liters",
+      "truth": "46.749",
+      "read": "40749",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-209-wayne-pesos-three-decimal-litres-third-party-ph/unitPrice": {
+      "field": "unitPrice",
+      "truth": "73.80",
+      "read": "11.1.1",
+      "correct": false,
+      "digits_correct": false
+    },
+    "pump-275-wayne-neste-night-10337-5171l-board-ee/total": {
+      "field": "total",
+      "truth": "103.37",
+      "read": "10337.",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-275-wayne-neste-night-10337-5171l-board-ee/liters": {
+      "field": "liters",
+      "truth": "51.71",
+      "read": "5171",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-277-gilbarco-circlek-peetri-night-pump2-1754l-1959-ee/total": {
+      "field": "total",
+      "truth": "0034,36",
+      "read": "00.3436",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-277-gilbarco-circlek-peetri-night-pump2-1754l-1959-ee/liters": {
+      "field": "liters",
+      "truth": "0017,54",
+      "read": "001754",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-277-gilbarco-circlek-peetri-night-pump2-1754l-1959-ee/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1,959",
+      "read": "1.959",
+      "correct": true,
+      "digits_correct": true
+    },
+    "pump-280-gilbarco-circlek-night-pump11-323l-2184-ee/total": {
+      "field": "total",
+      "truth": "0007,05",
+      "read": "000705",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-280-gilbarco-circlek-night-pump11-323l-2184-ee/liters": {
+      "field": "liters",
+      "truth": "0003,23",
+      "read": "000323",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-280-gilbarco-circlek-night-pump11-323l-2184-ee/unitPrice": {
+      "field": "unitPrice",
+      "truth": "2.184",
+      "read": "2184",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-281-gilbarco-circlek-night-pump12-2349l-1949-ee/liters": {
+      "field": "liters",
+      "truth": "0023,49",
+      "read": "002349",
+      "correct": false,
+      "digits_correct": true
+    },
+    "pump-281-gilbarco-circlek-night-pump12-2349l-1949-ee/unitPrice": {
+      "field": "unitPrice",
+      "truth": "1,949",
+      "read": "1949",
+      "correct": false,
+      "digits_correct": true
+    }
+  }
+}

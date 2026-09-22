@@ -34,6 +34,11 @@ LOG_EVERY = 200
 SEGMENT_NAMES = list(SEGMENTS) + ["dp"]
 
 
+def _parse_priors(value: str) -> dict[str, float]:
+    lcd, led, vfd = (float(v) for v in value.split(","))
+    return {"lcd": lcd, "led": led, "vfd": vfd}
+
+
 def _collate(batch: list[tuple[np.ndarray, np.ndarray]]) -> tuple[torch.Tensor, torch.Tensor]:
     xs = torch.from_numpy(np.stack([b[0] for b in batch]))
     ys = torch.from_numpy(np.stack([b[1] for b in batch]))
@@ -46,10 +51,12 @@ class RealGlyphs:
     kind through ``augment``), as float tensors ready to concatenate with a
     synthetic batch."""
 
-    def __init__(self, folder: Path, seed: int):
+    def __init__(self, folder: Path, seed: int, *, dp_bits: bool = True):
         data = np.load(folder / "cells.npz")
         self.x = data["x"]  # [n, 3, 48, 32] uint8
         self.y = np.stack([bits_to_target(int(b)) for b in data["y"]]).astype(np.float32)
+        if not dp_bits:
+            self.y[:, 7] = 0.0
         self.rng = np.random.default_rng(seed + 7)
 
     def __len__(self) -> int:
@@ -79,18 +86,22 @@ def _predict(model: nn.Module, xs: torch.Tensor) -> torch.Tensor:
         return torch.sigmoid(model(xs))
 
 
-def _metrics(model: nn.Module, loader: DataLoader, device: torch.device) -> dict:
-    """Loss and per-segment / per-digit accuracy over a full loader."""
+def _metrics(model: nn.Module, loader: DataLoader, device: torch.device, n_bits: int = 8) -> dict:
+    """Loss and per-segment / per-digit accuracy over a full loader.
+
+    ``n_bits`` is 8, or 7 when the dp bit is dropped from training
+    (``--dp-crop none``): the untrained dp output is not scored."""
     loss_fn = nn.BCEWithLogitsLoss()
     total = 0
     loss_sum = 0.0
-    seg_correct = np.zeros(8, dtype=np.int64)
+    seg_correct = np.zeros(n_bits, dtype=np.int64)
     digit_correct = 0
     with torch.no_grad():
         for xs, ys in loader:
             xs = xs.to(device)
             ys = ys.to(device)
-            logits = model(xs)
+            logits = model(xs)[:, :n_bits]
+            ys = ys[:, :n_bits]
             loss_sum += float(loss_fn(logits, ys)) * xs.shape[0]
             probs = torch.sigmoid(logits)
             pred = (probs >= 0.5).float()
@@ -102,7 +113,7 @@ def _metrics(model: nn.Module, loader: DataLoader, device: torch.device) -> dict
         "loss": loss_sum / total,
         "per_segment_accuracy": float(per_segment.mean()),
         "per_digit_accuracy": digit_correct / total,
-        "per_bit_accuracy": {SEGMENT_NAMES[i]: float(per_segment[i]) for i in range(8)},
+        "per_bit_accuracy": {SEGMENT_NAMES[i]: float(per_segment[i]) for i in range(n_bits)},
         "samples": total,
     }
 
@@ -117,7 +128,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--train-size", type=int, default=60_000)
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--spill-prob", type=float, default=0.0)
-    parser.add_argument("--contrast-prob", type=float, default=0.15)
+    parser.add_argument("--contrast-prob", type=float, default=0.5)
     # Synthetic data is separable, so plain BCE drives the logits to saturation
     # and the model is then confidently wrong on real cells; smoothing the
     # targets keeps a margin that still ranks (the abstention frontier).
@@ -125,6 +136,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--framing", type=str, default="slicer", choices=["slicer", "glyph"])
     parser.add_argument("--real", type=Path, default=None, help="pump_reader.realglyphs output folder")
     parser.add_argument("--real-frac", type=float, default=0.3, help="share of each batch drawn from --real")
+    # The dp bit the slicer cannot see is noise (PU.34b owns the mark): "none"
+    # clears the synthetic dp target and drops the dp term from the loss, so the
+    # 8th output is untrained and unscored. "gap" keeps round 10's 8-bit model,
+    # whose cells realglyphs cut with the gap crop.
+    parser.add_argument("--dp-crop", choices=["gap", "none"], default="gap")
+    parser.add_argument("--priors", type=str, default=None,
+                        help="technology priors as lcd,led,vfd (default: dataset.py's LCD-heavy prior)")
     args = parser.parse_args(argv)
 
     smoke = args.smoke
@@ -136,10 +154,15 @@ def main(argv: list[str] | None = None) -> int:
     rng = np.random.default_rng(args.seed)
     torch.manual_seed(args.seed)
 
+    dp_bits = args.dp_crop != "none"
+    n_bits = 8 if dp_bits else 7
+    priors = _parse_priors(args.priors) if args.priors else None
     recipe = {
         "spill_prob": args.spill_prob,
         "contrast_prob": args.contrast_prob,
         "framing": args.framing,
+        "technology_priors": priors,
+        "dp_bits": dp_bits,
     }
     train_ds = SyntheticDataset(seed=args.seed, length=args.train_size, cache=True, **recipe)
     val_ds = SyntheticDataset(
@@ -152,7 +175,7 @@ def main(argv: list[str] | None = None) -> int:
         val_ds, batch_size=args.batch_size, shuffle=False, collate_fn=_collate, num_workers=0
     )
 
-    real = RealGlyphs(args.real, args.seed) if args.real else None
+    real = RealGlyphs(args.real, args.seed, dp_bits=dp_bits) if args.real else None
     real_n = int(round(args.batch_size * args.real_frac)) if real else 0
     if real:
         print(f"real glyphs: {len(real)} cells from {args.real}, {real_n} of every {args.batch_size}")
@@ -167,7 +190,7 @@ def main(argv: list[str] | None = None) -> int:
         progress = step / steps
         return args.lr * 0.5 * (1.0 + np.cos(np.pi * progress))
 
-    initial = _metrics(model, val_loader, device)
+    initial = _metrics(model, val_loader, device, n_bits)
     history: list[dict] = []
     t0 = time.time()
 
@@ -190,12 +213,12 @@ def main(argv: list[str] | None = None) -> int:
         optimizer.zero_grad()
         if args.label_smoothing > 0:
             ys = ys * (1 - args.label_smoothing) + 0.5 * args.label_smoothing
-        loss = loss_fn(model(xs), ys)
+        loss = loss_fn(model(xs)[:, :n_bits], ys[:, :n_bits])
         loss.backward()
         optimizer.step()
 
         if step % LOG_EVERY == 0 or step == steps:
-            m = _metrics(model, val_loader, device)
+            m = _metrics(model, val_loader, device, n_bits)
             history.append({"step": step, **m})
             print(
                 f"step {step:5d}/{steps}  loss {m['loss']:.4f}  "
@@ -204,7 +227,7 @@ def main(argv: list[str] | None = None) -> int:
                 flush=True,
             )
 
-    final = history[-1] if history else _metrics(model, val_loader, device)
+    final = history[-1] if history else _metrics(model, val_loader, device, n_bits)
     wall = time.time() - t0
 
     torch.save(
@@ -213,7 +236,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     metrics = {
         "steps": steps, "spill_prob": args.spill_prob, "contrast_prob": args.contrast_prob,
-        "framing": args.framing,
+        "framing": args.framing, "dp_crop": args.dp_crop,
+        "priors": priors or "default",
         "real": str(args.real) if args.real else None,
         "real_cells": len(real) if real else 0,
         "real_frac": args.real_frac if real else 0.0,
