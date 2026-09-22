@@ -103,13 +103,13 @@
     <div id="frameStrip" style="display:none"></div>
     <div class="row" id="liveFrame" style="display:none"><b>frame</b> <span id="lfName" class="mono dim"></span>
       <button id="lfCopyPrev" title="put the previous frame's boxes on this frame (C); ⇧⏎ then pins them as an anchor">⇤ boxes from previous</button>
-      <button id="lfSave">Save frame</button> <span class="dim"><kbd>⇧⏎</kbd> – the frame's quads are pinned as an anchor; nothing else moves</span>
+      <button id="lfSave">⚓ Pin this frame's boxes</button> <span class="dim"><kbd>⇧⏎</kbd> – an anchor the tracker registers its neighbours to; nothing else moves</span>
       <button id="lfOk" title="mark the record's tracking ok and save the still">✓ tracking ok</button>
       <span id="lfState" class="dim"></span></div>
     <div class="row" id="videoLabel" style="display:none"><b>frame label</b>
-      total <input id="vlTotal" class="mono" style="width:80px"> liters <input id="vlLiters" class="mono" style="width:70px"> price <input id="vlPrice" class="mono" style="width:60px">
+      <span class="dim">type it on the window cards below</span>
       <span id="vlMargin" class="mono dim" title="the reader's lowest cell margin for this frame (from readings)">–</span>
-      <span id="vlSource" class="dim"></span> <button id="vlSave">Save label</button> <span class="dim"><kbd>⇧⏎</kbd> run · <kbd>⌥⏎</kbd> keyframe</span>
+      <span id="vlSource" class="dim"></span> <button id="vlSave" class="primary">Save this frame's numbers</button> <span class="dim"><kbd>⇧⏎</kbd> run · <kbd>⌥⏎</kbd> keyframe</span>
       <button id="vlCopy" title="copy the previous labelled frame's numbers here and save">← same as previous</button> <span class="dim"><kbd>⇧←</kbd></span>
       <button id="vlSkip" title="jump to the next frame that needs you">next attention ▸</button>
       <button id="vlRead" title="run the reader on this frame's windows and fill the label (nothing saved)">▶ read</button> <span class="dim"><kbd>r</kbd> / <kbd>R</kbd> live path</span>
@@ -335,13 +335,29 @@ function showRecordInfo() {
 async function enterFrames() {
   await recordsLoaded;
   const r = currentRecord(); if (!r || !r.tracked.length) return;
-  frameMode = true; sel = -1; frameIdx = Math.min(frameIdx, r.tracked.length - 1); $('#frameSlider').style.display = '';
+  frameMode = true; sel = -1; frameIdx = Math.min(frameIdx, r.tracked.length - 1); $('#frameSlider').style.display = ''; labelSaveButtons();
   $('#framesToggle').textContent = 'Back to still'; showFrame();
+}
+// The bottom bar acts on the STILL (or a video's reference), never on the frame
+// on screen - so while the frames view is open it says so, and the frame's own
+// save sits in the frame row.
+function labelSaveButtons() {
+  const save = $('#save'), next = $('#savenext');
+  if (frameMode) {
+    save.textContent = isVideo ? 'Save the reference' : 'Save the still';
+    save.title = isVideo ? "the video's reference windows and reviewed - not this frame (this frame: Save this frame's numbers)"
+                         : "the still's own windows - not this frame (this frame: pin its boxes)";
+    save.classList.remove('primary');
+    next.style.display = 'none';
+  } else {
+    save.textContent = 'Save'; save.title = ''; save.classList.add('primary');
+    next.style.display = '';
+  }
 }
 function leaveFrames() {
   frameZoomFor = null;
   stopPlay(); $('#playInfo').textContent = ''; confirmLoop = null;
-  frameMode = false; img = stillImg; $('#videoLabel').style.display = 'none'; $('#liveFrame').style.display = 'none'; $('#retrackBar').style.display = 'none'; $('#keepShapeLabel').style.display = 'none'; $('#frameStrip').style.display = 'none'; $('#frameSlider').style.display = 'none'; $('#framesToggle').textContent = 'View frames';
+  frameMode = false; img = stillImg; labelSaveButtons(); $('#videoLabel').style.display = 'none'; $('#liveFrame').style.display = 'none'; $('#retrackBar').style.display = 'none'; $('#keepShapeLabel').style.display = 'none'; $('#frameStrip').style.display = 'none'; $('#frameSlider').style.display = 'none'; $('#framesToggle').textContent = 'View frames';
   $('#frameName').textContent = ''; fit(); draw();
 }
 function runOf(r, name) { return (r.runs || []).find(run => run.includes(name)) || [name]; }
@@ -384,7 +400,7 @@ function frameStates(r) {
 // blocks Save; the corpus has legitimate off-by-a-cent displays.
 function updateArith() {
   const el = $('#arith'); if (!el) return;
-  const text = f => ((entry && entry.windows.find(w => w.field === f)) || {}).text || '';
+  const text = f => (editable().find(w => w.field === f) || {}).text || '';
   const t = text('total'), l = text('liters'), p = text('unitPrice');
   if (!t || !l || !p) { el.textContent = ''; el.className = 'row mono'; return; }
   if (closesWithin(t, l, p) === true) { el.className = 'row mono ok'; el.textContent = '✓ closes'; return; }
@@ -432,11 +448,10 @@ function showVideoLabel() {
   const pre = k => win(k).prefill || '';
   const loop = (confirmLoop && confirmLoop.run.includes(name)) ? confirmLoop : null;
   const typed = loop ? loop.fields : null;
-  $('#vlTotal').value = typed ? typed.total : (get('total') || pre('total'));
-  $('#vlLiters').value = typed ? typed.liters : (get('liters') || pre('liters'));
-  $('#vlPrice').value = typed ? typed.unitPrice : get('unitPrice');
-  $('#vlTotal').classList.toggle('prefill', !typed && !get('total') && !!pre('total'));
-  $('#vlLiters').classList.toggle('prefill', !typed && !get('liters') && !!pre('liters'));
+  renderWins();
+  setLabelField('total', typed ? typed.total : (get('total') || pre('total')), !typed && !get('total') && !!pre('total'));
+  setLabelField('liters', typed ? typed.liters : (get('liters') || pre('liters')), !typed && !get('liters') && !!pre('liters'));
+  setLabelField('unitPrice', typed ? typed.unitPrice : get('unitPrice'), false);
   $('#vlMargin').textContent = Number.isFinite(f.margin) ? f.margin.toFixed(2) : '–';
   const run = runOf(r, name); renderStrip();
   if (loop) {
@@ -446,6 +461,25 @@ function showVideoLabel() {
   $('#vlSource').textContent = (f.source ? `(${f.source})` : (pre('total') ? '(reader pre-fill – confirm)' : '(unlabelled)')) + ` · run of ${run.length}` + (f.verified ? ' · ⚓ hand-placed quads' : '') + (f.skipped ? ' · ⊘ skipped (no display)' : '');
 }
 let frameQuadsEdited = false;
+// The frame label, read from the window cards (the one place it is typed) and
+// written back to them.
+function labelFields() {
+  const v = {total: '', liters: '', unitPrice: ''};
+  editable().forEach((w, i) => {
+    if (!(w.field in v)) return;
+    const el = document.querySelector(`[data-t="${i}"]`);
+    v[w.field] = ((el ? el.value : w.text) || '').trim();
+  });
+  return v;
+}
+function setLabelField(field, value, prefill) {
+  editable().forEach((w, i) => {
+    if (w.field !== field) return;
+    w.text = value;
+    const el = document.querySelector(`[data-t="${i}"]`);
+    if (el) { el.value = value; el.classList.toggle('prefill', !!prefill); }
+  });
+}
 async function putVideoLabel(movie, frame, body) {
   return await (await fetch('/api/video-label/' + encodeURIComponent(movie) + '/' + encodeURIComponent(frame),
     {method:'PUT', body: JSON.stringify(body)})).json();
@@ -512,7 +546,7 @@ async function confirmAll() {
 async function saveVideoLabel(opts = {}) {
   const r = currentRecord(); const name = r.tracked[frameIdx];
   if (frameQuadsEdited) { await saveAnchor(); }
-  const fields = {total: $('#vlTotal').value.trim(), liters: $('#vlLiters').value.trim(), unitPrice: $('#vlPrice').value.trim()};
+  const fields = labelFields();
   if (opts.keyframe) {
     const res = await putVideoLabel(r.movie, name, {...fields, run: runOf(r, name), keyframe: true});
     await refreshRecord(r.movie);
@@ -550,7 +584,8 @@ let copiedFromPrevious = false;
 async function copyPrevious() {
   const p = previousLabelled(); if (!p) { setMsg('no labelled frame before this one'); return; }
   const get = k => (p.windows.find(w => w.field === k) || {}).text || '';
-  $('#vlTotal').value = get('total'); $('#vlLiters').value = get('liters'); $('#vlPrice').value = get('unitPrice') || $('#vlPrice').value;
+  setLabelField('total', get('total')); setLabelField('liters', get('liters'));
+  if (get('unitPrice')) setLabelField('unitPrice', get('unitPrice'));
   copiedFromPrevious = true;
   await saveVideoLabel({single: true});
 }
@@ -634,17 +669,23 @@ function touch() { dirty = true; $('#msg').textContent = 'unsaved'; }
 
 // ---- windows panel ----
 function renderWins() {
-  $('#wins').innerHTML = entry.windows.map((w, i) => `
+  if (!entry && !frameMode) { $('#wins').innerHTML = ''; return; }
+  // On a frame the cards ARE the frame label: the field and the box belong to
+  // the reference (a frame carries the reference's windows), only the text is
+  // the frame's own, so the select and the delete are shown read-only there.
+  const list = editable();
+  const onFrame = frameMode;
+  $('#wins').innerHTML = list.map((w, i) => `
     <div class="win ${i===sel?'sel':''}" data-i="${i}">
       <div class="row"><span class="swatch" style="background:${COLORS[w.field]}"></span>
-        <select data-f="${i}">${FIELDS.map(f => `<option ${f===w.field?'selected':''}>${f}</option>`).join('')}</select>
+${onFrame ? `<span class="mono" style="width:86px;display:inline-block">${w.field}</span>` : `<select data-f="${i}">${FIELDS.map(f => `<option ${f===w.field?'selected':''}>${f}</option>`).join('')}</select>`}
         <input data-t="${i}" value="${w.text||''}" placeholder="what the display shows" class="mono" style="flex:1">
         <span data-cells="${i}" class="cells dim" title="slicer cells vs typed glyphs">cells –</span>
         <span data-warn="${i}" class="warn" style="display:none" title="">⚠</span>
         <label title="digits only partly readable"><input type="checkbox" data-l="${i}" ${w.legibility==='partial'?'checked':''}>partial</label>
         <button data-r="${i}" data-d="-1" title="turn the box 1° counter-clockwise ([, shift = 0.1°)">↺</button><button data-r="${i}" data-d="1" title="turn the box 1° clockwise (], shift = 0.1°)">↻</button>
-        <button data-x="${i}" title="delete">×</button></div>
-      <div class="row dim mono">${w.quad.map(p => p.map(v => (+v).toFixed(3)).join(',')).join('  ')}${w.placedBy ? `  ${w.placedBy}${w.zoom != null ? ` @${(+w.zoom).toFixed(1)}x` : ''}` : ''}</div>
+${onFrame ? '' : `<button data-x="${i}" title="delete">×</button>`}</div>
+      <div class="row dim mono">${w.quad.map(p => p.map(v => (+v).toFixed(3)).join(',')).join('  ')}${onFrame && w.prefill && !w.text ? `  reader: ${w.prefill}` : ''}${w.placedBy ? `  ${w.placedBy}${w.zoom != null ? ` @${(+w.zoom).toFixed(1)}x` : ''}` : ''}</div>
     </div>`).join('');
   document.querySelectorAll('#wins .win').forEach(d => d.onclick = e => { if (e.target.tagName === 'DIV') { sel = +d.dataset.i; renderWins(); draw(); } });
   // Focus on any control of a card selects its window: the card lights and
@@ -653,11 +694,17 @@ function renderWins() {
   const selectOnFocus = i => { if (sel === i) return; sel = i; document.querySelectorAll('#wins .win').forEach(d => d.classList.toggle('sel', +d.dataset.i === i)); draw(); };
   document.querySelectorAll('[data-f],[data-t],[data-l]').forEach(s => s.onfocus = () => selectOnFocus(+(s.dataset.f ?? s.dataset.t ?? s.dataset.l)));
   document.querySelectorAll('[data-f]').forEach(s => s.onchange = () => { entry.windows[+s.dataset.f].field = s.value; touch(); renderWins(); draw(); });
-  document.querySelectorAll('[data-t]').forEach(s => s.oninput = () => { entry.windows[+s.dataset.t].text = s.value; updateCells(+s.dataset.t); touch(); updateArith(); });
-  document.querySelectorAll('[data-l]').forEach(s => s.onchange = () => { entry.windows[+s.dataset.l].legibility = s.checked ? 'partial' : undefined; touch(); });
+  // A frame's text is written by Save label, not by `touch()` (which is the
+  // still's dirty flag), so typing on a frame only redraws.
+  document.querySelectorAll('[data-t]').forEach(s => s.oninput = () => {
+    const i = +s.dataset.t; const w = editable()[i]; if (!w) return;
+    w.text = s.value; s.classList.remove('prefill'); updateCells(i); updateArith();
+    if (onFrame) draw(); else touch();
+  });
+  document.querySelectorAll('[data-l]').forEach(s => s.onchange = () => { const w = editable()[+s.dataset.l]; if (!w) return; w.legibility = s.checked ? 'partial' : undefined; if (!onFrame) touch(); });
   document.querySelectorAll('[data-x]').forEach(b => b.onclick = e => { e.stopPropagation(); removeWindow(+b.dataset.x); });
   document.querySelectorAll('[data-r]').forEach(b => b.onclick = e => { e.stopPropagation(); sel = +b.dataset.r; turnWindow(sel, +b.dataset.d * (e.shiftKey ? 0.1 : 1)); });
-  entry.windows.forEach((w, i) => updateCells(i));
+  list.forEach((w, i) => updateCells(i));
   updateArith();
   renderNegs();
 }
@@ -688,7 +735,7 @@ function slicerCellsFor(w, i) {
 // green when equal, red when they differ, grey before a read; plus a warning
 // when the typed separator's cell differs from the cell the slicer marked `dp`.
 function updateCells(i) {
-  const w = entry.windows[i]; if (!w) return;
+  const w = editable()[i]; if (!w) return;
   const badge = document.querySelector(`[data-cells="${i}"]`);
   const warn = document.querySelector(`[data-warn="${i}"]`);
   const cells = slicerCellsFor(w, i);
@@ -745,7 +792,7 @@ function windowsToDraw() {
 }
 // The windows the mouse edits: the still's, or in a video's frames view the
 // frame's own (which 'save as anchor' turns into a tracking anchor).
-function editable() { return frameMode ? windowsToDraw() : entry.windows; }
+function editable() { return frameMode ? windowsToDraw() : ((entry && entry.windows) || []); }
 function dispSize() { const r = rot(); return (r === 90 || r === 270) ? [img.naturalHeight, img.naturalWidth] : [img.naturalWidth, img.naturalHeight]; }
 function toDisp([nx, ny]) {           // normalised image -> unscaled display px
   const W = img.naturalWidth, H = img.naturalHeight, x = nx * W, y = ny * H;
@@ -1104,9 +1151,9 @@ async function runReader(live, onDone) {
   const raw = f => { const w = (res.windows || []).find(x => x.field === f); return w ? w.text : ''; };
   const fill = f => c[f] ?? raw(f);
   if (frameMode && isVideo) {
-    for (const [f, id] of [['total', '#vlTotal'], ['liters', '#vlLiters'], ['unitPrice', '#vlPrice']]) {
+    for (const f of ['total', 'liters', 'unitPrice']) {
       const v = fill(f); if (!v) continue;
-      $(id).value = v; $(id).classList.add('prefill');
+      setLabelField(f, v, true);
     }
     $('#vlSource').textContent = '(reader – confirm with ⇧⏎)';
   } else if (entry) {
@@ -1207,20 +1254,10 @@ function copyPrevQuads() {
   // previous frame's numbers.
   const own = Object.fromEntries(cur.windows.map(w => [w.field, w]));
   cur.windows = prev.windows.map(w => ({...w, quad: w.quad.map(q => [...q]), text: (own[w.field] || {}).text || '', prefill: (own[w.field] || {}).prefill}));
-  frameQuadsEdited = true; syncFrameTexts(); draw(); renderWins();
+  frameQuadsEdited = true; renderWins(); draw();
   setMsg(`boxes copied from ${r.tracked[frameIdx - 1]} - ⇧⏎ pins them as an anchor`);
 }
 for (const id of ['#lfCopyPrev', '#vlCopyPrev']) { const b = $(id); if (b) b.onclick = copyPrevQuads; }
-// The text drawn over a video frame's boxes is the frame label: typing in the
-// label fields updates it at once (the label itself is written by Save label).
-function syncFrameTexts() {
-  if (!(frameMode && isVideo)) return;
-  const r = currentRecord(); const f = r && r.frames[r.tracked[frameIdx]]; if (!f) return;
-  const v = {total: $('#vlTotal').value.trim(), liters: $('#vlLiters').value.trim(), unitPrice: $('#vlPrice').value.trim()};
-  for (const w of f.windows) if (w.field in v) w.text = v[w.field];
-  draw();
-}
-for (const id of ['#vlTotal', '#vlLiters', '#vlPrice']) $(id).addEventListener('input', syncFrameTexts);
 function toggleHelp(show) { const h = $('#help'); h.style.display = (show === undefined ? h.style.display === 'none' : show) ? '' : 'none'; }
 $('#helpBtn').onclick = () => toggleHelp(true); $('#helpClose').onclick = () => toggleHelp(false); $('#help').onclick = () => toggleHelp(false);
 document.addEventListener('keydown', e => {

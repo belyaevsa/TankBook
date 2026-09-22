@@ -106,14 +106,18 @@ the ml venv runs it); the converted images are cached under
   detector learns those edges, and hand-resized frames taught it noise.
 - **Videos** (`🎞`, filter *videos*): the running-display clips from
   `pump-live/videos.json`. Their "still" is the hand-annotated reference frame;
-  *View frames* steps the tracked frames, and a **frame label** row shows the
-  frame's total / liters / price - filled by the reader where the arithmetic
-  closed (`arithmetic`), empty otherwise. Beside the label is the reader's
-  **margin** for that frame (the lowest cell margin of the total and liters
-  windows, from `readings`; `–` when none), and an `arithmetic` frame under the
-  classifier's verify floor (`PumpReader.minimumMeanMargin`) is marked attention.
-  Correct or fill it and **Save label** (`⇧⏎`; `⌥←`/`⌥→` step frames from the
-  input); owner labels are kept by every re-run of the reader. Stored in
+  *View frames* steps the tracked frames, and the frame's numbers are typed
+  **on the window cards, exactly as on a still** - one place for the text, not
+  two. On a frame the card's field and box belong to the reference (a frame
+  carries the reference's windows, so the select and the delete are read-only
+  there); only the text is the frame's own, and the reader's unconfirmed
+  pre-fill shows yellow with the proposal repeated under the quad line. The
+  frame row carries the reader's **margin** for that frame (the lowest cell
+  margin of the total and liters windows, from `readings`; `–` when none); an
+  `arithmetic` frame under the classifier's verify floor
+  (`PumpReader.minimumMeanMargin`) is marked attention. Correct the cards and
+  **Save this frame's numbers** (`⇧⏎`; `⌥←`/`⌥→` step frames from an input);
+  owner labels are kept by every re-run of the reader. Stored in
   `pump-live/video-labels.json`.
   - **A run is labelled by its keyframes.** `⌥⏎` saves the frame as `owner` and
     fills the frames between it and the nearest earlier owner-labelled frame of
@@ -169,8 +173,11 @@ the ml venv runs it); the converted images are cached under
   quads (never its numbers) onto this one - for a frame the tracker drifted on
   when the one before was right - and counts as a quad edit, so `⇧⏎` (or a drag) pins it as an
   anchor and the retrack registers the neighbours to it.
-- The text over a frame's boxes is the frame label; typing in the label
-  fields updates it at once (Save label writes it).
+- **Which Save is which.** The bottom bar always acts on the **still** (or a
+  video's reference) and says so while the frames view is open ("Save the
+  still" / "Save the reference"); the frame's own action sits in the frame row -
+  **Save this frame's numbers** on a video, **⚓ Pin this frame's boxes** on a
+  Live record. Nothing in the frames view writes the still by accident.
 - **Anchors**: on any video frame the quads can be dragged (corners and body);
   the frame is pinned as an anchor by itself (`videos.json` and the tracked
   file) and nothing else moves. **↻ re-track all** / **↻ from here** (toolbar) re-register every other frame,
@@ -185,7 +192,7 @@ the ml venv runs it); the converted images are cached under
 - **▶ read** (`r`): runs the app's own reader on what is on
   screen and fills the fields as a prefill - the annotated windows (or a video
   frame's carried quads) are sliced, classified and judged by the law, and the
-  still's empty texts / the frame label take what came back (yellow = unsaved
+  still's or the frame's empty texts take what came back (yellow = unsaved
   prefill; `Save` / `⇧⏎` accepts it, or correct it first) and draws the slicer's cells
   inside each window - green boxes per glyph, dashed where the slicer saw a blank, a green
   dot under a cell where it saw a decimal mark - so a miscount or a missed mark is visible
