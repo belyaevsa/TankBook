@@ -1016,6 +1016,15 @@ the user waves through - and it is accepted knowingly, against the alternative o
 user must retype from a photo the app read correctly.
 
 
+**The rules arm behind the reader stays (PU.62, measured 2026-09-22).** `CapturePipeline` fills a field
+the reader abstained on from the rules parser. With decision 11's pair tier the reader deliberately
+withholds a price it cannot validate, so the fallthrough looked like the pipeline overriding the law.
+Measured over the 68 heldout stills (`PumpCompositeArmsTests`, macOS 27): reader alone 39 committed /
+37 correct, rules alone 7 / 7, composite 43 / 41. The fallthrough fills four cells, all right, and
+**every one is on a still where the reader committed nothing** - it never supplies a field beside a
+reader commit, which is the only case where it could contradict the law. It stays; if a corpus
+change ever makes it fill beside a reader commit, that arm's listing names the still.
+
 **The operator's corrections.** Every disagreement between a tool's proposal (the tracker's
 quad, the reader's pre-fill) and the annotator's hand is recorded (`pump-live/corrections.jsonl`)
 with the build it came from; `ml/pump-reader/CORRECTIONS.md` is the standing procedure that reads
