@@ -11,6 +11,15 @@ decisions.
 
 ---
 
+## 2026-09-22 · A brief counts its population before it is written
+
+| | |
+|---|---|
+| **Commits** | this entry's commit; the evidence is `agents/reviews/PUMP-DECIDE-2026-09-22-fable.md` (`c77d6004`) |
+| **Reason** | Three pump rows in a row were briefed against a population nobody had counted, and all three moved the end-to-end number by **zero**. The reviewer's verdict on the whole arc, PU.1 to PU.60, was that the architecture is right and **the unit of work is wrong**. The briefs were mine, so this is a brief-writing failure, not an execution failure - every one of the three agents did competent work on a question that could not pay. |
+| **Evidence** | **PU.53** was briefed as *"five heldout stills carry a rotation (pump-019..023)"*; `Spike/ReceiptSpike/fixtures/pump/split.csv` marks `pump-020`, `021` and `022` as `train` - the heldout population was **2**, and both of those refuse for reasons orientation cannot fix. **PU.54** was briefed against PU.51's *"26 `boardFoundNoPrice`"*; the reachable set was **9**, because the rest fail an earlier guard. **PU.55** was briefed on cut ink at a strip's edge; that signal does not exist - the clipped strip's edge is *quieter* than the framed one, and the row was refuted after a full run. **PU.58** then held the shipped live path at 43 and gained one annotated cell. Four rounds, one measured gain (PU.54's +4), and the reviewer found the 112-vs-47 apportionment - the measurement that would have priced all four - had been asked for by PU.52 and never run. |
+| **What changed** | A brief that claims a row will move a number **names the population it will move it over, counted from the corpus at the commit the brief is written against, with the file and the filter that produced the count**. "The histogram says 26" is not a count - it is an upper bound until the rows that fail an earlier guard are subtracted. A row whose population cannot be counted before the work is a **measurement row first**, and the build row waits for it. The `Vacuous traps` section of every brief gains the trap this rule exists for: *building against a population nobody counted*. This does not replace the baseline numbers a brief already carries; it is the denominator those numbers move within. |
+
 ## 2026-09-22 · The API is live: every change to it is backward-compatible (hard rule 16)
 
 | | |
