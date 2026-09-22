@@ -73,8 +73,16 @@ DETECTOR = ROOT / "ios" / "App" / "Resources" / "DigitRows.mlmodel"
 # Swift tests read, and the candidates a training round left behind. The live
 # path (⇧R) can be run against any of them, which is the only way to judge a
 # candidate by looking rather than by its committed count.
-DETECTOR_DIRS = [ROOT / "ios" / "App" / "Resources", ROOT / "ml" / "pump-reader" / ".out" / "det",
-                 ROOT / "ml" / "pump-reader" / ".out" / "det" / "pu48"]
+DETECTOR_ROOT = ROOT / "ml" / "pump-reader" / ".out" / "det"
+
+
+def detector_dirs() -> list[Path]:
+    """The bundle, the dev export's folder, and every training round's folder
+    under it (`pu48`, `pu66`, ...) - found, not listed, so a new round's model
+    is in the picker the moment it is written."""
+    rounds = sorted(p for p in DETECTOR_ROOT.iterdir() if p.is_dir() and any(p.glob("*.mlmodel"))) \
+        if DETECTOR_ROOT.exists() else []
+    return [ROOT / "ios" / "App" / "Resources", DETECTOR_ROOT, *rounds]
 
 
 def detectors() -> list[dict]:
@@ -87,7 +95,7 @@ def detectors() -> list[dict]:
     shipped = hashlib.sha256(DETECTOR.read_bytes()).hexdigest() if DETECTOR.exists() else None
     tags = {"ios/App/Resources": "bundle", "ml/pump-reader/.out/det": "dev"}
     out, seen = [], set()
-    for folder in DETECTOR_DIRS:
+    for folder in detector_dirs():
         where = str(folder.relative_to(ROOT))
         tag = tags.get(where, folder.name)
         counts = {}
