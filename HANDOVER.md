@@ -1,12 +1,74 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-19 (09:40; "The third 1.1 tranche" below is the newest). **v1.0 build 1344 was REJECTED by App Review (guideline 4.0, "hard to
-read type"); the fix is on `main` (`RV.293`, `2055a926`) and build 1368 is being uploaded.** This is
-a **fresh machine** (macOS 27.0, Xcode 27.0, iOS 27.0 simulator) set up 2026-09-18. Measured on the
-tree as left: **iOS 2150 + 45 tests / 267 suites** (27 s + 43 s), **backend 480 / 480** (Docker
-works here), lint 0 errors / 670 warnings from the repo ROOT, Release build 0. **88 open rows, 463 closed** (the 38 ticked rows were swept to `TASKS-DONE.md`). `main` is **32 commits ahead of `origin/main`** - push it.
-Nothing is running; the queue is empty. Read this, then `CLAUDE.md`, then
-`docs/DEVELOPMENT-TIMELINE.md`, then `docs/TASKS.md`'s index.*
+*Updated 2026-09-22 (13:00; "The corpus week" below is the newest, everything under it is history).
+207 commits since 2026-09-19. The tree carries one other session's uncommitted edits (`corpus.sqlite`,
+`pump/windows.json` - the owner's annotator work); commit them by explicit path when that session
+is done, never `git add -A`. Read this, then `CLAUDE.md`, then `docs/DEVELOPMENT-TIMELINE.md`, then
+`docs/TASKS.md`'s index (131 open, 463 closed).*
+
+## The corpus week (2026-09-20 → 22): what the successor inherits
+
+**The corpus is SQLite-first** (PU.36a-c, product owner 2026-09-21): `Spike/ReceiptSpike/fixtures/
+corpus.sqlite` is the write store, the text files are its dump. The loop is `corpus_db.py import`
+(files → db) → `dump` (db → files) → `check` (exit 1 when a file differs from the dump). **Never
+hand-edit a dumped file and commit without `import`/`dump`** - the check fails and the annotator's
+saves go through the db anyway. `scripts/corpus-sync.py push` also uploads `index/`.
+
+**What the corpus holds now**: 318 pump stills (68 heldout, the rest train), 97 receipts, 39
+running-display clips, 162 Live records; marks `high-water.json` pump 865 / receipts 463 / stations
+82 cells - **totals only, hits stand** (this Mac is macOS 27, the marks are 26-measured; the
+first macOS 26 run records hits). Batches 6-9 (2026-09-21/22, `pump-242`..`302`, receipts
+`083`..`097`, `video-025`..`040`) arrived from the owner's forecourt mornings and third-party
+finds; `scripts/pump-auto-annotate.py` ran the app's live path over every new still, so ~65
+stills carry **reader-placed boxes, unreviewed**, and 5 stay `pendingWindows` (`283`, `284`, `286`,
+`292`, `300`) plus `291` with no rows. The annotator's "to do" filter lists them.
+
+**Decision 9 amended** (`docs/EXTRACTION.md`, `DEVELOPMENT-TIMELINE.md` 2026-09-21): four night
+stills (`pump-275`, `277`, `280`, `281`) moved train → heldout before any model saw them, and **a
+heldout still measures only once `reviewed`** (`PumpReaderTestSupport.isHeldout`) - an unreviewed
+reader box's miscount is the annotation's, not the reader's. Until the owner marks those four
+processed, the heldout number says nothing about night.
+
+**The annotator** (`tools/pump-annotate/`, PU.42-46 + a dozen owner-driven commits) is where the
+owner's time goes; `?` opens the key table. What landed: rail modes (photos / Live / movies),
+playback with autoplay, zoom that stays on the digits and survives frame steps, per-box turn
+handle and `[ ]`, arrow nudge, `A` auto-annotate, `C` copies the previous frame's quads, the live
+arithmetic mark, cell-count and dp warnings against the slicer, `Z` pads to the make's derived
+convention, `placedBy`/`zoom` provenance on every window, heldout badge with reviewed-clearing,
+video keyframes + interpolation + a confirm-as-you-step run loop, `⟳ retrack + read all`, and
+**live slicers** (`pump-read --slice-serve`, a resident process at 8 ms per reply on the `-O`
+build under `ios/.build/opt`; `slicer.py` owns it). Saving a still tracks its Live records by
+itself. **Two tracker findings**: a burned-in QR/caption outvotes the display in RANSAC (fixed -
+`Registrar.drop_static` drops keypoints that match themselves at the identity), and a hand anchor
+writes all three quads, so one dragged box freezes the other two where the bad track left them.
+
+**The reader's state** (`ml/pump-reader/REPORT.md` round 11, PU.41 `[~]`): shipped round 6 -
+heldout annotated 83/186 at 0.988, **live path 39 cells on 11/68 photos, all correct**; precision
+meets 0.99, coverage (16 %) is far from the 0.60 floor, `PumpPhotoGate` keeps the mode off. Round
+11's lesson: every better classifier pool **lowers** the live number because the verifier's margin
+threshold is fitted to one classifier - the seam to fix before another retrain counts. Round 11
+also trained on a 2026-09-21 export that has none of this week's material. **Next, in order**:
+(1) re-export (`PumpTrainSliceExportTests`) and round 12 with the row-relative centred filter and
+the original dp crop; (2) decouple the verifier from the classifier (slicer geometry + calibrated
+margin); (3) retrain `DigitRows` on the 23 new tracked records; (4) `RV.295` - measure on a device;
+(5) the owner reviews the auto-placed boxes; (6) law fixtures for the `LIITRID` Wayne, the
+one-cent Breuillet clip, dollars/gallons, the 60.00 preset. PU.5/PU.6 gate on (1)-(3) together.
+
+**Batch 9's read phase** (`19116040`): arithmetic labels landed on 5 of the 12 findings clips only;
+the grid-placed reference quads are the first suspect - re-place in the annotator and re-read.
+
+**Other things the successor should know**: flash answers again since 2026-09-22 (three PU briefs
+ran on it; `scripts/dispatch.sh <id> deepseek/deepseek-v4-flash`, the default is still pro).
+`release.sh` reads every flag now - `--upload --debug` archives and uploads the DEBUG configuration
+(a lab build with the Capture lab; Google sign-in has the placeholder id) - build 1617 on TestFlight
+is a plain Release build uploaded when the second flag was silently dropped. **The owner reports the
+debug build on the phone freezing after a second, no touch or scroll**: nothing in the code runs
+Debug-only without a launch argument (229 `#if DEBUG` seams, all argument- or screen-gated); the
+suspect is `-Onone` on the pixel code (the slicer was 30x slower unoptimised); a hang report from
+the phone or a `devicectl --console` launch is the next step. `IMG_6342.MOV` and the like: a
+personal clip in an intake folder is never registered - look before cutting. The lost-then-
+re-exported Live records of batch 7 are the reason intake now verifies every copy by `cmp` before
+the folder is deleted.
 
 ## The pump-reader tranche (branch `pump-reader`, worktree `../fuel-counter-ios-pump-reader`, 2026-09-18/19)
 
