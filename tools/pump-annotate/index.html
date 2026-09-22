@@ -1662,12 +1662,12 @@ async function saveAnchor(retrack = false) {
 async function retrackForward() {
   const r = currentRecord(); if (!r) return;
   const name = r.tracked[frameIdx];
-  await fetch('/api/retrack-now/' + encodeURIComponent(r.movie) + '?from=' + encodeURIComponent(name) + (isVideo ? '&read=1' : ''), {method: 'POST'});
+  await fetch('/api/retrack-now/' + encodeURIComponent(r.movie) + '?from=' + encodeURIComponent(name) + '&segment=1' + (isVideo ? '&read=1' : ''), {method: 'POST'});
   pinnedHere = false;
   const at = +name.slice(0, -4);
   for (const p of [...pendingSet(r.movie)]) if (+p.slice(0, -4) >= at) pendingSet(r.movie).delete(p);
   stripBuilt = ''; renderStrip();
-  notify('busy', `${name} pinned – re-fitting the frames after it${isVideo ? ', then re-reading them' : ''}…`);
+  notify('busy', `${name} pinned – re-fitting the frames after it up to the next pinned one${isVideo ? ', then re-reading the ones whose boxes moved' : ''}…`);
   watchRetrack(r.movie);
 }
 async function pinBeforeRetrack() {

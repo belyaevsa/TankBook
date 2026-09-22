@@ -171,6 +171,33 @@ def carried(source: dict, quad: list) -> dict:
     return cw
 
 
+def _box_iou(a: list, b: list) -> float:
+    ax0, ax1 = min(p[0] for p in a), max(p[0] for p in a); ay0, ay1 = min(p[1] for p in a), max(p[1] for p in a)
+    bx0, bx1 = min(p[0] for p in b), max(p[0] for p in b); by0, by1 = min(p[1] for p in b), max(p[1] for p in b)
+    iw, ih = max(0.0, min(ax1, bx1) - max(ax0, bx0)), max(0.0, min(ay1, by1) - max(ay0, by0))
+    inter = iw * ih
+    union = (ax1 - ax0) * (ay1 - ay0) + (bx1 - bx0) * (by1 - by0) - inter
+    return inter / union if union > 0 else 0.0
+
+
+MOVED_IOU = 0.97
+
+
+def moved(before: dict | None, after: dict | None) -> bool:
+    """Whether a re-fit changed a frame enough to change what it reads: a frame
+    that appeared or vanished, or any window whose box overlaps its stored self
+    by less than MOVED_IOU. A re-read of a frame whose boxes did not move reads
+    the same pixels and cannot change its label."""
+    if (before is None) != (after is None):
+        return True
+    if before is None:
+        return False
+    a, b = before.get("windows", []), after.get("windows", [])
+    if len(a) != len(b):
+        return True
+    return any(_box_iou(x["quad"], y["quad"]) < MOVED_IOU for x, y in zip(a, b))
+
+
 def candidates(regs: list[dict], index: int) -> list[dict]:
     """The registrations a frame tries, in the order the owner's placements
     deserve: the nearest pinned frame AT OR BEFORE it (the correction being
@@ -192,6 +219,11 @@ def fit(gray: np.ndarray, regs: list[dict], index: int, min_inliers: int):
     None when none does."""
     fh, fw = gray.shape
     for r in candidates(regs, index):
+        # Built on first use: a record can carry dozens of pinned frames, and a
+        # segment re-fit tries two or three of them - building every matcher up
+        # front was most of a Save's wait.
+        if r["reg"] is None:
+            r["reg"] = r.pop("build")()
         H, inliers, _ = r["reg"].homography(gray)
         if H is None or inliers < min_inliers:
             continue
@@ -202,7 +234,7 @@ def fit(gray: np.ndarray, regs: list[dict], index: int, min_inliers: int):
 
 
 def track_record(stem: str, still: str, split: str, entry: dict, min_inliers: int,
-                 start_at: int = 0) -> dict | None:
+                 start_at: int = 0, stop_at: int | None = None) -> dict | None:
     """A Live Photo's frames take the still's quads and texts. The still is the
     reference; every frame the owner corrected in the annotator (`liveAnchors`
     on the still's entry) is a further anchor, written back verbatim, and each
@@ -223,7 +255,8 @@ def track_record(stem: str, still: str, split: str, entry: dict, min_inliers: in
         gray = cv2.imread(str(folder / a["frame"]), cv2.IMREAD_GRAYSCALE)
         ah, aw = gray.shape
         aq = [np.array(w["quad"], dtype=np.float64) * [aw, ah] for w in a["windows"]]
-        regs.append({"index": int(a["frame"][:-4]), "reg": Registrar(gray, aq), "quads": aq, "size": (aw, ah),
+        regs.append({"index": int(a["frame"][:-4]), "reg": None,
+                     "build": (lambda g=gray, q=aq: Registrar(g, q)), "quads": aq, "size": (aw, ah),
                      "windows": a["windows"]})
     # Texts by window index, not by field: a head with two `board` cells has
     # two different texts under one field name.
@@ -238,7 +271,7 @@ def track_record(stem: str, still: str, split: str, entry: dict, min_inliers: in
     for frame in frames:
         # `--from`: a frame before the start keeps its database row (the merge
         # in main), so registering it is work thrown away.
-        if frame.stem.isdigit() and int(frame.stem) < start_at:
+        if frame.stem.isdigit() and (int(frame.stem) < start_at or (stop_at is not None and int(frame.stem) >= stop_at)):
             continue
         if frame.name in exact:
             out["frames"][frame.name] = {"windows": [carried(source(i, w), w["quad"]) for i, w in enumerate(exact[frame.name])],
@@ -283,7 +316,8 @@ def sheet(folder: Path, tracked: dict, cols: int = 6, rows: int = 2, tile: int =
     canvas.save(folder / "sheet.jpg", quality=80)
 
 
-def track_video(stem: str, entry: dict, min_inliers: int, start_at: int = 0) -> dict | None:
+def track_video(stem: str, entry: dict, min_inliers: int, start_at: int = 0,
+                stop_at: int | None = None) -> dict | None:
     """A running-display video has no still: its reference is one of its own
     frames (the database `videos` entry), annotated by hand, and the quads are carried from
     it exactly as a still's are. Texts stay empty except the constant price;
@@ -309,17 +343,18 @@ def track_video(stem: str, entry: dict, min_inliers: int, start_at: int = 0) -> 
         gray = cv2.imread(str(folder / a["frame"]), cv2.IMREAD_GRAYSCALE)
         sh, sw = gray.shape
         quads_px = [np.array(w["quad"], dtype=np.float64) * [sw, sh] for w in a["windows"]]
-        regs.append({"index": int(a["frame"][:-4]), "reg": Registrar(gray, quads_px, samples), "quads": quads_px,
+        regs.append({"index": int(a["frame"][:-4]), "reg": None,
+                     "build": (lambda g=gray, q=quads_px: Registrar(g, q, samples)), "quads": quads_px,
                      "size": (sw, sh), "windows": a["windows"]})
     out: dict = {"_video": stem, "_reference": entry["reference"], "_anchors": [a["frame"] for a in anchors],
                  "_split": "train", "frames": {},
-                 "_staticKeypointsDropped": {a["frame"]: r["reg"].static_dropped for a, r in zip(anchors, regs)}}
+                 "_staticKeypointsDropped": {}}
     kept = dropped = 0
     exact = {a["frame"]: a["windows"] for a in anchors}
     for frame in frames:
         # `--from`: a frame before the start keeps its database row (the merge
         # in main), so registering it is work thrown away.
-        if int(frame.stem) < start_at:
+        if int(frame.stem) < start_at or (stop_at is not None and int(frame.stem) >= stop_at):
             continue
         # A frame the owner placed by hand is written back verbatim - never
         # re-registered, so a retrack cannot move what a human verified.
@@ -345,6 +380,10 @@ def track_video(stem: str, entry: dict, min_inliers: int, start_at: int = 0) -> 
         kept += 1
     out["_kept"] = kept
     out["_dropped"] = dropped
+    # The static-overlay count of every matcher that was actually built (a
+    # lazily skipped anchor matched nothing, so it has nothing to report).
+    out["_staticKeypointsDropped"] = {a["frame"]: r["reg"].static_dropped
+                                      for a, r in zip(anchors, regs) if r["reg"] is not None}
     return out
 
 
@@ -353,23 +392,38 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--only", action="append", default=[])
     parser.add_argument("--min-inliers", type=int, default=30)
     parser.add_argument("--videos", action="store_true", help="track the running-display videos in the database")
+    parser.add_argument("--until-next-anchor", action="store_true",
+                        help="with --from: stop at the next pinned frame after it - the frames past it are fitted from that one")
     parser.add_argument("--from", dest="from_frame", default=None,
                         help="re-register only this frame and the ones after it (e.g. 047.jpg); earlier frames keep their rows")
     args = parser.parse_args(argv)
 
-    def keep_earlier(stem: str, result: dict) -> dict:
-        """With --from, the frames before it keep what the database holds."""
+    def keep_earlier(stem: str, result: dict, stop: int | None = None) -> dict:
+        """With --from, the frames outside [from, stop) keep what the database
+        holds; the ones inside whose boxes moved are listed in `_changed` - the
+        only frames worth reading again."""
         if not args.from_frame:
             return result
         start = int(args.from_frame[:-4])
+        inside = lambda n: int(n[:-4]) >= start and (stop is None or int(n[:-4]) < stop)
         existing = corpus_db.tracked(stem, con=con) or {"frames": {}}
-        merged = {n: f for n, f in result["frames"].items() if int(n[:-4]) >= start}
+        merged = {n: f for n, f in result["frames"].items() if inside(n)}
         for n, f in existing["frames"].items():
-            if int(n[:-4]) < start:
+            if not inside(n):
                 merged[n] = f
+        result["_changed"] = sorted((n for n, f in merged.items() if inside(n) and moved(existing["frames"].get(n), f)),
+                                    key=lambda n: int(n[:-4]))
         result["frames"] = dict(sorted(merged.items(), key=lambda kv: int(kv[0][:-4])))
         result["_earlier"] = len(result["frames"]) - result["_kept"]
         return result
+
+    def next_anchor(indices: list[int]) -> int | None:
+        """The first pinned frame after --from, when --until-next-anchor asks for it."""
+        if not (args.from_frame and args.until_next_anchor):
+            return None
+        start = int(args.from_frame[:-4])
+        later = [i for i in indices if i > start]
+        return min(later) if later else None
 
     start_at = int(args.from_frame[:-4]) if args.from_frame else 0
 
@@ -389,16 +443,22 @@ def main(argv: list[str] | None = None) -> int:
                 if args.only and stem not in args.only:
                     continue
                 entry = corpus_db.video(stem, con=con)
-                result = track_video(stem, entry, args.min_inliers, start_at) if entry else None
+                stop = next_anchor([int(a["frame"][:-4]) for a in (entry or {}).get("anchors", [])]
+                                   + ([int(entry["reference"][:-4])] if entry else []))
+                result = track_video(stem, entry, args.min_inliers, start_at, stop) if entry else None
                 if result is None:
                     print(f"{stem}: no frames or no entry")
                     continue
-                result = keep_earlier(stem, result)
+                result = keep_earlier(stem, result, stop)
+                changed = result.pop("_changed", None)
                 with con:
                     corpus_db.save_tracked(stem, result, con=con)
                 sheet(FRAMES / stem, result)
                 paths.append(FRAMES / stem / "windows.json")
-                print(report(stem, result))
+                print(report(stem, result) + (f" (until {stop:03d}.jpg)" if stop else ""))
+                if changed is not None:
+                    # One machine-readable line for the annotator's read step.
+                    print("CHANGED " + ",".join(changed))
             corpus_db.dump(paths)
             return 0
         records = corpus_db.paired_records(con)
@@ -407,11 +467,13 @@ def main(argv: list[str] | None = None) -> int:
         summary = []
         for stem, still, split in records:
             entry = corpus_db.entry(still, con=con)
-            result = track_record(stem, still, split, entry, args.min_inliers, start_at) if entry else None
+            stop = next_anchor([int(a["frame"][:-4]) for a in (entry or {}).get("liveAnchors", []) if a["record"] == stem])
+            result = track_record(stem, still, split, entry, args.min_inliers, start_at, stop) if entry else None
             if result is None:
                 print(f"{stem}: no frames or no annotation for {still[:12]}")
                 continue
-            result = keep_earlier(stem, result)
+            result = keep_earlier(stem, result, stop)
+            result.pop("_changed", None)
             with con:
                 corpus_db.save_tracked(stem, result, con=con)
             sheet(FRAMES / stem, result)

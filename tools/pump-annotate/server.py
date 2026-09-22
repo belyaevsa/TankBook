@@ -662,7 +662,7 @@ def _earliest(a: str | None, b: str | None) -> str | None:
     return a if int(a[:-4]) <= int(b[:-4]) else b
 
 
-def start_retrack(name: str, read: bool = False, from_frame: str | None = None) -> None:
+def start_retrack(name: str, read: bool = False, from_frame: str | None = None, segment: bool = False) -> None:
     import threading  # noqa: PLC0415
     current = retracks.get(name)
     if current and current.get("running"):
@@ -675,7 +675,7 @@ def start_retrack(name: str, read: bool = False, from_frame: str | None = None) 
         current["read"] = current.get("read", False) or read
         return
     retracks[name] = {"running": True, "again": False, "read": read, "phase": "track", "result": None,
-                      "from": from_frame}
+                      "from": from_frame, "segment": segment}
 
     def run() -> None:
         while True:
@@ -684,11 +684,18 @@ def start_retrack(name: str, read: bool = False, from_frame: str | None = None) 
             retracks[name]["phase"] = "track"
             mode = ["--videos"] if name.startswith("video-") else []
             start = retracks[name].get("from")
-            scope = ["--from", start] if start else []
+            # A Save's re-fit stops at the next pinned frame: past it, frames are
+            # fitted from THAT one and cannot change.
+            scope = (["--from", start] + (["--until-next-anchor"] if retracks[name].get("segment") else [])) if start else []
             result = subprocess.run([str(python), "-m", "pump_reader.track", *mode, "--only", name, *scope],
                                     cwd=ml, env={**os.environ, "PYTHONPATH": "src"}, capture_output=True, text=True)
             lines = (result.stdout + result.stderr).strip().splitlines()
-            retracks[name]["result"] = lines[-1] if lines else f"exit {result.returncode}"
+            changed_line = next((ln for ln in lines if ln.startswith("CHANGED ")), None)
+            changed = [f for f in changed_line[len("CHANGED "):].split(",") if f] if changed_line else None
+            report = [ln for ln in lines if not ln.startswith("CHANGED ")]
+            retracks[name]["result"] = report[-1] if report else f"exit {result.returncode}"
+            if changed is not None:
+                retracks[name]["result"] += f" · {len(changed)} moved"
             # The tracker writes the database itself and dumps the record's file.
             if retracks[name].get("read"):
                 retracks[name]["read"] = False
@@ -698,11 +705,19 @@ def start_retrack(name: str, read: bool = False, from_frame: str | None = None) 
                 env = {**os.environ, "PUMP_VIDEO_READ": "1", "PUMP_VIDEO_READ_ONLY": name}
                 if start:
                     env["PUMP_VIDEO_READ_FROM"] = start
-                test = subprocess.run(["swift", "test", "--filter", "PumpVideoReadTests"], cwd=ROOT / "ios",
-                                      env=env, capture_output=True, text=True)
-                out = (test.stdout + test.stderr).strip().splitlines()
-                summary = next((ln for ln in reversed(out) if "Test run" in ln or "error:" in ln), None)
-                retracks[name]["result"] = (summary or f"exit {test.returncode}").strip()
+                # Only the frames whose boxes the re-fit moved are read again: an
+                # unmoved box reads the same pixels and cannot change its label.
+                if changed is not None:
+                    env["PUMP_VIDEO_READ_FRAMES"] = ",".join(changed)
+                if changed == []:
+                    retracks[name]["result"] += " · nothing to re-read"
+                else:
+                    test = subprocess.run(["swift", "test", "--filter", "PumpVideoReadTests"], cwd=ROOT / "ios",
+                                          env=env, capture_output=True, text=True)
+                    out = (test.stdout + test.stderr).strip().splitlines()
+                    summary = next((ln for ln in reversed(out) if "Test run" in ln or "error:" in ln), None)
+                    retracks[name]["result"] = (summary or f"exit {test.returncode}").strip() + (
+                        f" · re-read {len(changed)} moved frame(s)" if changed is not None else "")
             if retracks[name].get("again"):
                 retracks[name]["again"] = False
                 retracks[name]["from"] = retracks[name].pop("againFrom", None)
@@ -1124,8 +1139,11 @@ class Handler(SimpleHTTPRequestHandler):
             # ?read=1 re-reads the re-fitted frames too (a video; a Live record
             # has no per-frame label to read).
             read = query.get("read") == "1" and stem.startswith("video-")
-            start_retrack(stem, read=read, from_frame=from_frame)
-            return self.send_json({"ok": True, "from": from_frame, "read": read})
+            # ?segment=1: stop at the next pinned frame (a Save carrying one
+            # correction forward), rather than re-fitting to the end.
+            segment = query.get("segment") == "1"
+            start_retrack(stem, read=read, from_frame=from_frame, segment=segment)
+            return self.send_json({"ok": True, "from": from_frame, "read": read, "segment": segment})
         if path.startswith("/api/rerun/"):
             # /api/rerun/<stem>: retrack the clip from its anchors, then read every
             # tracked frame again. Owner labels, anchored frames and a reviewed

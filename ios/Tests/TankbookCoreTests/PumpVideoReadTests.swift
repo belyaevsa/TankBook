@@ -69,12 +69,13 @@ struct PumpVideoReadTests {
     /// in one transaction and dumps the two files. `extraEnv` redirects the
     /// write path to a scratch copy.
     private static func stage(_ stem: String, readings: [String: Any], arithmetic: [String: Any],
-                              from: String? = nil, env: [String: String]? = nil) throws {
+                              from: String? = nil, frames: [String]? = nil, env: [String: String]? = nil) throws {
         let staging = stagingDirectory.appendingPathComponent("\(stem).json")
         var staged: [String: Any] = ["record": stem, "readings": readings, "labels": arithmetic]
-        // A read from one frame on replaces only that frame and the later
-        // ones; the import keeps what the earlier frames already hold.
+        // A scoped read replaces only what it read - the frames from `from` on,
+        // or exactly `frames` - and the import keeps every other frame's rows.
         if let from { staged["from"] = from }
+        if let frames { staged["frames"] = frames }
         try FileManager.default.createDirectory(at: stagingDirectory, withIntermediateDirectories: true)
         try JSONSerialization.data(withJSONObject: staged, options: [.sortedKeys]).write(to: staging)
         try importReadings(staging, extraEnv: env)
@@ -264,8 +265,13 @@ struct PumpVideoReadTests {
             // `PUMP_VIDEO_READ_FROM=NNN.jpg` reads only that frame and the later
             // ones - the annotator's "retrack and re-read from here".
             let from = ProcessInfo.processInfo.environment["PUMP_VIDEO_READ_FROM"].flatMap { Int($0.dropLast(4)) }
+            // `PUMP_VIDEO_READ_FRAMES=014.jpg,015.jpg` reads exactly those - the
+            // frames a re-fit actually moved.
+            let only = ProcessInfo.processInfo.environment["PUMP_VIDEO_READ_FRAMES"]
+                .map { Set($0.split(separator: ",").map(String.init)) }
             let names = frames.keys.sorted { (Int($0.dropLast(4)) ?? 0) < (Int($1.dropLast(4)) ?? 0) }
                 .filter { from == nil || (Int($0.dropLast(4)) ?? 0) >= from! }
+                .filter { only == nil || only!.contains($0) }
             let existing = labels[stem] as? [String: Any] ?? [:]
             // A frame the owner marked `skipped` shows no display; reading it
             // would label a hand or a glare pass.
@@ -277,7 +283,8 @@ struct PumpVideoReadTests {
             // the reader would write. `import-readings` keeps owner and
             // surviving interpolated rows.
             try Self.stage(stem, readings: result.readings, arithmetic: result.arithmetic,
-                           from: ProcessInfo.processInfo.environment["PUMP_VIDEO_READ_FROM"])
+                           from: ProcessInfo.processInfo.environment["PUMP_VIDEO_READ_FROM"],
+                           frames: only.map { Array($0).sorted() })
             let labelled = Set(existing.keys).union(result.arithmetic.keys)
             summary.append("\(stem.prefix(9)): \(result.closed) of \(result.read) frames closed (\(labelled.count) labelled)")
         }

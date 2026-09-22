@@ -1420,11 +1420,13 @@ def import_readings(path: Path) -> None:
     # `from`: the read covered that frame and the later ones only, so only
     # their readings and labels are replaced - the earlier frames keep theirs.
     start = _frame_number(data.get("from")) if data.get("from") else None
-    in_scope = lambda frame: start is None or (_frame_number(frame) or 0) >= start
+    listed = set(data["frames"]) if data.get("frames") is not None else None
+    in_scope = lambda frame: ((start is None or (_frame_number(frame) or 0) >= start)
+                              and (listed is None or frame in listed))
     con = connect()
     try:
         with con:
-            if start is not None:
+            if start is not None or listed is not None:
                 _import_readings_from(con, record, readings, labels, in_scope)
                 return
             con.execute("delete from readings where record = ?", (record,))
