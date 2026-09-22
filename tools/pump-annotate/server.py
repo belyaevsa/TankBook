@@ -1156,13 +1156,16 @@ class Handler(SimpleHTTPRequestHandler):
                 target = FIX / image
             if "/" in target.name or not target.exists():
                 return self.send_json({"error": f"no such image: {image}"}, HTTPStatus.NOT_FOUND)
-            if not READ_TOOL.exists():
-                build = subprocess.run(["swift", "build", "--product", "pump-read"], cwd=ROOT / "ios",
-                                       capture_output=True, text=True)
-                if build.returncode:
-                    return self.send_json({"error": "pump-read did not build", "output": build.stderr[-2000:]}, HTTPStatus.INTERNAL_SERVER_ERROR)
-            request = {"rotationCW": body.get("rotationCW", 0), "currency": body.get("currency") or None,
-                       "windows": None if body.get("live") else body.get("windows") or None}
+            binary = read_binary()
+            if not binary.exists():
+                return self.send_json({"error": "pump-read did not build"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            # A live read with no rotation searches for the orientation (the
+            # app's path); the deskew mode is the page's, checked against the list.
+            request = {"rotationCW": body.get("rotationCW"), "currency": body.get("currency") or None,
+                       "windows": None if body.get("live") else body.get("windows") or None,
+                       "deskew": body.get("deskew") if body.get("deskew") in DESKEW_MODES else "off"}
+            if request["rotationCW"] is None:
+                del request["rotationCW"]
             # A detector the page picked, checked against the listing so a
             # request cannot name an arbitrary file.
             detector = DETECTOR
@@ -1171,7 +1174,13 @@ class Handler(SimpleHTTPRequestHandler):
                 if match is None:
                     return self.send_json({"error": f"unknown detector: {body['detector']}"}, HTTPStatus.BAD_REQUEST)
                 detector = ROOT / match["path"]
-            r = subprocess.run([str(READ_TOOL), str(target), "--classifier", str(CLASSIFIER), "--detector", str(detector)],
+            classifier = CLASSIFIER
+            if body.get("classifier"):
+                match = next((c for c in classifiers() if c["path"] == body["classifier"]), None)
+                if match is None:
+                    return self.send_json({"error": f"unknown classifier: {body['classifier']}"}, HTTPStatus.BAD_REQUEST)
+                classifier = ROOT / match["path"]
+            r = subprocess.run([str(binary), str(target), "--classifier", str(classifier), "--detector", str(detector)],
                                input=json.dumps(request), capture_output=True, text=True, timeout=120)
             if r.returncode or not r.stdout.strip():
                 return self.send_json({"error": "pump-read failed", "output": (r.stderr or r.stdout)[-2000:]}, HTTPStatus.INTERNAL_SERVER_ERROR)

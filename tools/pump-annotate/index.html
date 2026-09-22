@@ -134,6 +134,8 @@
     <label title="frames per second">fps <input id="fps" type="number" min="1" max="60" value="12" style="width:52px"></label>
     <label title="start playing as soon as a Live photo or movie opens"><input type="checkbox" id="autoplay"> autoplay</label>
     <label title="the row detector ⇧R runs: the one in the app bundle, or a candidate a training round left behind">det <select id="detector" style="max-width:240px"></select></label>
+    <label title="the segment classifier ⇧R and ⇧A read the digits with">cls <select id="classifier" style="max-width:200px"></select></label>
+    <label title="how ⇧R and ⇧A treat a tilted display: off (as the app today) · on refusal (turn the rows, then level the photo, only when the upright read commits nothing) · always (rows) · level (photo)">deskew <select id="deskew"><option value="off">off</option><option value="onRefusal" selected>on refusal</option><option value="always">always (rows)</option><option value="level">level (photo)</option></select></label>
     <label><input type="checkbox" id="loop" checked> loop</label>
     <label title="while a box is dragged, nudged or turned, the slicer's cells are drawn on it as it will be cut (resident pump-read, ~20 ms)"><input type="checkbox" id="liveSlice"> live slicers</label>
     <label id="keepShapeLabel" style="display:none" title="on a frame, dragging a corner moves the whole window instead of resizing it - the shape comes from the still or the reference frame, so every frame's quad has the same margins"><input type="checkbox" id="keepShape" checked> keep shape</label>
@@ -267,8 +269,8 @@
         <tr><td><kbd>P</kbd></td><td>toggle processed</td></tr>
         <tr><td><kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd></td><td>zoom in / out / fit - about the selected box</td></tr>
         <tr><td><kbd>r</kbd></td><td>read the annotated boxes (prefill)</td></tr>
-        <tr><td><kbd>R</kbd></td><td>read with the app's live path (rows drawn dashed)</td></tr>
-        <tr><td><kbd>A</kbd></td><td>auto-annotate: the live path's rows become boxes with the truth row's text</td></tr>
+        <tr><td><kbd>R</kbd></td><td>read with the app's live path (rows drawn dashed) - with the toolbar's det, cls and deskew; searches the orientation when the still has none set</td></tr>
+        <tr><td><kbd>A</kbd></td><td>auto-annotate: the same live read, and its rows become boxes (only for fields with no box yet) with the truth row's text</td></tr>
         <tr><td><kbd>n</kbd></td><td>toggle "not a window": a drawn box is a judged negative (grey, dashed) for the locator, not a window; click a live-read row (dashed, after <kbd>R</kbd>) to adopt it as a window, <kbd>⇧</kbd>-click to reject it as a negative</td></tr>
         <tr><td><kbd>Z</kbd></td><td>pad texts to the make's convention (derived from its reviewed entries)</td></tr>
         <tr><td><kbd>Esc</kbd></td><td>leave the confirm loop → deselect → back to the still</td></tr>
@@ -1676,7 +1678,11 @@ function readImageKey() {
 async function runReader(live, onDone) {
   const image = readImageKey(); if (!image) return;
   const wins = (frameMode && isVideo) ? windowsToDraw() : (entry ? entry.windows : []);
-  const body = {image, rotationCW: rot(), live: !!live, currency: row && row.currency, detector: $('#detector').value || undefined,
+  // A live read with no rotation set on the annotation searches for the
+  // display's orientation, as the app does; a set one is used as it is.
+  const body = {image, rotationCW: live && !rot() ? undefined : rot(), live: !!live, currency: row && row.currency,
+                detector: $('#detector').value || undefined, classifier: $('#classifier').value || undefined,
+                deskew: live ? $('#deskew').value : 'off',
                 windows: wins.filter(w => w.field !== 'board').map(w => ({field: w.field, quad: w.quad}))};
   setMsg(live ? 'reading (live path)…' : 'reading…');
   notify('busy', live ? 'Reading – live path (detector → verifier → assignment → law)…' : 'Reading from the layouts (the annotated windows)…');
@@ -1684,6 +1690,14 @@ async function runReader(live, onDone) {
   try { res = await (await fetch('/api/read', {method: 'POST', body: JSON.stringify(body)})).json(); }
   catch (err) { setMsg('read failed: ' + err); notify('failed', 'Read failed: ' + err); return; }
   if (res.error) { $('#out').textContent = res.error + '\n' + (res.output || ''); setMsg('read failed'); notify('failed', 'Read failed – ' + res.error); return; }
+  // The tool returns each row normalised over the photo as it was taken (after
+  // the reader's own orientation and levelling are undone); the overlay, its
+  // hit-test and ⇧A work over the view as displayed, turned by the still's
+  // rotation. Convert once, here.
+  if (live && Array.isArray(res.rows)) {
+    const [dw, dh] = dispSize();
+    res.rows = res.rows.map(r => ({...r, quad: r.quad.map(p => { const [dx, dy] = toDisp(p); return [dx / dw, dy / dh]; })}));
+  }
   const c = res.committed || {};
   const committedText = ['total', 'liters', 'unitPrice'].map(f => `${f} ${c[f] ?? '–'}`).join(' · ');
   const det = detectors.find(x => x.path === $('#detector').value);
@@ -1746,6 +1760,10 @@ function autoAnnotate() {
       if (first < 0) first = entry.windows.length - 1;
     }
     if (first < 0) { setMsg('auto-annotate: the reader placed no new row'); return; }
+    // The boxes are in the photo's frame whatever the view; when the reader
+    // found the display sideways and the still has no rotation yet, say so -
+    // the owner sets it, since it changes how the still is shown and measured.
+    if (res.rotationCW && !rot()) notify('idle', `auto-annotate: the reader read this display at ${res.rotationCW}° - set the rotation if that is right`);
     // (the boxes were pushed as one step before the first was added)
     sel = first; touch(); renderWins(); draw();
     setMsg(`auto-annotate: ${entry.windows.length - first} window(s) from the reader's rows - adjust the boxes, then save`);
@@ -1826,7 +1844,16 @@ $('#vlCopyPrev').onclick = copyPrevQuads;
 let classifiers = [];
 async function loadClassifiers() {
   try { classifiers = await (await fetch('/api/classifiers')).json(); } catch (e) { classifiers = []; }
+  let saved = null;
+  try { saved = localStorage.getItem('annotator.classifier'); } catch (e) {}
+  const shipped = (classifiers.find(c => c.shipped) || classifiers[0] || {}).path;
+  $('#classifier').innerHTML = classifiers.map(c =>
+    `<option value="${c.path}">${c.shipped ? '★ ' : ''}${c.name} · ${c.version}</option>`).join('');
+  $('#classifier').value = classifiers.some(c => c.path === saved) ? saved : shipped;
 }
+$('#classifier').onchange = e => { try { localStorage.setItem('annotator.classifier', e.target.value); } catch (err) {} };
+$('#deskew').onchange = e => { try { localStorage.setItem('annotator.deskew', e.target.value); } catch (err) {} };
+try { const d = localStorage.getItem('annotator.deskew'); if (d) $('#deskew').value = d; } catch (e) {}
 loadClassifiers();
 let cmp = null, sweepTimer = null;
 const CMP_FIELDS = ['total', 'liters', 'unitPrice'];
