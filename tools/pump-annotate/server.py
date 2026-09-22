@@ -495,6 +495,21 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_PUT(self):
         path = urlparse(self.path).path
+        if path.startswith("/api/frame-skip/"):
+            # /api/frame-skip/<stem>/<frame> {skipped: bool}: the frame shows no
+            # display; the extractor, the detector export and the video read
+            # leave it out. A ledger row records the verdict.
+            rel = unquote(path[len("/api/frame-skip/"):])
+            stem, _, frame = rel.partition("/")
+            length = int(self.headers.get("Content-Length", "0"))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            with WRITE_LOCK:
+                with corpus_db.transaction() as con:
+                    ok = corpus_db.set_frame_skipped(stem, frame, bool(body.get("skipped")), con=con)
+                dump_files([FRAMES / stem / "windows.json", corpus_db.CORRECTIONS_FILE])
+            if not ok:
+                return self.send_json({"error": f"no such frame: {stem}/{frame}"}, HTTPStatus.NOT_FOUND)
+            return self.send_json({"ok": True, "skipped": bool(body.get("skipped"))})
         if path.startswith("/api/video-anchor/"):
             # /api/video-anchor/<stem>/<frame>: the owner's corrected quads on one
             # frame become an anchor the tracker registers its neighbours to.
@@ -649,6 +664,7 @@ class Handler(SimpleHTTPRequestHandler):
         # Every window the save moves, adds or deletes is a ledger row too (the
         # text corrections above cover only what the reader pre-filled).
         corrections += corpus_db.window_corrections(name, before.get("windows", []), entry.get("windows", []))
+        corrections += corpus_db.negative_corrections(name, before.get("negatives", []), entry.get("negatives", []))
         # Decision 9: a heldout still measures only once reviewed, so editing a
         # reviewed heldout entry's windows clears reviewed - a changed heldout
         # still never measures silently. Identical windows keep it.

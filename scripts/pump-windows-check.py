@@ -71,6 +71,15 @@ def matches(shown: Decimal, truth: Decimal) -> bool:
     return False
 
 
+def quad_iou(a, b):
+    """Axis-aligned overlap of two quads' bounding boxes over their union."""
+    ax0, ax1 = min(p[0] for p in a), max(p[0] for p in a); ay0, ay1 = min(p[1] for p in a), max(p[1] for p in a)
+    bx0, bx1 = min(p[0] for p in b), max(p[0] for p in b); by0, by1 = min(p[1] for p in b), max(p[1] for p in b)
+    iw, ih = max(0, min(ax1, bx1) - max(ax0, bx0)), max(0, min(ay1, by1) - max(ay0, by0))
+    inter = iw * ih; union = (ax1 - ax0) * (ay1 - ay0) + (bx1 - bx0) * (by1 - by0) - inter
+    return inter / union if union > 0 else 0.0
+
+
 def main() -> int:
     check = "--check" in sys.argv
     problems: list[str] = []
@@ -96,6 +105,16 @@ def main() -> int:
             continue
         not_on_display = set(entry.get("notOnDisplay", ()))
         csv_disagrees = entry.get("csvDisagrees", {})
+        # A "not a window" region: a quad in [0,1] that overlaps no window - a
+        # negative over a window is a contradiction, not a judgement.
+        for n in entry.get("negatives", []):
+            q = n.get("quad", [])
+            if len(q) != 4 or any(not (0 <= x <= 1 and 0 <= y <= 1) for x, y in q):
+                problems.append(f"{name}: bad negative quad")
+                continue
+            for w in entry["windows"]:
+                if quad_iou(q, w["quad"]) > 0.5:
+                    problems.append(f"{name}: a negative covers the {w['field']} window")
         byfield = {}
         for w in entry["windows"]:
             windows += 1

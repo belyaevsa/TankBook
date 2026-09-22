@@ -1446,6 +1446,9 @@ annotator).
   - and the display **reflected in its own glass** above the digits plus the photographer's
   hand; `316` a night Gilbarco **£49.00 preset** / 36.32 at 134.9 (134.9 / 136.9 / 127.9).
 
+- `pump-299`'s CSV total moved 50.13 → 50.73 on the owner's annotator pass (the display reads
+  `50.73`; the earlier row was typed from the filename's batch sheet).
+
 - **Two Lafon Technologies / Wayne French faces**: `pump-317` 35.08 / 23.40 at 1.499
   (`€uro / Litres / €uro/litre`, `LIVRAISON MINIMALE 5 LITRES`) beside the GAZOLE / SP95-E10 /
   S/PLOMB 95 nozzles; `318` **E.Leclerc Louhans**, 83.73 / 43.63 at 1.919 with a `CONTRÔLE

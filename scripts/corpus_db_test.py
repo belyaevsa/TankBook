@@ -415,3 +415,35 @@ def test_window_corrections_record_moves_adds_and_deletes() -> None:
     assert added["final"] == {"field": "liters", "quad": q(0.1, 0.3, 0.5, 0.4), "text": "5.67"}
     # Unchanged windows owe nothing.
     assert cdb.window_corrections("pump-999.jpg", before, before) == []
+
+
+def test_negatives_round_trip_and_ledger(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    q = lambda x0, y0, x1, y1: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
+    before = [{"quad": q(0.7, 0.1, 0.9, 0.2), "source": "operator", "reason": "totem"}]
+    after = before + [{"quad": q(0.1, 0.8, 0.3, 0.9), "source": "reader", "reason": "live row – ·4"}]
+    rows = cdb.negative_corrections("pump-999.jpg", before, after)
+    assert [(r["kind"], r["proposedBy"]) for r in rows] == [("negative", "reader")]
+    assert cdb.negative_corrections("pump-999.jpg", after, before)[0]["kind"] == "unnegative"
+    cleaned = cdb.clean_entry({"windows": [], "negatives": after})
+    assert cleaned["negatives"][1] == {"quad": q(0.1, 0.8, 0.3, 0.9), "source": "reader", "reason": "live row – ·4"}
+    assert "negatives" not in cdb.clean_entry({"windows": [], "negatives": []})
+
+
+def test_frame_skip_flag_is_kept_in_extra_and_read_back(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    db = tmp_path / "c.sqlite"
+    monkeypatch.setattr(cdb, "DB", db)
+    with sqlite3.connect(db) as con:
+        con.executescript(cdb.SCHEMA)
+        con.execute("insert into frames (record, frame, still, split, inliers, anchor, verified, keys, extra, ord) "
+                    "values ('live-0001', '', 'pump-001.jpg', 'train', null, null, null, '[]', null, null)")
+        con.execute("insert into frames (record, frame, still, split, inliers, anchor, verified, keys, extra, ord) "
+                    "values ('live-0001', '007.jpg', 'pump-001.jpg', 'train', 40, null, null, '[\"windows\", \"inliers\"]', null, 0)")
+    assert cdb.set_frame_skipped("live-0001", "007.jpg", True)
+    with cdb.transaction() as con:
+        row = con.execute("select extra, keys from frames where record = 'live-0001' and frame = '007.jpg'").fetchone()
+        assert cdb.frame_skipped(row["extra"]) and "skipped" in json.loads(row["keys"])
+        assert con.execute("select count(*) from corrections where kind = 'skip' and final = 'skipped'").fetchone()[0] == 1
+    assert cdb.set_frame_skipped("live-0001", "007.jpg", False)
+    with cdb.transaction() as con:
+        assert not cdb.frame_skipped(con.execute("select extra from frames where frame = '007.jpg'").fetchone()["extra"])
+    assert not cdb.set_frame_skipped("live-0001", "999.jpg", True)

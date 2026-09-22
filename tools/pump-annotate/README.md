@@ -70,6 +70,17 @@ the ml venv runs it); the converted images are cached under
   `tracker`, `template` or `operator` - and the IoU), a window drawn (`add`) and one deleted
   (`delete`, carrying the window it was). A window carried onto a frame and pinned there is an
   `add` on the frame. `scripts/corrections-report.py` counts them per kind and placer.
+- **Not a window** (`n`, or the checkbox beside `+ window`): a drawn box is a judged negative
+  - a board cell that is not the price, a totem, a keypad, a reflected display - kept on the
+  entry as `negatives` (quad, `source`, `reason`), drawn grey and dashed, listed as chips. After
+  `R` (the live path) the dashed rows are proposals to judge: **click** one to adopt it as a
+  window (`placedBy: reader`, the ledger's `add` names the reader), **⇧-click** to reject it as
+  a negative (`source: reader`). The locator's ranker (PU.24) needs judged boxes on both sides;
+  `detdata.py` writes them to `negatives.json`. `pump-windows-check` refuses a negative over a window.
+- **Skip a frame** (`x` in the frames view): the frame shows no display - a hand, the nozzle, a
+  glare pass. Persisted at once (`skipped` on the frame, a `skip` ledger row) and the strip
+  hatches it red; the glyph extractor, the detector export and the video read leave it out.
+  Cheaper than an anchor and honest where an anchor would have to lie. `x` again un-skips.
 - **Focusing any control on a window card** (the field select, the text, the
   partial box) selects that window: the card lights and its quad thickens on
   the picture, without the panel re-rendering under the cursor.

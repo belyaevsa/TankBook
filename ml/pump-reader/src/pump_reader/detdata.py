@@ -98,6 +98,7 @@ def main(argv: list[str] | None = None) -> int:
     labels = corpus_db.labels(con)
 
     try:
+        negatives_out: list[dict] = []
         # Stills.
         stills = con.execute(
             "select e.fixture, e.rotationCW, f.split, f.path from entries e join fixtures f on f.name = e.fixture "
@@ -115,6 +116,18 @@ def main(argv: list[str] | None = None) -> int:
             quads = con.execute("select quad from windows where fixture = ? order by ord", (name,)).fetchall()
             boxes = [bbox(rotate_quad(json.loads(q["quad"]), rotation), w, h) for q in quads]
             record = {"image": dst.name, "annotations": boxes, "source": name}
+            # Judged negatives: regions the owner marked "not a window" (a board
+            # cell that is not the price, a totem, a reflected display) and the
+            # live-read rows the owner rejected. Not a Create ML input - the
+            # detector's background is implicit - but the locator's ranker
+            # (PU.24) needs judged boxes on both sides, and this is where they
+            # are kept for it.
+            entry_extra = con.execute("select extra from entries where fixture = ?", (name,)).fetchone()
+            extra = json.loads(entry_extra["extra"]) if entry_extra and entry_extra["extra"] else {}
+            for n in extra.get("negatives", []):
+                negatives_out.append({"image": dst.name, "source": name, "heldout": heldout,
+                                      "box": bbox(rotate_quad(n["quad"], rotation), w, h),
+                                      "by": n.get("source", "operator"), "reason": n.get("reason", "")})
             (held_ann if heldout else train_ann).append(record)
             counts["heldout_stills" if heldout else "train_stills"] += 1
             counts["boxes"] += 0 if heldout else len(boxes)
@@ -135,6 +148,10 @@ def main(argv: list[str] | None = None) -> int:
                 allowed = {n for n, e in labels.get(record, {}).items() if e.get("total") != "skip"}
                 allowed |= {n for n, f in t["frames"].items() if f.get("verified")}
                 names = [n for n in names if n in allowed]
+            # A frame the owner marked `skipped` shows no display (a hand, the
+            # nozzle, a glare pass): its quads are wherever the tracker left
+            # them, and a detector must not learn a box on nothing.
+            names = [n for n in names if not t["frames"][n].get("skipped")]
             for i, frame in enumerate(names):
                 if i % args.frame_step:
                     continue
@@ -170,6 +187,8 @@ def main(argv: list[str] | None = None) -> int:
         for r in train_ann:
             assert r["source"] not in heldout_names, f"heldout still in the detector's train set: {r['source']}"
             assert r["source"].split("/")[0] not in heldout_records, f"heldout record in the detector's train set: {r['source']}"
+        (args.out / "negatives.json").write_text(json.dumps(negatives_out, indent=1))
+        counts["judged_negatives"] = len(negatives_out)
         (train_dir / "annotations.json").write_text(json.dumps(train_ann, indent=1))
         (held_dir / "annotations.json").write_text(json.dumps(held_ann, indent=1))
         (args.out / "counts.json").write_text(json.dumps(counts, indent=1))

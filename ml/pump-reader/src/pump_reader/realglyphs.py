@@ -82,7 +82,8 @@ def db_windows(con) -> dict[tuple, str]:
             "select fr.still, fr.record, fr.frame, fw.field, fw.text from frames fr "
             "join frame_windows fw on fw.record = fr.record and fw.frame = fr.frame "
             "join entries e on e.fixture = fr.still "
-            "where fr.frame != '' and fr.split = 'train' and (e.tracking is null or e.tracking != 'bad')"):
+            "where fr.frame != '' and fr.split = 'train' and (e.tracking is null or e.tracking != 'bad') "
+            "and coalesce(json_extract(fr.extra, '$.skipped'), 0) = 0"):
         out[(token(r["still"]), f"{r['record']}/{r['frame']}", r["field"])] = r["text"]
     skip = {(r["video"], r["frame"]) for r in
             con.execute("select video, frame from labels where field = 'total' and text = 'skip'")}

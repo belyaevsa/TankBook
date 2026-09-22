@@ -45,6 +45,8 @@
   #frameStrip span.cur { outline:2px solid #fff; outline-offset:-1px }
   #frameStrip span.runstart { margin-left:3px }
   #frameStrip span.anchor { box-shadow: inset 0 0 0 1px #fff }
+  #frameStrip span.skipped { background:repeating-linear-gradient(45deg,#7a2e2e 0 2px,#2a303a 2px 4px) }
+  .neg { display:inline-block; margin:2px 4px 2px 0; padding:1px 6px; border:1px dashed #999; border-radius:4px; color:#bbb; font-size:12px }
   #frameStrip span.nextrun { position:relative } #frameStrip span.nextrun::after { content:'▲'; position:absolute; top:13px; left:-3px; color:#fff; font-size:10px }
   #frameStrip .legend { width:auto; height:auto; background:none; color:var(--dim); font-size:11px; margin-left:8px; cursor:default }
   #banner { flex:0 0 auto; padding:6px 10px; font-size:13px; background:rgba(20,20,20,0.92); border-bottom:1px solid var(--line); min-height:1.4em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
@@ -119,7 +121,8 @@
       <button id="vlRerun" title="retrack the clip from its anchors, then read every tracked frame again; your labels and anchored frames are kept">⟳ retrack + read all</button></div>
   </div>
   <div id="wins"></div>
-  <div class="row"><button id="add">+ window</button> <span class="dim">or drag on the image</span></div>
+  <div class="row"><button id="add">+ window</button> <span class="dim">or drag on the image</span> <label title="drawn boxes are 'not a window' regions (n toggles); ⇧-click a live-read row rejects it the same way"><input type="checkbox" id="negMode"> not a window</label></div>
+  <div id="negs"></div>
   <div class="win">
     <div class="row"><b>notOnDisplay</b> <label><input type="checkbox" data-nod="total">total</label> <label><input type="checkbox" data-nod="liters">liters</label> <label><input type="checkbox" data-nod="unitPrice">unitPrice</label></div>
     <div class="row"><b>csvDisagrees</b> <span class="dim">reason per field, blank = none</span></div>
@@ -146,6 +149,7 @@
         <tr><td><kbd>r</kbd></td><td>read the annotated boxes (prefill)</td></tr>
         <tr><td><kbd>R</kbd></td><td>read with the app's live path (rows drawn dashed)</td></tr>
         <tr><td><kbd>A</kbd></td><td>auto-annotate: the live path's rows become boxes with the CSV text</td></tr>
+        <tr><td><kbd>n</kbd></td><td>toggle "not a window": a drawn box is a judged negative (grey, dashed) for the locator, not a window; click a live-read row (dashed, after <kbd>R</kbd>) to adopt it as a window, <kbd>⇧</kbd>-click to reject it as a negative</td></tr>
         <tr><td><kbd>Z</kbd></td><td>pad texts to the make's convention (derived from its reviewed entries)</td></tr>
         <tr><td><kbd>Esc</kbd></td><td>leave the confirm loop → deselect → back to the still</td></tr>
       </table></div>
@@ -169,6 +173,7 @@
         <tr><td><kbd>⇧→</kbd></td><td>jump to the next run (video)</td></tr>
         <tr><td><kbd>⌥←</kbd> <kbd>⌥→</kbd></td><td>step frames while typing a label</td></tr>
         <tr><td><kbd>C</kbd></td><td>copy the previous frame's boxes onto this frame (then <kbd>⇧⏎</kbd> pins them)</td></tr>
+        <tr><td><kbd>x</kbd></td><td>skip this frame: it shows no display (a hand, the nozzle, a glare pass) - the extractor, the detector and the reader leave it out; <kbd>x</kbd> again un-skips</td></tr>
         <tr><td><kbd>⇧⏎</kbd></td><td>video: save the label · Live record: pin the edited quads as an anchor, else mark tracking ok</td></tr>
         <tr><td><kbd>⌥⏎</kbd></td><td>keyframe: save as owner and fill back to the previous keyframe by the arithmetic (interpolated)</td></tr>
         <tr><td>confirm loop</td><td>after <kbd>⇧⏎</kbd> with <i>whole run</i>: <kbd>→</kbd> / <kbd>⏎</kbd> confirm this frame · <kbd>⌥⏎</kbd> confirm the rest where the arithmetic closes · <kbd>Esc</kbd> leave, the rest unlabelled</td></tr>
@@ -393,7 +398,7 @@ function renderStrip() {
   if (!isVideo) {
     // A Live record: every tracked frame, anchors outlined; nothing to label per frame.
     const r = currentRecord(); const cur = r.tracked[frameIdx];
-    strip.innerHTML = r.tracked.map((n, i) => `<span class="tracked ${n === cur ? 'cur' : ''} ${r.frames[n].verified ? 'anchor' : ''}" data-i="${i}" title="${n} · inliers ${r.frames[n].inliers}${r.frames[n].verified ? ' · anchor (quads placed by hand)' : ''}"></span>`).join('')
+    strip.innerHTML = r.tracked.map((n, i) => `<span class="tracked ${n === cur ? 'cur' : ''} ${r.frames[n].verified ? 'anchor' : ''} ${r.frames[n].skipped ? 'skipped' : ''}" data-i="${i}" title="${n} · inliers ${r.frames[n].inliers}${r.frames[n].verified ? ' · anchor (quads placed by hand)' : ''}${r.frames[n].skipped ? ' · skipped (no display)' : ''}"></span>`).join('')
       + `<span class="legend">grey = tracked from the still · white outline = anchor (quads you placed) · drag a quad to anchor a frame · <kbd>⇧⏎</kbd> marks tracking ok and saves</span>`;
     strip.querySelectorAll('span[data-i]').forEach(el => el.onclick = () => { frameIdx = +el.dataset.i; showFrame(); });
     return;
@@ -402,7 +407,7 @@ function renderStrip() {
   const runStart = new Set((r.runs || []).map(run => run[0]));
   const curRun = runOf(r, cur); const runs = r.runs || []; const ri = runs.findIndex(run => run === curRun);
   const nextRunFirst = runs[ri + 1] ? runs[ri + 1][0] : null;
-  strip.innerHTML = r.tracked.map((n, i) => `<span class="${states[n]} ${n === cur ? 'cur' : ''} ${runStart.has(n) ? 'runstart' : ''} ${n === nextRunFirst ? 'nextrun' : ''} ${r.frames[n].verified ? 'anchor' : ''}" data-i="${i}" title="${n} ${states[n]}${runStart.has(n) ? ' · new value' : ''}${r.frames[n].verified ? ' · anchor (quads placed by hand)' : ''}"></span>`).join('')
+  strip.innerHTML = r.tracked.map((n, i) => `<span class="${states[n]} ${n === cur ? 'cur' : ''} ${runStart.has(n) ? 'runstart' : ''} ${n === nextRunFirst ? 'nextrun' : ''} ${r.frames[n].verified ? 'anchor' : ''} ${r.frames[n].skipped ? 'skipped' : ''}" data-i="${i}" title="${n} ${states[n]}${runStart.has(n) ? ' · new value' : ''}${r.frames[n].verified ? ' · anchor (quads placed by hand)' : ''}${r.frames[n].skipped ? ' · skipped (no display)' : ''}"></span>`).join('')
     + `<span class="legend">red = needs you (unlabelled or breaks the sequence) · yellow = reader pre-fill to confirm · green = labelled · teal = interpolated between keyframes · ▲ next unique value (<kbd>⇧→</kbd>) · gap = value changes</span>`;
   strip.querySelectorAll('span[data-i]').forEach(el => el.onclick = () => { frameIdx = +el.dataset.i; showFrame(); });
 }
@@ -417,7 +422,7 @@ function showVideoLabel() {
   if (!isVideo) {
     if (frameMode) { const r = currentRecord(); const name = r.tracked[frameIdx]; const f = r.frames[name];
       const carried = f.windows.filter(w => w.carried).map(w => w.field);
-      $('#lfName').textContent = name; $('#lfState').textContent = (f.verified ? '⚓ anchor (quads placed by hand)' : `tracked from the still · inliers ${f.inliers}`) + (frameQuadsEdited ? ' · edited, unsaved' : '') + (carried.length ? ` · ${carried.join(', ')} carried from the still (dashed), not tracked yet – Save the still or ↻ track` : ''); }
+      $('#lfName').textContent = name; $('#lfState').textContent = (f.skipped ? '⊘ skipped – no display on this frame (x un-skips)' : f.verified ? '⚓ anchor (quads placed by hand)' : `tracked from the still · inliers ${f.inliers}`) + (frameQuadsEdited ? ' · edited, unsaved' : '') + (carried.length ? ` · ${carried.join(', ')} carried from the still (dashed), not tracked yet – Save the still or ↻ track` : ''); }
     renderStrip(); return;
   }
   if (!frameMode) return;
@@ -438,7 +443,7 @@ function showVideoLabel() {
     $('#vlSource').textContent = `confirming ${loop.i + 1}/${loop.run.length} · → or ⏎ confirm · ⌥⏎ confirm the rest when the arithmetic closes · Esc leave`;
     return;
   }
-  $('#vlSource').textContent = (f.source ? `(${f.source})` : (pre('total') ? '(reader pre-fill – confirm)' : '(unlabelled)')) + ` · run of ${run.length}` + (f.verified ? ' · ⚓ hand-placed quads' : '');
+  $('#vlSource').textContent = (f.source ? `(${f.source})` : (pre('total') ? '(reader pre-fill – confirm)' : '(unlabelled)')) + ` · run of ${run.length}` + (f.verified ? ' · ⚓ hand-placed quads' : '') + (f.skipped ? ' · ⊘ skipped (no display)' : '');
 }
 let frameQuadsEdited = false;
 async function putVideoLabel(movie, frame, body) {
@@ -654,6 +659,21 @@ function renderWins() {
   document.querySelectorAll('[data-r]').forEach(b => b.onclick = e => { e.stopPropagation(); sel = +b.dataset.r; turnWindow(sel, +b.dataset.d * (e.shiftKey ? 0.1 : 1)); });
   entry.windows.forEach((w, i) => updateCells(i));
   updateArith();
+  renderNegs();
+}
+// The "not a window" regions: judged negatives for the locator (a board cell
+// that is not the price, a totem, a reflected display, a live-read row the
+// operator rejected). Drawn grey and dashed, listed as chips, never windows.
+function renderNegs() {
+  const negs = (entry && entry.negatives) || [];
+  $('#negs').innerHTML = negs.length ? `<span class="dim">not a window:</span> ` + negs.map((n, i) =>
+    `<span class="neg" title="${n.source || 'operator'}${n.reason ? ' · ' + n.reason : ''}">✕ ${n.reason || n.source || 'region'} <button data-negx="${i}" title="remove">×</button></span>`).join('') : '';
+  document.querySelectorAll('[data-negx]').forEach(b => b.onclick = e => { e.stopPropagation(); entry.negatives.splice(+b.dataset.negx, 1); touch(); renderNegs(); draw(); });
+}
+function addNegative(quad, source, reason) {
+  entry.negatives = entry.negatives || [];
+  entry.negatives.push({quad: quad.map(p => p.map(v => Math.round(v * 10000) / 10000)), source, reason});
+  touch(); renderNegs(); draw();
 }
 // The slicer's last read for one window's field, or null before a read (the
 // image guard keeps a read on another fixture from colouring this one's cards).
@@ -789,6 +809,17 @@ function draw() {
     }
     ctx.setLineDash([]);
   }
+  // The judged negatives: grey, dashed, crossed.
+  if (!frameMode && entry && entry.negatives) {
+    ctx.setLineDash([3 / zoom, 3 / zoom]); ctx.lineWidth = 1.5 / zoom; ctx.strokeStyle = '#999'; ctx.font = `${12 / zoom}px system-ui`;
+    for (const n of entry.negatives) {
+      const pts = n.quad.map(toDisp);
+      ctx.beginPath(); pts.forEach((p, k) => k ? ctx.lineTo(...p) : ctx.moveTo(...p)); ctx.closePath(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(...pts[0]); ctx.lineTo(...pts[2]); ctx.moveTo(...pts[1]); ctx.lineTo(...pts[3]); ctx.stroke();
+      ctx.fillStyle = '#999'; ctx.fillText(`✕ ${n.reason || n.source || ''}`, pts[0][0], pts[0][1] - 3 / zoom);
+    }
+    ctx.setLineDash([]);
+  }
   // The live path's located rows, in the upright image's normalised coordinates.
   if (readRows && readRows.image === readImageKey()) {
     ctx.setLineDash([6 / zoom, 4 / zoom]); ctx.lineWidth = 1.5 / zoom; ctx.font = `${13 / zoom}px system-ui`;
@@ -803,7 +834,7 @@ function draw() {
     ctx.setLineDash([]);
   }
   if (drag && drag.kind === 'new') {
-    ctx.strokeStyle = '#fff'; ctx.setLineDash([4 / zoom, 4 / zoom]); ctx.lineWidth = 1 / zoom;
+    ctx.strokeStyle = drag.negative ? '#999' : '#fff'; ctx.setLineDash([4 / zoom, 4 / zoom]); ctx.lineWidth = 1 / zoom;
     ctx.strokeRect(drag.x0, drag.y0, drag.x - drag.x0, drag.y - drag.y0);
   }
   ctx.restore();
@@ -825,6 +856,13 @@ function hitCorner(p) {
   if (sel < 0 || !editable()[sel]) return -1;
   const pts = editable()[sel].quad.map(toDisp);
   return pts.findIndex(q => Math.hypot(q[0] - p[0], q[1] - p[1]) < 10 / zoom);
+}
+// A live-read row under the pointer (the dashed boxes after R), by index.
+function hitLiveRow(p) {
+  if (frameMode || !readRows || readRows.image !== readImageKey()) return -1;
+  const [nx, ny] = toImg(p);
+  return readRows.rows.findIndex(rr => { const xs = rr.quad.map(q => q[0]), ys = rr.quad.map(q => q[1]);
+    return nx >= Math.min(...xs) && nx <= Math.max(...xs) && ny >= Math.min(...ys) && ny <= Math.max(...ys); });
 }
 function hitWindow(p) {
   const [nx, ny] = toImg(p);
@@ -848,7 +886,25 @@ canvas.onmousedown = e => {
   const w = hitWindow([x, y]);
   if (w >= 0 && !e.shiftKey) { sel = w; drag = {kind:'move', x, y, quad: editable()[w].quad.map(p => [...p])}; renderWins(); draw(); return; }
   if (frameMode) return;   // no new windows on a frame: a frame carries its reference's windows
-  drag = {kind:'new', x0:x, y0:y, x, y};
+  // A live-read row is a proposal to judge: a click adopts it as a window
+  // (placedBy reader - the ledger's `add` names the reader), ⇧-click rejects
+  // it as a negative. Either way the row leaves the overlay.
+  const lr = hitLiveRow([x, y]);
+  if (lr >= 0 && w < 0) {
+    const rr = readRows.rows[lr];
+    // The reply's quads are in the upright image; the window's are in the
+    // stored image, so a rotated still maps them back through the display.
+    const quad = rr.quad.map(([nx, ny]) => toImg([nx * dispSize()[0], ny * dispSize()[1]]));
+    if (e.shiftKey) { addNegative(quad, 'reader', `live row ${rr.field || '–'} ·${rr.cells}`); }
+    else {
+      const field = rr.field || ['total','liters','unitPrice'].find(f => !entry.windows.some(x => x.field === f)) || 'board';
+      entry.windows.push({field, text: row && row[field] ? row[field] : '', quad: quad.map(p => p.map(v => Math.round(v * 10000) / 10000)), placedBy: 'reader', zoom});
+      sel = entry.windows.length - 1; touch(); renderWins(); draw();
+      document.querySelector(`[data-t="${sel}"]`)?.focus();
+    }
+    readRows.rows.splice(lr, 1); draw(); return;
+  }
+  drag = {kind:'new', x0:x, y0:y, x, y, negative: $('#negMode').checked};
 };
 canvas.onmousemove = e => {
   if (!drag) return; const [x, y] = mouse(e);
@@ -906,6 +962,7 @@ window.addEventListener('mouseup', e => {
     if (Math.abs(drag.x - drag.x0) > 4 && Math.abs(drag.y - drag.y0) > 4) {
       const a = toImg([drag.x0, drag.y0]), b = toImg([drag.x, drag.y]);
       const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]), y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
+      if (drag.negative) { addNegative([[x0,y0],[x1,y0],[x1,y1],[x0,y1]], 'operator', ''); drag = null; return; }
       const missing = ['total','liters','unitPrice'].find(f => !entry.windows.some(w => w.field === f)) || 'board';
       addWindow(missing, row && row[missing] ? row[missing] : '', [[x0,y0],[x1,y0],[x1,y1],[x0,y1]]);
       document.querySelector(`[data-t="${sel}"]`)?.focus();
@@ -918,6 +975,17 @@ window.addEventListener('mouseup', e => {
   if (wasEdit && frameMode && frameQuadsEdited) { clearTimeout(anchorTimer); anchorTimer = setTimeout(saveAnchor, 600); if (!isVideo) $('#lfState').textContent = 'edited – saving as anchor…'; }
 });
 let anchorTimer = null;
+// x on a frame: it shows no display. Persisted at once (a ledger row too);
+// the extractor, the detector export and the video read leave it out.
+async function toggleFrameSkip() {
+  const r = currentRecord(); const name = r && r.tracked[frameIdx]; if (!name) return;
+  const skipped = !r.frames[name].skipped;
+  const res = await (await fetch('/api/frame-skip/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name), {method: 'PUT', body: JSON.stringify({skipped})})).json();
+  if (res.error) { setMsg(res.error); return; }
+  r.frames[name].skipped = skipped;
+  setMsg(skipped ? `${name} skipped – no display` : `${name} back in`);
+  showVideoLabel(); renderStrip();
+}
 
 // ---- controls ----
 // Zooming keeps the windows where the eye is: the selected window's centre,
@@ -1202,6 +1270,8 @@ document.addEventListener('keydown', e => {
   if (!typing && e.key === 'r') { runReader(false); return; }
   if (!typing && e.key === 'R') { runReader(true); return; }
   if (!typing && e.key === 'A') { autoAnnotate(); return; }
+  if (!typing && !frameMode && e.key === 'n') { $('#negMode').checked = !$('#negMode').checked; setMsg($('#negMode').checked ? 'drawing "not a window" regions' : 'drawing windows'); return; }
+  if (!typing && frameMode && e.key === 'x') { e.preventDefault(); toggleFrameSkip(); return; }
   if (!typing && frameMode && e.key === 'C') { copyPrevQuads(); return; }
   if (!typing && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); padConventions(); return; }
   if (!typing && sel >= 0 && (e.key === '[' || e.key === ']' || e.key === '{' || e.key === '}')) { e.preventDefault(); const step = (e.key === '{' || e.key === '}') ? 0.1 : 1; turnWindow(sel, (e.key === ']' || e.key === '}') ? step : -step); return; }

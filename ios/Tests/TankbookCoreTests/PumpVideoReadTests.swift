@@ -260,7 +260,11 @@ struct PumpVideoReadTests {
                   let frames = tracked["frames"] as? [String: Any] else { continue }
             let names = frames.keys.sorted { (Int($0.dropLast(4)) ?? 0) < (Int($1.dropLast(4)) ?? 0) }
             let existing = labels[stem] as? [String: Any] ?? [:]
-            let skip = Self.humanSkipped(names, labels: existing)
+            // A frame the owner marked `skipped` shows no display; reading it
+            // would label a hand or a glare pass.
+            let skip = Self.humanSkipped(names, labels: existing).union(names.filter {
+                (frames[$0] as? [String: Any])?["skipped"] as? Bool == true
+            })
             let result = try Self.readFrames(stem: stem, video: video, frameNames: names, skip: skip)
             // One staging file per record: readings plus the arithmetic labels
             // the reader would write. `import-readings` keeps owner and

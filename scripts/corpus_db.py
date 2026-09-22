@@ -71,12 +71,13 @@ S3_MEDIA_PREFIX = "pump-live/"
 SCHEMA_VERSION = "4"
 
 ENTRY_KEYS = ("windows", "rotationCW", "notOnDisplay", "csvDisagrees", "reviewed", "tracking", "liveAnchors")
+# `negatives` (entry) and `skipped` (frame) have no column: they live in `extra`.
 VIDEO_KEYS = ("reference", "currency", "unitPrice", "windows", "reviewed", "anchors", "firstFrame", "lastFrame", "note")
 FRAME_KEYS = ("windows", "inliers", "anchor", "verified")
 CORRECTION_ORDER = ("still", "record", "video", "frame", "field", "proposedBy", "proposed", "final", "iou", "inliers")
 # The kinds whose `proposed` / `final` are JSON (a quad, or a whole window for
 # an added / deleted one) rather than a text; the dump decodes them back.
-JSON_CORRECTION_KINDS = ("quad", "add", "delete")
+JSON_CORRECTION_KINDS = ("quad", "add", "delete", "negative", "unnegative")
 
 SCHEMA = """
 create table meta (key text primary key, value text);
@@ -972,6 +973,21 @@ def clean_entry(entry: dict) -> dict:
     if entry.get("liveAnchors"):
         out["liveAnchors"] = [{"record": a["record"], "frame": a["frame"], "windows": a["windows"]}
                               for a in entry["liveAnchors"]]
+    if entry.get("negatives"):
+        out["negatives"] = [clean_negative(n) for n in entry["negatives"]]
+    return out
+
+
+def clean_negative(n: dict) -> dict:
+    """A region that is NOT a number window - a board cell that is not the
+    price, a totem, a keypad, a reflected display - drawn so the locator's
+    ranker has judged negatives, not only the background it never proposed.
+    `source` says who proposed the box: `operator` (drawn by hand) or `reader`
+    (a live-read row the operator rejected)."""
+    out = {"quad": [[round(float(x), 4), round(float(y), 4)] for x, y in n["quad"]],
+           "source": n.get("source") or "operator"}
+    if n.get("reason"):
+        out["reason"] = str(n["reason"])
     return out
 
 
@@ -1112,9 +1128,62 @@ def window_corrections(still: str, before: list[dict], after: list[dict]) -> lis
             rows.append({"kind": "delete", "still": still, "field": w.get("field"), "proposedBy": who(w),
                          "proposed": shape(w)})
     for j in unmatched_after:
-        rows.append({"kind": "add", "still": still, "field": after[j].get("field"), "proposedBy": "operator",
+        rows.append({"kind": "add", "still": still, "field": after[j].get("field"), "proposedBy": who(after[j]),
                      "final": shape(after[j])})
     return rows
+
+
+def negative_corrections(still: str, before: list[dict], after: list[dict]) -> list[dict]:
+    """Ledger rows for the not-a-window regions a save added (`negative`) or
+    removed (`unnegative`); `proposedBy` is the box's `source`."""
+    key = lambda n: json.dumps(n.get("quad"))
+    was = {key(n): n for n in before}
+    now = {key(n): n for n in after}
+    rows = []
+    for k, n in now.items():
+        if k not in was:
+            rows.append({"kind": "negative", "still": still, "proposedBy": n.get("source") or "operator",
+                         "final": {"quad": n["quad"], "reason": n.get("reason", "")}})
+    for k, n in was.items():
+        if k not in now:
+            rows.append({"kind": "unnegative", "still": still, "proposedBy": n.get("source") or "operator",
+                         "proposed": {"quad": n["quad"], "reason": n.get("reason", "")}})
+    return rows
+
+
+def set_frame_skipped(record: str, frame: str, skipped: bool, con: sqlite3.Connection | None = None) -> bool:
+    """Mark one tracked frame as showing no display (a hand, the nozzle, a
+    glare pass): the glyph extractor, the detector export and the video read
+    leave it out. Cheaper than an anchor and honest where an anchor would lie.
+    Kept in `frames.extra` and dumped with the record; a ledger row records
+    the verdict."""
+    with transaction(con) as con:
+        row = con.execute("select extra from frames where record = ? and frame = ?", (record, frame)).fetchone()
+        if row is None:
+            return False
+        extra = json.loads(row["extra"]) if row["extra"] else {}
+        if bool(extra.get("skipped")) == skipped:
+            return True
+        if skipped:
+            extra["skipped"] = True
+        else:
+            extra.pop("skipped", None)
+        keys = json.loads(con.execute("select keys from frames where record = ? and frame = ?",
+                                      (record, frame)).fetchone()[0] or "[]")
+        if skipped and "skipped" not in keys:
+            keys.append("skipped")
+        if not skipped:
+            keys = [k for k in keys if k != "skipped"]
+        con.execute("update frames set extra = ?, keys = ? where record = ? and frame = ?",
+                    (json.dumps(extra) if extra else None, json.dumps(keys), record, frame))
+        _insert_corrections(con, [{"kind": "skip", "record": record, "frame": frame,
+                                   "proposedBy": "operator", "final": "skipped" if skipped else "kept"}])
+        return True
+
+
+def frame_skipped(extra_json: str | None) -> bool:
+    """The `skipped` flag out of a `frames.extra` column."""
+    return bool(json.loads(extra_json).get("skipped")) if extra_json else False
 
 
 def quad_iou(a: list, b: list) -> float:
