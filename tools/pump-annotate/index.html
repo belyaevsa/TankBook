@@ -62,7 +62,7 @@
   #frameStrip span.skipped { background:repeating-linear-gradient(45deg,#7a2e2e 0 2px,#2a303a 2px 4px) }
   .neg { display:inline-block; margin:2px 4px 2px 0; padding:1px 6px; border:1px dashed #999; border-radius:4px; color:#bbb; font-size:12px }
   #frameStrip span.nextrun { position:relative } #frameStrip span.nextrun::after { content:'▲'; position:absolute; top:26px; left:1px; color:#fff; font-size:10px }
-  #banner { flex:0 0 auto; padding:6px 10px; font-size:13px; background:rgba(20,20,20,0.92); border-bottom:1px solid var(--line); min-height:1.4em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  #banner { padding:4px 0; font-size:13px; min-height:1.4em }
   #banner.idle { color:var(--dim) } #banner.busy { color:#ffc857 } #banner.done { color:#7fff7f } #banner.failed { color:var(--bad) }
   kbd { border:1px solid var(--line); border-radius:3px; padding:0 4px; font-size:11px; color:var(--dim) }
   table.keys { border-collapse:collapse; margin:4px 0 10px; width:100% } table.keys td { padding:2px 6px 2px 0; vertical-align:top; font-size:12px } table.keys td:first-child { white-space:nowrap; color:var(--fg) }
@@ -116,9 +116,7 @@
     <span id="zoomInfo" class="dim mono"></span>
     <span class="sep"></span>
     <span id="trackBar"><button id="recTrack" title="carry the still's windows into this record's frames (pump_reader.track)">↻ track</button><button id="retrackAll" title="re-register every non-pinned frame of this record to the reference and its anchors">↻ re-track all</button><button id="retrackFrom" title="re-register this frame and the ones after it; earlier frames keep their quads">↻ from here</button><button id="vlRerun" title="retrack the clip from its anchors, then read every tracked frame again; your labels and anchored frames are kept">⟳ retrack + read all</button></span>
-    <span id="msg" class="dim"></span>
   </div>
-  <div id="banner" class="idle"></div>
   <div id="stage"><canvas id="c"></canvas></div>
   <!-- The frames bar: always here so the image never jumps when the frames
        view opens, filled only in that view. -->
@@ -179,6 +177,7 @@
     <div id="disRows"></div>
   </div>
   <div id="status">
+    <div id="banner" class="idle"></div>
     <div class="row"><button id="check">Check</button><button id="dump" title="write every corpus file from the database (corpus_db.py dump) and run the staleness check">⤓ dump to JSON</button>
       <button id="read" title="run the reader on the annotated windows and fill empty texts (r); R runs the app's live path - detector, verifier, law - on the photo with no windows">▶ read</button>
       <button id="auto" title="auto-annotate (A): the live path locates the rows and each assigned row becomes a window with the truth row's text - adjust and save">✦ auto</button></div>
@@ -865,7 +864,14 @@ function notify(kind, text) {
   if (kind !== 'busy') bannerTimer = setTimeout(() => { if (b.textContent === text) { b.className = 'idle'; b.textContent = idleText(); } }, 12000);
 }
 function refreshBanner() { const b = $('#banner'); if (b.className === 'idle') b.textContent = idleText(); }
-function setMsg(t) { $('#msg').textContent = t; setTimeout(() => { if ($('#msg').textContent === t) $('#msg').textContent = dirty ? 'unsaved' : ''; }, 1500); }
+
+// The short, transient line (a save, a copy, a jump) writes the same element as
+// `notify`: one status surface, last writer wins, and it falls back to the idle
+// text rather than to nothing.
+function setMsg(t) {
+  const b = $('#banner'); b.className = 'idle'; b.textContent = t; clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(() => { if (b.textContent === t) b.textContent = idleText(); }, 4000);
+}
 // One undo step: the boxes (and, on a still, the negatives) as they were
 // before the last edit. Text typed in an input keeps the browser's own undo;
 // this stack is for what the mouse and the keys do to the quads, because those
@@ -895,7 +901,7 @@ function undo() {
   renderWins(); draw(); labelSaveButtons();
   setMsg('undone');
 }
-function touch() { dirty = true; $('#msg').textContent = 'unsaved'; }
+function touch() { dirty = true; refreshBanner(); }
 
 // ---- windows panel ----
 function renderWins() {
