@@ -5,6 +5,7 @@
 # Usage:
 #   TANKBOOK_TEAM_ID=ABCDE12345 scripts/release.sh            # archive + export only
 #   TANKBOOK_TEAM_ID=ABCDE12345 scripts/release.sh --debug    # DEBUG build installed on the plugged-in iPhone (no archive)
+#   ... scripts/release.sh --upload --debug                    # DEBUG configuration archived and uploaded to TestFlight (lab build)
 #   TANKBOOK_TEAM_ID=... ASC_KEY_ID=... ASC_ISSUER_ID=... ASC_KEY_PATH=~/.private_keys/AuthKey_XXXX.p8 \
 #       scripts/release.sh --upload                            # ...and upload
 #
@@ -31,11 +32,15 @@ for arg in "$@"; do
        exit 2 ;;
   esac
 done
+# --debug alone installs the Debug configuration on the plugged-in iPhone.
+# --debug --upload archives the DEBUG configuration and uploads it to TestFlight
+# (product owner, 2026-09-22): the testers get the `#if DEBUG` doors - the
+# Capture lab under About - which a Release archive never carries. Google
+# sign-in in that build has the Debug placeholder client id and fails at
+# Google's end (project.yml), so it is a lab build, not a release candidate.
+CONFIGURATION=Release
 if [ "$DEBUG" -eq 1 ] && [ "$UPLOAD" -eq 1 ]; then
-  # --debug wins: a Debug build is never archived, so there is nothing to
-  # upload - say so and carry on rather than refuse (product owner, 2026-09-22).
-  echo "release: --debug builds the Debug configuration onto the plugged-in iPhone and never archives; --upload is skipped" >&2
-  UPLOAD=0
+  CONFIGURATION=Debug
 fi
 
 # --debug: not a release at all. Builds the DEBUG configuration for the iPhone
@@ -44,7 +49,7 @@ fi
 # the one with the `#if DEBUG` doors (the Capture lab under About, the test
 # seams); an archive is always Release and never has them, which is why a
 # lab shot from `scripts/release.sh` without this flag found no lab.
-if [ "$DEBUG" -eq 1 ]; then
+if [ "$DEBUG" -eq 1 ] && [ "$UPLOAD" -eq 0 ]; then
   DEVICE="${TANKBOOK_DEVICE:-$(xcrun devicectl list devices 2>/dev/null | awk '/\(UDID\)/ && $0 !~ /simulated/ && $0 ~ /connected/ {print $(NF-4)}' | head -1)}"
   if [ -z "$DEVICE" ]; then
     echo "release --debug: no physical iPhone connected (xcrun devicectl list devices); plug one in, or set TANKBOOK_DEVICE to its UDID" >&2
@@ -149,8 +154,10 @@ else
   echo "release: no ASC_* credentials in the environment - signing falls back to the Xcode account" >&2
 fi
 
-OUT="build/release-${BUILD_NUMBER}-${COMMIT}"; mkdir -p "$OUT"
-echo "release: build ${BUILD_NUMBER} from ${COMMIT} -> ${OUT}"
+OUT="build/release-${BUILD_NUMBER}-${COMMIT}"
+[ "$CONFIGURATION" = "Debug" ] && OUT="${OUT}-debug"   # never reused as a Release archive
+mkdir -p "$OUT"
+echo "release: ${CONFIGURATION} build ${BUILD_NUMBER} from ${COMMIT} -> ${OUT}"
 
 # The archive path is deterministic per commit, so a re-run on the same commit
 # would otherwise spend minutes rebuilding bytes that already exist. Reuse it,
@@ -173,7 +180,7 @@ else
     rm -rf "$ARCHIVE"
   fi
 xcodegen generate >/dev/null
-xcodebuild -project Tankbook.xcodeproj -scheme Tankbook -configuration Release \
+xcodebuild -project Tankbook.xcodeproj -scheme Tankbook -configuration "${CONFIGURATION}" \
   -destination 'generic/platform=iOS' \
   -archivePath "${OUT}/Tankbook.xcarchive" \
   -allowProvisioningUpdates ${ASC_SIGNING_ARGS[@]+"${ASC_SIGNING_ARGS[@]}"} \
@@ -226,7 +233,7 @@ if [ "$UPLOAD" -eq 1 ]; then
     echo "  full log: ${upload_log}" >&2
     exit 1
   fi
-  echo "release: uploaded build ${BUILD_NUMBER}; internal TestFlight testers get it after processing"
+  echo "release: uploaded ${CONFIGURATION} build ${BUILD_NUMBER}; internal TestFlight testers get it after processing"
 else
   echo "release: not uploaded (pass --upload with the App Store Connect API key in the environment)"
 fi
