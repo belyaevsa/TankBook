@@ -376,6 +376,17 @@ placed by the orchestrator from a 5 % grid, unreviewed; `pump_reader.track --vid
 | `video-035..040-wayne-yellow-lcd-raquette-caption-take1..6-running-display-fr` | 57 / 144 / 147 / 144 / 150 / 144 (576x1024, 30 fps) | **one 36 s clip, six takes**: a Wayne **yellow-backlit** face (`VOLUME MINIMAL DÉLIVRÉ 2 L (ESSENCE), 5 L (GAZOLE)`, `€uro / Litres / €uro/litre`) under a `Quand tu te fait raquetté à la pompe` caption, counting 5.2 / 2.35 → 89.48 / 39.76 at `2.250`; the original joins the takes with two 1.5 s black gaps and four whip pans (the display flips upside down mid-blur), so it is **cut at every join** (`IMG_40316.MOV` 4.5-6.4, 7.2-12.0, 13.6-18.5, 19.2-24.0, 25.6-30.6, 31.2-36.0 s) and each take carries its own reference frame and zoom | price `2.250` constant (`9.13 x 2.250 = 20.54`, `39.53 x 2.250 = 88.94`); the whip blur at each take's edges is what the tracker drops (6 / 52 / 18 / 37 / 51 / 22 frames) |
 | `video-033-tokheim-prix-volume-caption-band-running-display-fr` | 135 (720x1280, 25 fps, 5.4 s) | **Tokheim** `PRIX / VOLUME / PRIX DU LITRE` face under a burned-in red caption band (`L'AUGMENTATION DU PRIX DE L'ESSENCE PÈSE LOURD DANS LE BUDGET`): counting 62.30 / 26.33 → 68.18 / 28.54 at 2.389; cut 3.6-9 s (the presenter left the frame at 3.5 s) | price `2.389` constant (`27.35 x 2.389 = 65.34`) |
 
+**Read phase, batch 9 (2026-09-22):** `PumpVideoReadTests` ran over every tracked frame of the
+twelve clips. Frames whose read closed on the arithmetic (`arithmetic` labels): `video-029` 14 of
+321, `035` 4 / 52, `036` 2 / 93, `037` 11 / 130, `040` 19 / 123 - and **zero** on `030`, `031`,
+`032`, `033`, `034`, `038`, `039`. The reference quads of this batch were placed from a 5 %
+grid on a contact sheet, not in the annotator, so the first suspect is the quads (a window a
+few percent off loses the leading digit); the second is the faces themselves - `031`'s price is
+`0.010`, so the total is the litres / 100 and closes only on an exact read; `032` has snow on
+the glass; `034` is the refresh-glitch clip, where a frame's segments are genuinely missing.
+Re-place the quads in the annotator's Frames view and `⟳ retrack + read all` before reading
+anything into the reader from these numbers.
+
 ## Frames and tracking (2026-09-20)
 
 Two scripts in `ml/pump-reader` turn the records into labelled training frames without a

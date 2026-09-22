@@ -23703,5 +23703,322 @@
    "total": "0043.10",
    "unitPrice": "1.969"
   }
+ },
+ "video-029-unknown-this-sale-dollars-gallons-running-display-us": {
+  "021.jpg": {
+   "liters": "1.6421",
+   "source": "arithmetic",
+   "total": "4.60",
+   "unitPrice": "2.799"
+  },
+  "037.jpg": {
+   "liters": "1.720",
+   "source": "arithmetic",
+   "total": "4.81",
+   "unitPrice": "2.799"
+  },
+  "053.jpg": {
+   "liters": "1.7871",
+   "source": "arithmetic",
+   "total": "5.00",
+   "unitPrice": "2.799"
+  },
+  "054.jpg": {
+   "liters": "1.7991",
+   "source": "arithmetic",
+   "total": "5.04",
+   "unitPrice": "2.799"
+  },
+  "055.jpg": {
+   "liters": "1.799",
+   "source": "arithmetic",
+   "total": "5.04",
+   "unitPrice": "2.799"
+  },
+  "058.jpg": {
+   "liters": "1.818",
+   "source": "arithmetic",
+   "total": "5.09",
+   "unitPrice": "2.799"
+  },
+  "064.jpg": {
+   "liters": "01.8431",
+   "source": "arithmetic",
+   "total": "5.16",
+   "unitPrice": "2.799"
+  },
+  "085.jpg": {
+   "liters": "01.944",
+   "source": "arithmetic",
+   "total": "5.44",
+   "unitPrice": "2.799"
+  },
+  "129.jpg": {
+   "liters": "2.142",
+   "source": "arithmetic",
+   "total": "6.00",
+   "unitPrice": "2.799"
+  },
+  "131.jpg": {
+   "liters": "2.154",
+   "source": "arithmetic",
+   "total": "6.03",
+   "unitPrice": "2.799"
+  },
+  "132.jpg": {
+   "liters": "2.154",
+   "source": "arithmetic",
+   "total": "6.03",
+   "unitPrice": "2.799"
+  },
+  "138.jpg": {
+   "liters": "2.186",
+   "source": "arithmetic",
+   "total": "6.12",
+   "unitPrice": "2.799"
+  },
+  "139.jpg": {
+   "liters": "2.185",
+   "source": "arithmetic",
+   "total": "6.12",
+   "unitPrice": "2.799"
+  },
+  "146.jpg": {
+   "liters": "2.222",
+   "source": "arithmetic",
+   "total": "6.22",
+   "unitPrice": "2.799"
+  }
+ },
+ "video-030-tatsuno-leclerc-static-display-4868-2653l-1835-fr": {},
+ "video-031-wayne-breuillet-one-cent-litre-running-display-fr": {},
+ "video-032-unknown-quebec-diesel-snow-dollars-running-display-ca": {},
+ "video-033-tokheim-prix-volume-caption-band-running-display-fr": {},
+ "video-034-unknown-lcd-refresh-glitch-static-5011-2170l-2309-fr": {},
+ "video-035-wayne-yellow-lcd-raquette-caption-take1-running-display-fr": {
+  "019.jpg": {
+   "liters": "263.1",
+   "source": "arithmetic",
+   "total": "592",
+   "unitPrice": "2.250"
+  },
+  "032.jpg": {
+   "liters": "291.1",
+   "source": "arithmetic",
+   "total": "655",
+   "unitPrice": "2.250"
+  },
+  "033.jpg": {
+   "liters": "291.1",
+   "source": "arithmetic",
+   "total": "655",
+   "unitPrice": "2.250"
+  },
+  "034.jpg": {
+   "liters": "291.1",
+   "source": "arithmetic",
+   "total": "655",
+   "unitPrice": "2.250"
+  }
+ },
+ "video-036-wayne-yellow-lcd-raquette-caption-take2-running-display-fr": {
+  "049.jpg": {
+   "liters": "947.1",
+   "source": "arithmetic",
+   "total": "2131.",
+   "unitPrice": "2.250"
+  },
+  "051.jpg": {
+   "liters": "947.1",
+   "source": "arithmetic",
+   "total": "2131",
+   "unitPrice": "2.250"
+  }
+ },
+ "video-037-wayne-yellow-lcd-raquette-caption-take3-running-display-fr": {
+  "001.jpg": {
+   "liters": "1728",
+   "source": "arithmetic",
+   "total": "3888",
+   "unitPrice": "2.250"
+  },
+  "002.jpg": {
+   "liters": "1728",
+   "source": "arithmetic",
+   "total": "3888",
+   "unitPrice": "2.250"
+  },
+  "011.jpg": {
+   "liters": "1748",
+   "source": "arithmetic",
+   "total": "3933",
+   "unitPrice": "2.250"
+  },
+  "019.jpg": {
+   "liters": "1768",
+   "source": "arithmetic",
+   "total": "3978",
+   "unitPrice": "2.250"
+  },
+  "020.jpg": {
+   "liters": "1768",
+   "source": "arithmetic",
+   "total": "3978",
+   "unitPrice": "2.250"
+  },
+  "021.jpg": {
+   "liters": "1768",
+   "source": "arithmetic",
+   "total": "3978",
+   "unitPrice": "2.250"
+  },
+  "063.jpg": {
+   "liters": "1.867",
+   "source": "arithmetic",
+   "total": "4.201",
+   "unitPrice": "2.250"
+  },
+  "075.jpg": {
+   "liters": "1888",
+   "source": "arithmetic",
+   "total": "4248",
+   "unitPrice": "2.250"
+  },
+  "123.jpg": {
+   "liters": "2000",
+   "source": "arithmetic",
+   "total": "4500",
+   "unitPrice": "2.250"
+  },
+  "124.jpg": {
+   "liters": "2000",
+   "source": "arithmetic",
+   "total": "4500",
+   "unitPrice": "2.250"
+  },
+  "125.jpg": {
+   "liters": "2000",
+   "source": "arithmetic",
+   "total": "4500",
+   "unitPrice": "2.250"
+  }
+ },
+ "video-038-wayne-yellow-lcd-raquette-caption-take4-running-display-fr": {},
+ "video-039-wayne-yellow-lcd-raquette-caption-take5-running-display-fr": {},
+ "video-040-wayne-yellow-lcd-raquette-caption-take6-running-display-fr": {
+  "023.jpg": {
+   "liters": "3924",
+   "source": "arithmetic",
+   "total": "8829",
+   "unitPrice": "2.250"
+  },
+  "024.jpg": {
+   "liters": "3924",
+   "source": "arithmetic",
+   "total": "8829",
+   "unitPrice": "2.250"
+  },
+  "025.jpg": {
+   "liters": "3924",
+   "source": "arithmetic",
+   "total": "8829",
+   "unitPrice": "2.250"
+  },
+  "048.jpg": {
+   "liters": "3940",
+   "source": "arithmetic",
+   "total": "8865",
+   "unitPrice": "2.250"
+  },
+  "049.jpg": {
+   "liters": "3940",
+   "source": "arithmetic",
+   "total": "8865",
+   "unitPrice": "2.250"
+  },
+  "050.jpg": {
+   "liters": "3940",
+   "source": "arithmetic",
+   "total": "8865",
+   "unitPrice": "2.250"
+  },
+  "057.jpg": {
+   "liters": "3948",
+   "source": "arithmetic",
+   "total": "8883",
+   "unitPrice": "2.250"
+  },
+  "058.jpg": {
+   "liters": "3948",
+   "source": "arithmetic",
+   "total": "8883",
+   "unitPrice": "2.250"
+  },
+  "059.jpg": {
+   "liters": "3948",
+   "source": "arithmetic",
+   "total": "8883",
+   "unitPrice": "2.250"
+  },
+  "066.jpg": {
+   "liters": "3952",
+   "source": "arithmetic",
+   "total": "8892",
+   "unitPrice": "2.250"
+  },
+  "082.jpg": {
+   "liters": "3956",
+   "source": "arithmetic",
+   "total": "8901",
+   "unitPrice": "2.250"
+  },
+  "083.jpg": {
+   "liters": "3956",
+   "source": "arithmetic",
+   "total": "8901",
+   "unitPrice": "2.250"
+  },
+  "084.jpg": {
+   "liters": "3956",
+   "source": "arithmetic",
+   "total": "8901",
+   "unitPrice": "2.250"
+  },
+  "101.jpg": {
+   "liters": "3964",
+   "source": "arithmetic",
+   "total": "8919",
+   "unitPrice": "2.250"
+  },
+  "102.jpg": {
+   "liters": "3964",
+   "source": "arithmetic",
+   "total": "8919",
+   "unitPrice": "2.250"
+  },
+  "103.jpg": {
+   "liters": "3964",
+   "source": "arithmetic",
+   "total": "8919",
+   "unitPrice": "2.250"
+  },
+  "111.jpg": {
+   "liters": "3968",
+   "source": "arithmetic",
+   "total": "8928",
+   "unitPrice": "2.250"
+  },
+  "112.jpg": {
+   "liters": "3968",
+   "source": "arithmetic",
+   "total": "8928",
+   "unitPrice": "2.250"
+  },
+  "113.jpg": {
+   "liters": "3968",
+   "source": "arithmetic",
+   "total": "8928",
+   "unitPrice": "2.250"
+  }
  }
 }
