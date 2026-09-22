@@ -107,6 +107,7 @@
        view opens, filled only in that view. -->
   <div id="framebar">
     <div id="frameStrip"></div>
+    <input id="frameSlider" type="range" min="0" max="0" value="0" style="width:100%;display:none">
     <div class="row" id="frameNav" style="display:none">
       <button id="fnResume" title="jump to the last frame you saved in this record" style="display:none">⏮ where I left</button>
       <label title="jump to a frame by its number">go to <input id="fnGo" type="number" min="1" step="1" style="width:76px"></label>
@@ -140,7 +141,7 @@
     Rotate <select id="rot"><option>0</option><option>90</option><option>180</option><option>270</option></select>
     <button id="helpBtn" class="quick" title="every key (?)">keys</button></div>
   <div class="win" id="live" style="display:none">
-    <div class="row"><b>Live record</b> <select id="rec"></select> <span id="recinfo" class="dim"></span></div>
+    <div class="row"><b>Live record</b> <select id="rec"></select> <span id="recName" class="mono dim"></span> <span id="recinfo" class="dim"></span></div>
     <div class="row"><b>tracking</b>
       <label><input type="radio" name="tracking" value=""> unreviewed</label>
       <label><input type="radio" name="tracking" value="ok"> ok</label>
@@ -149,7 +150,6 @@
       <span>a drag pins the frame as an anchor; <kbd>⇧⏎</kbd> or Save does the same</span></div>
     <div class="row dim" id="videoLabel" style="display:none"><span id="frameName" class="mono"></span>
       <span>type the numbers on the cards above · Save (<kbd>⇧⏎</kbd>) writes this frame · <kbd>⌥⏎</kbd> keyframe</span>
-      <input id="frameSlider" type="range" min="0" max="0" value="0" style="flex:1;display:none">
       <button id="vlAnchor" style="display:none"></button></div>
   </div>
   <div class="win">
@@ -342,7 +342,11 @@ async function loadRecords(n) {
   if (n !== current) return;   // the user moved on while this was in flight
   records = got;
   $('#live').style.display = records.length ? '' : 'none';
+  $('#recName').style.display = 'none';
   $('#rec').innerHTML = records.map((r, i) => `<option value="${i}">${r.movie}</option>`).join('');
+  $('#rec').style.display = records.length > 1 ? '' : 'none';
+  $('#recName').textContent = records.length === 1 ? records[0].movie : '';
+  $('#recName').style.display = records.length === 1 ? '' : 'none';
   showRecordInfo();
 }
 function currentRecord() { return records[+$('#rec').value || 0]; }
@@ -485,6 +489,8 @@ function updateFrameNav() {
   btn.textContent = `⏮ where I left (${i + 1})`;
   btn.title = `the last frame you saved in this record: ${at}`;
   $('#fnGo').max = r.tracked.length; $('#fnGo').value = frameIdx + 1;
+  $('#frameSlider').style.display = r.tracked.length > 1 ? '' : 'none';
+  $('#frameSlider').max = Math.max(0, r.tracked.length - 1); $('#frameSlider').value = frameIdx;
   $('#fnCount').textContent = `/ ${r.tracked.length} · ${r.tracked[frameIdx]}`;
   for (const id of ['#vlCopy', '#vlSkip', '#vlRun']) $(id).closest('label, button').style.display = isVideo ? '' : 'none';
   $('#lfOk').style.display = isVideo ? 'none' : '';

@@ -199,6 +199,10 @@ the ml venv runs it); the converted images are cached under
   the negatives, then the CSV row and the arithmetic it is checked against, then
   processed / rotate, then the record it belongs to (which record, tracking
   verdict), then notOnDisplay and csvDisagrees.
+- The **frame scrubber** is the full-width slider under the strip - a coarse
+  jump across a long record, where the strip's ticks are a fine one. The
+  **record picker** appears only on a still that has more than one Live record;
+  with a single record its name is printed instead of a select with one option.
 - **⏮ where I left** jumps to the last frame you **saved** in this record - a
   label, a keyframe or an anchor - remembered per record in this browser. Not
   the last frame merely looked at: scrolling past forty frames is not progress.
