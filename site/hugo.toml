@@ -7,6 +7,8 @@ disableKinds = ["taxonomy", "term", "rss"]
 
 [params]
 email = "to@belyaev.live"
+# The App Store listing (released 2026-09-22). One place, every button reads it.
+appStoreURL = "https://apps.apple.com/app/id6807989868"
 
 # A typed --- must never render as an em-dash (repo rule: en-dashes only).
 [markup.goldmark.extensions.typographer]

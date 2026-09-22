@@ -32,5 +32,5 @@ want to hear about.
 
 ## Status
 
-Tankbook is in TestFlight now, and the App Store review is under way. Feedback from the test ring
-shapes the release: write early, write often.
+Tankbook is on the [App Store](https://apps.apple.com/app/id6807989868). Feedback still shapes every
+release: write early, write often.
