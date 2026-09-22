@@ -165,17 +165,14 @@
       <button id="vlAnchor" style="display:none"></button></div>
   </div>
   <div class="win">
-    <div class="row"><b>When the photo and the truth row do not match</b></div>
-    <div class="row dim">The truth row is this fixture's entry in the database (dumped to <span class="mono">expected.csv</span>); the line above shows it. These two are the only escape hatches <span class="mono">pump-windows-check</span> honours - leave both empty while the display shows what the truth row says.</div>
-    <div class="row"><b>The display does not show it</b> <span class="dim">(the value came from the paired receipt)</span></div>
-    <div class="row dim">Tick a field and the checker stops asking for a window for it. A face with no price window is the usual case.</div>
-    <div class="row"><label><input type="checkbox" data-nod="total">total</label> <label><input type="checkbox" data-nod="liters">liters</label> <label><input type="checkbox" data-nod="unitPrice">unitPrice</label></div>
-    <div class="row"><b>The display shows a different number</b></div>
-    <div class="row dim">Type WHY and the checker stops comparing that field (stored as <span class="mono">csvDisagrees</span>). Say which side is right: the display, or the receipt the truth row came from. Example: <span class="mono">the receipt's discounted total; the display shows 32,58</span>. Blank = no disagreement.</div>
-    <div class="row">total <input data-dis="total" style="flex:1" placeholder="why they differ"></div>
-    <div class="row">liters <input data-dis="liters" style="flex:1" placeholder="why they differ"></div>
-    <div class="row">unitPrice <input data-dis="unitPrice" style="flex:1" placeholder="why they differ"></div>
-    <div class="row dim" id="csvHint"></div>
+    <div class="row"><b>Against the truth row</b> <span class="dim">the fixture's entry in the database (dumped to <span class="mono">expected.csv</span>)</span></div>
+    <div id="csvHint"></div>
+    <!-- The model behind the two answers above; the standing form is gone
+         because a question nobody is asking needs no field on screen. -->
+    <div style="display:none">
+      <input type="checkbox" data-nod="total"><input type="checkbox" data-nod="liters"><input type="checkbox" data-nod="unitPrice">
+    </div>
+    <div id="disRows"></div>
   </div>
   <div id="status">
     <div class="row"><button id="check">Check</button><button id="dump" title="write every corpus file from the database (corpus_db.py dump) and run the staleness check">⤓ dump to JSON</button>
@@ -306,7 +303,6 @@ async function openFixture(n) {
   $('#rot').value = String(entry.rotationCW || 0);
   $('#reviewed').checked = !!entry.reviewed;
   document.querySelectorAll('[data-nod]').forEach(c => c.checked = (entry.notOnDisplay||[]).includes(c.dataset.nod));
-  document.querySelectorAll('[data-dis]').forEach(i => i.value = (entry.csvDisagrees||{})[i.dataset.dis] || '');
   renderCsvHint();
   $('#csv').innerHTML = row ? ['liters','unitPrice','total'].map(k =>
       `<span>${k} <b>${row[k]||'–'}</b> <button data-use="${k}" title="add a window with this text">use</button></span>`).join(' ') + ` <span class="dim">${row.currency||''}</span>`
@@ -477,24 +473,54 @@ function frameStates(r) {
 // blocks Save; the corpus has legitimate off-by-a-cent displays.
 // What the checker would say about this entry right now, in its own words -
 // the two hatches above exist for exactly these two lines.
+// The checker's questions about THIS entry, each with its answer beside it.
+// A missing window is ambiguous - the display has no such field, the window is
+// not drawn yet, or it was missed - so the answer is a judgement only the
+// operator can give (`notOnDisplay`); a number that differs from the truth row
+// needs a reason (`csvDisagrees`). Neither is a standing form: nothing shows
+// while nothing is being asked.
 function renderCsvHint() {
-  const el = $('#csvHint'); if (!el || !entry || frameMode) { if (el) el.textContent = ''; return; }
-  if (!row) { el.textContent = ''; return; }
+  const el = $('#csvHint'), disRows = $('#disRows');
+  el.innerHTML = ''; disRows.innerHTML = '';
+  if (!entry || frameMode || !row) return;
   const nod = new Set(entry.notOnDisplay || []);
   const dis = entry.csvDisagrees || {};
   const shown = {};
   for (const w of entry.windows) if (['total','liters','unitPrice'].includes(w.field)) shown[w.field] = (w.text || '').trim();
-  const lines = [];
+  const rows = [];
   for (const f of ['total','liters','unitPrice']) {
     const truth = (row[f] || '').toString().trim(); if (!truth) continue;
     if (shown[f] === undefined) {
-      if (!nod.has(f)) lines.push(`${f}: the truth row says ${truth} and there is no window - draw one, or tick "${f}" above`);
-    } else if (shown[f] && !dis[f] && num(shown[f]) !== null && Math.abs(num(shown[f]) - +truth) > 0.0005) {
-      lines.push(`${f}: the display reads ${shown[f]}, the truth row says ${truth} - fix the text, or say why below`);
+      rows.push(nod.has(f)
+        ? `<div class="row dim">✓ <b>${f}</b> is not on this display (the truth row's ${truth} came from the receipt) <button data-nodoff="${f}">undo</button></div>`
+        : `<div class="row bad">⚠ <b>${f}</b>: the truth row says ${truth} and no window is drawn. <button data-nodon="${f}" title="the face has no such field - the checker stops asking for this window">the display does not show it</button></div>`);
+    } else if (shown[f] && num(shown[f]) !== null && Math.abs(num(shown[f]) - +truth) > 0.0005 && !dis[f]) {
+      rows.push(`<div class="row bad">⚠ <b>${f}</b>: the display reads ${shown[f]}, the truth row says ${truth}. Fix the text, or <button data-dison="${f}">say why they differ</button></div>`);
+    }
+    if (dis[f] !== undefined) {
+      rows.push(`<div class="row"><b>${f}</b> differs on purpose: <input data-dis="${f}" style="flex:1" placeholder="why - which side is right"></div>`);
     }
   }
-  el.innerHTML = lines.length ? lines.map(l => `⚠ ${l}`).join('<br>') : '✓ every asserted field has a window and matches the truth row';
-  el.className = lines.length ? 'row bad' : 'row dim';
+  if (!rows.length) { el.innerHTML = '<div class="row dim">✓ every asserted field has a window and matches the truth row</div>'; return; }
+  el.innerHTML = rows.join('');
+  el.querySelectorAll('[data-nodon]').forEach(b => b.onclick = () => setNotOnDisplay(b.dataset.nodon, true));
+  el.querySelectorAll('[data-nodoff]').forEach(b => b.onclick = () => setNotOnDisplay(b.dataset.nodoff, false));
+  el.querySelectorAll('[data-dison]').forEach(b => b.onclick = () => {
+    entry.csvDisagrees = {...(entry.csvDisagrees || {}), [b.dataset.dison]: ''};
+    touch(); renderCsvHint(); document.querySelector(`[data-dis="${b.dataset.dison}"]`)?.focus();
+  });
+  el.querySelectorAll('[data-dis]').forEach(i => {
+    i.value = dis[i.dataset.dis] || '';
+    i.oninput = () => { entry.csvDisagrees[i.dataset.dis] = i.value; touch(); };
+    i.onblur = () => { if (!i.value.trim()) { delete entry.csvDisagrees[i.dataset.dis]; renderCsvHint(); } };
+  });
+}
+function setNotOnDisplay(field, on) {
+  const box = document.querySelector(`[data-nod="${field}"]`); if (box) box.checked = on;
+  const set = new Set(entry.notOnDisplay || []);
+  on ? set.add(field) : set.delete(field);
+  entry.notOnDisplay = [...set];
+  touch(); renderCsvHint();
 }
 function updateArith() {
   const el = $('#arith'); if (!el) return;
@@ -777,8 +803,9 @@ function collect() {
   entry.tracking = (document.querySelector('[name=tracking]:checked') || {}).value || undefined;
   entry.reviewed = $('#reviewed').checked;
   entry.notOnDisplay = [...document.querySelectorAll('[data-nod]:checked')].map(c => c.dataset.nod);
+  const kept = entry.csvDisagrees || {};
   entry.csvDisagrees = {};
-  document.querySelectorAll('[data-dis]').forEach(i => { if (i.value.trim()) entry.csvDisagrees[i.dataset.dis] = i.value.trim(); });
+  for (const [f, why] of Object.entries(kept)) if (why.trim()) entry.csvDisagrees[f] = why.trim();
   return entry;
 }
 async function save() {
@@ -1469,7 +1496,9 @@ $('#filter').oninput = renderList; $('#state').onchange = renderList;
 document.querySelectorAll('.quick').forEach(b => b.onclick = () => { $('#state').value = b.dataset.q; renderList(); });
 document.querySelectorAll('nav.rail button').forEach(b => b.onclick = () => setMode(b.dataset.mode));
 setMode(mode);
-document.querySelectorAll('[data-nod],[data-dis]').forEach(i => i.oninput = touch);
+// The hidden notOnDisplay boxes are the model behind the hint's buttons; the
+// disagreement inputs are wired as they are rendered (renderCsvHint).
+document.querySelectorAll('[data-nod]').forEach(i => i.oninput = touch);
 // The previous frame's boxes onto this frame: when the tracker drifted but the
 // frame before was right (often an anchor), copy its quads here, then pin
 // (⇧⏎ / a drag) so the tracker registers its neighbours to this frame too.

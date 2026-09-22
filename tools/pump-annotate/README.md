@@ -193,18 +193,23 @@ the ml venv runs it); the converted images are cached under
   where it sits (`1/1184`), plus the frame's inliers or the record's tracked
   count. Nothing else names them - not the toolbar, not the right panel, not the
   banner, which says only `ready` or `unsaved changes`.
-- **"When the photo and the truth row do not match"** (right panel, below the
-  notes) holds the only two escape hatches `pump-windows-check` honours, and the
-  panel now says what each does. **The display does not show it** ticks a field
-  the truth row asserts but the face has no window for - a head with no price
-  window is the usual case - and the checker stops asking for that window
-  (`notOnDisplay`). **The display shows a different number** takes a reason and
-  the checker stops comparing that field (`csvDisagrees`), so write which side
-  is right: the display, or the receipt the truth row came from. A live line
-  under them names the exact field the checker would complain about, or says
-  everything matches. The **truth row** is the fixture's entry in the database
-  (`expected.csv` is its dump) - the page says "truth row" everywhere, because
-  the CSV stopped being the write store on 2026-09-21.
+- **Against the truth row** (right panel, below the notes) is the checker's
+  questions about this entry, each with its answer beside it - not a standing
+  form. While every asserted field has a window and matches, it says so in one
+  line and offers nothing.
+  - *"the truth row says 1.689 and no window is drawn"* → draw one, or press
+    **the display does not show it**. A missing window is ambiguous - the face
+    has no such field, the window is not drawn yet, or it was missed - and only
+    the operator can say which; that judgement is `notOnDisplay`, and the
+    checker then stops asking for the window. A head with no price window (the
+    board cell IS the price) is the usual case.
+  - *"the display reads 32,58, the truth row says 32.50"* → fix the text, or
+    press **say why they differ** and write which side is right: the display, or
+    the receipt the truth row came from (`csvDisagrees`). Clearing the reason
+    removes the disagreement.
+  - The **truth row** is the fixture's entry in the database (`expected.csv` is
+    its dump) - the page says "truth row" everywhere, because the CSV stopped
+    being the write store on 2026-09-21.
 - **Where each control lives.** The **toolbar** carries what is the same
   whatever is open (Save, next, undo, reload, zoom, retrack, View frames). The
   **frames bar** under the image carries what acts on the frame you are looking
