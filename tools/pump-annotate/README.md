@@ -254,6 +254,13 @@ the ml venv runs it); the converted images are cached under
   text is the CSV's truth - the display's own padding and comma still need typing - (never the reader's read, so a misread cannot be
   frozen in); a board row becomes a `board` window with an empty text to type. Windows already drawn are kept; the first new one is selected so
   the box can be tightened. Nothing is saved until Save.
+- **det** (toolbar): the row detector `⇧R`'s live path runs - the model in the
+  app bundle (marked `★`), the dev copy the Swift tests read, and every
+  candidate under `ml/pump-reader/.out/det/`, each shown with the date it was
+  written so two rounds of the same name are distinguishable. Remembered per
+  browser; the read's status line names the detector it used. This is how a
+  candidate is judged by looking (shipped vs candidate on the same still)
+  rather than only by its committed count.
 - **▶ read** (`r`): runs the app's own reader on what is on
   screen and fills the fields as a prefill - the annotated windows (or a video
   frame's carried quads) are sliced, classified and judged by the law, and the

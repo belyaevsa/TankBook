@@ -26,6 +26,7 @@ import subprocess
 import sys
 import threading
 import traceback
+from datetime import datetime
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -67,6 +68,32 @@ def build_slice_tool() -> bool:
 SLICER = ResidentSlicer(SLICE_TOOL, build=build_slice_tool, cwd=ROOT)
 CLASSIFIER = ROOT / "ios" / "App" / "Resources" / "PumpSegments.mlpackage"
 DETECTOR = ROOT / "ios" / "App" / "Resources" / "DigitRows.mlmodel"
+# Every row detector on this machine: the one in the bundle, the dev copy the
+# Swift tests read, and the candidates a training round left behind. The live
+# path (⇧R) can be run against any of them, which is the only way to judge a
+# candidate by looking rather than by its committed count.
+DETECTOR_DIRS = [ROOT / "ios" / "App" / "Resources", ROOT / "ml" / "pump-reader" / ".out" / "det",
+                 ROOT / "ml" / "pump-reader" / ".out" / "det" / "pu48"]
+
+
+def detectors() -> list[dict]:
+    shipped = hashlib.sha256(DETECTOR.read_bytes()).hexdigest() if DETECTOR.exists() else None
+    out, seen = [], set()
+    for folder in DETECTOR_DIRS:
+        for path in sorted(folder.glob("*.mlmodel")) if folder.exists() else []:
+            key = str(path.resolve())
+            if key in seen:
+                continue
+            seen.add(key)
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            out.append({"path": str(path.relative_to(ROOT)),
+                        "name": path.stem,
+                        "where": str(folder.relative_to(ROOT)),
+                        "modified": datetime.fromtimestamp(path.stat().st_mtime).strftime("%Y-%m-%d %H:%M"),
+                        "mb": round(path.stat().st_size / 1e6, 1),
+                        "sha": digest[:8],
+                        "shipped": digest == shipped})
+    return out
 
 # Writes go database-first: one transaction and one dump per request, and no
 # two requests interleave between the two.
@@ -427,6 +454,8 @@ class Handler(SimpleHTTPRequestHandler):
         path = urlparse(self.path).path
         if path in ("/", "/index.html"):
             return self.send_bytes((HERE / "index.html").read_bytes(), "text/html; charset=utf-8")
+        if path == "/api/detectors":
+            return self.send_json(detectors())
         if path == "/api/fixtures":
             ann, rows = load_windows(), load_rows()
             names = list(rows) + [n for n in ann if not n.startswith("_") and n not in rows]
@@ -783,7 +812,15 @@ class Handler(SimpleHTTPRequestHandler):
                     return self.send_json({"error": "pump-read did not build", "output": build.stderr[-2000:]}, HTTPStatus.INTERNAL_SERVER_ERROR)
             request = {"rotationCW": body.get("rotationCW", 0), "currency": body.get("currency") or None,
                        "windows": None if body.get("live") else body.get("windows") or None}
-            r = subprocess.run([str(READ_TOOL), str(target), "--classifier", str(CLASSIFIER), "--detector", str(DETECTOR)],
+            # A detector the page picked, checked against the listing so a
+            # request cannot name an arbitrary file.
+            detector = DETECTOR
+            if body.get("detector"):
+                match = next((d for d in detectors() if d["path"] == body["detector"]), None)
+                if match is None:
+                    return self.send_json({"error": f"unknown detector: {body['detector']}"}, HTTPStatus.BAD_REQUEST)
+                detector = ROOT / match["path"]
+            r = subprocess.run([str(READ_TOOL), str(target), "--classifier", str(CLASSIFIER), "--detector", str(detector)],
                                input=json.dumps(request), capture_output=True, text=True, timeout=120)
             if r.returncode or not r.stdout.strip():
                 return self.send_json({"error": "pump-read failed", "output": (r.stderr or r.stdout)[-2000:]}, HTTPStatus.INTERNAL_SERVER_ERROR)

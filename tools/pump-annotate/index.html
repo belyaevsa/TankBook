@@ -93,6 +93,7 @@
     <button id="stepBack" title="previous frame (←)">⏮</button><button id="stepFwd" title="next frame (→)">⏭</button>
     <label title="frames per second">fps <input id="fps" type="number" min="1" max="60" value="12" style="width:52px"></label>
     <label title="start playing as soon as a Live photo or movie opens"><input type="checkbox" id="autoplay"> autoplay</label>
+    <label title="the row detector ⇧R runs: the one in the app bundle, or a candidate a training round left behind">det <select id="detector" style="max-width:260px"></select></label>
     <label><input type="checkbox" id="loop" checked> loop</label>
     <label title="while a box is dragged, nudged or turned, the slicer's cells are drawn on it as it will be cut (resident pump-read, ~20 ms)"><input type="checkbox" id="liveSlice"> live slicers</label>
     <span id="sliceInfo" class="dim mono"></span>
@@ -1155,6 +1156,29 @@ canvas.onmousemove = e => {
   draw();
   if (drag.kind !== 'new') liveSlice();
 };
+// ---- the row detector ⇧R uses ----
+// The bundle's model, the dev copy the Swift tests read, and every candidate
+// under .out/det - each with the date it was written, so two rounds of the
+// same name can be told apart. Remembered per browser; the shipped one is the
+// default and is marked.
+let detectors = [];
+async function loadDetectors() {
+  try { detectors = await (await fetch('/api/detectors')).json(); } catch (e) { return; }
+  let saved = null;
+  try { saved = localStorage.getItem('annotator.detector'); } catch (e) {}
+  const has = detectors.some(d => d.path === saved);
+  const shipped = (detectors.find(d => d.shipped) || detectors[0] || {}).path;
+  $('#detector').innerHTML = detectors.map(d =>
+    `<option value="${d.path}" title="${d.path} · ${d.mb} MB · sha ${d.sha}">${d.shipped ? '★ ' : ''}${d.name} · ${d.modified}</option>`).join('');
+  $('#detector').value = has ? saved : shipped;
+}
+$('#detector').onchange = e => {
+  try { localStorage.setItem('annotator.detector', e.target.value); } catch (err) {}
+  const d = detectors.find(x => x.path === e.target.value);
+  setMsg(d ? `⇧R now runs ${d.name} (${d.where}, ${d.modified}, sha ${d.sha})` : '');
+};
+loadDetectors();
+
 // ---- live slicers: the slicer's cells on the selected box while it moves ----
 // One request in flight; a newer drag position replaces a waiting one on the
 // server (`superseded`), so the overlay follows the mouse without a backlog.
@@ -1323,7 +1347,7 @@ function readImageKey() {
 async function runReader(live, onDone) {
   const image = readImageKey(); if (!image) return;
   const wins = (frameMode && isVideo) ? windowsToDraw() : (entry ? entry.windows : []);
-  const body = {image, rotationCW: rot(), live: !!live, currency: row && row.currency,
+  const body = {image, rotationCW: rot(), live: !!live, currency: row && row.currency, detector: $('#detector').value || undefined,
                 windows: wins.filter(w => w.field !== 'board').map(w => ({field: w.field, quad: w.quad}))};
   setMsg(live ? 'reading (live path)…' : 'reading…');
   notify('busy', live ? 'Reading – live path (detector → verifier → assignment → law)…' : 'Reading from the layouts (the annotated windows)…');
@@ -1333,7 +1357,8 @@ async function runReader(live, onDone) {
   if (res.error) { $('#out').textContent = res.error + '\n' + (res.output || ''); setMsg('read failed'); notify('failed', 'Read failed – ' + res.error); return; }
   const c = res.committed || {};
   const committedText = ['total', 'liters', 'unitPrice'].map(f => `${f} ${c[f] ?? '–'}`).join(' · ');
-  const rowsText = live ? ` · rows found ${(res.rows || []).length}` : '';
+  const det = detectors.find(x => x.path === $('#detector').value);
+  const rowsText = live ? ` · rows found ${(res.rows || []).length}${det ? ` · detector ${det.name} (${det.modified})` : ''}` : '';
   notify(Object.values(c).some(v => v) ? 'done' : 'failed',
          (live ? 'Live path read' : 'Layout read') + ' completed – ' + committedText + rowsText + (Object.values(c).some(v => v) ? '' : ' (nothing committed)'));
   const lines = [`reader${live ? ' (live path)' : ''}: total ${c.total ?? '–'}  liters ${c.liters ?? '–'}  price ${c.unitPrice ?? '–'}`];
