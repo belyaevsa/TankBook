@@ -736,8 +736,11 @@ class Handler(SimpleHTTPRequestHandler):
                 target = FIX / image
             if "/" in target.name or not target.exists():
                 return self.send_json({"error": f"no such image: {image}"}, HTTPStatus.NOT_FOUND)
+            # Board cells slice like any window: the resident slicer has no law
+            # to feed, so nothing is gained by withholding them (the /api/read
+            # path below still leaves boards out - the law never reads one).
             reply = SLICER.slice({"image": str(target), "rotationCW": body.get("rotationCW", 0),
-                                  "windows": [w for w in body.get("windows", []) if w.get("field") != "board"]})
+                                  "windows": body.get("windows", [])})
             return self.send_json(reply)
         if path == "/api/read":
             # The reader on the current still or frame: with the page's windows it

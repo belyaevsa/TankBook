@@ -642,6 +642,11 @@ function renderWins() {
       <div class="row dim mono">${w.quad.map(p => p.map(v => (+v).toFixed(3)).join(',')).join('  ')}${w.placedBy ? `  ${w.placedBy}${w.zoom != null ? ` @${(+w.zoom).toFixed(1)}x` : ''}` : ''}</div>
     </div>`).join('');
   document.querySelectorAll('#wins .win').forEach(d => d.onclick = e => { if (e.target.tagName === 'DIV') { sel = +d.dataset.i; renderWins(); draw(); } });
+  // Focus on any control of a card selects its window: the card lights and
+  // the quad on the picture thickens, without re-rendering the panel (which
+  // would take the focus away again).
+  const selectOnFocus = i => { if (sel === i) return; sel = i; document.querySelectorAll('#wins .win').forEach(d => d.classList.toggle('sel', +d.dataset.i === i)); draw(); };
+  document.querySelectorAll('[data-f],[data-t],[data-l]').forEach(s => s.onfocus = () => selectOnFocus(+(s.dataset.f ?? s.dataset.t ?? s.dataset.l)));
   document.querySelectorAll('[data-f]').forEach(s => s.onchange = () => { entry.windows[+s.dataset.f].field = s.value; touch(); renderWins(); draw(); });
   document.querySelectorAll('[data-t]').forEach(s => s.oninput = () => { entry.windows[+s.dataset.t].text = s.value; updateCells(+s.dataset.t); touch(); updateArith(); });
   document.querySelectorAll('[data-l]').forEach(s => s.onchange = () => { entry.windows[+s.dataset.l].legibility = s.checked ? 'partial' : undefined; touch(); });
@@ -652,9 +657,12 @@ function renderWins() {
 }
 // The slicer's last read for one window's field, or null before a read (the
 // image guard keeps a read on another fixture from colouring this one's cards).
-function slicerCellsFor(w) {
+// A board window is keyed by its index as well: a face can carry four board
+// cells, and one key per field would give them all the last one's cells.
+function cellKey(w, i) { return w.field === 'board' ? `board#${i}` : w.field; }
+function slicerCellsFor(w, i) {
   if (!readCells || readCells.image !== readImageKey() || !readCells.byField) return null;
-  return readCells.byField[w.field] || null;
+  return readCells.byField[cellKey(w, i)] || null;
 }
 // `cells N` beside the input: the slicer's cell count against glyphCount(text),
 // green when equal, red when they differ, grey before a read; plus a warning
@@ -663,7 +671,7 @@ function updateCells(i) {
   const w = entry.windows[i]; if (!w) return;
   const badge = document.querySelector(`[data-cells="${i}"]`);
   const warn = document.querySelector(`[data-warn="${i}"]`);
-  const cells = slicerCellsFor(w);
+  const cells = slicerCellsFor(w, i);
   if (badge) {
     if (!cells) { badge.className = 'cells dim'; badge.textContent = 'cells –'; badge.title = 'no read yet (press r)'; }
     else {
@@ -878,7 +886,7 @@ async function liveSlice() {
     if (!res.superseded && !res.error && res.windows && res.windows[0]) {
       const win = res.windows[0];
       readCells = readCells && readCells.image === image ? readCells : {image, cells: [], byField: {}};
-      readCells.byField[win.field] = win.sliced;
+      readCells.byField[cellKey(w, sel)] = win.sliced;
       readCells.cells = Object.values(readCells.byField).flat();
       const gc = typeof glyphCount === 'function' ? glyphCount(w.text || '') : null;
       $('#sliceInfo').textContent = `${win.field}: ${win.cells} cells${win.dpCell !== null && win.dpCell !== undefined ? ` · dp at ${win.dpCell + 1}` : ''}${gc !== null && w.text ? (gc === win.cells ? ' · matches text' : ` · text has ${gc}`) : ''} · ${res.roundTripMs ?? res.ms} ms`;

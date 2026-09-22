@@ -65,6 +65,9 @@ the ml venv runs it); the converted images are cached under
   the frames view it is **carried** onto each frame at the still's quad, drawn
   dashed and named in the frame line; drag it into place and `⇧⏎` pins it like
   any quad, or Save the still (or `↻ track`) to track it properly.
+- **Focusing any control on a window card** (the field select, the text, the
+  partial box) selects that window: the card lights and its quad thickens on
+  the picture, without the panel re-rendering under the cursor.
 - **Live record / View frames** (shown when the still has a Live record and
   `pump_reader.frames` + `pump_reader.track` have run): steps through the
   record's tracked frames with the carried quads drawn (`←`/`→`, slider,
@@ -139,6 +142,8 @@ the ml venv runs it); the converted images are cached under
   (`slicer.py`; the optimised build under `ios/.build/opt`, made on first use -
   the first request on a still also pays its decode, ~100-400 ms); no model
   runs and nothing is written. Off, the overlay only appears after ▶ read.
+  Board cells slice too (each keyed by its index, so four board cells keep
+  four overlays); only ▶ read leaves boards out, because the law never reads one.
 - In the frames view the zoom and scroll survive stepping frames (one
   record's frames share a size); the first frame of a record fits, `0` refits.
 - **Zoom** (`+` / `-` / the slider) keeps the selected window - else the
