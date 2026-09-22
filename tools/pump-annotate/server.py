@@ -691,9 +691,23 @@ def start_retrack(name: str, read: bool = False, from_frame: str | None = None, 
             # A Save's re-fit stops at the next pinned frame: past it, frames are
             # fitted from THAT one and cannot change.
             scope = (["--from", start] + (["--until-next-anchor"] if retracks[name].get("segment") else [])) if start else []
-            result = subprocess.run([str(python), "-m", "pump_reader.track", *mode, "--only", name, *scope],
-                                    cwd=ml, env={**os.environ, "PYTHONPATH": "src"}, capture_output=True, text=True)
-            lines = (result.stdout + result.stderr).strip().splitlines()
+            # Streamed, not captured: the tracker's `PROGRESS done/total` lines
+            # become the status line's count while it runs.
+            proc = subprocess.Popen([str(python), "-m", "pump_reader.track", *mode, "--only", name, *scope],
+                                    cwd=ml, env={**os.environ, "PYTHONPATH": "src"}, text=True,
+                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
+            lines = []
+            for ln in proc.stdout:
+                ln = ln.rstrip("\n")
+                if ln.startswith("PROGRESS "):
+                    done, _, total = ln[len("PROGRESS "):].partition("/")
+                    retracks[name].update(done=int(done), total=int(total))
+                elif ln.strip():
+                    lines.append(ln)
+            proc.wait()
+            retracks[name].pop("done", None)
+            retracks[name].pop("total", None)
+            result = proc
             changed_line = next((ln for ln in lines if ln.startswith("CHANGED ")), None)
             changed = [f for f in changed_line[len("CHANGED "):].split(",") if f] if changed_line else None
             report = [ln for ln in lines if not ln.startswith("CHANGED ")]
@@ -715,7 +729,7 @@ def start_retrack(name: str, read: bool = False, from_frame: str | None = None, 
                     try:
                         retracks[name]["result"] = read_video(
                             READER, name, start=start, frames=changed,
-                            progress=lambda done, total: retracks[name].update(readDone=done, readTotal=total)) + moved
+                            progress=lambda done, total: retracks[name].update(done=done, total=total)) + moved
                     except Exception as exc:  # noqa: BLE001 - the test run is the fallback reader
                         sys.stderr.write(f"resident read failed for {name}: {exc}; reading through swift test\n")
                         env = {**os.environ, "PUMP_VIDEO_READ": "1", "PUMP_VIDEO_READ_ONLY": name}
@@ -728,8 +742,8 @@ def start_retrack(name: str, read: bool = False, from_frame: str | None = None, 
                         out = (test.stdout + test.stderr).strip().splitlines()
                         summary = next((ln for ln in reversed(out) if "Test run" in ln or "error:" in ln), None)
                         retracks[name]["result"] = (summary or f"exit {test.returncode}").strip() + moved
-                    retracks[name].pop("readDone", None)
-                    retracks[name].pop("readTotal", None)
+                    retracks[name].pop("done", None)
+                    retracks[name].pop("total", None)
             if retracks[name].get("again"):
                 retracks[name]["again"] = False
                 retracks[name]["from"] = retracks[name].pop("againFrom", None)

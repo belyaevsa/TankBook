@@ -233,6 +233,12 @@ def fit(gray: np.ndarray, regs: list[dict], index: int, min_inliers: int):
     return None
 
 
+def progress(done: int, total: int) -> None:
+    """`PROGRESS done/total` on stderr, flushed: the annotator streams these
+    lines to show how far a retrack has got."""
+    print(f"PROGRESS {done}/{total}", file=sys.stderr, flush=True)
+
+
 def track_record(stem: str, still: str, split: str, entry: dict, min_inliers: int,
                  start_at: int = 0, stop_at: int | None = None) -> dict | None:
     """A Live Photo's frames take the still's quads and texts. The still is the
@@ -268,11 +274,12 @@ def track_record(stem: str, still: str, split: str, entry: dict, min_inliers: in
                  "frames": {}}
     kept = dropped = 0
     exact = {a["frame"]: a["windows"] for a in anchors}
-    for frame in frames:
-        # `--from`: a frame before the start keeps its database row (the merge
-        # in main), so registering it is work thrown away.
-        if frame.stem.isdigit() and (int(frame.stem) < start_at or (stop_at is not None and int(frame.stem) >= stop_at)):
-            continue
+    # `--from`: a frame before the start keeps its database row (the merge in
+    # main), so registering it is work thrown away.
+    frames = [f for f in frames
+              if not (f.stem.isdigit() and (int(f.stem) < start_at or (stop_at is not None and int(f.stem) >= stop_at)))]
+    for done, frame in enumerate(frames):
+        progress(done, len(frames))
         if frame.name in exact:
             out["frames"][frame.name] = {"windows": [carried(source(i, w), w["quad"]) for i, w in enumerate(exact[frame.name])],
                                         "inliers": -1, "anchor": int(frame.stem), "verified": True}
@@ -351,11 +358,11 @@ def track_video(stem: str, entry: dict, min_inliers: int, start_at: int = 0,
                  "_staticKeypointsDropped": {}}
     kept = dropped = 0
     exact = {a["frame"]: a["windows"] for a in anchors}
-    for frame in frames:
-        # `--from`: a frame before the start keeps its database row (the merge
-        # in main), so registering it is work thrown away.
-        if int(frame.stem) < start_at or (stop_at is not None and int(frame.stem) >= stop_at):
-            continue
+    # `--from`: a frame before the start keeps its database row (the merge in
+    # main), so registering it is work thrown away.
+    frames = [f for f in frames if not (int(f.stem) < start_at or (stop_at is not None and int(f.stem) >= stop_at))]
+    for done, frame in enumerate(frames):
+        progress(done, len(frames))
         # A frame the owner placed by hand is written back verbatim - never
         # re-registered, so a retrack cannot move what a human verified.
         if frame.name in exact:
