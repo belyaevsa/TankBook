@@ -1176,6 +1176,35 @@ clean ones. What ships instead is a rule in the annotator: on a frame a corner d
 says where it went. The consistency is then structural, not estimated.
 
 
+### PU.48's candidate re-scored through PU.47's verifier (orchestrator, 2026-09-22)
+
+The cheap test of what PU.47 bought. Same candidate (`.out/det/pu48/DigitRows-pu48.mlmodel`,
+sha `d18531eb…`), same heldout 68, the only difference being the verifier: PU.48 measured it under
+the margin gate, this run under `PumpRowGeometry`.
+
+| detector | verifier | live committed / correct / precision / photos | annotated |
+|---|---|---|---|
+| round 6's (shipped, `b560fef2…`) | margin gate | 43 / 43 / 1.000 / 14 | 104 / 103 / 0.990 / 30 |
+| round 6's (shipped) | geometry (PU.47) | 43 / 43 / 1.000 / 14 | 104 / 103 / 0.990 / 30 |
+| PU.48 candidate | margin gate | 28 / 27 / 0.964 / 7 | 104 / 103 / 0.990 / 30 |
+| PU.48 candidate | geometry (PU.47) | **36 / 34 / 0.944 / 9** | 104 / 103 / 0.990 / 30 |
+
+**The verifier was half the loss and is now gone**: the same candidate reads 28 under the old gate
+and 36 under the geometry one, while the shipped detector is unmoved at 43 - so the geometry
+verdict is not what costs the candidate its cells. The remaining 43 -> 36 is the read stage
+deciding differently on boxes the verifier now keeps either way, which is the same conclusion
+PU.47's decoupling table reached from the classifier side.
+
+**It still does not ship**, and precision is the reason this time: 0.944 against the 0.99 floor,
+with two wrong cells on one still - `pump-092` reads `3.0` for 30.0 and `191.55` for 1915.5, a
+dropped leading digit on both fields of the same row. A detector box that clips a digit is a
+geometry the verifier cannot see (the strip it hands over is a valid row, just one cell short),
+so the guard has to be the law's or the slicer's, not the verifier's. That is the next thing to
+name, and no row owns it.
+
+Method note: `PumpReaderTestSupport.detectorURL` reads `.out/det/DigitRows.mlmodel`, so the
+candidate was copied in, scored, and the shipped copy restored (both `b560fef2…` after the run).
+
 ### Round 11 (orchestrator, 2026-09-22): the training material fixed first
 
 Round 10 asked for a different lever: the sampler rebalance across heads and the mark bit trained
