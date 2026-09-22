@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -68,6 +69,42 @@ def bbox(quad: list[list[float]], w: int, h: int) -> dict:
     return {"label": LABEL, "coordinates": {"x": (x0 + x1) / 2, "y": (y0 + y1) / 2, "width": x1 - x0, "height": y1 - y0}}
 
 
+def rotated_quads(quads: list[list[list[float]]], w: int, h: int, angle: float,
+                  size: tuple[int, int]) -> list[list[list[float]]]:
+    """Normalised quads over a ``w`` x ``h`` image, carried onto the same image
+    turned by PIL's ``rotate(angle, expand=True)`` (counter-clockwise, the
+    canvas grown to hold it, centre to centre) whose size is ``size``."""
+    a = math.radians(angle)
+    c, s = math.cos(a), math.sin(a)
+    cx, cy, cx2, cy2 = w / 2, h / 2, size[0] / 2, size[1] / 2
+    out = []
+    for quad in quads:
+        pts = []
+        for x, y in quad:
+            dx, dy = x * w - cx, y * h - cy
+            pts.append([(cx2 + dx * c + dy * s) / size[0], (cy2 - dx * s + dy * c) / size[1]])
+        out.append(pts)
+    return out
+
+
+def add_rotations(src: Path, quads: list[list[list[float]]], angles: list[float], train_dir: Path,
+                  edge: int, source: str, train_ann: list[dict], counts: dict) -> None:
+    """Turned copies of one hand-boxed training image (PU.66): the detector was
+    trained on nearly level rows and places boxes badly on a display shot from
+    the side. Only hand-placed boxes are turned - a tracker's box carries its
+    drift into every copy."""
+    base = Image.open(src).convert("RGB")
+    for angle in angles:
+        turned = base.rotate(angle, expand=True, resample=Image.BICUBIC, fillcolor=(0, 0, 0))
+        moved = rotated_quads(quads, base.width, base.height, angle, turned.size)
+        dst = train_dir / f"{src.stem}@{angle:+g}.jpg"
+        w, h = save(turned, dst, edge)
+        boxes = [bbox(q, w, h) for q in moved]
+        train_ann.append({"image": dst.name, "annotations": boxes, "source": f"{source}@{angle:+g}"})
+        counts["rotated"] += 1
+        counts["boxes"] += len(boxes)
+
+
 def save(im: Image.Image, dst: Path, edge: int) -> tuple[int, int]:
     im = im.convert("RGB")
     im.thumbnail((edge, edge))
@@ -86,14 +123,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--frame-step", type=int, default=5)
     parser.add_argument("--edge", type=int, default=1024)
     parser.add_argument("--db", type=Path, default=None, help="corpus database (default: the committed one)")
+    parser.add_argument("--rotations", default="",
+                        help="comma-separated angles; each hand-boxed train image also goes in turned by +/- each (PU.66)")
     args = parser.parse_args(argv)
+    angles = sorted({sign * float(a) for a in args.rotations.split(",") if a.strip() for sign in (1, -1)})
     con = corpus_db.connect(args.db)
     train_dir, held_dir = args.out / "train", args.out / "heldout"
     for d in (train_dir, held_dir):
         d.mkdir(parents=True, exist_ok=True)
     train_ann: list[dict] = []
     held_ann: list[dict] = []
-    counts = {"train_stills": 0, "heldout_stills": 0, "frames": 0, "video_frames": 0, "negatives": 0, "boxes": 0}
+    counts = {"train_stills": 0, "heldout_stills": 0, "frames": 0, "video_frames": 0, "negatives": 0, "boxes": 0,
+              "rotated": 0, "rotations": angles}
     tracking = {r["fixture"]: r["tracking"] for r in con.execute("select fixture, tracking from entries")}
     labels = corpus_db.labels(con)
 
@@ -131,6 +172,9 @@ def main(argv: list[str] | None = None) -> int:
             (held_ann if heldout else train_ann).append(record)
             counts["heldout_stills" if heldout else "train_stills"] += 1
             counts["boxes"] += 0 if heldout else len(boxes)
+            if angles and not heldout and quads:
+                add_rotations(dst, [rotate_quad(json.loads(q["quad"]), rotation) for q in quads], angles,
+                              train_dir, args.edge, name, train_ann, counts)
 
         # Tracked frames of train records, and labelled video frames.
         for record in corpus_db.tracked_records(con):
@@ -162,6 +206,11 @@ def main(argv: list[str] | None = None) -> int:
                 train_ann.append({"image": dst.name, "annotations": boxes, "source": f"{record}/{frame}"})
                 counts["video_frames" if is_video else "frames"] += 1
                 counts["boxes"] += len(boxes)
+                # Only a frame whose boxes the owner placed is turned; a tracked
+                # frame's box is the tracker's and stays as it is, once.
+                if angles and t["frames"][frame].get("verified") and t["frames"][frame]["windows"]:
+                    add_rotations(dst, [wd["quad"] for wd in t["frames"][frame]["windows"]], angles,
+                                  train_dir, args.edge, f"{record}/{frame}", train_ann, counts)
 
         # Negatives.
         for sub in NEGATIVE_FOLDERS:
@@ -185,8 +234,9 @@ def main(argv: list[str] | None = None) -> int:
             heldout_records = {r["record"] for r in con.execute(
                 f"select record from frames where frame = '' and still in ({placeholders})", tuple(heldout_names))}
         for r in train_ann:
-            assert r["source"] not in heldout_names, f"heldout still in the detector's train set: {r['source']}"
-            assert r["source"].split("/")[0] not in heldout_records, f"heldout record in the detector's train set: {r['source']}"
+            source = r["source"].split("@")[0]  # a turned copy is its source's
+            assert source not in heldout_names, f"heldout still in the detector's train set: {r['source']}"
+            assert source.split("/")[0] not in heldout_records, f"heldout record in the detector's train set: {r['source']}"
         (args.out / "negatives.json").write_text(json.dumps(negatives_out, indent=1))
         counts["judged_negatives"] = len(negatives_out)
         (train_dir / "annotations.json").write_text(json.dumps(train_ann, indent=1))
