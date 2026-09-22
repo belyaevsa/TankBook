@@ -176,6 +176,19 @@ the ml venv runs it); the converted images are cached under
   quads (never its numbers) onto this one - for a frame the tracker drifted on
   when the one before was right - and counts as a quad edit, so `⇧⏎` (or a drag) pins it as an
   anchor and the retrack registers the neighbours to it.
+- **Retracking** re-fits the boxes of every frame you did NOT pin: the tracker
+  matches each frame's image features against the reference frame (or the
+  still) and against the frames you pinned, takes the best match, and carries
+  their boxes across by that transform. A pinned frame (an anchor: a frame
+  whose boxes you placed) is written back exactly as you left it. Any retrack
+  first pins the boxes on the frame on screen if you changed them - a turn, an
+  arrow nudge or boxes copied from the previous frame did not pin by
+  themselves, and a retrack used to overwrite them. **↻ re-track all** re-fits
+  every unpinned frame; **↻ from here** re-fits only this frame and the ones
+  after it and does not touch (or even compute) the earlier ones - it used to
+  register the whole record and throw the earlier half away, so it cost as much
+  as re-track all and reported the whole record's count. **⟳ retrack + read
+  all** re-fits, then runs the reader over every frame.
 - **One Save, in the toolbar's second row.** Its label and its target follow the
   view, because the view is what you are looking at: on a still **Save** writes
   the annotation; on a video frame **Save frame's numbers** writes that frame's

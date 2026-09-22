@@ -171,7 +171,8 @@ def carried(source: dict, quad: list) -> dict:
     return cw
 
 
-def track_record(stem: str, still: str, split: str, entry: dict, min_inliers: int) -> dict | None:
+def track_record(stem: str, still: str, split: str, entry: dict, min_inliers: int,
+                 start_at: int = 0) -> dict | None:
     """A Live Photo's frames take the still's quads and texts. The still is the
     reference; every frame the owner corrected in the annotator (`liveAnchors`
     on the still's entry) is a further anchor, written back verbatim, and each
@@ -205,6 +206,10 @@ def track_record(stem: str, still: str, split: str, entry: dict, min_inliers: in
     kept = dropped = 0
     exact = {a["frame"]: a["windows"] for a in anchors}
     for frame in frames:
+        # `--from`: a frame before the start keeps its database row (the merge
+        # in main), so registering it is work thrown away.
+        if frame.stem.isdigit() and int(frame.stem) < start_at:
+            continue
         if frame.name in exact:
             out["frames"][frame.name] = {"windows": [carried(source(i, w), w["quad"]) for i, w in enumerate(exact[frame.name])],
                                         "inliers": -1, "anchor": int(frame.stem), "verified": True}
@@ -264,7 +269,7 @@ def sheet(folder: Path, tracked: dict, cols: int = 6, rows: int = 2, tile: int =
     canvas.save(folder / "sheet.jpg", quality=80)
 
 
-def track_video(stem: str, entry: dict, min_inliers: int) -> dict | None:
+def track_video(stem: str, entry: dict, min_inliers: int, start_at: int = 0) -> dict | None:
     """A running-display video has no still: its reference is one of its own
     frames (the database `videos` entry), annotated by hand, and the quads are carried from
     it exactly as a still's are. Texts stay empty except the constant price;
@@ -298,6 +303,10 @@ def track_video(stem: str, entry: dict, min_inliers: int) -> dict | None:
     kept = dropped = 0
     exact = {a["frame"]: a["windows"] for a in anchors}
     for frame in frames:
+        # `--from`: a frame before the start keeps its database row (the merge
+        # in main), so registering it is work thrown away.
+        if int(frame.stem) < start_at:
+            continue
         # A frame the owner placed by hand is written back verbatim - never
         # re-registered, so a retrack cannot move what a human verified.
         if frame.name in exact:
@@ -360,8 +369,19 @@ def main(argv: list[str] | None = None) -> int:
             if int(n[:-4]) < start:
                 merged[n] = f
         result["frames"] = dict(sorted(merged.items(), key=lambda kv: int(kv[0][:-4])))
-        result["_kept"] = len(result["frames"])
+        result["_earlier"] = len(result["frames"]) - result["_kept"]
         return result
+
+    start_at = int(args.from_frame[:-4]) if args.from_frame else 0
+
+    def report(stem: str, result: dict, prefix: str = "") -> str:
+        # With --from the counts are the re-registered range's, and the frames
+        # left alone are named as such - the whole record's total read as if
+        # every frame had been redone.
+        if args.from_frame:
+            return (f"{prefix}{stem}: from {args.from_frame} {result['_kept']} re-registered, "
+                    f"{result['_dropped']} dropped; {result.get('_earlier', 0)} earlier kept as they were")
+        return f"{prefix}{stem}: {result['_kept']} kept, {result['_dropped']} dropped"
     con = corpus_db.connect()
     paths: list[Path] = []
     try:
@@ -370,7 +390,7 @@ def main(argv: list[str] | None = None) -> int:
                 if args.only and stem not in args.only:
                     continue
                 entry = corpus_db.video(stem, con=con)
-                result = track_video(stem, entry, args.min_inliers) if entry else None
+                result = track_video(stem, entry, args.min_inliers, start_at) if entry else None
                 if result is None:
                     print(f"{stem}: no frames or no entry")
                     continue
@@ -379,7 +399,7 @@ def main(argv: list[str] | None = None) -> int:
                     corpus_db.save_tracked(stem, result, con=con)
                 sheet(FRAMES / stem, result)
                 paths.append(FRAMES / stem / "windows.json")
-                print(f"{stem}: {result['_kept']} kept, {result['_dropped']} dropped")
+                print(report(stem, result))
             corpus_db.dump(paths)
             return 0
         records = corpus_db.paired_records(con)
@@ -388,7 +408,7 @@ def main(argv: list[str] | None = None) -> int:
         summary = []
         for stem, still, split in records:
             entry = corpus_db.entry(still, con=con)
-            result = track_record(stem, still, split, entry, args.min_inliers) if entry else None
+            result = track_record(stem, still, split, entry, args.min_inliers, start_at) if entry else None
             if result is None:
                 print(f"{stem}: no frames or no annotation for {still[:12]}")
                 continue
@@ -398,7 +418,8 @@ def main(argv: list[str] | None = None) -> int:
             sheet(FRAMES / stem, result)
             paths.append(FRAMES / stem / "windows.json")
             summary.append((stem, split, result["_kept"], result["_dropped"]))
-            print(f"{stem} <- {still[:12]} [{split}]: {result['_kept']} kept, {result['_dropped']} dropped")
+            print(report(stem, result) if args.from_frame
+                  else f"{stem} <- {still[:12]} [{split}]: {result['_kept']} kept, {result['_dropped']} dropped")
         corpus_db.dump(paths)
         kept = sum(k for _, _, k, _ in summary)
         dropped = sum(d for _, _, _, d in summary)

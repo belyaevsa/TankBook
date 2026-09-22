@@ -144,7 +144,7 @@
     <button id="zoomOut" title="zoom out (-)">−</button><button id="zoomFit" title="fit (0)">fit</button><button id="zoomIn" title="zoom in (+)">+</button>
     <span id="zoomInfo" class="dim mono"></span>
     <span class="sep"></span>
-    <span id="trackBar"><button id="recTrack" title="carry the still's windows into this record's frames (pump_reader.track)">↻ track</button><button id="retrackAll" title="re-register every non-pinned frame of this record to the reference and its anchors">↻ re-track all</button><button id="retrackFrom" title="re-register this frame and the ones after it; earlier frames keep their quads">↻ from here</button><button id="vlRerun" title="retrack the clip from its anchors, then read every tracked frame again; your labels and anchored frames are kept">⟳ retrack + read all</button></span>
+    <span id="trackBar"><button id="recTrack" title="carry the still's windows into this record's frames (pump_reader.track)">↻ track</button><button id="retrackAll" title="every frame you did not pin is re-fitted to the reference and to the frames you pinned (unsaved boxes on this frame are pinned first)">↻ re-track all</button><button id="retrackFrom" title="this frame's boxes are pinned as they are on screen, then every later frame is re-fitted to them; earlier frames are not touched">↻ from here</button><button id="vlRerun" title="retrack the clip from its anchors, then read every tracked frame again; your labels and anchored frames are kept">⟳ retrack + read all</button></span>
   </div>
   <!-- Row 3: the latest thing that happened, always on screen and never
        cleared by a timer - a "saved" that vanished after four seconds could
@@ -1597,8 +1597,12 @@ async function saveAnchor(retrack = false) {
   if (retrack) { setMsg(`anchor at ${name}, retracking`); notify('busy', `Anchor saved at ${name} – tracking ${r.movie} in progress…`); watchRetrack(r.movie); }
   else { setMsg(`frame ${name} saved (${res.anchors.length} anchors)`); notify('done', `Frame ${name} saved as an anchor – ${res.anchors.length} anchor${res.anchors.length === 1 ? '' : 's'} on ${r.movie}; the other frames are untouched (↻ re-track to move them)`); }
 }
+async function pinBeforeRetrack() {
+  if (frameMode && frameQuadsEdited) { clearTimeout(anchorTimer); await saveAnchor(); }
+}
 async function retrackNow(fromHere = false) {
   const r = currentRecord(); if (!r) return;
+  await pinBeforeRetrack();
   const name = fromHere && frameMode ? r.tracked[frameIdx] : null;
   await fetch('/api/retrack-now/' + encodeURIComponent(r.movie) + (name ? '?from=' + encodeURIComponent(name) : ''), {method: 'POST'});
   notify('busy', name ? `Tracking ${r.movie} from ${name} on – earlier frames keep their quads…` : `Tracking ${r.movie}, every non-pinned frame…`); watchRetrack(r.movie);
@@ -1609,6 +1613,7 @@ if ($('#retrackFrom')) $('#retrackFrom').onclick = () => retrackNow(true);
 $('#lfOk').onclick = markTrackingOk;
 async function rerunVideo() {
   const r = currentRecord(); if (!r) return;
+  await pinBeforeRetrack();
   const res = await (await fetch('/api/rerun/' + encodeURIComponent(r.movie), {method: 'POST'})).json();
   setMsg(res.reviewed ? 'marked reviewed: retracking only, the reader skips a reviewed video' : 'retracking, then reading every tracked frame');
   notify('busy', res.reviewed ? `Tracking ${r.movie} in progress (reviewed: the reader is skipped)…` : `Tracking ${r.movie}, then reading every tracked frame…`);
