@@ -192,6 +192,10 @@ the ml venv runs it); the converted images are cached under
   video frame. A button with no meaning in the current view is hidden, not
   disabled, so the row reads as what can be done now. The right panel keeps only
   what is about THIS image: its windows, its negatives, its CSV row, its record.
+- **The window is a grid**: row 1 is the toolbars beside the title / status /
+  truth-row block, row 2 is the image beside the window cards. The cards start
+  on the image's own top line whatever either header grows to, and the frames
+  bar sits under the image, in the image's column.
 - **The title bar** carries a **server dot**: green while the annotator server
   answers its heartbeat (`/api/ping`, every 5 s), red the moment it does not -
   with a banner saying nothing can be saved. A page whose server died looks
@@ -229,8 +233,11 @@ the ml venv runs it); the converted images are cached under
   the negatives, then the CSV row and the arithmetic it is checked against, then
   processed / rotate, then the record it belongs to (which record, tracking
   verdict), then notOnDisplay and csvDisagrees.
-- The **frame scrubber** is the full-width slider under the strip - a coarse
-  jump across a long record, where the strip's ticks are a fine one. The
+- The **scrub** under the strip is the whole record as one muted bar: the
+  lighter block inside it is the part of the strip on screen, and the tick is
+  where the current frame sits. Drag the block, or click anywhere on the bar, to
+  look elsewhere in a 1184-frame record without scrolling - it moves the VIEW,
+  never the selection, because the ticks are what select. The
   **record picker** appears only on a still that has more than one Live record;
   with a single record its name is printed instead of a select with one option.
 - **⏮ where I left** jumps to the last frame you **saved** in this record - a
