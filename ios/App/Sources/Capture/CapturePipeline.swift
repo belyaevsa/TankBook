@@ -106,6 +106,10 @@ enum CapturePipeline {
     /// The pump reader, off the main actor: the locator, the classifier and
     /// the law are CPU-bound. The reading is `nil` when the frame is not a
     /// display; the detection says what was counted either way.
+    ///
+    /// The frame handed here is already upright (`uprightCGImage` bakes the
+    /// capture's orientation, RV.49), so the reader's seed is 0 and its search
+    /// is the fallback for a display sideways in that frame (PU.53).
     private static func readPumpDisplay(
         _ box: UprightBox, reader: PumpReaderHandle, bandProvider: (any FuelPriceBandProvider)?
     ) async -> (detection: PumpDisplayCapture.Detection, reading: PumpDisplayCapture.Reading?) {
@@ -113,7 +117,7 @@ enum CapturePipeline {
             let currency: CurrencyCode? = Locale.current.currency.flatMap { CurrencyCode(rawValue: $0.identifier) }
             return PumpDisplayCapture.classify(
                 image: box.image, reader: reader, currency: currency,
-                priceBand: bandProvider?.currencyBand(currency: currency))
+                priceBand: bandProvider?.currencyBand(currency: currency), rotationCW: 0)
         }.value
     }
 

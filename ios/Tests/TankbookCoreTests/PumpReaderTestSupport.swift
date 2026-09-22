@@ -154,6 +154,13 @@ enum PumpReaderTestSupport {
         return out
     }
 
+    /// The annotation's stated rotation. The live path no longer reads this -
+    /// the phone never has it (PU.53) - it exists for the orientation
+    /// measurement's baseline arm only.
+    static func annotationRotation(_ annotation: [String: Any]) -> Int {
+        (annotation["rotationCW"] as? NSNumber)?.intValue ?? 0
+    }
+
     /// The still's annotated windows in pixel coordinates, the shape
     /// `read`/`resolve` take.
     static func annotatedWindows(_ annotation: [String: Any], image: PumpRGBImage) -> [PumpReader.Window] {

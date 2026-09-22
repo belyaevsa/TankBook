@@ -83,92 +83,44 @@ struct PumpReaderPipelineTests {
         let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)
         let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
         let pack = try FuelPriceBandStore.bundledPack()
-        var numericTotal = 0, committed = 0, committedCorrect = 0
-        var fixturesAllRight = 0, fixturesScored = 0
-        var wrong: [String] = []
-        var perHead: [String: (committed: Int, correct: Int)] = [:]
-        // PU.51: the reason histogram over the stills that commit nothing, and
-        // over the fields that abstain in a partial read. Pure diagnosis -
-        // nothing here feeds back into the read.
-        var abstainedStills = 0
-        var stillReasons: [PumpAbstentionReason: Int] = [:]
-        var fieldReasons: [PumpAbstentionReason: Int] = [:]
-        let start = Date()
-        for (name, value) in root.sorted(by: { $0.key < $1.key }) {
-            guard name != "_about", let ann = value as? [String: Any], let want = expected[name],
-                  PumpReaderTestSupport.isHeldout(name) else { continue }
-            guard let image = PumpReaderTestSupport.loadRGB(
-                url: PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent(name)) else { continue }
-            // The only annotation the live path takes is the photo's rotation,
-            // which the app's capture gives it for free (the phone is upright).
-            let rotation = (ann["rotationCW"] as? NSNumber)?.intValue ?? 0
-            let reading = try reader.readPhoto(
-                image: image, rotationCW: rotation, currency: want.currency,
-                priceBand: want.currency.flatMap { pack.currencyBand(currency: $0) })
-            // A field the annotation marks `csvDisagrees` is unscored: the CSV
-            // carries the receipt's value where the display showed another
-            // (pump-031's discounted total), and a reader that reads the
-            // display is right, not wrong.
-            let disagrees = Set((ann["csvDisagrees"] as? [String: Any])?.keys.map { $0 } ?? [])
-            let cells: [ScoredCell] = [
-                ScoredCell(field: .liters, reading: reading.liters, want: disagrees.contains("liters") ? nil : want.liters),
-                ScoredCell(field: .unitPrice, reading: reading.unitPrice, want: disagrees.contains("unitPrice") ? nil : want.unitPrice),
-                ScoredCell(field: .total, reading: reading.total, want: disagrees.contains("total") ? nil : want.total),
-            ]
-            for field in [reading.liters, reading.unitPrice, reading.total] where field.value == nil {
-                if let reason = field.reason { fieldReasons[reason, default: 0] += 1 }
-            }
-            if reading.committedCount == 0 {
-                abstainedStills += 1
-                if let reason = reading.reason { stillReasons[reason, default: 0] += 1 }
-            }
-            var fixtureTotal = 0, fixtureRight = 0
-            let head = Self.head(name)
-            for cell in cells {
-                guard let wantValue = cell.want else { continue }
-                numericTotal += 1; fixtureTotal += 1
-                guard let got = cell.reading.value.map({ NSDecimalNumber(decimal: $0).doubleValue }) else { continue }
-                committed += 1
-                perHead[head, default: (0, 0)].committed += 1
-                let derived: Bool = { if case .derived? = cell.reading.provenance { return true }; return false }()
-                if abs(got - wantValue) < (derived ? 0.1 : CorpusScorer.tolerance) {
-                    committedCorrect += 1; fixtureRight += 1
-                    perHead[head]!.correct += 1
-                } else {
-                    wrong.append("\(name.prefix(8)) \(cell.field.rawValue) got \(got) want \(wantValue)")
-                }
-            }
-            if fixtureTotal > 0 { fixturesScored += 1; if fixtureRight == fixtureTotal { fixturesAllRight += 1 } }
+        // The shipped live arm passes no rotation - the phone never has one -
+        // so the reader searches for the display's orientation. The
+        // annotation's rotation is not read here at all.
+        let measurement = try measureLive(reader: reader, root: root, expected: expected, pack: pack,
+                                          rotation: { _ in nil })
+        report("PU.53 live path (search)", measurement)
+        #expect(measurement.committed == Self.liveCommittedFloor,
+                "PU.53 search: committed must equal the measured baseline (\(Self.liveCommittedFloor)), got \(measurement.committed)")
+        #expect(measurement.committedCorrect == measurement.committed,
+                "the live path's committed cells are all correct, got \(measurement.committedCorrect)/\(measurement.committed)")
+        #expect(measurement.precision >= Self.livePrecisionFloor)
+    }
+
+    /// The three PU.53 arms side by side: the annotation's rotation (the
+    /// baseline, which the phone never has), no rotation at all (the honest
+    /// floor), and the search. Opt-in because it runs the split three times.
+    @Test("PU.53 orientation arms: baseline, no-rotation, search", .pumpFixturesPresent,
+          .enabled(if: ProcessInfo.processInfo.environment["PUMP_ORIENT"] == "1", "PUMP_ORIENT=1"))
+    func orientationArms() throws {
+        let model = try PumpSegmentsModel(contentsOf: Self.modelURL)
+        let reader = PumpReader(model: model, detector: PumpReaderTestSupport.makeDetector())
+        let expected = try CorpusScorer.loadExpected(
+            PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent("expected.csv"))
+        let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)
+        let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        let pack = try FuelPriceBandStore.bundledPack()
+        // The baseline arm alone reads the annotation's rotation; it is the
+        // pre-PU.53 number, not the shipped path.
+        let arms: [(String, ([String: Any]) -> Int?)] = [
+            ("annotation", { PumpReaderTestSupport.annotationRotation($0) }),
+            ("upright", { _ in 0 }),
+            ("search", { _ in nil }),
+        ]
+        for (label, rotation) in arms {
+            let measurement = try measureLive(reader: reader, root: root, expected: expected, pack: pack,
+                                              rotation: rotation)
+            report("PU.53 arm \(label)", measurement)
         }
-        let precision = committed > 0 ? Double(committedCorrect) / Double(committed) : 0
-        print("PU.24 live path: committed \(committed), correct \(committedCorrect), "
-              + "precision \(String(format: "%.3f", precision)), coverage \(String(format: "%.3f", Double(committed) / Double(max(numericTotal, 1)))) "
-              + "of \(numericTotal); photos with every field right \(fixturesAllRight)/\(fixturesScored); "
-              + "\(String(format: "%.1f", Date().timeIntervalSince(start)))s")
-        for (head, score) in perHead.sorted(by: { $0.key < $1.key }) {
-            print("  \(head): \(score.committed) committed, \(score.correct) correct")
-        }
-        print("PU.51 live reason histogram over \(abstainedStills) stills that commit nothing:")
-        for (reason, count) in Self.histogram(stillReasons) {
-            print("  \(reason.rawValue): \(count)")
-        }
-        // Per-field reasons are set only where a single field abstains while
-        // the rest of the reading commits; a fully abstained reading names its
-        // branch on the display reason above.
-        print("PU.51 live field reason histogram over fields that abstained in a partial read:")
-        for (reason, count) in Self.histogram(fieldReasons) {
-            print("  \(reason.rawValue): \(count)")
-        }
-        for line in wrong { print("  WRONG \(line)") }
-        // Decision 11 moves this number: the pair path frees the stills whose
-        // total and volume are read with no price and a validating shown price,
-        // and it must not trade precision for the freed coverage - the floor is
-        // exact, not merely clearable.
-        #expect(committed == Self.liveCommittedFloor,
-                "decision 11 baseline is \(Self.liveCommittedFloor) committed, got \(committed)")
-        #expect(committedCorrect == committed,
-                "the live baseline precision is 1.000, got \(committedCorrect)/\(committed)")
-        #expect(precision >= Self.livePrecisionFloor)
     }
 
     @Test("the reader over the annotated windows: committed cells, precision, coverage", .pumpFixturesPresent)
@@ -493,5 +445,98 @@ struct PumpReaderPipelineTests {
             #expect(a.map(\.x) == b.map(\.x) && a.map(\.y) == b.map(\.y),
                     "the verifier kept a different row for the two models")
         }
+    }
+}
+
+// MARK: - PU.53 live measurement
+
+extension PumpReaderPipelineTests {
+
+    fileprivate struct LiveMeasurement {
+        var numericTotal = 0
+        var committed = 0
+        var committedCorrect = 0
+        var fixturesAllRight = 0
+        var fixturesScored = 0
+        var abstainedStills = 0
+        var stillReasons: [PumpAbstentionReason: Int] = [:]
+        var fieldReasons: [PumpAbstentionReason: Int] = [:]
+        var wrong: [String] = []
+        var perHead: [String: (committed: Int, correct: Int)] = [:]
+        var seconds = 0.0
+
+        var precision: Double { committed > 0 ? Double(committedCorrect) / Double(committed) : 0 }
+    }
+
+    /// One live arm over the heldout split: locate, verify, assign, read,
+    /// resolve, scored exactly as the ship gate scores the rules parser. The
+    /// only difference between arms is the rotation `rotation` resolves for
+    /// each still; the shipped arm returns nil, which makes the reader search.
+    fileprivate func measureLive(reader: PumpReader, root: [String: Any], expected: [String: ExpectedRow],
+                                 pack: FuelPriceBandPack,
+                                 rotation: ([String: Any]) -> Int?) throws -> LiveMeasurement {
+        var m = LiveMeasurement()
+        let start = Date()
+        for (name, value) in root.sorted(by: { $0.key < $1.key }) {
+            guard name != "_about", let ann = value as? [String: Any], let want = expected[name],
+                  PumpReaderTestSupport.isHeldout(name) else { continue }
+            guard let image = PumpReaderTestSupport.loadRGB(
+                url: PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent(name)) else { continue }
+            let band = want.currency.flatMap { pack.currencyBand(currency: $0) }
+            let reading = try reader.readPhoto(image: image, rotationCW: rotation(ann),
+                                               currency: want.currency, priceBand: band)
+            // A field the annotation marks `csvDisagrees` is unscored: the CSV
+            // carries the receipt's value where the display showed another
+            // (pump-031's discounted total), and a reader that reads the
+            // display is right, not wrong.
+            let disagrees = Set((ann["csvDisagrees"] as? [String: Any])?.keys.map { $0 } ?? [])
+            let cells: [ScoredCell] = [
+                ScoredCell(field: .liters, reading: reading.liters, want: disagrees.contains("liters") ? nil : want.liters),
+                ScoredCell(field: .unitPrice, reading: reading.unitPrice, want: disagrees.contains("unitPrice") ? nil : want.unitPrice),
+                ScoredCell(field: .total, reading: reading.total, want: disagrees.contains("total") ? nil : want.total),
+            ]
+            for field in [reading.liters, reading.unitPrice, reading.total] where field.value == nil {
+                if let reason = field.reason { m.fieldReasons[reason, default: 0] += 1 }
+            }
+            if reading.committedCount == 0 {
+                m.abstainedStills += 1
+                if let reason = reading.reason { m.stillReasons[reason, default: 0] += 1 }
+            }
+            var fixtureTotal = 0, fixtureRight = 0
+            let head = Self.head(name)
+            for cell in cells {
+                guard let wantValue = cell.want else { continue }
+                m.numericTotal += 1; fixtureTotal += 1
+                guard let got = cell.reading.value.map({ NSDecimalNumber(decimal: $0).doubleValue }) else { continue }
+                m.committed += 1
+                m.perHead[head, default: (0, 0)].committed += 1
+                let derived: Bool = { if case .derived? = cell.reading.provenance { return true }; return false }()
+                if abs(got - wantValue) < (derived ? 0.1 : CorpusScorer.tolerance) {
+                    m.committedCorrect += 1; fixtureRight += 1
+                    m.perHead[head]!.correct += 1
+                } else {
+                    m.wrong.append("\(name.prefix(8)) \(cell.field.rawValue) got \(got) want \(wantValue)")
+                }
+            }
+            if fixtureTotal > 0 { m.fixturesScored += 1; if fixtureRight == fixtureTotal { m.fixturesAllRight += 1 } }
+        }
+        m.seconds = Date().timeIntervalSince(start)
+        return m
+    }
+
+    fileprivate func report(_ label: String, _ m: LiveMeasurement) {
+        print("\(label): committed \(m.committed), correct \(m.committedCorrect), "
+              + "precision \(String(format: "%.3f", m.precision)), "
+              + "coverage \(String(format: "%.3f", Double(m.committed) / Double(max(m.numericTotal, 1)))) "
+              + "of \(m.numericTotal); photos with every field right \(m.fixturesAllRight)/\(m.fixturesScored); "
+              + "\(String(format: "%.1f", m.seconds))s")
+        for (head, score) in m.perHead.sorted(by: { $0.key < $1.key }) {
+            print("  \(head): \(score.committed) committed, \(score.correct) correct")
+        }
+        print("\(label) reason histogram over \(m.abstainedStills) stills that commit nothing:")
+        for (reason, count) in Self.histogram(m.stillReasons) { print("  \(reason.rawValue): \(count)") }
+        print("\(label) field reason histogram over fields that abstained in a partial read:")
+        for (reason, count) in Self.histogram(m.fieldReasons) { print("  \(reason.rawValue): \(count)") }
+        for line in m.wrong { print("  WRONG \(line)") }
     }
 }

@@ -105,8 +105,13 @@ public enum PumpDisplayCapture {
     /// vouches for two stacked rows, the verifier otherwise. The detector-only
     /// decision is a detector pass and a Vision text-line count; it does not
     /// verify, slice or classify (PU.38).
-    public static func detect(image: CGImage, reader: PumpReaderHandle) -> Detection {
-        decide(rgb: PumpQuadWarp.rgbImage(from: image), reader: reader.reader, budget: slowPathBudget).detection
+    /// `rotationCW` is the capture's own orientation where the app knows it;
+    /// the frame is already upright on the app's path (RV.49 bakes the
+    /// interface orientation in), so the search starts at 0 and is the
+    /// fallback for a display sideways in that upright frame (PU.53).
+    public static func detect(image: CGImage, reader: PumpReaderHandle, rotationCW: Int? = nil) -> Detection {
+        decide(rgb: PumpQuadWarp.rgbImage(from: image), reader: reader.reader, budget: slowPathBudget,
+               seed: rotationCW).detection
     }
 
     /// The fast path's verdict (PU.38): the detector's rescued rows alone, no
@@ -154,30 +159,54 @@ public enum PumpDisplayCapture {
     /// head the detector never saw still gets its Vision and classical chance.
     private struct Decision {
         let detection: Detection
+        /// The image the decision's windows are normalised over: the original
+        /// frame turned by `rotationCW`.
+        let upright: PumpRGBImage
+        let rotationCW: Int
         /// Windows the verifier already returned for the read (slow path).
         let verified: [PumpReader.VerifiedWindow]?
         /// The detector's candidates the fast path's read will verify.
         let candidates: [PumpPanelLocator.Candidate]?
     }
 
-    private static func decide(rgb: PumpRGBImage, reader: PumpReader, budget: TimeInterval) -> Decision {
-        let textLines = textLineCount(rgb)
-        let detected = reader.detectedRows(for: rgb)
+    /// The decision at the capture's seed orientation. Classification stays at
+    /// the frame the user composed; the orientation search is the read's, run
+    /// by `classify` only when the seed read commits nothing (PU.53). Searching
+    /// here would run the slow verifier a second time on every receipt, which
+    /// decides nothing.
+    private static func decide(rgb: PumpRGBImage, reader: PumpReader, budget: TimeInterval,
+                               seed: Int?) -> Decision {
+        decideAt(rgb: rgb, rotationCW: normalizedRotation(seed ?? 0), reader: reader, budget: budget)
+    }
+
+    private static func decideAt(rgb: PumpRGBImage, rotationCW: Int, reader: PumpReader,
+                                 budget: TimeInterval) -> Decision {
+        let upright = PumpPanelLocator.rotatedRGB(rgb, rotationCW: rotationCW)
+        let textLines = textLineCount(upright)
+        let detected = reader.detectedRows(for: upright)
         if fastVerdict(rows: detected, textLines: textLines) {
             let detection = detectorDetection(rows: detected, textLines: textLines)
             let candidates = detected.map { PumpPanelLocator.Candidate(quad: $0.quad, glyphCount: 0, detected: true) }
-            return Decision(detection: detection, verified: nil, candidates: candidates)
+            return Decision(detection: detection, upright: upright, rotationCW: rotationCW,
+                            verified: nil, candidates: candidates)
         }
         let deadline = Date().addingTimeInterval(budget)
-        let verified = (try? reader.verify(image: rgb, candidates: reader.candidates(for: rgb), deadline: deadline)) ?? []
+        let verified = (try? reader.verify(image: upright, candidates: reader.candidates(for: upright),
+                                           deadline: deadline)) ?? []
         let budgetHit = Date() >= deadline
-        let rows = displayRows(verified, imageHeight: rgb.height)
-        let detection = makeDetection(rows: rows, textLines: textLines, imageWidth: rgb.width,
-                                      imageHeight: rgb.height, path: .slow, isPumpDisplay: nil)
+        let rows = displayRows(verified, imageHeight: upright.height)
+        let detection = makeDetection(rows: rows, textLines: textLines, imageWidth: upright.width,
+                                      imageHeight: upright.height, path: .slow, isPumpDisplay: nil)
         guard !budgetHit, detection.isPumpDisplay else {
-            return Decision(detection: makeDetection(isDisplay: false, from: detection), verified: nil, candidates: nil)
+            return Decision(detection: makeDetection(isDisplay: false, from: detection), upright: upright,
+                            rotationCW: rotationCW, verified: nil, candidates: nil)
         }
-        return Decision(detection: detection, verified: verified, candidates: nil)
+        return Decision(detection: detection, upright: upright, rotationCW: rotationCW,
+                        verified: verified, candidates: nil)
+    }
+
+    private static func normalizedRotation(_ rotationCW: Int) -> Int {
+        ((rotationCW % 360) + 360) % 360
     }
 
     /// The fast path's Detection, counted from the detector's rows alone: every
@@ -240,39 +269,75 @@ public enum PumpDisplayCapture {
     /// Detects, and reads when it is a display. The extraction carries the
     /// law's committed fields; an abstained field is nil, never a guess.
     public static func read(image: CGImage, reader: PumpReaderHandle, currency: CurrencyCode?,
-                            priceBand: FuelPriceBand?) -> Reading? {
-        classify(image: image, reader: reader, currency: currency, priceBand: priceBand).reading
+                            priceBand: FuelPriceBand?, rotationCW: Int? = nil) -> Reading? {
+        classify(image: image, reader: reader, currency: currency, priceBand: priceBand,
+                 rotationCW: rotationCW).reading
     }
 
     /// `read` with the detection kept when the frame is NOT a display, so the
     /// caller can log what the classifier counted and why it declined.
     public static func classify(image: CGImage, reader: PumpReaderHandle, currency: CurrencyCode?,
-                                priceBand: FuelPriceBand?) -> (detection: Detection, reading: Reading?) {
-        classify(image: image, reader: reader, currency: currency, priceBand: priceBand, budget: slowPathBudget)
+                                priceBand: FuelPriceBand?,
+                                rotationCW: Int? = nil) -> (detection: Detection, reading: Reading?) {
+        classify(image: image, reader: reader, currency: currency, priceBand: priceBand,
+                 budget: slowPathBudget, rotationCW: rotationCW)
     }
 
     /// The classification with the slow-path cap supplied, so a test can pin it
     /// without depending on wall clock (PU.38).
+    ///
+    /// `rotationCW` is the capture's orientation seed (PU.53). The frame is
+    /// classified at the seed; when that orientation reads nothing, the search
+    /// tries the orientation the detector prefers and keeps its reading if it
+    /// commits. A reading that commits at the seed is never replaced, and the
+    /// detection is always the seed's.
     static func classify(image: CGImage, reader: PumpReaderHandle, currency: CurrencyCode?,
-                         priceBand: FuelPriceBand?, budget: TimeInterval) -> (detection: Detection, reading: Reading?) {
+                         priceBand: FuelPriceBand?, budget: TimeInterval,
+                         rotationCW: Int? = nil) -> (detection: Detection, reading: Reading?) {
         let rgb = PumpQuadWarp.rgbImage(from: image)
-        let decision = decide(rgb: rgb, reader: reader.reader, budget: budget)
+        let decision = decide(rgb: rgb, reader: reader.reader, budget: budget, seed: rotationCW)
         guard decision.detection.isPumpDisplay else { return (decision.detection, nil) }
-        // The decision is made; the read's verify runs only on an accepted
-        // frame. The slow path already has its windows; the fast path verifies
-        // the detector's rows now.
+        let seedReading = readDecision(decision, reader: reader.reader, currency: currency, priceBand: priceBand)
+        if commits(seedReading) { return (decision.detection, seedReading) }
+        // The seed orientation read nothing: a display sideways in an upright
+        // frame is read upright here.
+        let orientation = reader.reader.bestOrientation(for: rgb, seed: rotationCW)
+        if orientation != decision.rotationCW {
+            let searched = decideAt(rgb: rgb, rotationCW: orientation, reader: reader.reader, budget: budget)
+            if searched.detection.isPumpDisplay,
+               let searchedReading = readDecision(searched, reader: reader.reader, currency: currency,
+                                                  priceBand: priceBand),
+               commits(searchedReading) {
+                return (decision.detection, searchedReading)
+            }
+        }
+        return (decision.detection, seedReading)
+    }
+
+    /// Whether a reading committed any field. A display the law could not close
+    /// on reads nothing, which is what sends the search after it.
+    private static func commits(_ reading: Reading?) -> Bool {
+        guard let extraction = reading?.extraction else { return false }
+        return extraction.liters != nil || extraction.unitPrice != nil || extraction.total != nil
+    }
+
+    /// The read for an accepted decision: the decision's own verified windows
+    /// (slow path) or the detector's rows verified now (fast path).
+    private static func readDecision(_ decision: Decision, reader: PumpReader, currency: CurrencyCode?,
+                                     priceBand: FuelPriceBand?) -> Reading? {
         let verified = decision.verified
-            ?? ((try? reader.reader.verify(image: rgb, candidates: decision.candidates ?? [])) ?? [])
-        return (decision.detection, reading(from: verified, rgb: rgb, detection: decision.detection,
-                                            reader: reader.reader, currency: currency, priceBand: priceBand))
+            ?? ((try? reader.verify(image: decision.upright, candidates: decision.candidates ?? [])) ?? [])
+        return reading(from: verified, rgb: decision.upright, detection: decision.detection,
+                       reader: reader, currency: currency, priceBand: priceBand, rotationCW: decision.rotationCW)
     }
 
     /// Assigns roles to the verified windows and resolves the law on them. The
     /// classification already accepted the frame; a window the assigner leaves
-    /// without a role is simply not read.
+    /// without a role is simply not read. `rotationCW` maps the crop rects,
+    /// normalised over the turned image, back to the original frame's.
     private static func reading(from verified: [PumpReader.VerifiedWindow], rgb: PumpRGBImage,
                                 detection: Detection, reader: PumpReader, currency: CurrencyCode?,
-                                priceBand: FuelPriceBand?) -> Reading? {
+                                priceBand: FuelPriceBand?, rotationCW: Int) -> Reading? {
         let assignment = PumpRowAssignment.assign(
             windows: verified.map { PumpRowAssignment.Window(quad: $0.quad, glyphCount: $0.glyphCount) },
             rotationCW: 0)
@@ -282,7 +347,9 @@ public enum PumpDisplayCapture {
             guard let role else { continue }
             windows.append(PumpReader.Window(field: role, quad: window.quad))
             let xs = window.quad.map { $0.x / CGFloat(rgb.width) }, ys = window.quad.map { $0.y / CGFloat(rgb.height) }
-            let rect = CGRect(x: xs.min()!, y: ys.min()!, width: xs.max()! - xs.min()!, height: ys.max()! - ys.min()!)
+            let rect = PumpPanelLocator.unrotated(
+                CGRect(x: xs.min()!, y: ys.min()!, width: xs.max()! - xs.min()!, height: ys.max()! - ys.min()!),
+                rotationCW: rotationCW)
             switch role {
             case .total: rects[.total] = rect
             case .liters: rects[.volume] = rect

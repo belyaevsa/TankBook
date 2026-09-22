@@ -269,10 +269,14 @@ struct PumpReader {
 
     /// Everything from a photo with no annotation: locate, verify, assign,
     /// read, resolve. `rotationCW` turns the photo so the display reads
-    /// upright; the app's capture is upright already.
-    func readPhoto(image: PumpRGBImage, rotationCW: Int = 0, currency: CurrencyCode?,
+    /// upright; the app's capture is upright already. A nil `rotationCW` means
+    /// the caller does not know the display's orientation - the phone never
+    /// does, because a display can be sideways in an upright frame - so
+    /// `bestOrientation` searches for it.
+    func readPhoto(image: PumpRGBImage, rotationCW: Int? = nil, currency: CurrencyCode?,
                    priceBand: FuelPriceBand?) throws -> PumpDisplayReading {
-        let upright = PumpPanelLocator.rotatedRGB(image, rotationCW: rotationCW)
+        let rotation = rotationCW ?? bestOrientation(for: image)
+        let upright = PumpPanelLocator.rotatedRGB(image, rotationCW: rotation)
         let verified = try verify(image: upright, candidates: candidates(for: upright))
         let assignment = PumpRowAssignment.assign(
             windows: verified.map { PumpRowAssignment.Window(quad: $0.quad, glyphCount: $0.glyphCount) },
@@ -283,6 +287,87 @@ struct PumpReader {
             windows.append(Window(field: role, quad: window.quad))
         }
         return try resolve(image: upright, windows: windows, currency: currency, priceBand: priceBand)
+    }
+
+    // MARK: - Orientation search
+
+    /// The orientations the live search tries, in tie-break order: 0 first, so
+    /// an upright photo keeps its orientation. 180 is not searched - a display
+    /// photographed upside down is not a case the corpus has, and a fourth pass
+    /// would buy nothing on it.
+    static let searchedRotations = [0, 90, 270]
+
+    /// The confidence a row needs before the search counts it. A wrong
+    /// orientation still yields horizontal fragments that pass
+    /// `PumpRowGeometry`'s shape rules - the detector is trained on upright
+    /// displays, so those fragments come back unsure. Measured on the five
+    /// rotated heldout stills: at the gate, pump-019 keeps 2 rows at 90 (ink
+    /// 51738) against 2 at 270 (ink 47272) and pump-021 keeps 4 against 2;
+    /// below it, 270 wins both on a fragment count, and the display is read
+    /// sideways. The same 0.5 the fast path already calls "sure of a row"
+    /// (`PumpDisplayCapture.fastConfidenceHigh`).
+    static let searchMinimumConfidence: Double = 0.5
+
+    /// One orientation's geometry score. `keptRows` is how many of the
+    /// detector's confident rows pass `PumpRowGeometry`; `inkBandArea` (pixels)
+    /// breaks a tie, the taller and wider a band the more ink it carries.
+    struct OrientationScore: Equatable {
+        let rotationCW: Int
+        let keptRows: Int
+        let inkBandArea: CGFloat
+    }
+
+    /// The rotation whose detected rows best pass `PumpRowGeometry`. Per
+    /// orientation only the detector and the slicer run - never the classifier
+    /// or the law - so the full pipeline still runs once, at the winner.
+    /// `seed` - the capture's own orientation where the app knows it - is the
+    /// first candidate, so it wins a tie; without one the order is
+    /// `searchedRotations` and 0 wins ties.
+    func bestOrientation(for image: PumpRGBImage, seed: Int? = nil) -> Int {
+        Self.bestRotation(Self.rotationCandidates(seed: seed).map { rotation in
+            let upright = PumpPanelLocator.rotatedRGB(image, rotationCW: rotation)
+            return orientationScore(upright, rotationCW: rotation)
+        })
+    }
+
+    /// The rotations to score: the seed first (normalised), then the standard
+    /// three without it.
+    static func rotationCandidates(seed: Int?) -> [Int] {
+        guard let seed else { return searchedRotations }
+        let normalized = ((seed % 360) + 360) % 360
+        return [normalized] + searchedRotations.filter { $0 != normalized }
+    }
+
+    /// Picks the best-scoring rotation; ties go to the earlier entry, so the
+    /// seed (or 0) wins. Pure, so the tie rule is testable without an image.
+    static func bestRotation(_ scores: [OrientationScore]) -> Int {
+        var best: OrientationScore?
+        for score in scores {
+            guard let current = best else { best = score; continue }
+            if score.keptRows > current.keptRows
+                || (score.keptRows == current.keptRows && score.inkBandArea > current.inkBandArea) {
+                best = score
+            }
+        }
+        return best?.rotationCW ?? 0
+    }
+
+    /// The geometry score of an already-oriented image: each confident detected
+    /// row is sliced and judged by `PumpRowGeometry`, never by the classifier.
+    private func orientationScore(_ upright: PumpRGBImage, rotationCW: Int) -> OrientationScore {
+        var kept = 0
+        var ink: CGFloat = 0
+        for row in detectedRows(for: upright) where row.confidence >= Self.searchMinimumConfidence {
+            let pixels = row.quad.map { CGPoint(x: $0.x * CGFloat(upright.width), y: $0.y * CGFloat(upright.height)) }
+            guard let sliced = Self.sliceDetectedOrOriginal(pixels, detected: true, in: upright) else { continue }
+            let geometry = PumpRowGeometry.verdict(cells: sliced.fullCells, stripWidth: sliced.strip.width,
+                                                   stripHeight: sliced.strip.height)
+            guard geometry.kept else { continue }
+            kept += 1
+            let band = sliced.fullCells.first(where: { !$0.isBlank })?.rect.height ?? 0
+            ink += band * CGFloat(sliced.strip.width)
+        }
+        return OrientationScore(rotationCW: rotationCW, keptRows: kept, inkBandArea: ink)
     }
 
     /// A display's digit rows are large in the frame: the corpus's windows are

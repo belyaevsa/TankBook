@@ -65,6 +65,22 @@ enum PumpPanelLocator {
         return image
     }
 
+    /// A normalised rect in an image turned by `rotationCW` mapped back to the
+    /// original image's normalised frame. `rotatedRGB` maps an original point
+    /// `(u, v)` to `(1 - v, u)` per 90-degree turn; this applies that forward
+    /// map the remaining turns. Rotations are axis-preserving, so a rect stays
+    /// a rect.
+    static func unrotated(_ rect: CGRect, rotationCW: Int) -> CGRect {
+        let turns = ((rotationCW % 360) + 360) % 360 / 90
+        var r = rect
+        for _ in 0..<((4 - turns) % 4) {
+            let minX = 1 - r.maxY, maxX = 1 - r.minY
+            r = CGRect(x: min(minX, maxX), y: r.minX,
+                       width: abs(maxX - minX), height: r.width)
+        }
+        return r
+    }
+
     static func locate(_ gray: PumpGrayscale) -> [Candidate] {
         let width = gray.width
         let height = gray.height

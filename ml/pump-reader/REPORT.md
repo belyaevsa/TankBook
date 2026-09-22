@@ -2099,3 +2099,161 @@ Reverted:
 - **The role-assignment misses behind `pump-019`/`032`/`104`** (a price row read as litres, the
   litres row as total) are the locator/assignment's, not the law's; the pair now refuses them as
   `priceUnvalidated` rather than committing them, but the underlying miss is unowned.
+
+## PU.53 - the reader finds its own orientation (2026-09-22)
+
+The live path is scored at a rotation the phone never has. Five heldout stills carry
+`rotationCW: 90` in `windows.json` (`pump-019`..`023`, all reviewed) and the live arm borrowed that
+number from the annotation. The phone gets an upright frame from the camera (RV.49 bakes the
+interface orientation in) and no display rotation at all, so the reader must find it. The search
+runs the detector at 0/90/270 and keeps the orientation whose rows best pass `PumpRowGeometry`; the
+app seeds it with the capture's own orientation and falls back to the search.
+
+### The finding reproduces, with one correction to the brief's table
+
+`ios/.build/debug/pump-read` on `pump-019-gilbarco-circlek-sikupilli-pump8-ee.jpg`:
+
+| rotationCW | live rows the reader keeps | live row texts | abstain |
+|---|---|---|---|
+| 0 | total 3 cells, liters 3 | `1.19`, `295` | boardFoundNoPrice |
+| 90 | total 6 cells, liters 4 | `0045.22`, `1.754` | boardFoundNoPrice |
+| 180 | none | - | noLitersWindow |
+| 270 | 3 rows (5, 5, 4 cells) | wrong | nothingClosed |
+
+The brief's 90 row ("total 7, liters 6, unitPrice 4") is the **detector's** rows: `timingsMs.detectorOnly`
+is 3 at 90, and their cell counts are 7/6/4. The verifier keeps only 2, because the 7-cell total
+(`0079,32` over-read from a 6-cell display) is refused by `PumpRowGeometry`'s `decimalMark` rule -
+the separate box problem the row already names. Read on the **annotated** windows the rotation is
+unambiguous: at 90 the law commits total `79.32`, liters `45.22`, unitPrice `1.754`; at 0 it commits
+nothing. The orientation is real, and 90 is right.
+
+### The brief's score picks the wrong orientation; a confidence gate fixes it
+
+Scored exactly as the brief specifies - geometry-kept rows, then total ink-band area - the search
+picks 270 on `pump-019` and 270 on `pump-021`, both wrong. A wrong orientation still yields
+horizontal fragments that pass the shape rules; the detector is trained on upright displays, so
+those fragments come back unsure. Measured on the six stills used to choose (bands in px):
+
+| still | 0 kept/ink | 90 kept/ink | 270 kept/ink | literal pick | gated pick |
+|---|---|---|---|---|---|
+| pump-019 | 2 / 40800 | 2 / 51738 | 3 / 79624 | **270** | **90** |
+| pump-021 | 1 / 16016 | 4 / 81280 | 4 / 83496 | **270** | **90** |
+| pump-032 (upright) | 2 / 57930 | 2 / 37516 | 0 / 0 | 0 | 0 |
+
+The shipped score counts a row only when the detector is sure of it (`searchMinimumConfidence` 0.5,
+the same "sure of a row" the fast path uses): `pump-019` becomes 0/2/2 kept (ink 0 / 51738 / 47272)
+and `pump-021` 0/4/2 (0 / 81280 / 45192), so both pick 90; `pump-032` stays 0. The 0.5 gate is a
+measured correction, not the brief's literal rule - without it the search would read these displays
+sideways, which is the defect.
+
+### The search recovers the orientation, not a commit
+
+The live arm on the 68 heldout stills, all three arms run in one pass
+(`PUMP_ORIENT=1 swift test --filter PumpReaderPipelineTests/orientationArms`):
+
+| arm | committed | correct | precision | photos every field right | stills commit nothing |
+|---|---|---|---|---|---|
+| annotation (baseline) | 43 | 43 | 1.000 | 14/68 | 52 |
+| upright (no rotation, no search) | 43 | 43 | 1.000 | 14/68 | 52 |
+| **search (shipped)** | **43** | **43** | **1.000** | **14/68** | **52** |
+
+Abstention histograms (stills that commit nothing; field reasons over partial reads):
+
+| arm | boardFoundNoPrice | nothingClosed | priceOutOfBand | noLitersWindow | field ambiguous |
+|---|---|---|---|---|---|
+| annotation | 26 | 23 | 2 | 1 | 3 |
+| upright | 25 | 23 | 2 | 2 | 3 |
+| search | 25 | 24 | 2 | 1 | 3 |
+
+The honest floor is **43**, not lower: every one of the five rotated stills commits nothing at the
+annotation's 90 too, so removing the rotation costs no commit. The search then recovers the
+annotation's orientation exactly (chosen 90 for all five) and the number stays **43** - the row's
+point here is the orientation, and on this corpus it is invisible in the committed count. Per still
+(all arms commit no field; the difference is only the law's abstention reason):
+
+| still | chosen | annotation 90 | upright 0 | search |
+|---|---|---|---|---|
+| pump-019 | 90 | boardFoundNoPrice | boardFoundNoPrice | boardFoundNoPrice |
+| pump-020 | 90 | nothingClosed | boardFoundNoPrice | nothingClosed |
+| pump-021 | 90 | nothingClosed | boardFoundNoPrice | nothingClosed |
+| pump-022 | 90 | boardFoundNoPrice | boardFoundNoPrice | boardFoundNoPrice |
+| pump-023 | 90 | boardFoundNoPrice | noLitersWindow | boardFoundNoPrice |
+
+The search restores the annotation's own orientation and its abstention reasons; it cannot lift a
+commit the display does not carry. The 7-cell total over-read (the box problem) and the missing
+price keep `pump-019` at `boardFoundNoPrice` at both orientations.
+
+### The live arm no longer reads the annotation's rotation
+
+`PumpReaderPipelineTests.livePath` calls the shared `measureLive` with `rotation: { _ in nil }`;
+its body contains no `readPhoto` and no `rotationCW`. The annotation's rotation survives only in
+the annotated `gateMirror` arm and the opt-in `decoupling` test:
+
+```
+$ grep -n 'ann\["rotationCW"\]' ios/Tests/TankbookCoreTests/PumpReaderPipelineTests.swift
+145:            let rotation = (ann["rotationCW"] as? NSNumber)?.intValue ?? 0   # gateMirror, annotated arm
+397:                let rotation = (ann["rotationCW"] as? NSNumber)?.intValue ?? 0 # decoupling, opt-in
+$ awk '/func livePath\(\)/,/^    }$/' .../PumpReaderPipelineTests.swift | grep -c rotationCW
+0
+```
+
+The baseline arm reads it through `PumpReaderTestSupport.annotationRotation`, which exists for that
+measurement only.
+
+### Named mutation: the search always returns 0
+
+`bestOrientation` forced to `return 0`, `swift test --filter PumpReaderOrientationTests/searchPicksTheDisplaysRotation`:
+
+```
+✘ Test "on pump-019 the search picks the display's own rotation, 90" recorded an issue at PumpReaderOrientationTests.swift:35:9: Expectation failed: reader.bestOrientation(for: image) == 90
+↳ reader.bestOrientation(for: image) == 90 → false
+↳   reader.bestOrientation(for: image) → 0
+✘ Test "on pump-019 the search picks the display's own rotation, 90" failed after 5.582 seconds with 1 issue.
+```
+
+Reverted byte-identical; the same test then passes (green run: 4 tests in the suite, all pass).
+
+### What shipped
+
+- `PumpReader.bestOrientation(for:seed:)` and `bestRotation` - the search, 0/90/270, 0 wins ties,
+  180 deliberately not searched (a display photographed upside down is not a case the corpus has).
+  `readPhoto`'s `rotationCW` became `Int?`; nil searches, an explicit value is used as given.
+- `PumpDisplayCapture` - `detect`/`classify`/`read` take a `rotationCW` seed. Classification stays
+  at the seed; when the seed read commits nothing, `classify` searches, reads the preferred
+  orientation and keeps its reading if it commits. `PumpPanelLocator.unrotated` maps the searched
+  read's crop rects back to the frame the user composed.
+- `CapturePipeline` seeds with 0 (its frame is already upright) and documents why.
+- `PumpReaderOrientationTests` (L1): 4 tests; `PumpReaderPipelineTests` reports the search arm and
+  the opt-in three-arm table.
+
+### Found and not fixed
+
+- **The brief's score is wrong on this corpus** - fixed with the 0.5 gate above; the measurement is
+  the correction.
+- **The committed count does not move** (43 -> 43). The five rotated stills commit nothing at any
+  orientation; the law needs the total and price the over-read/dropped rows do not deliver. No row
+  owns the box over-read (the brief names it "the separate box problem").
+- **PU.23 row assignment** fails at `0.989 < 0.99` (1265/1279) on the corpus annotations at this
+  commit - not touched by PU.53 and not in the brief's pre-existing list, but independent of it
+  (`PumpRowAssignment` and the corpus are unchanged). Filed here.
+- Pre-existing and named: PaddleOCR `P4.13` (47 issues), CorpusAB `P4.12` (47), RV.277 expense (1),
+  `PumpSegmentsModelTests` (2, missing scratch `ios/.build/pump-reader-out/cells-swift/labels.csv`).
+- `scripts/check-screenshot-manifest.sh` fails on `PU.29-confirm-pump-alpha` (and `-ru`): the
+  committed screenshots have no `scripts/capture-screenshots.sh` line. Pre-existing, no UI touched.
+- **Doc drift**: `docs/EXTRACTION.md`'s pump-reader section does not name the orientation search.
+  Its "Orientation: Vision handles it" note (RV.114) is about the receipt/Vision stage and does not
+  conflict, but the reader's own search has no doc home. The brief limits PU.53's writes to the
+  reader, the app seed, the tests and this report, so the doc edit is filed here for the
+  orchestrator.
+
+### Checks
+
+| check | exit | note |
+|---|---|---|
+| `scripts/gate.sh` package | 0 | `swift build` |
+| `scripts/gate.sh` lint | 0 | `swiftlint lint` from the repo root, 0 errors |
+| `scripts/gate.sh` app (xcodegen + xcodebuild Debug) | 0 | app target compiles |
+| `scripts/gate.sh` tests | 1 | `swift test`: 2254 tests, 286 suites, 98 issues - all five pre-existing tests above, none PU.53 |
+| app-target unit bundle (`xcodebuild test -only-testing:TankbookTests`) | 0 | 299 tests, 0 failures |
+| `swift test --filter "PumpReaderOrientationTests\|PumpReaderPipelineTests\|PumpRowGeometryTests\|PumpReaderHarnessTests\|PumpReadingLawTests"` | 0 | 43 tests in 5 suites; live search **43 / 43 / 1.000 / 14-of-68**; annotated **104 / 103 / 0.990 / 30-of-68** |
+| `bash scripts/check-screenshot-manifest.sh` | 1 | pre-existing `PU.29-confirm-pump-alpha` drift, no UI change |
