@@ -475,3 +475,18 @@ def test_import_readings_from_keeps_the_earlier_frames(tmp_path: Path, monkeypat
     # labels: earlier kept; 004 and 006 lost their arithmetic label (the new read did not close there); 005 new
     assert labels == {"001.jpg": "1", "002.jpg": "2", "003.jpg": "3", "005.jpg": "R5"}
     assert order == ["001.jpg", "002.jpg", "003.jpg", "004.jpg", "005.jpg", "006.jpg"]
+
+
+def test_a_video_imported_without_anchors_still_returns_the_ones_saved_later(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    db = tmp_path / "c.sqlite"
+    monkeypatch.setattr(cdb, "DB", db)
+    with sqlite3.connect(db) as con:
+        con.executescript(cdb.SCHEMA)
+        con.execute("insert into videos (stem, reference, currency, unitPrice, reviewed, keys, ord) values "
+                    "('video-999', '010.jpg', 'EUR', '1.999', 0, ?, 0)",
+                    (json.dumps(["reference", "currency", "unitPrice", "windows", "reviewed"]),))
+    q = [[0.1, 0.2], [0.5, 0.25], [0.5, 0.35], [0.1, 0.3]]
+    cdb.save_video_anchor("video-999", "040.jpg", [{"field": "total", "quad": q}])
+    v = cdb.video("video-999")
+    assert [a["frame"] for a in v.get("anchors", [])] == ["040.jpg"], v
+    assert v["anchors"][0]["windows"][0]["quad"] == q

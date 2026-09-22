@@ -651,7 +651,15 @@ def _video_obj(row: sqlite3.Row, windows: list, anchors: list) -> dict:
               "reviewed": bool(row["reviewed"]), "anchors": _anchor_list(anchors),
               "firstFrame": row["firstFrame"], "lastFrame": row["lastFrame"], "note": row["note"]}
     extra = json.loads(row["extra"]) if row["extra"] else {}
-    return _ordered(json.loads(row["keys"]), values, extra)
+    keys = json.loads(row["keys"])
+    # `keys` is the entry's key order as it was IMPORTED. A video added without
+    # anchors has no "anchors" key there, and `_ordered` emits only listed keys -
+    # so every anchor the annotator saved later sat in `video_anchors` and was
+    # dropped here: the tracker never saw one and fitted every frame from the
+    # reference. Anchors are appended when present, in the file's usual place.
+    if anchors and "anchors" not in keys:
+        keys = keys + ["anchors"]
+    return _ordered(keys, values, extra)
 
 
 def _render_videos(con: sqlite3.Connection) -> bytes:
