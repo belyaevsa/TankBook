@@ -16,9 +16,14 @@ struct PumpReadingLawTests {
     private static let committedFloor = 294
     private static let precisionFloor = 0.996
     /// Cells the corpus itself declares unreadable as the receipt's value:
-    /// a display that rounds or truncates what the receipt prints.
+    /// a display that rounds or truncates what the receipt prints, or a
+    /// DISCOUNTED fill whose paid price is not the one on the board -
+    /// `pump-300` pays 27.87 for 13.70 L, i.e. 2.034 a litre, while the board
+    /// reads 2.019 / 2.069 / 2.079 / 2.219, so the board-as-price tier closes
+    /// on a price the customer did not pay. Declared here because it is a fact
+    /// about the display, not a defect the law can fix from this photo.
     private static let declaredArtefacts: Set<String> = [
-        "pump-031", "pump-065", "pump-073",
+        "pump-031", "pump-065", "pump-073", "pump-300",
     ]
 
     // MARK: - Unit rules
@@ -169,6 +174,138 @@ struct PumpReadingLawTests {
                 Self.window(.unitPrice, "15.89"),
             ], currency: CurrencyCode(rawValue: "EUR"))
         #expect(reading.liters.value != Decimal(string: "15.89"))
+    }
+
+    // MARK: - PU.51: the law says why it abstained
+
+    @Test("PU.51: a committed reading carries no reason")
+    func committedReadingHasNoReason() {
+        // Oracle: pump-009's zero-padded Gilbarco strings commit all three.
+        let reading = PumpReadingLaw.resolve(
+            windows: [
+                Self.window(.total, "02038,00"),
+                Self.window(.liters, "00040,00"),
+                Self.window(.unitPrice, "050,95"),
+            ], currency: CurrencyCode(rawValue: "RUB"))
+        #expect(reading.committedCount == 3)
+        #expect(reading.reason == nil)
+        #expect(reading.liters.reason == nil)
+        #expect(reading.unitPrice.reason == nil)
+        #expect(reading.total.reason == nil)
+    }
+
+    @Test("PU.51: a partial read names the field that refused")
+    func partialReadCarriesFieldReason() {
+        // Oracle: synthetic. 10.00 x 2.000 = 20.00 exactly, so the operands
+        // commit; the total's last cell is ambiguous between `0` (20.00) and
+        // `1` (20.01, which the slack admits), so only the total abstains.
+        let reading = PumpReadingLaw.resolve(
+            windows: [
+                Self.window(.total, "20,00", ranked: [0, 1], at: 3),
+                Self.window(.liters, "10,00"),
+                Self.window(.unitPrice, "2,000"),
+            ], currency: CurrencyCode(rawValue: "EUR"))
+        #expect(reading.committedCount == 2)
+        #expect(reading.reason == nil)
+        #expect(reading.total.value == nil)
+        #expect(reading.total.reason == .ambiguous)
+    }
+
+    @Test("PU.51: no liters window")
+    func reasonNoLitersWindow() {
+        // Oracle: the law's first guard; no fixture leaves the role unassigned.
+        let reading = PumpReadingLaw.resolve(
+            windows: [Self.window(.total, "20,00"), Self.window(.unitPrice, "2,00")],
+            currency: CurrencyCode(rawValue: "EUR"))
+        #expect(reading.committedCount == 0)
+        #expect(reading.reason == .noLitersWindow)
+    }
+
+    @Test("PU.51: all-zero liters is an idle pump")
+    func reasonLitersAllZero() {
+        // Oracle: pump-016/pump-017's idle heads, liters 0.00.
+        let reading = PumpReadingLaw.resolve(
+            windows: [
+                Self.window(.total, "0.00"),
+                Self.window(.liters, "0.00"),
+                Self.window(.unitPrice, "1.889"),
+            ], currency: CurrencyCode(rawValue: "EUR"))
+        #expect(reading.reason == .litersAllZero)
+    }
+
+    @Test("PU.51: no total window")
+    func reasonNoTotalWindow() {
+        let reading = PumpReadingLaw.resolve(
+            windows: [Self.window(.liters, "10,00"), Self.window(.unitPrice, "2,00")],
+            currency: CurrencyCode(rawValue: "EUR"))
+        #expect(reading.reason == .noTotalWindow)
+    }
+
+    @Test("PU.51: no price window and no board to stand in")
+    func reasonBoardFoundNoPrice() {
+        // Oracle: a Wayne head's price lives on a board; with no board at all
+        // the board tier has nothing to try, so it finds no price.
+        let reading = PumpReadingLaw.resolve(
+            windows: [Self.window(.liters, "10,00"), Self.window(.total, "20,00")],
+            currency: CurrencyCode(rawValue: "EUR"))
+        #expect(reading.reason == .boardFoundNoPrice)
+    }
+
+    @Test("PU.51: a price outside the currency's band")
+    func reasonPriceOutOfBand() {
+        // Oracle: synthetic. 10.00 x 9.999 = 99.99 closes exactly, but the
+        // band admits 0.5...2.0, so the price candidates are removed before
+        // the judge ever sees them.
+        let band = FuelPriceBand(low: 0.5, high: 2.0)
+        let reading = PumpReadingLaw.resolve(
+            windows: [
+                Self.window(.total, "99,99"),
+                Self.window(.liters, "10,00"),
+                Self.window(.unitPrice, "9,999"),
+            ], currency: CurrencyCode(rawValue: "EUR"), priceBand: band)
+        #expect(reading.reason == .priceOutOfBand)
+    }
+
+    @Test("PU.51: a row with more cells than the law reads is unknown")
+    func reasonCellUnknown() {
+        // Oracle: synthetic. The law's `maxCells` guard makes nine cells a
+        // banner, not a display row, so the liters window yields no candidate
+        // string at all - a cell problem, not an arithmetic one.
+        let reading = PumpReadingLaw.resolve(
+            windows: [
+                Self.window(.total, "20,00"),
+                Self.window(.liters, "123456789"),
+                Self.window(.unitPrice, "2,000"),
+            ], currency: CurrencyCode(rawValue: "EUR"))
+        #expect(reading.reason == .cellUnknown)
+    }
+
+    @Test("PU.51: nothing closed the arithmetic")
+    func reasonNothingClosed() {
+        // Oracle: synthetic. The product (20.00) is nowhere near the shown
+        // total (50.00) and no single confusion partner reaches it.
+        let reading = PumpReadingLaw.resolve(
+            windows: [
+                Self.window(.total, "50,00"),
+                Self.window(.liters, "10,00"),
+                Self.window(.unitPrice, "2,000"),
+            ], currency: CurrencyCode(rawValue: "EUR"))
+        #expect(reading.reason == .nothingClosed)
+    }
+
+    @Test("PU.51: two repairs close and disagree, so the read is ambiguous")
+    func reasonAmbiguous() {
+        // Oracle: synthetic. 10.00 x 2.008 = 20.08; the price's last `8` can
+        // repair to `0` (2.000 -> 20.00) and the total's last `0` to `8`
+        // (20.08), two distinct closing triples. The rankings keep both closing
+        // digits out of the beam, so only the repair tier can find them.
+        let reading = PumpReadingLaw.resolve(
+            windows: [
+                Self.window(.total, "20,00", ranked: [0, 1, 2, 8], at: 3),
+                Self.window(.liters, "10,00"),
+                Self.window(.unitPrice, "2,008", ranked: [8, 3, 4, 0], at: 3),
+            ], currency: CurrencyCode(rawValue: "EUR"))
+        #expect(reading.reason == .ambiguous)
     }
 
     // MARK: - The oracle-string harness

@@ -15,6 +15,34 @@ public enum PumpField: String, Sendable, Equatable, Hashable, Codable {
     case board
 }
 
+/// Why the law refused to commit a field or a whole reading. Diagnosis only:
+/// nothing reads it back to decide a verdict (hard rule 13 - the app suggests,
+/// the user decides). One case per genuinely distinct refusal, so a live
+/// histogram names the branch that dominates rather than lumping every miss
+/// into "did not close".
+public enum PumpAbstentionReason: String, Sendable, Equatable, Codable {
+    /// No window was assigned the liters role.
+    case noLitersWindow
+    /// The liters row's cells all read `0`: an idle pump shows nothing to read.
+    case litersAllZero
+    /// No window was assigned the total role, so the arithmetic has no judge.
+    case noTotalWindow
+    /// No unit-price window, and no board cell could stand in as the price
+    /// (no board at all, or no single board closed the triple).
+    case boardFoundNoPrice
+    /// The price row's candidates all fell outside the currency's price band.
+    case priceOutOfBand
+    /// A field's window produced no candidate string at all - no cells, more
+    /// cells than the law reads, or no decimal placement to try.
+    case cellUnknown
+    /// Candidates formed, but no triple closed the arithmetic within the read
+    /// window (exact, preset and repair tiers all failed).
+    case nothingClosed
+    /// More than one candidate closed the arithmetic and the survivors
+    /// disagree: the read is ambiguous, so the field (or the reading) abstains.
+    case ambiguous
+}
+
 /// One digit hypothesis for one cell, ranked by the constrained decode.
 public struct PumpGlyphCandidate: Sendable, Equatable {
     public let digit: Int
@@ -82,34 +110,56 @@ public enum PumpFieldProvenance: Sendable, Equatable {
     case derived
 }
 
-/// A resolved field. `value == nil` is the abstention (hard rule 13).
+/// A resolved field. `value == nil` is the abstention (hard rule 13). `reason`
+/// names the branch that refused where a single field abstains while the rest
+/// of the reading commits; a whole-reading abstention carries the reason on the
+/// `PumpDisplayReading`.
 public struct PumpFieldReading: Sendable, Equatable {
     public let value: Decimal?
     public let provenance: PumpFieldProvenance?
     public let logPosterior: Double
+    public let reason: PumpAbstentionReason?
 
-    public static let abstained = PumpFieldReading(value: nil, provenance: nil, logPosterior: 0)
+    public static let abstained = PumpFieldReading(value: nil, provenance: nil, logPosterior: 0, reason: nil)
 
-    public init(value: Decimal?, provenance: PumpFieldProvenance?, logPosterior: Double) {
+    public init(value: Decimal?, provenance: PumpFieldProvenance?, logPosterior: Double,
+                reason: PumpAbstentionReason? = nil) {
         self.value = value
         self.provenance = provenance
         self.logPosterior = logPosterior
+        self.reason = reason
+    }
+
+    /// An abstained field that names why it refused.
+    public static func abstained(_ reason: PumpAbstentionReason) -> PumpFieldReading {
+        PumpFieldReading(value: nil, provenance: nil, logPosterior: 0, reason: reason)
     }
 }
 
-/// The reader's whole answer for one photo.
+/// The reader's whole answer for one photo. `reason` is non-nil exactly when
+/// nothing committed; a partial read carries its reasons on the nil fields.
 public struct PumpDisplayReading: Sendable, Equatable {
     public let liters: PumpFieldReading
     public let unitPrice: PumpFieldReading
     public let total: PumpFieldReading
+    public let reason: PumpAbstentionReason?
 
+    /// The reason-less default, for construction only; every law verdict that
+    /// commits nothing uses `abstained(_:)` and names its branch.
     public static let abstained = PumpDisplayReading(
-        liters: .abstained, unitPrice: .abstained, total: .abstained)
+        liters: .abstained, unitPrice: .abstained, total: .abstained, reason: nil)
 
-    public init(liters: PumpFieldReading, unitPrice: PumpFieldReading, total: PumpFieldReading) {
+    public init(liters: PumpFieldReading, unitPrice: PumpFieldReading, total: PumpFieldReading,
+                reason: PumpAbstentionReason? = nil) {
         self.liters = liters
         self.unitPrice = unitPrice
         self.total = total
+        self.reason = reason
+    }
+
+    /// A reading that committed nothing, with the reason every field shares.
+    public static func abstained(_ reason: PumpAbstentionReason) -> PumpDisplayReading {
+        PumpDisplayReading(liters: .abstained, unitPrice: .abstained, total: .abstained, reason: reason)
     }
 
     public var committedCount: Int {

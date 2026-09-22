@@ -49,39 +49,48 @@ public enum PumpReadingLaw {
     ) -> PumpDisplayReading {
         let conventions = PumpDisplayConventions.forCurrency(currency)
         let byField = Dictionary(grouping: windows, by: \.field)
-        guard let literWindow = byField[.liters]?.first else { return .abstained }
+        guard let literWindow = byField[.liters]?.first else { return .abstained(.noLitersWindow) }
         guard let priceWindow = byField[.unitPrice]?.first else {
             // No price window of its own: on a Wayne head the transaction price
             // is one of the board cells, and only the arithmetic can say which.
             // Exactly one board cell may close the triple.
             let boards = byField[.board] ?? []
-            guard !boards.isEmpty else { return .abstained }
+            guard !boards.isEmpty else { return .abstained(.boardFoundNoPrice) }
             let readings = boards.map { board -> PumpDisplayReading in
                 let rest = windows.filter { $0.field != .board }
                 return resolve(windows: rest + [PumpLocatedWindow(field: .unitPrice, cells: board.cells)],
                                currency: currency, priceBand: priceBand)
             }
             let closed = readings.filter { $0.committedCount == 3 }
-            return closed.count == 1 ? closed[0] : .abstained
+            return closed.count == 1 ? closed[0] : .abstained(.boardFoundNoPrice)
         }
         let totalWindow = byField[.total]?.first
 
         let plausibleLiters: (Candidate) -> Bool = { $0.value >= minLiters && $0.value < 500 }
         let plausiblePrice: (Candidate) -> Bool = { priceBand?.contains($0.value) ?? ($0.value > 0) }
         let plausibleTotal: (Candidate) -> Bool = { $0.value >= minTotal }
-        let literCands = candidates(literWindow, decimals: conventions.volumeDecimals).filter(plausibleLiters)
-        let priceCands = candidates(priceWindow, decimals: conventions.priceDecimals).filter(plausiblePrice)
-        let totalCands = (totalWindow.map { candidates($0, decimals: conventions.totalDecimals) } ?? [])
-            .filter(plausibleTotal)
-        let truncatedCands = (totalWindow.map {
+        // The unfiltered candidate sets are kept so an abstention can name a
+        // cause finer than "nothing closed": a field with no candidate at all
+        // is unreadable cells, a price whose candidates the band removed is the
+        // band. The filtered sets below are what the verdict uses, unchanged.
+        let rawLiters = candidates(literWindow, decimals: conventions.volumeDecimals)
+        let rawPrice = candidates(priceWindow, decimals: conventions.priceDecimals)
+        let rawTotals = (totalWindow.map { candidates($0, decimals: conventions.totalDecimals) } ?? [])
+        let rawTruncated = (totalWindow.map {
             candidates($0, decimals: conventions.truncatedTotalDecimals)
-        } ?? []).filter(plausibleTotal)
+        } ?? [])
+        let literCands = rawLiters.filter(plausibleLiters)
+        let priceCands = rawPrice.filter(plausiblePrice)
+        let totalCands = rawTotals.filter(plausibleTotal)
+        let truncatedCands = rawTruncated.filter(plausibleTotal)
+        let sets = CandidateSets(rawLiters: rawLiters, rawPrice: rawPrice, rawTotals: rawTotals,
+                                 rawTruncated: rawTruncated, prices: priceCands)
 
         // An idle pump shows 0.00 liters: nothing to read.
-        if literWindow.cells.allSatisfy({ $0.top.digit == 0 }) { return .abstained }
+        if literWindow.cells.allSatisfy({ $0.top.digit == 0 }) { return .abstained(.litersAllZero) }
         // No total on the display: the arithmetic has no judge, so the pair
         // is not committed - a confident wrong pair is worse than nil.
-        guard totalWindow != nil else { return .abstained }
+        guard totalWindow != nil else { return .abstained(.noTotalWindow) }
 
         let topRead = [literWindow, priceWindow, totalWindow!].reduce(0.0) { sum, window in
             sum + window.cells.reduce(0.0) { $0 + $1.top.logPosterior }
@@ -143,12 +152,43 @@ public enum PumpReadingLaw {
         // read, and nothing ambiguous near the best repair.
         guard let bestRepair = repairs.max(by: { $0.0.logPosterior < $1.0.logPosterior }),
               topRead - bestRepair.0.logPosterior <= readWindow else {
-            return .abstained
+            return .abstained(diagnoseNothingClosed(sets, priceBand: priceBand))
         }
         let near = repairs.filter { bestRepair.0.logPosterior - $0.0.logPosterior <= ambiguityWindow }
         let distinct = Set(near.map { "\($0.0.liters)|\($0.0.price)|\($0.0.total)" })
-        guard distinct.count == 1 else { return .abstained }
+        guard distinct.count == 1 else { return .abstained(.ambiguous) }
         return commit([bestRepair.0], repair: (bestRepair.1, bestRepair.2))
+    }
+
+    /// The candidate sets a diagnosis needs: the raw sets before the
+    /// plausibility filters, and the filtered price set the band shapes. Kept
+    /// together so a refusal can name a cause finer than "nothing closed"
+    /// without a long parameter list.
+    struct CandidateSets {
+        let rawLiters: [Candidate]
+        let rawPrice: [Candidate]
+        let rawTotals: [Candidate]
+        let rawTruncated: [Candidate]
+        let prices: [Candidate]
+    }
+
+    /// Names the most specific cause the candidate sets show for a reading that
+    /// closed nowhere. A field with no candidate string at all is unreadable
+    /// cells; a price row whose candidates the currency's band removed is the
+    /// band; anything else is the arithmetic failing to close. The order
+    /// matters: an empty raw set is a cell problem whether or not a band exists.
+    static func diagnoseNothingClosed(_ sets: CandidateSets,
+                                      priceBand: FuelPriceBand?) -> PumpAbstentionReason {
+        // `totalWindow` is non-nil by the time this runs; both raw total sets
+        // empty means the total row produced no candidate string.
+        let totalsUnreadable = sets.rawTotals.isEmpty && sets.rawTruncated.isEmpty
+        if sets.rawLiters.isEmpty || sets.rawPrice.isEmpty || totalsUnreadable {
+            return .cellUnknown
+        }
+        if priceBand != nil, sets.prices.isEmpty {
+            return .priceOutOfBand
+        }
+        return .nothingClosed
     }
 
     /// A preset amount is a round number of currency units: 20.00, 1000.00.
@@ -281,7 +321,9 @@ public enum PumpReadingLaw {
     /// Commits what the closing triples agree on; a field they disagree on
     /// abstains. Exactly one triple commits all three.
     static func commit(_ all: [Triple], repair: (PumpFieldProvenance, PumpField)?) -> PumpDisplayReading {
-        guard let best = all.max(by: { $0.logPosterior < $1.logPosterior }) else { return .abstained }
+        guard let best = all.max(by: { $0.logPosterior < $1.logPosterior }) else {
+            return .abstained(.nothingClosed)
+        }
         // The total is the anchor. When the best close reproduces the shown
         // total exactly, a competing triple that reaches the SAME total inside
         // the truncation slack is a false close of an operand: its price or
@@ -294,7 +336,7 @@ public enum PumpReadingLaw {
         let triples = contenders.filter { best.logPosterior - $0.logPosterior <= ambiguityWindow }
         func field(_ values: [Double], derived: Bool, role: PumpField) -> PumpFieldReading {
             guard let first = values.first, values.allSatisfy({ abs($0 - first) < 0.0005 }) else {
-                return .abstained
+                return .abstained(.ambiguous)
             }
             let provenance: PumpFieldProvenance = derived ? .derived
                 : (repair.map { $0.1 == role ? $0.0 : .read } ?? .read)
@@ -302,9 +344,13 @@ public enum PumpReadingLaw {
                                     logPosterior: derived ? 0 : best.logPosterior)
         }
         let derived = triples.allSatisfy(\.totalDerived)
-        return PumpDisplayReading(
-            liters: field(triples.map(\.liters), derived: false, role: .liters),
-            unitPrice: field(triples.map(\.price), derived: false, role: .unitPrice),
-            total: field(triples.map(\.total), derived: derived, role: .total))
+        let liters = field(triples.map(\.liters), derived: false, role: .liters)
+        let unitPrice = field(triples.map(\.price), derived: false, role: .unitPrice)
+        let total = field(triples.map(\.total), derived: derived, role: .total)
+        // A reading that committed nothing is ambiguous here by construction:
+        // it was handed closing triples, so the refusal is their disagreement.
+        let reason: PumpAbstentionReason? =
+            (liters.value == nil && unitPrice.value == nil && total.value == nil) ? .ambiguous : nil
+        return PumpDisplayReading(liters: liters, unitPrice: unitPrice, total: total, reason: reason)
     }
 }

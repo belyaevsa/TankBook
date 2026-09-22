@@ -1687,3 +1687,102 @@ boxes.
   overwriting the dev copy, which is why the swap-and-restore above was needed. The two files are
   byte-identical today, so it does not change any number, but the seam is a trap for the next
   detector round; no row owns it.
+
+---
+
+## PU.51 - the law says why it abstained (2026-09-22)
+
+The live path over the 68 heldout stills under the shipped detector finds rows, assigns fields and
+commits nothing on most of them; before this row the law returned `.abstained` from several places
+with no record of which. `PumpAbstentionReason` now names the branch, is carried on
+`PumpDisplayReading` (and on a `PumpFieldReading` when a single field abstains while the rest
+commit), flows through `PumpReader.resolve` unchanged and is printed by `pump-read` as
+`abstainReason` beside `committed` (and per field inside `committed.reasons`).
+
+### The branch inventory
+
+| reason | branch in `PumpReadingLaw.resolve` |
+|---|---|
+| `noLitersWindow` | no `.liters` window |
+| `litersAllZero` | the liters row's cells all read `0` |
+| `noTotalWindow` | no `.total` window |
+| `boardFoundNoPrice` | no `.unitPrice` window, and the board tier settles on no single price (no board at all, or zero/more than one board closed) |
+| `priceOutOfBand` | the price row's candidates were all removed by the currency band |
+| `cellUnknown` | a field's window produced no candidate string at all (empty, more than `maxCells`, or no decimal placement) |
+| `nothingClosed` | candidates formed but no triple closed (exact, preset and repair tiers all failed) |
+| `ambiguous` | more than one candidate closed and the survivors disagree |
+
+Two things the brief's premise asked to confirm. (1) `commit`'s `guard let best = ...` is
+unreachable: every call site passes a non-empty triple list, so it returns `.nothingClosed` for
+completeness only and no test takes it. (2) PU.14 §"The abstain rule per glyph" is explicit that
+there is **no per-glyph abstain** - the classifier always ranks ten digits - so "a cell read `?`"
+is not a branch of its own; `cellUnknown` is the nearest genuine refusal (the field whose cells
+produced no candidate at all), and the test that takes it is a row with more cells than the law
+reads.
+
+### The histogram (the row's real output)
+
+`swift test --filter PumpReaderPipelineTests` - live path, shipped detector, heldout 68:
+
+```
+PU.24 live path: committed 43, correct 43, precision 1.000, coverage 0.235 of 183;
+photos with every field right 14/68
+PU.51 live reason histogram over 52 stills that commit nothing:
+  boardFoundNoPrice: 26
+  nothingClosed: 23
+  priceOutOfBand: 2
+  noLitersWindow: 1
+PU.51 live field reason histogram over fields that abstained in a partial read:
+  ambiguous: 3
+```
+
+**The dominant refusal is `boardFoundNoPrice` (26 of 52): half the stills that commit nothing have
+no price window at all and no board cell to stand in.** That is a locator/assignment miss, not an
+arithmetic one - the law never gets a price to judge. The next class, `nothingClosed` (23), is the
+one the arithmetic owns. The histogram total is 52 in this tree; the brief's motivating measurement
+said 53. The live read's other numbers - committed 43, precision 1.000, 14 of 68 all-right - match
+the PU.48 baseline exactly, and the heldout+reviewed set and every heldout still's `rotationCW` are
+identical between `HEAD` and the working tree, so the one-still difference is in the brief's
+measurement, not in the live read this row touched.
+
+### Checks
+
+| check | exit | note |
+|---|---|---|
+| `swift test --filter PumpReadingLawTests` | 1 | all 10 PU.51 law tests pass; the pre-existing oracle ratchet is red on `pump-300` from the corpus session's uncommitted `windows.json` (HEAD abstains `boardFoundNoPrice`, the working tree's new board texts commit 13.70 x 2.019 -> 27.67 against the CSV's 27.87) |
+| `swift test --filter PumpReaderPipelineTests` | 0 | live 43 / 1.000, unchanged (the pure-addition assertion is now `committed == 43`, not a floor) |
+| `swift test --filter "PumpReadingLawTests\|PumpReaderPipelineTests\|PumpRowGeometryTests"` | 1 | 33 tests, 32 pass, 1 fail (the pump-300 oracle above) |
+| `scripts/gate.sh` | 1 | package 0, lint 0, xcodegen 0, app Debug build 0, `swift test` 1 (the pre-existing corpus failures: `pump-300`, PaddleOCR/corpus A/B, RV.277, PU.23, RV.49 - all in the concurrent corpus session's uncommitted fixtures, none in this row's code) |
+| app-target unit bundle (`xcodebuild test -only-testing:TankbookTests`) | 0 | 299 tests, 0 failures (run separately: gate.sh stops at `swift test`) |
+| `swiftlint lint` (repo root) | 0 | after adding `ml/pump-reader/.out` to `excluded` - a concurrent session's gitignored review dump copied the repo's Swift sources under it at 16:58:40 and crashed lint (exit 132); `build/` was already excluded |
+
+### Named mutation
+
+The repair tier's "ambiguous" return was changed to `.nothingClosed` (the two branches made to
+return the same case). The test that separates them:
+
+```
+✘ Test "PU.51: two repairs close and disagree, so the read is ambiguous" recorded an issue at
+  PumpReadingLawTests.swift:303:9: Expectation failed: reading.reason == .ambiguous
+↳   reading.reason → .nothingClosed
+✘ Test run with 1 test in 1 suite failed after 0.002 seconds with 1 issue.   (exit 1)
+```
+
+Reverted:
+
+```
+✔ Test "PU.51: nothing closed the arithmetic" passed after 0.003 seconds.
+✔ Test "PU.51: two repairs close and disagree, so the read is ambiguous" passed after 0.003 seconds.
+✔ Test run with 2 tests in 1 suite passed after 0.003 seconds.   (exit 0)
+```
+
+### Found and not fixed
+
+- **`pump-300` is now confident-wrong on the annotated oracle** (`Spike/ReceiptSpike/fixtures/pump/
+  windows.json`, uncommitted, the corpus session's write set): the new hand boards let 13.70 x
+  2.019 close to a total (27.67) the CSV does not assert (27.87). Not this row's file; the corpus
+  session owns it. The live path still abstains on the still, so the pipeline number is unaffected.
+- **Half the abstentions are `boardFoundNoPrice`** - a price window that the locator/assigner never
+  produced. That is the biggest single lever the histogram exposes and no row owns it yet.
+- **Per-field reasons exist only on partial reads** by the brief's design; a fully abstained
+  reading names one display reason, so the per-field histogram is small by construction.

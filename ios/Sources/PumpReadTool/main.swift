@@ -158,7 +158,13 @@ var reply: [String: Any] = [:]
 
 func committed(_ reading: PumpDisplayReading) -> [String: Any] {
     func value(_ field: PumpFieldReading) -> Any { field.value.map { "\($0)" } ?? NSNull() }
-    return ["total": value(reading.total), "liters": value(reading.liters), "unitPrice": value(reading.unitPrice)]
+    // The per-field reasons ride with the per-field values so the annotator can
+    // mark the field that refused, not only the reading (PU.51).
+    func reason(_ field: PumpFieldReading) -> Any { field.reason?.rawValue ?? NSNull() }
+    return ["total": value(reading.total), "liters": value(reading.liters),
+            "unitPrice": value(reading.unitPrice),
+            "reasons": ["total": reason(reading.total), "liters": reason(reading.liters),
+                        "unitPrice": reason(reading.unitPrice)]]
 }
 
 if let windows = request.windows, !windows.isEmpty {
@@ -184,6 +190,7 @@ if let windows = request.windows, !windows.isEmpty {
     let law = PumpReadingLaw.resolve(windows: reads.map { PumpLocatedWindow(field: $0.field, cells: $0.cells) },
                                      currency: currency, priceBand: nil)
     reply["committed"] = committed(law)
+    reply["abstainReason"] = law.reason?.rawValue ?? NSNull()
 } else {
     // Stage timings ride along so the annotator (and a latency question) can
     // see where the live path spends its time.
@@ -204,6 +211,7 @@ if let windows = request.windows, !windows.isEmpty {
         try reader.readPhoto(image: image, rotationCW: (request.rotationCW ?? 0), currency: currency, priceBand: nil)
     }
     reply["committed"] = committed(reading)
+    reply["abstainReason"] = reading.reason?.rawValue ?? NSNull()
     let upright = PumpPanelLocator.rotatedRGB(image, rotationCW: (request.rotationCW ?? 0))
     if let detector, let cg = PumpQuadWarp.makeImage(upright.pixels, width: upright.width, height: upright.height) {
         timings["detectorOnly"] = timed("detectorOnly") { detector.detect(in: cg).count }

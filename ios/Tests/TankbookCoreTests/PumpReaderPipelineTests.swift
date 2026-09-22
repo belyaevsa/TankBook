@@ -54,6 +54,13 @@ struct PumpReaderPipelineTests {
         return "other"
     }
 
+    /// A reason histogram, most frequent first, ties by reason name so a run
+    /// is reproducible.
+    static func histogram(_ counts: [PumpAbstentionReason: Int])
+        -> [(key: PumpAbstentionReason, value: Int)] {
+        counts.sorted { $0.value != $1.value ? $0.value > $1.value : $0.key.rawValue < $1.key.rawValue }
+    }
+
     /// The shipped classifier, or a candidate under `PUMP_MODEL=<path>` so a
     /// retrain can be scored on the heldout split before it is copied into the bundle.
     private static let modelURL = ProcessInfo.processInfo.environment["PUMP_MODEL"].map { URL(fileURLWithPath: $0) }
@@ -72,6 +79,12 @@ struct PumpReaderPipelineTests {
         var fixturesAllRight = 0, fixturesScored = 0
         var wrong: [String] = []
         var perHead: [String: (committed: Int, correct: Int)] = [:]
+        // PU.51: the reason histogram over the stills that commit nothing, and
+        // over the fields that abstain in a partial read. Pure diagnosis -
+        // nothing here feeds back into the read.
+        var abstainedStills = 0
+        var stillReasons: [PumpAbstentionReason: Int] = [:]
+        var fieldReasons: [PumpAbstentionReason: Int] = [:]
         let start = Date()
         for (name, value) in root.sorted(by: { $0.key < $1.key }) {
             guard name != "_about", let ann = value as? [String: Any], let want = expected[name],
@@ -94,6 +107,13 @@ struct PumpReaderPipelineTests {
                 ScoredCell(field: .unitPrice, reading: reading.unitPrice, want: disagrees.contains("unitPrice") ? nil : want.unitPrice),
                 ScoredCell(field: .total, reading: reading.total, want: disagrees.contains("total") ? nil : want.total),
             ]
+            for field in [reading.liters, reading.unitPrice, reading.total] where field.value == nil {
+                if let reason = field.reason { fieldReasons[reason, default: 0] += 1 }
+            }
+            if reading.committedCount == 0 {
+                abstainedStills += 1
+                if let reason = reading.reason { stillReasons[reason, default: 0] += 1 }
+            }
             var fixtureTotal = 0, fixtureRight = 0
             let head = Self.head(name)
             for cell in cells {
@@ -120,8 +140,25 @@ struct PumpReaderPipelineTests {
         for (head, score) in perHead.sorted(by: { $0.key < $1.key }) {
             print("  \(head): \(score.committed) committed, \(score.correct) correct")
         }
+        print("PU.51 live reason histogram over \(abstainedStills) stills that commit nothing:")
+        for (reason, count) in Self.histogram(stillReasons) {
+            print("  \(reason.rawValue): \(count)")
+        }
+        // Per-field reasons are set only where a single field abstains while
+        // the rest of the reading commits; a fully abstained reading names its
+        // branch on the display reason above.
+        print("PU.51 live field reason histogram over fields that abstained in a partial read:")
+        for (reason, count) in Self.histogram(fieldReasons) {
+            print("  \(reason.rawValue): \(count)")
+        }
         for line in wrong { print("  WRONG \(line)") }
-        #expect(committed >= Self.liveCommittedFloor)
+        // PU.51 is a pure addition: the reason must not move a verdict, so the
+        // committed count and its precision equal the pre-PU.51 baseline
+        // exactly, not merely clear the floors.
+        #expect(committed == Self.liveCommittedFloor,
+                "PU.51 is a pure addition: committed must equal the baseline (\(Self.liveCommittedFloor)), got \(committed)")
+        #expect(committedCorrect == committed,
+                "PU.51 is a pure addition: the baseline precision is 1.000, got \(committedCorrect)/\(committed)")
         #expect(precision >= Self.livePrecisionFloor)
     }
 
