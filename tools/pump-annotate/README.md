@@ -192,6 +192,12 @@ the ml venv runs it); the converted images are cached under
   video frame. A button with no meaning in the current view is hidden, not
   disabled, so the row reads as what can be done now. The right panel keeps only
   what is about THIS image: its windows, its negatives, its CSV row, its record.
+- **The title bar** carries a **server dot**: green while the annotator server
+  answers its heartbeat (`/api/ping`, every 5 s), red the moment it does not -
+  with a banner saying nothing can be saved. A page whose server died looks
+  exactly like a working one until a Save fails, which is how a run's edits get
+  lost. Beside the name, **⧉** copies it (⇧-click copies the frame's path,
+  ⌥-click the record).
 - **The title bar** is the top line: the fixture, the record, the frame and
   where it sits (`1/1184`), plus the frame's inliers or the record's tracked
   count. Nothing else names them - not the toolbar, not the right panel, not the

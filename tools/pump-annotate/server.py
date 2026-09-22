@@ -474,6 +474,10 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         path = urlparse(self.path).path
+        if path == "/api/ping":
+            # The page's heartbeat: no database, no disk - a dead server must
+            # answer nothing, not answer slowly, or the dot lies.
+            return self.send_json({"ok": True})
         if path in ("/", "/index.html"):
             return self.send_bytes((HERE / "index.html").read_bytes(), "text/html; charset=utf-8")
         if path == "/api/detectors":

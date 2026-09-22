@@ -13,6 +13,9 @@
   main { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden }
   #titlebar { display:flex; gap:8px; align-items:baseline; padding:4px 8px; background:var(--panel); border-bottom:1px solid var(--line); flex:none; white-space:nowrap; overflow:hidden }
   #titlebar #tbName { text-overflow:ellipsis; overflow:hidden }
+  #tbCopy { padding:0 5px; line-height:18px }
+  #serverDot { font-size:12px; line-height:1; color:#6b7280; flex:none }
+  #serverDot.up { color:var(--ok) } #serverDot.down { color:var(--bad) }
   #titlebar #tbFrame { color:var(--fg) }
   #titlebar .dim { font-size:12px }
   #toolbar { display:flex; gap:8px; align-items:center; padding:4px 8px; background:var(--panel); border-bottom:1px solid var(--line); flex:none }
@@ -83,7 +86,9 @@
        and where it sits. Nothing else names them - not the toolbar, not the
        right panel, not the banner. -->
   <div id="titlebar">
+    <span id="serverDot" title="checking the annotator server…">●</span>
     <b id="tbName">–</b>
+    <button id="tbCopy" class="quick" title="copy the name (⇧-click: the frame's path)">⧉</button>
     <span id="tbRecord" class="mono dim"></span>
     <span id="tbFrame" class="mono"></span>
     <span id="tbInfo" class="dim"></span>
@@ -363,6 +368,29 @@ async function loadRecords(n) {
 }
 // The one writer of the title bar. Everything it needs is state, so it can be
 // called from anywhere that changes what is open.
+// Is the annotator server answering? The page is useless without it and every
+// action fails silently otherwise, so a heartbeat says so before the next
+// Save does. A request that fails anywhere marks it down at once; the poll is
+// what brings it back.
+let serverUp = null, lastPingOk = 0;
+function setServerState(up) {
+  if (up) lastPingOk = Date.now();
+  if (serverUp === up) return;
+  serverUp = up;
+  const dot = $('#serverDot');
+  dot.className = up ? 'up' : 'down';
+  dot.title = up ? 'the annotator server is answering' : 'the annotator server is NOT answering – nothing can be saved (restart tools/pump-annotate/server.py)';
+  if (!up) notify('failed', 'The annotator server is not answering – nothing can be saved. Restart it, then press ⟲ reload.');
+  else if (lastPingOk && dot.dataset.seen) notify('done', 'The annotator server is back.');
+  dot.dataset.seen = '1';
+}
+async function pingServer() {
+  try {
+    const r = await fetch('/api/ping', {cache: 'no-store'});
+    setServerState(r.ok);
+  } catch (e) { setServerState(false); }
+}
+setInterval(pingServer, 5000); pingServer();
 function renderTitle() {
   $('#tbName').textContent = current || '–';
   const r = frameMode && currentRecord();
@@ -1319,6 +1347,16 @@ $('#reload').onclick = async () => {
 $('#rot').onchange = () => { touch(); fit(); draw(); };
 $('#add').onclick = () => addWindow();
 $('#framesToggle').onclick = e => { e.target.blur(); frameMode ? leaveFrames() : enterFrames(); };
+// The name is what goes into a commit message, a brief or a shell command, so
+// it is one click away; ⇧-click takes the frame's path instead of the fixture.
+$('#tbCopy').onclick = async e => {
+  const r = frameMode && currentRecord();
+  const text = (e.shiftKey && r) ? `Spike/ReceiptSpike/fixtures/pump-live/frames/${r.movie}/${r.tracked[frameIdx]}`
+             : (r && e.altKey) ? r.movie : (current || '');
+  if (!text) return;
+  try { await navigator.clipboard.writeText(text); setMsg(`copied ${text}`); }
+  catch (err) { setMsg('copy failed: ' + err); }
+};
 $('#fnResume').onclick = () => { const r = currentRecord(); if (r) goToFrame(r.tracked.indexOf(resumeFrame(r.movie))); };
 $('#fnGo').onchange = e => { goToFrame((+e.target.value || 1) - 1); e.target.blur(); };
 $('#frameSlider').oninput = e => { frameIdx = +e.target.value; showFrame(); };
