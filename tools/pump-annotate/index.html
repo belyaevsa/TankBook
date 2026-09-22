@@ -56,9 +56,10 @@
   .warn { color:var(--bad); cursor:help }
   input.prefill { color:#ffc857; font-style:italic }
   #framebar { flex:none; border-top:1px solid var(--line); background:var(--panel); padding:5px 8px; min-height:44px }
-  #frameScrub { position:relative; height:12px; margin-top:3px; background:#232935; border-radius:3px; cursor:pointer; overflow:hidden }
+  #frameScrub { position:relative; height:14px; margin-top:3px; background:#232935; border-radius:3px; cursor:pointer; overflow:hidden }
+  .scrubmask { position:absolute; top:0; bottom:0; pointer-events:none; background:rgba(14,17,22,0.72) }
   #frameMap { position:absolute; inset:0; width:100%; height:100%; pointer-events:none }
-  #frameView { position:absolute; top:0; bottom:0; pointer-events:none; border:1px solid #cfd6e4; background:rgba(255,255,255,0.14); border-radius:2px; min-width:6px }
+  #frameView { position:absolute; top:0; bottom:0; pointer-events:none; border:1px solid #fff; border-radius:2px; min-width:6px; box-shadow:0 0 0 1px rgba(0,0,0,0.5) }
   #frameHere { position:absolute; top:0; bottom:0; width:2px; pointer-events:none; background:var(--fg); opacity:0.9 }
   #frameNav { gap:6px; align-items:center; flex-wrap:wrap; margin-top:4px }
   #frameNav .sep { width:1px; height:18px; background:var(--line); margin:0 2px }
@@ -160,7 +161,7 @@
        view opens, filled only in that view. -->
   <div id="framebar">
     <div id="frameStrip"></div>
-    <div id="frameScrub" style="display:none" title="the whole record in one bar, coloured like the strip; the outlined block is the part on screen - drag it, or click to look there"><canvas id="frameMap"></canvas><div id="frameView"></div><div id="frameHere"></div></div>
+    <div id="frameScrub" style="display:none" title="the whole record in one bar, coloured like the strip; the bright block is the part on screen - drag it, or click to look there"><canvas id="frameMap"></canvas><div id="frameMaskL" class="scrubmask"></div><div id="frameMaskR" class="scrubmask"></div><div id="frameView"></div><div id="frameHere"></div></div>
     <div class="row" id="frameNav" style="display:none">
       <button id="fnResume" title="jump to the last frame you saved in this record" style="display:none">⏮ where I left</button>
       <label title="jump to a frame by its number">go to <input id="fnGo" type="number" min="1" step="1" style="width:76px"></label>
@@ -652,8 +653,13 @@ function renderScrub() {
   if (!r) return;
   const total = strip.scrollWidth || 1;
   const frac = Math.min(1, strip.clientWidth / total);
-  $('#frameView').style.left = `${(strip.scrollLeft / total) * 100}%`;
-  $('#frameView').style.width = `${frac * 100}%`;
+  const left = (strip.scrollLeft / total) * 100, width = frac * 100;
+  $('#frameView').style.left = `${left}%`;
+  $('#frameView').style.width = `${width}%`;
+  // Everything outside the view is dimmed, so the part on screen is the part
+  // that reads - an outline alone disappears on a bar of 1184 colours.
+  $('#frameMaskL').style.left = '0'; $('#frameMaskL').style.width = `${Math.max(0, left)}%`;
+  $('#frameMaskR').style.left = `${Math.min(100, left + width)}%`; $('#frameMaskR').style.width = `${Math.max(0, 100 - left - width)}%`;
   $('#frameHere').style.left = `${(frameIdx / Math.max(1, r.tracked.length - 1)) * 100}%`;
   renderScrubMap();
 }
