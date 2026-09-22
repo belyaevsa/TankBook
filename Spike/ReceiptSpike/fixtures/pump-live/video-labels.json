@@ -1266,7 +1266,7 @@
    "liters": "31.32",
    "source": "owner",
    "total": "2305.15",
-   "unitPrice": "73.60"
+   "unitPrice": "73.6"
   },
   "002.jpg": {
    "liters": "31.33",
@@ -3528,71 +3528,192 @@
    "unitPrice": "73.60",
    "via": "run"
   },
+  "307.jpg": {
+   "liters": "32.71",
+   "source": "owner",
+   "total": "2407.46",
+   "unitPrice": "73.60"
+  },
+  "308.jpg": {
+   "liters": "32.71",
+   "source": "owner",
+   "total": "2407.46",
+   "unitPrice": "73.60",
+   "via": "run"
+  },
+  "309.jpg": {
+   "liters": "32.71",
+   "source": "owner",
+   "total": "2407.46",
+   "unitPrice": "73.60",
+   "via": "run"
+  },
+  "310.jpg": {
+   "liters": "32.72",
+   "source": "owner",
+   "total": "2408.19",
+   "unitPrice": "73.60"
+  },
   "311.jpg": {
    "liters": "32.72",
-   "source": "arithmetic",
-   "total": "2408.18",
+   "source": "owner",
+   "total": "2408.19",
    "unitPrice": "73.60"
+  },
+  "312.jpg": {
+   "liters": "32.72",
+   "source": "owner",
+   "total": "2408.19",
+   "unitPrice": "73.60",
+   "via": "copied"
+  },
+  "313.jpg": {
+   "liters": "32.73",
+   "source": "owner",
+   "total": "2408.93",
+   "unitPrice": "73.60"
+  },
+  "314.jpg": {
+   "liters": "32.73",
+   "source": "owner",
+   "total": "2408.93",
+   "unitPrice": "73.6"
+  },
+  "315.jpg": {
+   "liters": "32.73",
+   "source": "owner",
+   "total": "2408.93",
+   "unitPrice": "73.6",
+   "via": "run"
   },
   "316.jpg": {
    "liters": "32.75",
-   "source": "arithmetic",
+   "source": "owner",
    "total": "2410.40",
    "unitPrice": "73.60"
   },
   "317.jpg": {
    "liters": "32.75",
-   "source": "arithmetic",
+   "source": "owner",
    "total": "2410.40",
-   "unitPrice": "73.60"
+   "unitPrice": "73.60",
+   "via": "run"
   },
   "318.jpg": {
    "liters": "32.75",
-   "source": "arithmetic",
+   "source": "owner",
    "total": "2410.40",
+   "unitPrice": "73.60",
+   "via": "run"
+  },
+  "319.jpg": {
+   "liters": "32.76",
+   "source": "owner",
+   "total": "2411.14",
    "unitPrice": "73.60"
+  },
+  "320.jpg": {
+   "liters": "32.76",
+   "source": "owner",
+   "total": "2411.14",
+   "unitPrice": "73.60",
+   "via": "copied"
+  },
+  "321.jpg": {
+   "liters": "32.76",
+   "source": "owner",
+   "total": "2411.14",
+   "unitPrice": "73.60",
+   "via": "copied"
   },
   "322.jpg": {
    "liters": "32.77",
-   "source": "arithmetic",
+   "source": "owner",
    "total": "2411.87",
+   "unitPrice": "73.60"
+  },
+  "323.jpg": {
+   "liters": "32.77",
+   "source": "owner",
+   "total": "2411.87",
+   "unitPrice": "73.60"
+  },
+  "324.jpg": {
+   "liters": "32.77",
+   "source": "owner",
+   "total": "2411.87",
+   "unitPrice": "73.60",
+   "via": "run"
+  },
+  "325.jpg": {
+   "liters": "32.78",
+   "source": "owner",
+   "total": "2412.61",
    "unitPrice": "73.60"
   },
   "326.jpg": {
    "liters": "32.78",
-   "source": "arithmetic",
+   "source": "owner",
    "total": "2412.61",
    "unitPrice": "73.60"
   },
   "327.jpg": {
    "liters": "32.78",
-   "source": "arithmetic",
+   "source": "owner",
    "total": "2412.61",
    "unitPrice": "73.60"
   },
   "328.jpg": {
    "liters": "32.80",
-   "source": "arithmetic",
+   "source": "owner",
    "total": "2414.08",
    "unitPrice": "73.60"
   },
   "329.jpg": {
    "liters": "32.80",
-   "source": "arithmetic",
+   "source": "owner",
    "total": "2414.08",
+   "unitPrice": "73.60",
+   "via": "run"
+  },
+  "330.jpg": {
+   "liters": "32.80",
+   "source": "owner",
+   "total": "2414.08",
+   "unitPrice": "73.60",
+   "via": "copied"
+  },
+  "331.jpg": {
+   "liters": "32.81",
+   "source": "owner",
+   "total": "2414.82",
+   "unitPrice": "73.60"
+  },
+  "332.jpg": {
+   "liters": "32.81",
+   "source": "owner",
+   "total": "2414.82",
+   "unitPrice": "73.60",
+   "via": "run"
+  },
+  "333.jpg": {
+   "liters": "32.81",
+   "source": "owner",
+   "total": "2414.82",
    "unitPrice": "73.60"
   },
   "334.jpg": {
    "liters": "32.83",
-   "source": "arithmetic",
-   "total": "2416.28",
+   "source": "owner",
+   "total": "2416.29",
    "unitPrice": "73.60"
   },
   "335.jpg": {
    "liters": "32.83",
-   "source": "arithmetic",
-   "total": "2416.28",
-   "unitPrice": "73.60"
+   "source": "owner",
+   "total": "2416.29",
+   "unitPrice": "73.60",
+   "via": "run"
   },
   "336.jpg": {
    "liters": "32.83",
@@ -3602,25 +3723,33 @@
   },
   "337.jpg": {
    "liters": "32.84",
-   "source": "arithmetic",
+   "source": "owner",
    "total": "2417.02",
    "unitPrice": "73.60"
   },
   "338.jpg": {
    "liters": "32.84",
-   "source": "arithmetic",
+   "source": "owner",
    "total": "2417.02",
-   "unitPrice": "73.60"
+   "unitPrice": "73.60",
+   "via": "run"
   },
   "339.jpg": {
    "liters": "32.84",
-   "source": "arithmetic",
+   "source": "owner",
    "total": "2417.02",
-   "unitPrice": "73.60"
+   "unitPrice": "73.60",
+   "via": "run"
   },
   "340.jpg": {
    "liters": "32.85",
-   "source": "arithmetic",
+   "source": "owner",
+   "total": "2417.76",
+   "unitPrice": "73.60"
+  },
+  "341.jpg": {
+   "liters": "32.85",
+   "source": "owner",
    "total": "2417.76",
    "unitPrice": "73.60"
   },
@@ -3640,6 +3769,92 @@
    "liters": "32.86",
    "source": "arithmetic",
    "total": "2418.50",
+   "unitPrice": "73.60"
+  },
+  "345.jpg": {
+   "liters": "32.86",
+   "source": "owner",
+   "total": "2418.50",
+   "unitPrice": "73.60",
+   "via": "copied"
+  },
+  "346.jpg": {
+   "liters": "32.87",
+   "source": "owner",
+   "total": "2419.23",
+   "unitPrice": "73.60"
+  },
+  "347.jpg": {
+   "liters": "32.87",
+   "source": "owner",
+   "total": "2419.23",
+   "unitPrice": "73.60",
+   "via": "run"
+  },
+  "348.jpg": {
+   "liters": "32.87",
+   "source": "owner",
+   "total": "2419.23",
+   "unitPrice": "73.60",
+   "via": "run"
+  },
+  "349.jpg": {
+   "liters": "32.88",
+   "source": "owner",
+   "total": "2419.97",
+   "unitPrice": "73.60"
+  },
+  "350.jpg": {
+   "liters": "32.88",
+   "source": "owner",
+   "total": "2419.97",
+   "unitPrice": "73.60",
+   "via": "run"
+  },
+  "351.jpg": {
+   "liters": "32.88",
+   "source": "owner",
+   "total": "2419.97",
+   "unitPrice": "73.60",
+   "via": "run"
+  },
+  "352.jpg": {
+   "liters": "32.90",
+   "source": "owner",
+   "total": "2421.44",
+   "unitPrice": "73.60"
+  },
+  "353.jpg": {
+   "liters": "32.90",
+   "source": "owner",
+   "total": "2421.44",
+   "unitPrice": "73.60",
+   "via": "run"
+  },
+  "354.jpg": {
+   "liters": "32.90",
+   "source": "owner",
+   "total": "2421.44",
+   "unitPrice": "73.60",
+   "via": "run"
+  },
+  "355.jpg": {
+   "liters": "32.91",
+   "source": "owner",
+   "total": "2422.18",
+   "unitPrice": "73.60"
+  },
+  "356.jpg": {
+   "liters": "32.91",
+   "source": "owner",
+   "total": "2422.18",
+   "unitPrice": "73.60",
+   "via": "run"
+  },
+  "357.jpg": {
+   "liters": "32.91",
+   "source": "owner",
+   "total": "2422.18",
    "unitPrice": "73.60"
   },
   "362.jpg": {
@@ -23794,7 +24009,154 @@
  "video-031-wayne-breuillet-one-cent-litre-running-display-fr": {},
  "video-032-unknown-quebec-diesel-snow-dollars-running-display-ca": {},
  "video-033-tokheim-prix-volume-caption-band-running-display-fr": {},
- "video-034-unknown-lcd-refresh-glitch-static-5011-2170l-2309-fr": {},
+ "video-034-unknown-lcd-refresh-glitch-static-5011-2170l-2309-fr": {
+  "001.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309"
+  },
+  "002.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  },
+  "003.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  },
+  "004.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  },
+  "005.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  },
+  "006.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  },
+  "007.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  },
+  "008.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  },
+  "009.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  },
+  "010.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  },
+  "011.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  },
+  "012.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  },
+  "013.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  },
+  "014.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  },
+  "015.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  },
+  "016.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  },
+  "017.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  },
+  "018.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  },
+  "019.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  },
+  "020.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  },
+  "021.jpg": {
+   "liters": "21.70",
+   "source": "owner",
+   "total": "50.11",
+   "unitPrice": "2.309",
+   "via": "copied"
+  }
+ },
  "video-035-wayne-yellow-lcd-raquette-caption-take1-running-display-fr": {
   "019.jpg": {
    "liters": "263.1",
