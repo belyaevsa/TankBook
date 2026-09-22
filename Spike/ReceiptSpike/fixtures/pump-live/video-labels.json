@@ -22889,7 +22889,97 @@
    "unitPrice": "69.41"
   }
  },
- "video-018-tokheim-winter-clip-caption-running-display-ru": {},
+ "video-018-tokheim-winter-clip-caption-running-display-ru": {
+  "001.jpg": {
+   "liters": "0.00",
+   "source": "owner",
+   "total": "0.00",
+   "unitPrice": "67.06"
+  },
+  "002.jpg": {
+   "liters": "0.00",
+   "source": "owner",
+   "total": "0.00",
+   "unitPrice": "67.06",
+   "via": "copied"
+  },
+  "003.jpg": {
+   "liters": "0.00",
+   "source": "owner",
+   "total": "0.00",
+   "unitPrice": "67.06",
+   "via": "copied"
+  },
+  "004.jpg": {
+   "liters": "0.00",
+   "source": "owner",
+   "total": "0.00",
+   "unitPrice": "67.06",
+   "via": "copied"
+  },
+  "005.jpg": {
+   "liters": "0.09",
+   "source": "owner",
+   "total": "6.04",
+   "unitPrice": "67.06"
+  },
+  "006.jpg": {
+   "liters": "0.09",
+   "source": "owner",
+   "total": "6.04",
+   "unitPrice": "6706"
+  },
+  "007.jpg": {
+   "liters": "0.13",
+   "source": "owner",
+   "total": "8.72",
+   "unitPrice": "67.06"
+  },
+  "008.jpg": {
+   "liters": "0.13",
+   "source": "owner",
+   "total": "8.72",
+   "unitPrice": "67.06"
+  },
+  "009.jpg": {
+   "liters": "0.19",
+   "source": "owner",
+   "total": "8.02",
+   "unitPrice": "67.06"
+  },
+  "010.jpg": {
+   "liters": "0.18",
+   "source": "owner",
+   "total": "12.07",
+   "unitPrice": "67.06"
+  },
+  "011.jpg": {
+   "liters": "0.18",
+   "source": "owner",
+   "total": "12.07",
+   "unitPrice": "67.06",
+   "via": "copied"
+  },
+  "012.jpg": {
+   "liters": "0.21",
+   "source": "owner",
+   "total": "14.08",
+   "unitPrice": "67.06"
+  },
+  "013.jpg": {
+   "liters": "0.21",
+   "source": "owner",
+   "total": "14.08",
+   "unitPrice": "67.06",
+   "via": "copied"
+  },
+  "014.jpg": {
+   "liters": "0.26",
+   "source": "owner",
+   "total": "17.44",
+   "unitPrice": "67.06"
+  }
+ },
  "video-022-gilbarco-veederroot-orlen-caption-diesel-running-display-pl": {},
  "video-023-gilbarco-veederroot-orlen-night-oblique-running-display-pl": {
   "027.jpg": {

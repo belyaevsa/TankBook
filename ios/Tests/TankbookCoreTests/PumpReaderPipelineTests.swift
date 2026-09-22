@@ -80,10 +80,15 @@ struct PumpReaderPipelineTests {
             let reading = try reader.readPhoto(
                 image: image, rotationCW: rotation, currency: want.currency,
                 priceBand: want.currency.flatMap { pack.currencyBand(currency: $0) })
+            // A field the annotation marks `csvDisagrees` is unscored: the CSV
+            // carries the receipt's value where the display showed another
+            // (pump-031's discounted total), and a reader that reads the
+            // display is right, not wrong.
+            let disagrees = Set((ann["csvDisagrees"] as? [String: Any])?.keys.map { $0 } ?? [])
             let cells: [ScoredCell] = [
-                ScoredCell(field: .liters, reading: reading.liters, want: want.liters),
-                ScoredCell(field: .unitPrice, reading: reading.unitPrice, want: want.unitPrice),
-                ScoredCell(field: .total, reading: reading.total, want: want.total),
+                ScoredCell(field: .liters, reading: reading.liters, want: disagrees.contains("liters") ? nil : want.liters),
+                ScoredCell(field: .unitPrice, reading: reading.unitPrice, want: disagrees.contains("unitPrice") ? nil : want.unitPrice),
+                ScoredCell(field: .total, reading: reading.total, want: disagrees.contains("total") ? nil : want.total),
             ]
             var fixtureTotal = 0, fixtureRight = 0
             let head = Self.head(name)
@@ -158,10 +163,15 @@ struct PumpReaderPipelineTests {
                 image: image, windows: windows, currency: want.currency,
                 priceBand: want.currency.flatMap { pack.currencyBand(currency: $0) })
 
+            // A field the annotation marks `csvDisagrees` is unscored: the CSV
+            // carries the receipt's value where the display showed another
+            // (pump-031's discounted total), and a reader that reads the
+            // display is right, not wrong.
+            let disagrees = Set((ann["csvDisagrees"] as? [String: Any])?.keys.map { $0 } ?? [])
             let cells: [ScoredCell] = [
-                ScoredCell(field: .liters, reading: reading.liters, want: want.liters),
-                ScoredCell(field: .unitPrice, reading: reading.unitPrice, want: want.unitPrice),
-                ScoredCell(field: .total, reading: reading.total, want: want.total),
+                ScoredCell(field: .liters, reading: reading.liters, want: disagrees.contains("liters") ? nil : want.liters),
+                ScoredCell(field: .unitPrice, reading: reading.unitPrice, want: disagrees.contains("unitPrice") ? nil : want.unitPrice),
+                ScoredCell(field: .total, reading: reading.total, want: disagrees.contains("total") ? nil : want.total),
             ]
             var fixtureTotal = 0
             var fixtureRight = 0
