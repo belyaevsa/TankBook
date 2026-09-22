@@ -76,8 +76,12 @@
   #frameStrip span.skipped { background:repeating-linear-gradient(45deg,#7a2e2e 0 2px,#2a303a 2px 4px) }
   .neg { display:inline-block; margin:2px 4px 2px 0; padding:1px 6px; border:1px dashed #999; border-radius:4px; color:#bbb; font-size:12px }
   #frameStrip span.nextrun { position:relative } #frameStrip span.nextrun::after { content:'▲'; position:absolute; top:26px; left:1px; color:#fff; font-size:10px }
-  #banner { padding:4px 0; font-size:13px; min-height:1.4em }
-  #banner.idle { color:var(--dim) } #banner.busy { color:#ffc857 } #banner.done { color:#7fff7f } #banner.failed { color:var(--bad) }
+  #banner { display:flex; gap:8px; align-items:baseline; padding:3px 8px; font-size:13px; min-height:1.6em; background:var(--panel); border-bottom:1px solid var(--line); white-space:nowrap; overflow:hidden }
+  #bannerText { overflow:hidden; text-overflow:ellipsis }
+  #bannerTime { font-size:11px; color:var(--dim); flex:none }
+  #banner.idle { color:var(--fg) } #banner.busy { color:#ffc857 } #banner.done { color:#7fff7f } #banner.failed { color:var(--bad) }
+  #banner.settled { opacity:0.7 }
+  #banner.dirty #bannerText::after { content:' · unsaved changes'; color:#ffc857 }
   kbd { border:1px solid var(--line); border-radius:3px; padding:0 4px; font-size:11px; color:var(--dim) }
   table.keys { border-collapse:collapse; margin:4px 0 10px; width:100% } table.keys td { padding:2px 6px 2px 0; vertical-align:top; font-size:12px } table.keys td:first-child { white-space:nowrap; color:var(--fg) }
   /* compare: two models on one image, side by side */
@@ -142,6 +146,10 @@
     <span class="sep"></span>
     <span id="trackBar"><button id="recTrack" title="carry the still's windows into this record's frames (pump_reader.track)">↻ track</button><button id="retrackAll" title="re-register every non-pinned frame of this record to the reference and its anchors">↻ re-track all</button><button id="retrackFrom" title="re-register this frame and the ones after it; earlier frames keep their quads">↻ from here</button><button id="vlRerun" title="retrack the clip from its anchors, then read every tracked frame again; your labels and anchored frames are kept">⟳ retrack + read all</button></span>
   </div>
+  <!-- Row 3: the latest thing that happened, always on screen and never
+       cleared by a timer - a "saved" that vanished after four seconds could
+       not be checked after looking at the image. -->
+  <div id="banner" class="idle"><span id="bannerTime" class="mono"></span><span id="bannerText">ready</span></div>
 </div>
 <div id="righthead">
   <div id="titlebar">
@@ -152,7 +160,6 @@
     <span id="tbFrame" class="mono"></span>
     <span id="tbInfo" class="dim"></span>
   </div>
-  <div id="banner" class="idle"></div>
   <div class="row mono" id="csv"></div>
 </div>
 <main>
@@ -1027,19 +1034,28 @@ function idleText() {
   if (!current) return 'ready';
   return dirty ? 'unsaved changes' : 'ready';
 }
-function notify(kind, text) {
-  const b = $('#banner'); b.className = kind; b.textContent = text; clearTimeout(bannerTimer);
-  if (kind !== 'busy') bannerTimer = setTimeout(() => { if (b.textContent === text) { b.className = 'idle'; b.textContent = idleText(); } }, 12000);
+// One status line, the third top row. It always shows the LATEST notification,
+// stamped with its time, and nothing clears it: a result that disappears on a
+// timer cannot be read after looking back from the image. Only the colour
+// settles (a done/failed line goes dim after a while) so a fresh event still
+// stands out from an old one.
+function writeBanner(kind, text) {
+  const b = $('#banner'); clearTimeout(bannerTimer);
+  b.className = kind;
+  $('#bannerText').textContent = text;
+  $('#bannerTime').textContent = new Date().toTimeString().slice(0, 8);
+  $('#bannerText').title = text;
+  if (kind === 'done' || kind === 'failed') bannerTimer = setTimeout(() => { b.classList.add('settled'); }, 15000);
 }
-function refreshBanner() { const b = $('#banner'); if (b.className === 'idle') b.textContent = idleText(); }
-
-// The short, transient line (a save, a copy, a jump) writes the same element as
-// `notify`: one status surface, last writer wins, and it falls back to the idle
-// text rather than to nothing.
-function setMsg(t) {
-  const b = $('#banner'); b.className = 'idle'; b.textContent = t; clearTimeout(bannerTimer);
-  bannerTimer = setTimeout(() => { if (b.textContent === t) b.textContent = idleText(); }, 4000);
+function notify(kind, text) { writeBanner(kind, text); }
+// `unsaved` is state, not an event: it is appended to the current line rather
+// than replacing the last notification.
+function refreshBanner() {
+  const t = $('#bannerText'); if (!t) return;
+  t.dataset.unsaved = dirty ? '1' : '';
+  $('#banner').classList.toggle('dirty', !!dirty);
 }
+function setMsg(t) { writeBanner('idle', t); }
 // One undo step: the boxes (and, on a still, the negatives) as they were
 // before the last edit. Text typed in an input keeps the browser's own undo;
 // this stack is for what the mouse and the keys do to the quads, because those

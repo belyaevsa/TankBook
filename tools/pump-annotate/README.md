@@ -195,6 +195,12 @@ the ml venv runs it); the converted images are cached under
 - **The right header reads one fact per line** - the fixture, the record, the
   frame and its position - because a 40-character fixture name and a frame
   counter on one line leave `v…` for the name.
+- **The status line is the third top row**, under the two toolbars and above
+  the image. It always shows the LATEST notification with its time, and no
+  timer clears it - a "saved" that vanished after four seconds could not be
+  checked after looking back from the image. A done or failed line only dims
+  after 15 s, so a fresh event still stands out; unsaved edits append
+  `· unsaved changes` to whatever line is showing.
 - **The window is a grid**: row 1 is the toolbars beside the title / status /
   truth-row block, row 2 is the image beside the window cards. The cards start
   on the image's own top line whatever either header grows to, and the frames
