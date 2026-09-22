@@ -237,8 +237,11 @@ the ml venv runs it); the converted images are cached under
   processed / rotate, then the record it belongs to (which record, tracking
   verdict), then notOnDisplay and csvDisagrees.
 - The **scrub** under the strip is the strip in miniature: one column per frame
-  in that frame's own state colour (drawn on a canvas - 1184 divs of the same
-  picture stutter), so where the work is left shows at a glance, with a white
+  in that frame's own state colour, **at that tick's measured position** - a run
+  start carries a left margin, so the ticks are not evenly spaced and `index x
+  pitch` puts the bar a dozen frames off the strip; the offsets are read once
+  per render and the columns, the tick and the centring all use them (drawn on a
+  canvas - 1184 divs of the same picture stutter), so where the work is left shows at a glance, with a white
   cap on an anchored frame and the hatch colour on a skipped one. A Live record
   has no per-frame label, so its columns colour by what it does have: green for
   an anchor, red where the tracker's inliers fall under its own floor, grey

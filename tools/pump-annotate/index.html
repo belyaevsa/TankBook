@@ -636,15 +636,36 @@ function renderScrubMap() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const states = isVideo ? frameStates(r) : null;
   const weak = 30;   // the tracker's own floor: below it the registration is a guess
-  const n = r.tracked.length, step = canvas.width / n;
+  if (stripPos.length !== r.tracked.length) measureStrip();
+  const scale = canvas.width / stripContent;
   r.tracked.forEach((name, i) => {
+    const x = Math.floor((stripPos[i] ?? 0) * scale), wpx = Math.max(1, Math.ceil(stripTick * scale));
     const f = r.frames[name];
     ctx.fillStyle = f.skipped ? '#7a2e2e'
       : states ? (SCRUB_COLOURS[states[name]] || SCRUB_COLOURS.none)
       : (f.verified ? SCRUB_COLOURS.owner : (f.inliers >= 0 && f.inliers < weak) ? SCRUB_COLOURS.attention : SCRUB_COLOURS.tracked);
-    ctx.fillRect(Math.floor(i * step), 0, Math.max(1, Math.ceil(step)), canvas.height);
-    if (f.verified) { ctx.fillStyle = '#fff'; ctx.fillRect(Math.floor(i * step), 0, Math.max(1, Math.ceil(step)), Math.max(1, dpr)); }
+    ctx.fillRect(x, 0, wpx, canvas.height);
+    if (f.verified) { ctx.fillStyle = '#fff'; ctx.fillRect(x, 0, wpx, Math.max(1, dpr)); }
   });
+}
+let stripPos = [], stripContent = 0, stripTick = 11;
+function measureStrip() {
+  const strip = $('#frameStrip');
+  const ticks = strip.querySelectorAll('span[data-i]');
+  stripPos = []; stripContent = strip.scrollWidth || 1;
+  if (!ticks.length) return;
+  const base = ticks[0].offsetLeft;
+  stripTick = ticks[0].offsetWidth || 11;
+  ticks.forEach(el => stripPos.push(el.offsetLeft - base));
+  stripContent = stripPos[stripPos.length - 1] + stripTick;
+}
+// The frame whose tick covers a point in the strip's content, by its measured
+// offset - a binary search, because the offsets are not a straight line.
+function frameAtContentX(x) {
+  if (!stripPos.length) return 0;
+  let lo = 0, hi = stripPos.length - 1;
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (stripPos[mid] <= x) lo = mid; else hi = mid - 1; }
+  return lo;
 }
 function renderScrub() {
   const strip = $('#frameStrip'), scrub = $('#frameScrub');
@@ -660,7 +681,9 @@ function renderScrub() {
   // that reads - an outline alone disappears on a bar of 1184 colours.
   $('#frameMaskL').style.left = '0'; $('#frameMaskL').style.width = `${Math.max(0, left)}%`;
   $('#frameMaskR').style.left = `${Math.min(100, left + width)}%`; $('#frameMaskR').style.width = `${Math.max(0, 100 - left - width)}%`;
-  $('#frameHere').style.left = `${(frameIdx / Math.max(1, r.tracked.length - 1)) * 100}%`;
+  // The tick is where the frame's own column is on the bar - the same space
+  // the block is in, so a centred view has the tick in its middle.
+  $('#frameHere').style.left = `${(((stripPos[frameIdx] ?? 0) + stripTick / 2) / stripContent) * 100}%`;
   renderScrubMap();
 }
 window.addEventListener('resize', () => renderScrub());
@@ -673,11 +696,14 @@ function scrubTo(clientX) {
   strip.scrollLeft = scrubFraction(clientX) * strip.scrollWidth - strip.clientWidth / 2;
   renderScrub();
 }
+// The strip's width changes with the window and with the panels; the block is
+// a fraction of it, so it is re-read whenever the box does.
+if (window.ResizeObserver) new ResizeObserver(() => { if (frameMode) { measureStrip(); centreStrip(); } }).observe(document.getElementById('frameStrip'));
 function centreStrip() {
-  const strip = $('#frameStrip'); const el = strip.querySelector('span.cur');
-  if (!el) return;
-  const at = el.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft;
-  strip.scrollLeft = at - strip.clientWidth / 2 + el.offsetWidth / 2;
+  const strip = $('#frameStrip'), r = currentRecord();
+  if (!r || !strip.scrollWidth) return;
+  if (stripPos.length !== r.tracked.length) measureStrip();
+  strip.scrollLeft = (stripPos[frameIdx] ?? 0) + stripTick / 2 - strip.clientWidth / 2;
   renderScrub();
 }
 // Where the operator left off in a record: the last frame they SAVED (a label,
@@ -727,7 +753,7 @@ function renderStrip() {
     strip.innerHTML = r.tracked.map((n, i) => `<span class="tracked ${n === cur ? 'cur' : ''} ${r.frames[n].verified ? 'anchor' : ''} ${r.frames[n].skipped ? 'skipped' : ''}" data-i="${i}" title="${n} · inliers ${r.frames[n].inliers}${r.frames[n].verified ? ' · anchor (quads placed by hand)' : ''}${r.frames[n].skipped ? ' · skipped (no display)' : ''}"></span>`).join('');
     legend.innerHTML = `grey = tracked from the still · white outline = anchor (quads you placed) · drag a quad to anchor a frame · <kbd>⇧⏎</kbd> marks tracking ok and saves`;
     strip.querySelectorAll('span[data-i]').forEach(el => el.onclick = () => { frameIdx = +el.dataset.i; showFrame(); });
-    centreStrip(); updateFrameNav();
+    measureStrip(); centreStrip(); updateFrameNav();
     return;
   }
   const r = currentRecord(); const states = frameStates(r); const cur = r.tracked[frameIdx];
@@ -737,7 +763,7 @@ function renderStrip() {
   strip.innerHTML = r.tracked.map((n, i) => `<span class="${states[n]} ${n === cur ? 'cur' : ''} ${runStart.has(n) ? 'runstart' : ''} ${n === nextRunFirst ? 'nextrun' : ''} ${r.frames[n].verified ? 'anchor' : ''} ${r.frames[n].skipped ? 'skipped' : ''}" data-i="${i}" title="${n} ${states[n]}${runStart.has(n) ? ' · new value' : ''}${r.frames[n].verified ? ' · anchor (quads placed by hand)' : ''}${r.frames[n].skipped ? ' · skipped (no display)' : ''}"></span>`).join('');
   legend.innerHTML = `red = needs you (unlabelled or breaks the sequence) · yellow = reader pre-fill to confirm · green = labelled · teal = interpolated between keyframes · ▲ next unique value (<kbd>⇧→</kbd>) · gap = value changes`;
   strip.querySelectorAll('span[data-i]').forEach(el => el.onclick = () => { frameIdx = +el.dataset.i; showFrame(); });
-  centreStrip(); updateFrameNav();
+  measureStrip(); centreStrip(); updateFrameNav();
 }
 function nextAttention() {
   const r = currentRecord(); const states = frameStates(r);
@@ -1487,7 +1513,7 @@ $('#frameScrub').onpointerup = e => {
   scrubbing = false;
   try { $('#frameScrub').releasePointerCapture(e.pointerId); } catch (err) {}
   const r = currentRecord();
-  if (r) goToFrame(Math.round(scrubFraction(e.clientX) * (r.tracked.length - 1)));
+  if (r) goToFrame(frameAtContentX(scrubFraction(e.clientX) * stripContent));
 };
 $('#frameStrip').onscroll = () => renderScrub();
 $('#rec').onchange = () => { frameIdx = 0; showRecordInfo(); if (frameMode) showFrame(); };
