@@ -1,10 +1,45 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-22 (13:00; "The corpus week" below is the newest, everything under it is history).
-207 commits since 2026-09-19. The tree carries one other session's uncommitted edits (`corpus.sqlite`,
+*Updated 2026-09-22 (evening; "The plan" immediately below is the newest, then "The corpus week",
+and everything under that is history). 213 commits since 2026-09-19. The tree carries one other session's uncommitted edits (`corpus.sqlite`,
 `pump/windows.json` - the owner's annotator work); commit them by explicit path when that session
 is done, never `git add -A`. Read this, then `CLAUDE.md`, then `docs/DEVELOPMENT-TIMELINE.md`, then
-`docs/TASKS.md`'s index (131 open, 463 closed).*
+`docs/TASKS.md`'s index (144 open, 464 closed).*
+
+## The plan (2026-09-22, after the whole-story review) - read this before picking anything up
+
+`agents/reviews/PUMP-DECIDE-2026-09-22-fable.md` reviewed the whole pump-reader arc, PU.1 to
+PU.60. Its verdict: **the trained reader is the right architecture and the unit of work is
+wrong.** Three rows in a row were briefed against a population nobody had counted - PU.53 for 5
+heldout stills when `split.csv` says 2, PU.54 for 26 refusals when the reachable set was 9, PU.55
+for a signal that does not exist. That is a brief-writing failure, not an execution failure, and
+it is the whole explanation for two no-op rounds.
+
+**The sequencing principle: fix the instruments before doing more work measured by them.** Three
+findings are instrument faults, and every row shipped today is judged by them.
+
+| # | Row | What | Why here |
+|---|---|---|---|
+| 0 | **PU.53** | *Applied to `main`, gate running.* The live arm stops reading `rotationCW` from `windows.json` - data no phone has - and the reader searches instead. **The committed count does not move (43 -> 43 in isolation)**; what it buys is that every future live number is honest. The merge resolution points `livePath` at PU.54's floor of 47, so the run also produces the PU.53+PU.54 combined number, which neither row could produce alone. | An oracle leak in the measurement corrupts every row after it. Nothing else can be trusted until it is gone. |
+| 1 | **PU.61** (to file) | Point `PumpPhotoGate` at the reader. Its constants (53/56/53/865) are produced by `extractRecords(source: .pump)` - the **rules** parser - and asserted in `AccuracyRatchetTests.swift:278-286`. | The reader can reach any accuracy at all and the ship decision cannot move. **PU.6 is unanswerable by construction until this is fixed.** Cheap: measurement wiring, no model work. |
+| 2 | **PU.60** | Role assignment is at **0.989** against its 0.99 floor after the corpus doubled; 14 windows misassigned. | Red on `main` now, upstream of the law, and the reason PU.59's cautioned tier would be mostly wrong. Blocks PU.59. |
+| 3 | **PU.62** (to file) | `CapturePipeline.swift:78-84` fills a reader-abstained field from the rules arm at 0.946. | "The price is optional" is a fiction in the app - the user gets a rules-read price on exactly the pairs PU.54 introduced. The reader's 1.000 is not what the user sees. Blocks PU.59. |
+| 4 | **The apportionment** | The **112 vs 47 gap**: the read stage commits 112 cells on oracle quads and 47 on the app's own boxes. Apportion those ~65 cells between detection, verification, slicing and assignment, reusing `PumpLivePathDiagnosticTests.bestTruth`. Read-only, two suite passes. | The experiment PU.52 asked for and nobody ran - which is how three rows got briefed against uncounted populations. It **prices PU.58 and everything after it**. Runs in parallel with 1-3. |
+| 5 | **PU.58** | The strip trim. Still running in `../tb-pu58` as this is written; its interim arms include one that drops the live path to **31**. | **Judge it against the apportionment, never on its own numbers.** The review warns the trim as briefed may be a no-op on its motivating still (`pump-092`'s band already spans rows 6..95 of 96) and risks reproducing `PumpBoxRefiner`, deleted in PU.35. |
+| 6 | **PU.59** | The cautioned pair (decision 11's second amendment). | Only after 2 and 3. Its cautioned tier must print its own precision - on PU.54's numbers it is roughly 2 of 12 cells correct, and that is the number the owner accepted, so it has to be visible. |
+| 7 | **PU.54** | Shipped and committed (`3831a813`), ticked `[~]`. | It **closes when PU.59 lands** - the owner overruled its refusal branch, so the two are one story and one tick. |
+| 8 | Cut and tidy | Close PU.41, PU.48, PU.55, PU.5, PU.34 unbuilt; park PU.49; fix the row rot (three rows `[ ]` that shipped, `PU.49` filed twice, this file's own stale "next steps"). | Closing rows unbuilt is as valuable as adding them and nobody has done it here. |
+| 9 | Method | `docs/DEVELOPMENT-TIMELINE.md`: **a brief counts its population before it is written.** | The rule that would have stopped PU.53, PU.54 and PU.55 being briefed as they were. |
+
+**Not on the list: anything for speed.** Measured on Release: the pump decision is **13-73 ms**,
+`classify`+read **112-164 ms**. Every remaining latency idea in the backlog (PU.53's app search,
+PU.49's retry, PU.19's fusion) makes it slower for zero measured cells. What the user actually
+waits for in J4 is the receipt OCR arm `CapturePipeline` awaits **serially after** the reader -
+a different row from any of these, and not yet filed.
+
+**One process fix falls out of it:** `swift test` has exited 1 as "pre-existing" in every PU checks
+table since PU.47. That is exactly how PU.60's red floor went unfiled for a week. `docs/TESTING.md`
+should name which reds are allowed to be pre-existing.
 
 ## The corpus week (2026-09-20 → 22): what the successor inherits
 
