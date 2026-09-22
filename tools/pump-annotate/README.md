@@ -161,7 +161,10 @@ the ml venv runs it); the converted images are cached under
   has M · 20 ms` in the toolbar. A resident `pump-read --slice-serve` answers
   (`slicer.py`; the optimised build under `ios/.build/opt`, made on first use -
   the first request on a still also pays its decode, ~100-400 ms); no model
-  runs and nothing is written. Off, the overlay only appears after ▶ read.
+  runs and nothing is written; the count and the separator land on the window's
+  own card (`cells N`, and the ⚠ when the typed separator sits in another cell),
+  where they read against that window's text. Off, the overlay only appears
+  after ▶ read.
   Board cells slice too (each keyed by its index, so four board cells keep
   four overlays); only ▶ read leaves boards out, because the law never reads one.
 - In the frames view the zoom and scroll survive stepping frames (one

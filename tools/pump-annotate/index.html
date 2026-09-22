@@ -94,10 +94,8 @@
     <label title="frames per second">fps <input id="fps" type="number" min="1" max="60" value="12" style="width:52px"></label>
     <label title="start playing as soon as a Live photo or movie opens"><input type="checkbox" id="autoplay"> autoplay</label>
     <label title="the row detector ⇧R runs: the one in the app bundle, or a candidate a training round left behind">det <select id="detector" style="max-width:240px"></select></label>
-    <span id="detectorVersion" class="mono dim" title="the version ⇧R will run"></span>
     <label><input type="checkbox" id="loop" checked> loop</label>
     <label title="while a box is dragged, nudged or turned, the slicer's cells are drawn on it as it will be cut (resident pump-read, ~20 ms)"><input type="checkbox" id="liveSlice"> live slicers</label>
-    <span id="sliceInfo" class="dim mono"></span>
     <label id="keepShapeLabel" style="display:none" title="on a frame, dragging a corner moves the whole window instead of resizing it - the shape comes from the still or the reference frame, so every frame's quad has the same margins"><input type="checkbox" id="keepShape" checked> keep shape</label>
   </div>
   <!-- Row 2: what is the same whatever is open - the one Save (its label and
@@ -1201,14 +1199,13 @@ async function loadDetectors() {
   $('#detector').value = has ? saved : shipped;
   showDetectorVersion();
 }
-// The version stays on screen, not only inside the closed dropdown: a candidate
-// is one keystroke from looking like the shipped model otherwise.
+// The version is in the select's own option text (`name · tag · date · stills
+// · sha`), so the closed dropdown already names what ⇧R will run; the tooltip
+// carries the rest.
 function showDetectorVersion() {
   const d = detectors.find(x => x.path === $('#detector').value);
-  const el = $('#detectorVersion');
-  el.textContent = d ? (d.shipped ? '★ ' : '⚗ ') + d.version : '';
-  el.style.color = d && !d.shipped ? 'var(--unitPrice)' : '';
-  el.title = d ? `${d.path} · ${d.mb} MB${d.boxes ? ` · ${d.boxes} boxes` : ''}${d.shipped ? ' · identical to the app bundle' : ' · a candidate, not shipped'}` : '';
+  $('#detector').title = d ? `${d.path} · ${d.mb} MB${d.boxes ? ` · ${d.boxes} boxes` : ''}${d.shipped ? ' · identical to the app bundle' : ' · a candidate, not shipped'}`
+                          : 'the row detector ⇧R runs';
 }
 $('#detector').onchange = e => {
   try { localStorage.setItem('annotator.detector', e.target.value); } catch (err) {}
@@ -1223,7 +1220,7 @@ loadDetectors();
 // server (`superseded`), so the overlay follows the mouse without a backlog.
 let sliceInFlight = false, sliceAgain = false;
 try { $('#liveSlice').checked = localStorage.getItem('annotator.liveSlice') === '1'; } catch (e) {}
-$('#liveSlice').onchange = e => { try { localStorage.setItem('annotator.liveSlice', e.target.checked ? '1' : '0'); } catch (err) {} if (!e.target.checked) $('#sliceInfo').textContent = ''; };
+$('#liveSlice').onchange = e => { try { localStorage.setItem('annotator.liveSlice', e.target.checked ? '1' : '0'); } catch (err) {} };
 async function liveSlice() {
   if (!$('#liveSlice').checked || sel < 0 || !editable()[sel]) return;
   if (sliceInFlight) { sliceAgain = true; return; }
@@ -1236,11 +1233,12 @@ async function liveSlice() {
       readCells = readCells && readCells.image === image ? readCells : {image, cells: [], byField: {}};
       readCells.byField[cellKey(w, sel)] = win.sliced;
       readCells.cells = Object.values(readCells.byField).flat();
-      const gc = typeof glyphCount === 'function' ? glyphCount(w.text || '') : null;
-      $('#sliceInfo').textContent = `${win.field}: ${win.cells} cells${win.dpCell !== null && win.dpCell !== undefined ? ` · dp at ${win.dpCell + 1}` : ''}${gc !== null && w.text ? (gc === win.cells ? ' · matches text' : ` · text has ${gc}`) : ''} · ${res.roundTripMs ?? res.ms} ms`;
+      // The count and the dp land on the window's own card (`cells N`, and the
+      // separator warning), where they can be read against that window's text.
+      renderWins();
       draw();
-    } else if (res.error) { $('#sliceInfo').textContent = 'live slicer: ' + res.error; }
-  } catch (err) { $('#sliceInfo').textContent = 'live slicer: ' + err; }
+    } else if (res.error) { setMsg('live slicer: ' + res.error); }
+  } catch (err) { setMsg('live slicer: ' + err); }
   sliceInFlight = false;
   if (sliceAgain) { sliceAgain = false; liveSlice(); }
 }
