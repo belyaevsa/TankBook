@@ -1887,3 +1887,95 @@ Reverted byte-identical: **46 passed** (44 + 2 new).
   replacement, so the stale form is superseded, not removed. No row owns the historical note.
 - **`PumpReaderTestSupport.detectorURL` reads `.out/det/DigitRows.mlmodel`, not the shipped
   resource** - already filed in PU.48; unchanged here.
+
+## PU.55 - the clip guard: the diagnosis does not reproduce (2026-09-22)
+
+Read-only measurement; **no code shipped**. `PU.52`'s §4 ranks a clip guard at the slicer first,
+on the reading that `pump-092`'s PU.48 box "clipped the trailing digit of liters". The brief
+instructs: reproduce the failure first and stop if the clip is not there. It is here, and so is
+the failure - but the clip is not what drops the cell, and the edge the guard would measure
+carries no ink. The row is mis-scoped, not mis-implemented.
+
+### The failure reproduces
+
+Under the PU.48 candidate (`ml/pump-reader/.out/det/pu48/DigitRows-pu48.mlmodel`, `d18531eb…`),
+`pump-092` live commits litres `3` and total `191.55` for `30.00` / `1915.5`; the row strings are
+liters `30.0` (3 cells), total `19165` (5 cells), unitPrice `63.85` (4 cells) - the review's
+strings exactly. The litres box is `0.4709..0.6717` raw (`0.4629..0.6797` after the widening),
+against the oracle's `0.5035..0.6939`: short at the right edge, so the box is clipped as claimed.
+
+### The clip is not what drops the cell - the box's height is
+
+Four slices of the same still, holding one axis to the oracle and the other to the detector:
+
+| quad | horizontal | vertical | litres reads |
+|---|---|---|---|
+| raw box | detector | detector | `30.0` (3 cells) |
+| raw LR + oracle H | detector | oracle | `30.01` (4 cells) |
+| oracle LR + raw H | oracle | detector | `30.0` (3 cells) |
+| oracle | oracle | oracle | `30.00` (4 cells) |
+
+The count is a function of the box's **vertical** extent alone. The raw box (`y 0.4407..0.5476`)
+is 21 % taller than the oracle (`0.4421..0.5301`) and reaches the bezel below the digits; its
+ink band runs `6..95` of a 96-px strip, so the band, pitch and run threshold are all computed on
+a strip that includes the panel edge. The horizontal clip changes the trailing digit's *value*
+(`30.00` -> `30.01`) but never its count. A left/right edge guard cannot see this; a guard on the
+band touching the strip's top or bottom edge would - except `pump-092`'s correct unit price has a
+full-height band too (`band 0..95`) and reads fine, so that signal needs a second term.
+
+### The edge carries no cut ink
+
+Measured with the slicer's own `prepare` context (`ink` map, run threshold, pitch), on the raw and
+widened litres strips and on the oracle:
+
+| strip | edge column ink (band avg) | longest vertical run at the edge | nearest run gutter (pitch) |
+|---|---|---|---|
+| oracle litres | L 0.009 / R 0.009 | 0 / 0 | 0.26 / 1.16 |
+| raw litres (clipped) | L 0.028 / R 0.018 | 0.09 / 0.06 | 0.95 / 0.67 |
+| widened litres | L 0.023 / R 0.035 | 0.09 / 0.16 | 1.10 / 0.84 |
+
+The clipped strip's edge is *quieter* than the framed one: the box cuts the trailing `0`'s right
+bar, and what remains is its left bar, ~5-14 px inside the edge and faint (peak contrast ~0.25,
+below the slicer's pixel ink threshold for most of the band). There is no "ink running off the
+edge" to key on. `pump-096`'s three PU.48 rows are the same: no edge run above 0.35 anywhere.
+
+### Both literal guards fail, in the two ways the brief's traps name
+
+- **Fire on edge ink (low bound):** committed falls **41 -> 3** on the heldout live path under
+  PU.48 - precision 1.000 bought by refusing almost every row. This is PU.13's 81.5 % right-edge
+  ink with the sign the review missed: on a *detected* strip the touching glyph's full run sits at
+  the edge, so "edge ink" is the norm, and the clipped fragment is the quiet case.
+- **Require a vertical bar and a gutter:** fires on nothing. Committed is unchanged at **41**;
+  `pump-092` still commits `3` / `191.55`.
+
+### The baseline the brief quotes has moved
+
+The brief's L5 target is "today 36 / 0.944 with pump-092 and pump-096 wrong". On the current tree
+under PU.48 the live arm reads **41 committed, 39 correct, 0.951**, with `pump-092` the only
+WRONG still (liters and total) - `pump-096` no longer commits wrong. The shipped detector is
+unchanged at **43 / 1.000** (floor held). The 36 / 0.944 figure predates the classifier/law work
+between the review and this dispatch.
+
+### State left behind
+
+Source byte-identical to `HEAD` (`git status` clean under `ios/`); the shipped detector restored
+(`ml/pump-reader/.out/det/DigitRows.mlmodel` = `b560fef2…`, the PU.48 candidate kept only at
+`pu48/DigitRows-pu48.mlmodel` = `d18531eb…`). Scratch measurements under
+`ios/.build/pump-reader-out/pu55/`.
+
+### What a working row would be
+
+The defect is the detector's box height, not a sub-pixel horizontal clip: the band includes the
+bezel and the slicer miscounts the trailing faint glyph. PU.57's tight-IoU gate is the detector
+half (PU.48's median IoU 0.772 and recall@0.7 0.706 would have refused the box). The read half is
+a vertical-framing guard or a band-trim before the pitch is taken - neither is PU.55's left/right
+edge-ink invariant, and neither is measured yet. No row owns the re-scope; this section is the
+filing.
+
+### Checks
+
+| check | exit | note |
+|---|---|---|
+| `swift test --filter PumpReaderPipelineTests/livePath` (shipped) | 0 | committed **43**, correct 43, precision **1.000** |
+| `swift test --filter PumpReaderPipelineTests/livePath` (PU.48, no guard) | test fails its stale floor | committed **41**, correct 39, precision **0.951**; WRONG `pump-092` liters/total |
+| `swift build` / `swiftlint lint` | not run | nothing shipped; the tree is `HEAD` |
