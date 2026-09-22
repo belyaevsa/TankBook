@@ -3335,25 +3335,858 @@
    "filed": 285,
    "closed": 251,
    "open": 34
+  },
+  {
+   "h": "389f6f9",
+   "date": "2026-09-15 14:33",
+   "subj": "PJ.301-303 filed: multi-page invoices through /extract in v1.1 (owner decision); RV.286 filed: sign-in during the deletion grace is locked out - reactivate (owner decision); RV.181: device report, AirDrop reaches, Telegram does not",
+   "filed": 286,
+   "closed": 251,
+   "open": 35
+  },
+  {
+   "h": "8120889",
+   "date": "2026-09-15 15:10",
+   "subj": "RV.286: signing in during the deletion grace period reactivates the account; the deviceId survives sign-out",
+   "filed": 286,
+   "closed": 252,
+   "open": 34
+  },
+  {
+   "h": "5928811",
+   "date": "2026-09-15 15:10",
+   "subj": "RV.181: the diagnostics bundle is shared as a .txt file, not a string (device report: AirDrop reached, Telegram did not); RV.287 filed",
+   "filed": 287,
+   "closed": 252,
+   "open": 35
+  },
+  {
+   "h": "1288575",
+   "date": "2026-09-15 15:33",
+   "subj": "RV.288-RV.290 filed from the owner's pump photograph (self-contradicting inbox offer, pump prompt, receipt copy on a display); RV.181 second device report (photo to Telegram fails, copy works)",
+   "filed": 290,
+   "closed": 252,
+   "open": 38
+  },
+  {
+   "h": "30f6c20",
+   "date": "2026-09-18 11:38",
+   "subj": "RV.291: the resolved operand pair is never counted as a non-fuel item",
+   "filed": 292,
+   "closed": 253,
+   "open": 39
+  },
+  {
+   "h": "2055a92",
+   "date": "2026-09-18 13:19",
+   "subj": "RV.293: App Review 4.0 - Sign in with Apple is the system control, legible in light mode (RV.294/RV.295 rows, TESTING.md)",
+   "filed": 295,
+   "closed": 255,
+   "open": 40
+  },
+  {
+   "h": "1ea1b80",
+   "date": "2026-09-18 15:33",
+   "subj": "PJ.15: after-save haptic + insight toast - the engine's figure for the segment the save closed, one phrase per language, tap -> Trends (RV.296 filed: MPG/km-per-L cars print a L/100km number)",
+   "filed": 296,
+   "closed": 255,
+   "open": 41
+  },
+  {
+   "h": "9a023e5",
+   "date": "2026-09-18 15:50",
+   "subj": "PJ.30: the hero tile's trend arrow - the current window against the one before it, absent when either window does not stand on its own segments (RV.297 filed: the price tile's \u25b20.0%)",
+   "filed": 297,
+   "closed": 255,
+   "open": 42
+  },
+  {
+   "h": "add52ca",
+   "date": "2026-09-18 18:13",
+   "subj": "PJ.35: background photo prefetch after a restore or a pull - newest entry first, deferred whole under Low Power or Low Data Mode, the Restoring bar reads the real run",
+   "filed": 297,
+   "closed": 255,
+   "open": 42
+  },
+  {
+   "h": "e480713",
+   "date": "2026-09-18 18:30",
+   "subj": "PJ.24: 'Scan invoice' on ReminderComplete - two entry doors side by side, the document camera over the pre-filled service entry (RV.298 filed: the expense-kind scan door)",
+   "filed": 298,
+   "closed": 255,
+   "open": 43
+  },
+  {
+   "h": "6538cdd",
+   "date": "2026-09-18 19:20",
+   "subj": "PJ.21: share-to-Tankbook - a CSV shared from another app opens the import wizard at its source step with the file waiting (RV.299 filed: a pre-existing Import test red on the iOS 27 simulator)",
+   "filed": 299,
+   "closed": 255,
+   "open": 44
+  },
+  {
+   "h": "d5175da",
+   "date": "2026-09-18 19:42",
+   "subj": "PJ.31: price per unit by station brand on Trends - one line per brand over the last year and the sentence 'Shell costs you 4% more than Neste', absent below two brands",
+   "filed": 299,
+   "closed": 255,
+   "open": 44
+  },
+  {
+   "h": "dc76405",
+   "date": "2026-09-18 20:11",
+   "subj": "REVIEW-JOURNEYS 2026-09-18: 17 rows since 2026-09-13 walked, 0 ticked-but-untrue, 0 new rows; two doc drifts fixed (the share-sheet entry in SCREENMAP, SYNC.md's WiFi-change prefetch trigger); Station.brand has no writer until RV.115",
+   "filed": 299,
+   "closed": 255,
+   "open": 44
+  },
+  {
+   "h": "4d2f401",
+   "date": "2026-09-18 21:41",
+   "subj": "PJ.301: /extract takes every page of an invoice in one call and returns its line items - images for the invoice kind alone, bounded before the provider, every page a ledger rendition",
+   "filed": 299,
+   "closed": 255,
+   "open": 44
+  },
+  {
+   "h": "f1fd58c",
+   "date": "2026-09-18 22:09",
+   "subj": "PJ.302: match-and-merge the cloud's invoice lines onto the local split - by amount, then title, never by position; keep-mine by default; the arithmetic gate on the total",
+   "filed": 299,
+   "closed": 255,
+   "open": 44
+  },
+  {
+   "h": "758fe59",
+   "date": "2026-09-18 23:02",
+   "subj": "PJ.303: every page reaches the cloud and its lines are offered on the split - the paired strip on the row (take / keep, keep by default), a new line as a dimmed card, the doesn't-add-up flag under the total; the inbox card labels a paired line by the user's row; over the served page cap no call is made and every page is kept",
+   "filed": 299,
+   "closed": 255,
+   "open": 44
+  },
+  {
+   "h": "d868f20",
+   "date": "2026-09-18 23:46",
+   "subj": "PU: the pump reader tranche - a trained seven-segment reader instead of OCR alone; six rows filed under J4, the design in EXTRACTION.md, the approach change in the timeline, the PU.1 brief",
+   "filed": 299,
+   "closed": 255,
+   "open": 44
+  },
+  {
+   "h": "366691d",
+   "date": "2026-09-19 00:01",
+   "subj": "PU.1: the synthetic seven-segment renderer - five make profiles, 8-bit segment labels, glare/blur/perspective/ghosting/reflection augmentation, deterministic under a seed; the corpus stays held-out",
+   "filed": 299,
+   "closed": 255,
+   "open": 44
+  },
+  {
+   "h": "366d53e",
+   "date": "2026-09-19 00:14",
+   "subj": "RV.115 + RV.180: the station brand vocabulary - GET /reference/station-brands in /catalog's shape (migration 025, 126 brands with aliases and a country), the device's bundled/cached/refreshed pack, a whole-token script-insensitive matcher setting brand once at minting, the Log row and Trends keyed by brand, the brand changeable on the Confirm row and in the Garage; detectedCountry hint on /import/parse",
+   "filed": 300,
+   "closed": 257,
+   "open": 43
+  },
+  {
+   "h": "6831fee",
+   "date": "2026-09-19 00:24",
+   "subj": "PU.3 (partial): SegmentNet - 8 sigmoid segment outputs trained on PU.1 renders with technology decoupled from make, exported to Core ML (64 KB); held-out score waits on PU.2's windows.json",
+   "filed": 300,
+   "closed": 258,
+   "open": 42
+  },
+  {
+   "h": "7d36649",
+   "date": "2026-09-19 00:28",
+   "subj": "PR.20: APNs registration for the silent sync nudge - the app delegate seam, the push-token PUT once per (token, account) after sign-in, a content-available push runs the one opportunistic cycle; blob uploads defer under Low Data Mode",
+   "filed": 300,
+   "closed": 258,
+   "open": 42
+  },
+  {
+   "h": "b76279e",
+   "date": "2026-09-19 00:35",
+   "subj": "PU.2: number-window annotations for all 114 pump fixtures - quads, display strings and rotation, cross-checked against expected.csv by scripts/pump-windows-check.py",
+   "filed": 300,
+   "closed": 258,
+   "open": 42
+  },
+  {
+   "h": "0c15440",
+   "date": "2026-09-19 00:37",
+   "subj": "PU.3: the held-out score on the real windows - per-glyph 0.123 through the naive equal-width slicer, which is what the number measures; the cell sheet is the diagnosis PU.4 builds against",
+   "filed": 300,
+   "closed": 258,
+   "open": 42
+  },
+  {
+   "h": "881733a",
+   "date": "2026-09-19 01:03",
+   "subj": "RV.122: reminder chips across the top of Home - one amber chip per due reminder of the selected car in due order, saying what and when or how far, overdue in words; 'All reminders' is the last chip; nothing due, no strip",
+   "filed": 300,
+   "closed": 259,
+   "open": 41
+  },
+  {
+   "h": "3d19573",
+   "date": "2026-09-19 01:21",
+   "subj": "RV.118: the headline says what it is made of - '5 fills \u00b7 last 90 days \u00b7 5 full tanks' under the figure on Home and as the Trends tile caption, read off the engine's own span; under the floor the count it has, never an average",
+   "filed": 300,
+   "closed": 260,
+   "open": 40
+  },
+  {
+   "h": "d8e8666",
+   "date": "2026-09-19 01:32",
+   "subj": "RV.119: the Log's month divider carries the month - distance, the closing segments' consumption, cost per km, and the spend against the month before, only when both months are complete, two fills each and the month is over",
+   "filed": 300,
+   "closed": 261,
+   "open": 39
+  },
+  {
+   "h": "500937c",
+   "date": "2026-09-19 01:42",
+   "subj": "PU.4 (partial): the digit slicer and a first-cut locator in Swift, scored against windows.json - count agreement 0.40, classifier 0.175 per-glyph on aligned cells; the two gaps filed as PU.7 (render realism) and PU.8 (slicer on faint displays); lint excludes the training venv",
+   "filed": 300,
+   "closed": 261,
+   "open": 39
+  },
+  {
+   "h": "10be646",
+   "date": "2026-09-19 02:13",
+   "subj": "RV.120: the fill pattern card - distance between fills, frequency, range left on a tank the user's own fills corroborated, the month's pace as a labelled prediction; each absent rather than guessed, none under the floor; HANDOVER for the second 1.1 tranche",
+   "filed": 300,
+   "closed": 262,
+   "open": 38
+  },
+  {
+   "h": "1c70a5c",
+   "date": "2026-09-19 03:31",
+   "subj": "PU.7: render realism ablated - bold and slant help, neighbour spill and contrast collapse hurt; shipped recipe bold + slant, retrained and re-exported; framing sensitivity filed as PU.9",
+   "filed": 300,
+   "closed": 262,
+   "open": 38
+  },
+  {
+   "h": "5e0fb04",
+   "date": "2026-09-19 03:57",
+   "subj": "PU.9: train on the slicer's own framing - held-out per-glyph 0.105 -> 0.215 on count-correct windows, 0.091 -> 0.177 on all; the model re-exported",
+   "filed": 300,
+   "closed": 262,
+   "open": 38
+  },
+  {
+   "h": "787cda7",
+   "date": "2026-09-19 04:03",
+   "subj": "TASKS: the nudge-sender row filed under PR.20 collided with the existing PR.30 (reminder fire hours) - renumbered PR.37",
+   "filed": 300,
+   "closed": 262,
+   "open": 38
+  },
+  {
+   "h": "0987512",
+   "date": "2026-09-19 04:35",
+   "subj": "PU.10: the training material reviewed against the real cells - ghost never lighter than ground, pitch-wide cells, six LCD palettes and an LCD-heavy prior, augmentation tamed; held-out per-glyph 0.215 -> 0.400 on count-correct windows",
+   "filed": 300,
+   "closed": 262,
+   "open": 38
+  },
+  {
+   "h": "d2deafb",
+   "date": "2026-09-19 05:04",
+   "subj": "RV.296 + RV.297: a MPG or km/L car reads its own unit everywhere - one per100-to-display conversion in core, the Trends arrow and percent following the displayed figure, the toasts, quotes, divider and anomaly card converted; the price caption treats a sub-1% move as no move",
+   "filed": 300,
+   "closed": 264,
+   "open": 36
+  },
+  {
+   "h": "f03ac3d",
+   "date": "2026-09-19 05:23",
+   "subj": "RV.298: an expense reminder's completion offers Scan receipt beside Type amount - the Capture screen opens in Expense mode over the sheet with the completion carried through, and a cover closed without a save drops the hand-off",
+   "filed": 300,
+   "closed": 265,
+   "open": 35
+  },
+  {
+   "h": "0627cea",
+   "date": "2026-09-19 05:23",
+   "subj": "PR.37 cut: the nudge sender already exists (P4.8's SyncNudgeService) - NOTIFICATIONS.md and SYNC.md corrected, the trigger guard re-pinned to the sender's name",
+   "filed": 300,
+   "closed": 265,
+   "open": 35
+  },
+  {
+   "h": "8d86272",
+   "date": "2026-09-19 06:04",
+   "subj": "PJ.44: the stored parse is deleted on every wizard exit - onDisappear cancels an unconfirmed flow, so Back-to-source then Close no longer leaves a parse in blob storage; the stub counts DELETEs for the L4",
+   "filed": 300,
+   "closed": 265,
+   "open": 35
+  },
+  {
+   "h": "d4e8f20",
+   "date": "2026-09-19 07:18",
+   "subj": "PJ.40: the S5 \"came back - stays archived\" card is real - the resurrect writes a device-local vehicleReturn notice (one per car, counting arriving entries), Home and the Garage render it, Delete again re-tombstones dirty and Keep consumes it; the -forceArchivedReturned fixture is gone; the duplicate-card L4 scrolls before asserting hittable",
+   "filed": 300,
+   "closed": 265,
+   "open": 35
+  },
+  {
+   "h": "942406b",
+   "date": "2026-09-19 08:06",
+   "subj": "RV.300: the flaky-under-load tests - backend: PostgresFixture clears each finished test database's Npgsql pool (505 peak connections against max_connections=500 became 42; 18 consecutive runs green); iOS: the trigger suite's wait is a named 30 s liveness ceiling, the cycle-count assertions unchanged (10 runs green under load)",
+   "filed": 300,
+   "closed": 265,
+   "open": 35
+  },
+  {
+   "h": "ff3ebcd",
+   "date": "2026-09-19 09:05",
+   "subj": "PU.16: decode to valid seven-segment patterns (PU.11 review F1) - digit accuracy 0.532 -> 0.666 on count-correct windows with no retraining; the two reviews landed",
+   "filed": 300,
+   "closed": 265,
+   "open": 35
+  },
+  {
+   "h": "2704e98",
+   "date": "2026-09-19 09:13",
+   "subj": "RV.299: the send-us-the-file consent sheet presented EMPTY on iOS 27 for a real tap - a sheet(isPresented:) whose content was an if-let over state set in the same transaction; now sheet(item:) with the staged file as the item; the L4 taps the card and the button (-seedSendFilePick stages the fixture in place of the picker), 3/3 green; the RV.88 section moved out of ImportUITests",
+   "filed": 300,
+   "closed": 266,
+   "open": 34
+  },
+  {
+   "h": "12a4050",
+   "date": "2026-09-19 09:14",
+   "subj": "Pump reader: the product owner's decisions of 2026-09-19 recorded (gate = transaction fields only, Live Photo capture, geometry calibrated on aggregate statistics); the scorer's headline is transaction-only; PU.17-20 filed from the two reviews",
+   "filed": 300,
+   "closed": 266,
+   "open": 34
+  },
+  {
+   "h": "6e9ff47",
+   "date": "2026-09-19 09:39",
+   "subj": "PJ.39: the interrupted-restore row - RestoreOutcome.interrupted(stats?) for an offline pull (and a server drop after pages landed), RestoreInterruptedView with what landed so far, Open my garage (partial, keeps filling) and Retry now; F7 gains the promise and its status line clears; the restore providers moved out of SignInFlow.swift",
+   "filed": 300,
+   "closed": 266,
+   "open": 34
+  },
+  {
+   "h": "063b98b",
+   "date": "2026-09-19 09:42",
+   "subj": "TASKS: 38 shipped rows move to TASKS-DONE (88 open, 463 closed); HANDOVER numbers follow",
+   "filed": 300,
+   "closed": 266,
+   "open": 34
+  },
+  {
+   "h": "d2a2173",
+   "date": "2026-09-19 10:11",
+   "subj": "PU.17+PU.18: the comma drawn where displays draw it, training cells calibrated on the corpus's aggregate geometry, one strip resolution; digit-only 0.698 -> 0.717, dp 0.74 -> 0.79; the decode-design and lifecycle reviews landed",
+   "filed": 300,
+   "closed": 266,
+   "open": 34
+  },
+  {
+   "h": "f1657cd",
+   "date": "2026-09-19 10:40",
+   "subj": "PU.27: round 4 - contrast collapse on under the calibrated framing, interior blank cells kept in the slicer (count agreement 0.63), PumpSegmentsModel.swift with the Core ML wrapper and constrained decoder validated against the Python model; digit-only 0.732 on count-correct transaction windows",
+   "filed": 300,
+   "closed": 266,
+   "open": 34
+  },
+  {
+   "h": "d6c9ba8",
+   "date": "2026-09-19 10:59",
+   "subj": "PU.28: the oracle's second pass (three strings corrected by eye) and the rotation the consumers never applied - quads rolled into reading order in Swift and Python, three fixtures re-annotated 270 -> 90; count agreement 273 -> 282/433",
+   "filed": 300,
+   "closed": 266,
+   "open": 34
+  },
+  {
+   "h": "347759d",
+   "date": "2026-09-19 11:23",
+   "subj": "Merge main into pump-reader (the index regenerated)",
+   "filed": 300,
+   "closed": 266,
+   "open": 34
+  },
+  {
+   "h": "633ffff",
+   "date": "2026-09-19 11:24",
+   "subj": "Pump reader: decisions 6-8 recorded (receipt is the truth, alpha notice while the gate is off, automatic locator); PU.21-24 and PU.29 filed from the decode-design and lifecycle reviews",
+   "filed": 300,
+   "closed": 266,
+   "open": 34
+  },
+  {
+   "h": "74a2a0a",
+   "date": "2026-09-19 11:51",
+   "subj": "RV.292: the two confident-wrong litres - the unit-convention rule keyed on the footnote's structure and every glyph a sideways read leaves, a 10+-digit run with a tail letter is an identifier; the whole-class litres property added beside totals and kinds (proxy-run on macOS 27: 068/072 clean, six runtime-drift volumes recorded on RV.295)",
+   "filed": 300,
+   "closed": 267,
+   "open": 33
+  },
+  {
+   "h": "7cd7702",
+   "date": "2026-09-19 11:59",
+   "subj": "RV.114: the eight images were scored by the 09-08/09-09 corpus commits - closed by measurement; CorpusPairTests registers the 18 matched pump/receipt pairs (oracle agreement everywhere, extraction agreement on the measured runtime) and EXTRACTION.md records the orientation decision - no pre-rotation, Vision reads rotated text itself",
+   "filed": 300,
+   "closed": 268,
+   "open": 32
+  },
+  {
+   "h": "39e1c12",
+   "date": "2026-09-19 12:07",
+   "subj": "PU.21+PU.22: the decode law in Swift (284/320 at 0.996 on the annotated strings, exact tier, windows in nats, preset and truncated tiers) and the reader end to end on real cells (32 committed at 0.938, 9/114 photos every field right)",
+   "filed": 300,
+   "closed": 268,
+   "open": 32
+  },
+  {
+   "h": "d0e4a2e",
+   "date": "2026-09-19 12:10",
+   "subj": "PU.20: the abstention frontier - five-crop TTA and label smoothing; 0.99 precision holds to 25 % coverage (was 13 %), digit-only 0.762; the smoothed model shipped, real-cell gate-mirror 39 committed at 0.949, 12/114 photos every field right",
+   "filed": 300,
+   "closed": 268,
+   "open": 32
+  },
+  {
+   "h": "b7a05b9",
+   "date": "2026-09-19 12:13",
+   "subj": "RV.179: the station extractor measured - 31/59 (53%) - from a station column written off the fixture filenames and cross-checked against the OCR, 14 blanks each with a reason, scored as its own class so the receipts marks stand; the matcher reads a Latin look-alike inside a Cyrillic word",
+   "filed": 300,
+   "closed": 269,
+   "open": 31
+  },
+  {
+   "h": "46df145",
+   "date": "2026-09-19 12:24",
+   "subj": "PU.23: row assignment from geometry (451/456), boards tried as the price by the law (oracle 294/320 at 0.997), minimum-cell sanity in the reader",
+   "filed": 300,
+   "closed": 269,
+   "open": 31
+  },
+  {
+   "h": "65ff1ea",
+   "date": "2026-09-19 12:36",
+   "subj": "RV.288: the inbox gates a fuel reading's numbers on their own arithmetic - three that cannot coexist are withheld together and the card says so, two are checked against the user's third, a zero read is nil; every seeded and fixture reading made self-consistent",
+   "filed": 300,
+   "closed": 270,
+   "open": 30
+  },
+  {
+   "h": "cff3258",
+   "date": "2026-09-19 12:38",
+   "subj": "RV.290 blocked, RV.289 evidence: the app sends kind \"receipt\" for every fill-up capture - the pump mode ships off, no dispenser is ever classified, so the inbox has no kind to carry and the owner's display was read under the receipt prompt",
+   "filed": 300,
+   "closed": 270,
+   "open": 30
+  },
+  {
+   "h": "f09fff8",
+   "date": "2026-09-19 15:31",
+   "subj": "PU.29: the classification stage and the alpha notice - a frame the reader vouches for runs the pump reader on capture, attach, re-attach and replace; the photo kind is marked on the attachment (pump-reader v1), the entry (.pumpPhoto) and the gateway request (kind pump); PumpPhotoCapture frames rather than withholds below the gate",
+   "filed": 300,
+   "closed": 270,
+   "open": 30
+  },
+  {
+   "h": "b0d7ab3",
+   "date": "2026-09-19 15:43",
+   "subj": "Merge branch 'pump-reader'",
+   "filed": 300,
+   "closed": 270,
+   "open": 30
+  },
+  {
+   "h": "aead046",
+   "date": "2026-09-19 15:43",
+   "subj": "RV.290 unblocked by PU.29: the capture knows a pump display now",
+   "filed": 300,
+   "closed": 270,
+   "open": 30
+  },
+  {
+   "h": "69d2c07",
+   "date": "2026-09-19 17:09",
+   "subj": "Corpus batch 4: two Circle K Sikupilli pairs, seven Live movies, the intake skill and the media-store sync",
+   "filed": 300,
+   "closed": 270,
+   "open": 30
+  },
+  {
+   "h": "26819c9",
+   "date": "2026-09-19 20:12",
+   "subj": "Corpus: twelve third-party stills (pump-119..130) and a 41 s running-display video (video-002)",
+   "filed": 300,
+   "closed": 270,
+   "open": 30
+  },
+  {
+   "h": "49753ca",
+   "date": "2026-09-19 20:28",
+   "subj": "Corpus: seventeen third-party stills (pump-131..147), a third-party receipt (receipt-076), video-003 (a fill that ends)",
+   "filed": 300,
+   "closed": 270,
+   "open": 30
+  },
+  {
+   "h": "824bb87",
+   "date": "2026-09-19 20:33",
+   "subj": "Corpus: nine third-party stills (pump-148..156) incl. the Gilbarco Veeder-Root keypad head, and receipt-077 (TotalEnergies BE)",
+   "filed": 300,
+   "closed": 270,
+   "open": 30
+  },
+  {
+   "h": "9615629",
+   "date": "2026-09-19 20:54",
+   "subj": "Corpus: twenty-nine third-party stills (pump-161..189), receipt-078; PU.30 filed for the ladder-column heads",
+   "filed": 300,
+   "closed": 270,
+   "open": 30
+  },
+  {
+   "h": "ad28e03",
+   "date": "2026-09-19 21:23",
+   "subj": "Corpus: twenty-two third-party stills (pump-190..211) - the Tokheim Quality panel, pesos and reais; the model ratchets measure the heldout split",
+   "filed": 300,
+   "closed": 270,
+   "open": 30
+  },
+  {
+   "h": "6d5988b",
+   "date": "2026-09-20 01:30",
+   "subj": "pump_reader.frames / pump_reader.track: the Live records become labelled frames",
+   "filed": 300,
+   "closed": 270,
+   "open": 30
+  },
+  {
+   "h": "f6dbd2f",
+   "date": "2026-09-20 03:04",
+   "subj": "PU.31 shipped: the classifier retrained on synthetic + 25 085 real glyphs from the train split",
+   "filed": 300,
+   "closed": 270,
+   "open": 30
+  },
+  {
+   "h": "e8b7690",
+   "date": "2026-09-20 03:14",
+   "subj": "PU.30: row assignment learns the ladder column - 809/837 -> 834/837 (0.996)",
+   "filed": 300,
+   "closed": 270,
+   "open": 30
+  },
+  {
+   "h": "ebfb654",
+   "date": "2026-09-20 05:26",
+   "subj": "PU.24 round 2 and the slicer's pitch: the live path commits for the first time",
+   "filed": 300,
+   "closed": 270,
+   "open": 30
+  },
+  {
+   "h": "d971bfc",
+   "date": "2026-09-20 09:28",
+   "subj": "Slicer: the pitch checked against the glyph body - heldout count agreement 184 -> 210/238, annotated path 52 -> 66 at 0.970, live path 4 -> 11",
+   "filed": 300,
+   "closed": 270,
+   "open": 30
+  },
+  {
+   "h": "d10a77d",
+   "date": "2026-09-20 20:20",
+   "subj": "PU.33 recorded: decision 10 (the locator is a learned row detector, the verifier no longer judges by the classifier) in EXTRACTION.md; the TASKS rows PU.33 shipped and PU.34 filed for the read stage; REPORT.md carries the detector's numbers",
+   "filed": 300,
+   "closed": 270,
+   "open": 30
+  },
+  {
+   "h": "13a04a3",
+   "date": "2026-09-21 00:43",
+   "subj": "Corpus: the owner's 2026-09-21 batch - four receipts, twenty-two pump stills, three running-display clips, six parts documents and the first three service documents; totals only (macOS 27)",
+   "filed": 301,
+   "closed": 270,
+   "open": 31
+  },
+  {
+   "h": "dc28cb2",
+   "date": "2026-09-21 02:46",
+   "subj": "RV.302 filed: two parts invoices from the 2026-09-21 intake are categorised wash and toll - RV277ExpenseTotalTests is red on main since 13a04a38, unrelated to the pump work landing beside it",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "a076fd2",
+   "date": "2026-09-21 08:04",
+   "subj": "PU.35 filed and briefed: the locator's geometry after the detector - box margin, stacked-row rescue, keypad rows",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "6a263ce",
+   "date": "2026-09-21 12:59",
+   "subj": "PU.35: the locator's geometry after the detector - a detected row is sliced as drawn and widened a tenth of its height sideways, the widened slice standing only when it keeps the cell count (the margin may never cost a digit); a row down to 0.15 confidence is rescued when it shares a passing row's x-span and stacks with it; a keypad row (square cells, off the display's span, no sibling on it) is dropped on geometry alone. Heldout live 29 -> 37 cells / 1.000, photos 8 -> 11; funnel 61 -> 60 -> 52 -> 45 -> 14; floor 37. PumpBoxRefiner deleted; decision 10 amended; the evening intake (pump-242..273, receipt-083..085) declared; pump-241's renamed file",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "9ba3683",
+   "date": "2026-09-21 13:11",
+   "subj": "PU.36a/b/c filed: the corpus goes SQLite-first (product owner, 2026-09-21) - schema, import, dump, check and the annotator on the database; then the Python trainers; then the Swift writer, sync and docs. PU.36a briefed",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "9fecdcf",
+   "date": "2026-09-21 14:15",
+   "subj": "PU.36c briefed: the Swift writer through the database, the frames in the bucket with their key on the row, sync and the docs",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "991ea55",
+   "date": "2026-09-21 15:25",
+   "subj": "PU.19 (flash): Live Photo per-cell fusion measured three ways on the 17 heldout records - still 23/22/6, all 860 frames 24/23/7, every 5th the same, pixel median 21/20/6: one cell inside seed noise at 45x the read time, so fusion is not wired; PumpFrameFusion and the opt-in PUMP_FUSION=1 measurement stay; still path unchanged (79 / 37 printed identically). PU.24 closed as delivered by PU.33/PU.35. Verified in the orchestrator's hands: mutation red/green, unit suites green",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "3324360",
+   "date": "2026-09-21 15:53",
+   "subj": "PU.37 filed and briefed: the slicer's count - the 29 miscounted heldout windows by failure class, fixed class by class with synthetic-strip tests",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "c68f374",
+   "date": "2026-09-21 18:21",
+   "subj": "PU.37 (flash): the slicer's count - the 29 miscounted heldout windows named by class (12 dim glyphs under one global Otsu, 6 pitch harmonics, 4 over-merges, 3 mark over-fires, 2 split over-counts, 2 snap/blank); the split-merge body guard ships (a thin 1 beside a body stays two glyphs): count 209 -> 211/238, floor 0.88, dp 128 held, annotated 79 -> 80 / 0.988, live 37 held; the local threshold (218 but -2 marks, -3 cells) and the leading-blank tolerance (-4 cells) measured and rejected. Verified in the orchestrator's hands: floors re-run, mutation red/green",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "075fab4",
+   "date": "2026-09-21 18:31",
+   "subj": "PU.38 filed and briefed: classification from the detector alone, under 100 ms, the fallback capped",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "0cbc9b2",
+   "date": "2026-09-21 19:48",
+   "subj": "PU.38 (flash): the pump-display decision from the detector alone - two stacked rows passing the size rules at the detector's confidence, the Vision line count as the receipt guard; the verifier runs only for the read; the fallback is capped at 1.5 s. Heldout classification 4/6 -> 5/6 pumps (pump-042 rescued), 0/8 receipts; decision median 3.3 s -> 0.44 s Debug; read floors untouched; capture.classify logs path=fast|slow. Verified in the orchestrator's hands: suite 5/6 and 0/8, mutation red/green, Debug + Release gates green (RV.302 aside), app-target bundle 281/0",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "4a44cfc",
+   "date": "2026-09-21 21:06",
+   "subj": "PU.39 (the Capture Lab, DEBUG) and PU.40 (production capture settings + detector-guided preview) filed; PU.39 briefed",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "344b098",
+   "date": "2026-09-21 22:22",
+   "subj": "PU.39 (flash): the Capture Lab - a DEBUG screen under Settings > About that shoots one scene under seven camera presets back to back (control, quality, speed, metered, locked, 2x zoom, 1080p), times each, keeps the camera's bytes, scores every shot through the production pipeline and writes Documents/CaptureLab/<session>/ with run.json; Share to AirDrop. Verified in the orchestrator's hands: both screenshots opened (EN/RU, dark), mutation red/green per the agent, Debug + Release gates green (RV.302 and one ANE flake aside), app-target bundle 287/0, signed UI test 1/0. The night sweep (pump-274..281, receipt-086/087) declared",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "20dc18c",
+   "date": "2026-09-21 23:09",
+   "subj": "PU.41 filed: round 11 - retrain the classifier on the verified corpus, glitch frames included (product owner)",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "cfbfbd9",
+   "date": "2026-09-22 00:33",
+   "subj": "PU.43/44/45 filed from PU.42's review - annotator: live arithmetic + nudge + heldout badge; derived text conventions + provenance; video keyframes + confirm loop + confidence; briefs written",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "a9deeca",
+   "date": "2026-09-22 01:07",
+   "subj": "PU.40b (flash): the detector on the preview - Display in view / Move closer (2x tap) / Tilt to show the whole display before the shutter, from the same rows and size rules as the fast classification, debounced over three frames, fill-up scan mode only, the shutter never gated; ~80 ms a frame on the simulator; capture.guidance logs state and frames analysed; J4 carries the hint. Verified in the orchestrator's hands: both screenshots opened (EN/RU, dark, the outlines drawn), mutation red/green, app-target bundle 299/0, signed UI suite 2/0; Debug and Release gates green per the agent (RV.302 aside)",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "f7583fa",
+   "date": "2026-09-22 01:14",
+   "subj": "PU.41 (round 11 with the training material fixed first) and PU.42 (the dim-glyph slicer class) briefed; PU.42 filed",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "75dc95e",
+   "date": "2026-09-22 01:20",
+   "subj": "PU.43, PU.44, PU.45 (flash): the annotator after PU.42's review",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "def9372",
+   "date": "2026-09-22 01:20",
+   "subj": "PU.46: live slicers - pump-read --slice-serve (a resident slicer, no model, image cached) behind the annotator's 'live slicers' switch; slicer.py owns the process with one request in flight and supersession; the cell overlay follows a drag, nudge or turn at 8 ms a reply on the -O build under ios/.build/opt (630 ms on the plain debug binary), built by the server on first use",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "707fea8",
+   "date": "2026-09-22 03:24",
+   "subj": "PU.42 (flash): the slicer's dim-glyph class - a second look at half the run threshold over the grid positions the main pass left empty, a run kept when it stands a fixed ratio above its own panel (PumpGlyphSlicer+DimGlyphs.swift; primitives split out to stay under the file limit). Heldout (68 stills): count 223 -> 236/251, dp 129 -> 131, annotated 83 / 0.988 / 23 -> 106 / 0.962 / 28, live 39 / 1.000 / 11 -> 43 / 1.000 / 13; floors 0.94 / 106 / 43. Verified in the orchestrator's hands: floors re-run, mutation red/green. REPORT.md also carries PU.41's round-11 section (nothing shipped from it - see the next commit)",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "57772a4",
+   "date": "2026-09-22 03:25",
+   "subj": "PU.41 round 11a (flash): the training-material fixes as options, measured - the centred-ink filter (--centred; drops 81 % of the 1s, biased by right-aligned cells), --dp-crop gap|none (gap hurts: -33 annotated), the grey-LCD synthetic profile drawn from the real pool's contrast quartiles (helps: +2 / +7); no seed clears the live floor, round 6 stays. The round did not test the verified corpus: the Swift export predated the read phase and batch 7, and the scores carried PU.42's slicer. Round 11b filed. 42 tests",
+   "filed": 302,
+   "closed": 270,
+   "open": 32
+  },
+  {
+   "h": "6e1e34b",
+   "date": "2026-09-22 08:40",
+   "subj": "RV.303: a from-zero pull no longer wedges on an entry whose car arrives later on the page - pull order is scn order, scn is per record, so a car edited after its entries carries a higher scn and the entry table's foreign key rejected the first fill-up; pullAll threw, the outcome read serverUnavailable against a 200, the cursor never advanced, nothing was logged. The engine parks a record whose parent is missing and retries after every page; the cursor is saved only for a page that left nothing parked; a record parked past the last page logs sync.orphaned and the cursor moves on; every pull failure logs sync.pull.failed with its class. SyncPullOrderTests (4). Package 2234 (RV.302's known red only), TankbookTests 299, app build 0",
+   "filed": 303,
+   "closed": 271,
+   "open": 32
+  },
+  {
+   "h": "ac2b701",
+   "date": "2026-09-22 13:00",
+   "subj": "PU.47 (the verifier on slicer geometry, never the classifier - the live path slides on every retrain) and PU.48 (retrain the row detector on this week's records) filed and briefed",
+   "filed": 303,
+   "closed": 271,
+   "open": 32
+  },
+  {
+   "h": "3a7ef77",
+   "date": "2026-09-22 13:05",
+   "subj": "pump-annotate: the live slicer takes board windows (the server dropped them with no reason; only the read path's law has none to read) with overlays keyed by window index so four board cells keep four; focusing a card's control selects its window without re-rendering the panel. PU.49 filed: the glyph cell is cut at the digit band, so a hanging comma is outside the classifier's crop - the slicer's mark search finds it, the crop does not carry it; the fix moves both crops together (PU.41's training-only widening lost 97 -> 64)",
+   "filed": 303,
+   "closed": 271,
+   "open": 32
+  },
+  {
+   "h": "cc793a2",
+   "date": "2026-09-22 13:10",
+   "subj": "PU.49 cut (product owner, 2026-09-22): the hanging comma outside the glyph crop is not worth a framing change - the law places the decimal by convention and arithmetic, the slicer's mark search already reaches it, and the bottleneck is digit coverage; re-open only with a count of decimal-only misses",
+   "filed": 303,
+   "closed": 271,
+   "open": 32
+  },
+  {
+   "h": "4b1f234",
+   "date": "2026-09-22 13:30",
+   "subj": "PU.49 filed: a tilted display gets no rows (pump-291 - the detector finds the display, the verifier keeps nothing; the same image rotated 15\u00b0 yields three rows) - rotation augmentation for the detector, a bounded rotate-and-retry, a deliberate-angle corpus set",
+   "filed": 303,
+   "closed": 271,
+   "open": 32
+  },
+  {
+   "h": "07863c2",
+   "date": "2026-09-22 15:34",
+   "subj": "PU.47 (flash): the verifier judges on slicer geometry, never on the classifier",
+   "filed": 303,
+   "closed": 271,
+   "open": 32
+  },
+  {
+   "h": "9071ec6",
+   "date": "2026-09-22 15:59",
+   "subj": "PU.48's candidate re-scored through PU.47's geometry verifier: live 28 -> 36 on the same model, the shipped detector unmoved at 43 - the verifier was half the loss and is gone. Still no ship: precision 0.944 (floor 0.99), pump-092 committing 3.0/191.55 for 30.0/1915.5 - a detector box clipping a leading digit, which the verifier cannot see and the slicer or the law must catch",
+   "filed": 303,
+   "closed": 271,
+   "open": 32
+  },
+  {
+   "h": "5f46f30",
+   "date": "2026-09-22 16:40",
+   "subj": "PU.50 (the annotator's compare view - two models on one photo, overlays from the model's own reply, the funnel with timings, blink, a disagreement sweep, saved evidence) and PU.51 (the law says why it abstained - 53 of 68 heldout stills commit nothing with no diagnosis) filed and briefed",
+   "filed": 303,
+   "closed": 271,
+   "open": 32
+  },
+  {
+   "h": "07895de",
+   "date": "2026-09-22 17:19",
+   "subj": "PU.53 filed: the live path never learns the photo's orientation - pump-019 (rotationCW 90) reads 0045.22 and 1.754 exactly right at 90 and garbage at 0, and all five rotated heldout stills sit in the 53 that commit nothing; the reader must find its own orientation and the live arm must stop borrowing the annotation's",
+   "filed": 303,
+   "closed": 271,
+   "open": 32
+  },
+  {
+   "h": "a42ffd2",
+   "date": "2026-09-22 17:27",
+   "subj": "PU.51 (flash): the law says why it abstained - and the answer is not arithmetic",
+   "filed": 303,
+   "closed": 271,
+   "open": 32
+  },
+  {
+   "h": "1ac65cc",
+   "date": "2026-09-22 17:33",
+   "subj": "Decision 11 (product owner, 2026-09-22): the unit price is optional - total + volume commit on their own, guarded by the implied price falling inside the fuel price band, and a shown price or a near board cell becomes a validation (F2 confirm) rather than a pass/fail gate. It answers PU.51's largest refusal: boardFoundNoPrice, 26 of the ~52 stills that commit nothing. PU.54 rewritten around it",
+   "filed": 303,
+   "closed": 271,
+   "open": 32
+  },
+  {
+   "h": "1451e0e",
+   "date": "2026-09-22 18:10",
+   "subj": "PU.55 (the clip guard at the slicer - edge ink that is cut, not merely right-aligned), PU.56 (the live floor becomes a per-reason per-head ledger) and PU.57 (re-gate the detector on median IoU and recall@0.7, with PU.48 re-scored as REFUSED) filed from PU.52's review; PU.55 and PU.57 briefed",
+   "filed": 303,
+   "closed": 271,
+   "open": 32
+  },
+  {
+   "h": "ed05eaf",
+   "date": "2026-09-22 18:16",
+   "subj": "PU.57 (flash): the detector's gate is tight IoU, not recall@0.5 - median IoU and recall@0.7 both hold or rise, false rows/photo rises by at most 0.05, recall@0.5 is reported and never decides (decision 10's PU.57 amendment). PU.48's candidate re-measured and REFUSED under it (0.734 -> 0.706, 0.797 -> 0.772, 0.632 -> 0.824) where the old gate passed it on recall@0.5; the ordering rule is executable in test_detector_gate.py, which also asserts the old rule would have preferred the loose boxes",
+   "filed": 303,
+   "closed": 271,
+   "open": 32
+  },
+  {
+   "h": "83ba82f",
+   "date": "2026-09-22 19:10",
+   "subj": "PU.55 (flash): the clip guard is not buildable as specified - the failure reproduces but the cut leaves no ink at the strip's edge (the clipped strip is quieter than the framed one), and the lost cell follows the box's VERTICAL extent, not the horizontal clip; both literal guards fail (edge ink drops committed 41 -> 3, bar-plus-gutter fires on nothing). Nothing shipped, the source reverted byte-identical, the measurement filed in REPORT.md. Re-scoped as PU.58: trim the strip to its ink band before the pitch is computed",
+   "filed": 303,
+   "closed": 271,
+   "open": 32
   }
  ],
  "birth": {
-  "RV.1": {
-   "date": "2026-09-03 00:18",
-   "h": "abd4243",
-   "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
-  },
   "RV.3": {
-   "date": "2026-09-03 00:18",
-   "h": "abd4243",
-   "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
-  },
-  "RV.5": {
-   "date": "2026-09-03 00:18",
-   "h": "abd4243",
-   "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
-  },
-  "RV.6": {
    "date": "2026-09-03 00:18",
    "h": "abd4243",
    "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
@@ -3363,7 +4196,17 @@
    "h": "abd4243",
    "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
   },
+  "RV.6": {
+   "date": "2026-09-03 00:18",
+   "h": "abd4243",
+   "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
+  },
   "RV.2": {
+   "date": "2026-09-03 00:18",
+   "h": "abd4243",
+   "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
+  },
+  "RV.5": {
    "date": "2026-09-03 00:18",
    "h": "abd4243",
    "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
@@ -3372,6 +4215,21 @@
    "date": "2026-09-03 00:18",
    "h": "abd4243",
    "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
+  },
+  "RV.1": {
+   "date": "2026-09-03 00:18",
+   "h": "abd4243",
+   "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker"
+  },
+  "RV.8": {
+   "date": "2026-09-03 01:25",
+   "h": "48e0eca",
+   "subj": "RV.8: show the cloud read while it runs; fix the cross-arch image build"
+  },
+  "RV.12": {
+   "date": "2026-09-03 01:25",
+   "h": "48e0eca",
+   "subj": "RV.8: show the cloud read while it runs; fix the cross-arch image build"
   },
   "RV.9": {
    "date": "2026-09-03 01:25",
@@ -3383,22 +4241,12 @@
    "h": "48e0eca",
    "subj": "RV.8: show the cloud read while it runs; fix the cross-arch image build"
   },
-  "RV.8": {
-   "date": "2026-09-03 01:25",
-   "h": "48e0eca",
-   "subj": "RV.8: show the cloud read while it runs; fix the cross-arch image build"
-  },
   "RV.11": {
    "date": "2026-09-03 01:25",
    "h": "48e0eca",
    "subj": "RV.8: show the cloud read while it runs; fix the cross-arch image build"
   },
-  "RV.12": {
-   "date": "2026-09-03 01:25",
-   "h": "48e0eca",
-   "subj": "RV.8: show the cloud read while it runs; fix the cross-arch image build"
-  },
-  "RV.15": {
+  "RV.14": {
    "date": "2026-09-03 02:04",
    "h": "6d15b22",
    "subj": "RV.5: a review step between the capture and the Confirm sheet"
@@ -3408,7 +4256,7 @@
    "h": "6d15b22",
    "subj": "RV.5: a review step between the capture and the Confirm sheet"
   },
-  "RV.14": {
+  "RV.15": {
    "date": "2026-09-03 02:04",
    "h": "6d15b22",
    "subj": "RV.5: a review step between the capture and the Confirm sheet"
@@ -3428,17 +4276,17 @@
    "h": "39586f2",
    "subj": "RV.9 attachment viewer; log text format; 15 corpus fixtures"
   },
+  "RV.19": {
+   "date": "2026-09-03 11:42",
+   "h": "5f974e3",
+   "subj": "Register RV.19 (KZT from NBK), RV.20 (CIS feed ignores its date), RV.21 (Settings)"
+  },
   "RV.20": {
    "date": "2026-09-03 11:42",
    "h": "5f974e3",
    "subj": "Register RV.19 (KZT from NBK), RV.20 (CIS feed ignores its date), RV.21 (Settings)"
   },
   "RV.21": {
-   "date": "2026-09-03 11:42",
-   "h": "5f974e3",
-   "subj": "Register RV.19 (KZT from NBK), RV.20 (CIS feed ignores its date), RV.21 (Settings)"
-  },
-  "RV.19": {
    "date": "2026-09-03 11:42",
    "h": "5f974e3",
    "subj": "Register RV.19 (KZT from NBK), RV.20 (CIS feed ignores its date), RV.21 (Settings)"
@@ -3463,12 +4311,12 @@
    "h": "ac7db54",
    "subj": "Register RV.25: a car added from the switcher never appears in Garage"
   },
-  "RV.26": {
+  "RV.27": {
    "date": "2026-09-03 12:53",
    "h": "48e41e5",
    "subj": "Logs 2026-09-03: RV.14 confirmed wider, register RV.26 and RV.27"
   },
-  "RV.27": {
+  "RV.26": {
    "date": "2026-09-03 12:53",
    "h": "48e41e5",
    "subj": "Logs 2026-09-03: RV.14 confirmed wider, register RV.26 and RV.27"
@@ -3483,12 +4331,12 @@
    "h": "0168b7e",
    "subj": "Register RV.29: a foreign price rendered with the home currency symbol"
   },
-  "RV.31": {
+  "RV.30": {
    "date": "2026-09-03 13:16",
    "h": "aaa4754",
    "subj": "Register RV.30 (rates published count) and RV.31 (tab tap should pop)"
   },
-  "RV.30": {
+  "RV.31": {
    "date": "2026-09-03 13:16",
    "h": "aaa4754",
    "subj": "Register RV.30 (rates published count) and RV.31 (tab tap should pop)"
@@ -3528,12 +4376,7 @@
    "h": "af6d4de",
    "subj": "Register RV.38: an in-app notification inbox"
   },
-  "RV.39": {
-   "date": "2026-09-03 21:20",
-   "h": "7a785de",
-   "subj": "Brief RV.22/23/26/33/34; register RV.39-RV.42 from a device walk"
-  },
-  "RV.40": {
+  "RV.42": {
    "date": "2026-09-03 21:20",
    "h": "7a785de",
    "subj": "Brief RV.22/23/26/33/34; register RV.39-RV.42 from a device walk"
@@ -3543,7 +4386,12 @@
    "h": "7a785de",
    "subj": "Brief RV.22/23/26/33/34; register RV.39-RV.42 from a device walk"
   },
-  "RV.42": {
+  "RV.39": {
+   "date": "2026-09-03 21:20",
+   "h": "7a785de",
+   "subj": "Brief RV.22/23/26/33/34; register RV.39-RV.42 from a device walk"
+  },
+  "RV.40": {
    "date": "2026-09-03 21:20",
    "h": "7a785de",
    "subj": "Brief RV.22/23/26/33/34; register RV.39-RV.42 from a device walk"
@@ -3583,12 +4431,12 @@
    "h": "3cf92fa",
    "subj": "Register RV.49: in-app camera photos are OCR'd sideways"
   },
-  "RV.51": {
+  "RV.50": {
    "date": "2026-09-04 11:04",
    "h": "92b0ccd",
    "subj": "Register RV.50 and RV.51 from production logs; brief RV.49"
   },
-  "RV.50": {
+  "RV.51": {
    "date": "2026-09-04 11:04",
    "h": "92b0ccd",
    "subj": "Register RV.50 and RV.51 from production logs; brief RV.49"
@@ -3623,12 +4471,12 @@
    "h": "a654cad",
    "subj": "Register RV.57 (requirement) and RV.58-60 from the production log"
   },
-  "RV.60": {
+  "RV.57": {
    "date": "2026-09-04 18:03",
    "h": "a654cad",
    "subj": "Register RV.57 (requirement) and RV.58-60 from the production log"
   },
-  "RV.57": {
+  "RV.60": {
    "date": "2026-09-04 18:03",
    "h": "a654cad",
    "subj": "Register RV.57 (requirement) and RV.58-60 from the production log"
@@ -3693,7 +4541,7 @@
    "h": "8fef724",
    "subj": "Register RV.71: warn when a scanned receipt's fuel kind is not the car's"
   },
-  "RV.73": {
+  "RV.72": {
    "date": "2026-09-05 22:19",
    "h": "4611320",
    "subj": "Register the reminders gaps: one bug and five v1.1 rows"
@@ -3708,7 +4556,12 @@
    "h": "4611320",
    "subj": "Register the reminders gaps: one bug and five v1.1 rows"
   },
-  "RV.78": {
+  "RV.73": {
+   "date": "2026-09-05 22:19",
+   "h": "4611320",
+   "subj": "Register the reminders gaps: one bug and five v1.1 rows"
+  },
+  "RV.77": {
    "date": "2026-09-05 22:19",
    "h": "4611320",
    "subj": "Register the reminders gaps: one bug and five v1.1 rows"
@@ -3723,12 +4576,7 @@
    "h": "4611320",
    "subj": "Register the reminders gaps: one bug and five v1.1 rows"
   },
-  "RV.72": {
-   "date": "2026-09-05 22:19",
-   "h": "4611320",
-   "subj": "Register the reminders gaps: one bug and five v1.1 rows"
-  },
-  "RV.77": {
+  "RV.78": {
    "date": "2026-09-05 22:19",
    "h": "4611320",
    "subj": "Register the reminders gaps: one bug and five v1.1 rows"
@@ -3738,17 +4586,17 @@
    "h": "ca3493e",
    "subj": "Mark RV.73 verified, register RV.80 (the RU action line that never renders)"
   },
-  "RV.83": {
-   "date": "2026-09-06 09:33",
-   "h": "4095d73",
-   "subj": "Register and brief the three the reminders series left open"
-  },
   "RV.82": {
    "date": "2026-09-06 09:33",
    "h": "4095d73",
    "subj": "Register and brief the three the reminders series left open"
   },
   "RV.81": {
+   "date": "2026-09-06 09:33",
+   "h": "4095d73",
+   "subj": "Register and brief the three the reminders series left open"
+  },
+  "RV.83": {
    "date": "2026-09-06 09:33",
    "h": "4095d73",
    "subj": "Register and brief the three the reminders series left open"
@@ -3763,12 +4611,12 @@
    "h": "292bc83",
    "subj": "Register RV.85: import asks the date format the file already answers"
   },
-  "RV.87": {
+  "RV.86": {
    "date": "2026-09-06 11:41",
    "h": "0402592",
    "subj": "Register RV.86 and RV.87 from the owner real MFM export"
   },
-  "RV.86": {
+  "RV.87": {
    "date": "2026-09-06 11:41",
    "h": "0402592",
    "subj": "Register RV.86 and RV.87 from the owner real MFM export"
@@ -3798,7 +4646,7 @@
    "h": "cce57a7",
    "subj": "Mark RV.86 verified, register RV.91 and RV.92"
   },
-  "RV.93": {
+  "RV.95": {
    "date": "2026-09-06 19:08",
    "h": "75d02c9",
    "subj": "Register RV.93-RV.96 from the full My Fuel Manager export"
@@ -3808,12 +4656,12 @@
    "h": "75d02c9",
    "subj": "Register RV.93-RV.96 from the full My Fuel Manager export"
   },
-  "RV.95": {
+  "RV.94": {
    "date": "2026-09-06 19:08",
    "h": "75d02c9",
    "subj": "Register RV.93-RV.96 from the full My Fuel Manager export"
   },
-  "RV.94": {
+  "RV.93": {
    "date": "2026-09-06 19:08",
    "h": "75d02c9",
    "subj": "Register RV.93-RV.96 from the full My Fuel Manager export"
@@ -3868,11 +4716,6 @@
    "h": "6a1b319",
    "subj": "Register RV.106: an unconverted month reports \"0 EUR\", a spend the user never had"
   },
-  "RV.108": {
-   "date": "2026-09-07 08:40",
-   "h": "ff290d2",
-   "subj": "Review the UI and backend test reports: register RV.107-RV.110, remove three tests"
-  },
   "RV.110": {
    "date": "2026-09-07 08:40",
    "h": "ff290d2",
@@ -3888,32 +4731,37 @@
    "h": "ff290d2",
    "subj": "Review the UI and backend test reports: register RV.107-RV.110, remove three tests"
   },
-  "RV.112": {
-   "date": "2026-09-07 11:11",
-   "h": "dc30050",
-   "subj": "RV.106: a month waiting on rates says so, instead of claiming you spent nothing"
+  "RV.108": {
+   "date": "2026-09-07 08:40",
+   "h": "ff290d2",
+   "subj": "Review the UI and backend test reports: register RV.107-RV.110, remove three tests"
   },
   "RV.111": {
    "date": "2026-09-07 11:11",
    "h": "dc30050",
    "subj": "RV.106: a month waiting on rates says so, instead of claiming you spent nothing"
   },
-  "RV.114": {
-   "date": "2026-09-07 12:37",
-   "h": "7c9e131",
-   "subj": "Corpus: 6 pumps and 2 pump/receipt pairs; register RV.113 (Drivvo) and RV.114"
+  "RV.112": {
+   "date": "2026-09-07 11:11",
+   "h": "dc30050",
+   "subj": "RV.106: a month waiting on rates says so, instead of claiming you spent nothing"
   },
   "RV.113": {
    "date": "2026-09-07 12:37",
    "h": "7c9e131",
    "subj": "Corpus: 6 pumps and 2 pump/receipt pairs; register RV.113 (Drivvo) and RV.114"
   },
-  "RV.116": {
+  "RV.114": {
+   "date": "2026-09-07 12:37",
+   "h": "7c9e131",
+   "subj": "Corpus: 6 pumps and 2 pump/receipt pairs; register RV.113 (Drivvo) and RV.114"
+  },
+  "RV.115": {
    "date": "2026-09-07 12:45",
    "h": "9e83ac6",
    "subj": "Commit the Drivvo fixture; design the station brand list and the unsupported-field notice"
   },
-  "RV.115": {
+  "RV.116": {
    "date": "2026-09-07 12:45",
    "h": "9e83ac6",
    "subj": "Commit the Drivvo fixture; design the station brand list and the unsupported-field notice"
@@ -3928,20 +4776,15 @@
    "h": "8d257f5",
    "subj": "Register RV.118-RV.120 [v1.1] from the Drivvo report screens"
   },
-  "RV.120": {
-   "date": "2026-09-07 13:13",
-   "h": "8d257f5",
-   "subj": "Register RV.118-RV.120 [v1.1] from the Drivvo report screens"
-  },
   "RV.118": {
    "date": "2026-09-07 13:13",
    "h": "8d257f5",
    "subj": "Register RV.118-RV.120 [v1.1] from the Drivvo report screens"
   },
-  "RV.121": {
-   "date": "2026-09-07 13:22",
-   "h": "4b4767a",
-   "subj": "Register RV.121-RV.123; record what we will not tell a driver"
+  "RV.120": {
+   "date": "2026-09-07 13:13",
+   "h": "8d257f5",
+   "subj": "Register RV.118-RV.120 [v1.1] from the Drivvo report screens"
   },
   "RV.123": {
    "date": "2026-09-07 13:22",
@@ -3949,6 +4792,11 @@
    "subj": "Register RV.121-RV.123; record what we will not tell a driver"
   },
   "RV.122": {
+   "date": "2026-09-07 13:22",
+   "h": "4b4767a",
+   "subj": "Register RV.121-RV.123; record what we will not tell a driver"
+  },
+  "RV.121": {
    "date": "2026-09-07 13:22",
    "h": "4b4767a",
    "subj": "Register RV.121-RV.123; record what we will not tell a driver"
@@ -3963,17 +4811,7 @@
    "h": "24b5197",
    "subj": "Corpus registries follow the new pair, and the defect it found gets a row"
   },
-  "RV.129": {
-   "date": "2026-09-07 22:16",
-   "h": "af417b3",
-   "subj": "Five rows from the dead-code assessment, each verified before filing"
-  },
   "RV.127": {
-   "date": "2026-09-07 22:16",
-   "h": "af417b3",
-   "subj": "Five rows from the dead-code assessment, each verified before filing"
-  },
-  "RV.128": {
    "date": "2026-09-07 22:16",
    "h": "af417b3",
    "subj": "Five rows from the dead-code assessment, each verified before filing"
@@ -3983,7 +4821,17 @@
    "h": "af417b3",
    "subj": "Five rows from the dead-code assessment, each verified before filing"
   },
+  "RV.129": {
+   "date": "2026-09-07 22:16",
+   "h": "af417b3",
+   "subj": "Five rows from the dead-code assessment, each verified before filing"
+  },
   "RV.130": {
+   "date": "2026-09-07 22:16",
+   "h": "af417b3",
+   "subj": "Five rows from the dead-code assessment, each verified before filing"
+  },
+  "RV.128": {
    "date": "2026-09-07 22:16",
    "h": "af417b3",
    "subj": "Five rows from the dead-code assessment, each verified before filing"
@@ -4008,12 +4856,12 @@
    "h": "9458ad6",
    "subj": "RV.126: the odometer conflict names the car's own unit"
   },
-  "RV.135": {
+  "RV.136": {
    "date": "2026-09-08 10:37",
    "h": "66cf627",
    "subj": "RV.135, RV.136: EUR history cannot be fetched; the vehicle push loop is back"
   },
-  "RV.136": {
+  "RV.135": {
    "date": "2026-09-08 10:37",
    "h": "66cf627",
    "subj": "RV.135, RV.136: EUR history cannot be fetched; the vehicle push loop is back"
@@ -4053,12 +4901,7 @@
    "h": "0c8e895",
    "subj": "RV.140: a home-currency change re-homes the pending entries, and the Log shows what it knows"
   },
-  "RV.144": {
-   "date": "2026-09-08 22:42",
-   "h": "56df054",
-   "subj": "TASKS: RV.144-RV.147 from the owner's TestFlight session"
-  },
-  "RV.147": {
+  "RV.146": {
    "date": "2026-09-08 22:42",
    "h": "56df054",
    "subj": "TASKS: RV.144-RV.147 from the owner's TestFlight session"
@@ -4068,7 +4911,12 @@
    "h": "56df054",
    "subj": "TASKS: RV.144-RV.147 from the owner's TestFlight session"
   },
-  "RV.146": {
+  "RV.144": {
+   "date": "2026-09-08 22:42",
+   "h": "56df054",
+   "subj": "TASKS: RV.144-RV.147 from the owner's TestFlight session"
+  },
+  "RV.147": {
    "date": "2026-09-08 22:42",
    "h": "56df054",
    "subj": "TASKS: RV.144-RV.147 from the owner's TestFlight session"
@@ -4103,12 +4951,12 @@
    "h": "d089e1c",
    "subj": "corpus: re-measure every gate after the 2026-09-09 fixtures, and file RV.153"
   },
-  "RV.154": {
+  "RV.155": {
    "date": "2026-09-09 11:06",
    "h": "68de211",
    "subj": "TASKS: file RV.154 and RV.155 from the 2026-09-09 production logs"
   },
-  "RV.155": {
+  "RV.154": {
    "date": "2026-09-09 11:06",
    "h": "68de211",
    "subj": "TASKS: file RV.154 and RV.155 from the 2026-09-09 production logs"
@@ -4143,11 +4991,6 @@
    "h": "c6ab656",
    "subj": "TASKS: file RV.161 [v1.1] - extract the station from a scanned receipt"
   },
-  "RV.163": {
-   "date": "2026-09-09 20:03",
-   "h": "c435a80",
-   "subj": "docs: DEFECT-PATTERNS part 2 - product reachability, and file RV.162-165"
-  },
   "RV.164": {
    "date": "2026-09-09 20:03",
    "h": "c435a80",
@@ -4158,12 +5001,17 @@
    "h": "c435a80",
    "subj": "docs: DEFECT-PATTERNS part 2 - product reachability, and file RV.162-165"
   },
+  "RV.163": {
+   "date": "2026-09-09 20:03",
+   "h": "c435a80",
+   "subj": "docs: DEFECT-PATTERNS part 2 - product reachability, and file RV.162-165"
+  },
   "RV.165": {
    "date": "2026-09-09 20:03",
    "h": "c435a80",
    "subj": "docs: DEFECT-PATTERNS part 2 - product reachability, and file RV.162-165"
   },
-  "RV.167": {
+  "RV.168": {
    "date": "2026-09-09 20:54",
    "h": "8ec6bc0",
    "subj": "TASKS: RV.166-168 from the external review of our own practice"
@@ -4173,7 +5021,7 @@
    "h": "8ec6bc0",
    "subj": "TASKS: RV.166-168 from the external review of our own practice"
   },
-  "RV.168": {
+  "RV.167": {
    "date": "2026-09-09 20:54",
    "h": "8ec6bc0",
    "subj": "TASKS: RV.166-168 from the external review of our own practice"
@@ -4188,12 +5036,12 @@
    "h": "1ec2b1d",
    "subj": "TASKS+QUEUE: tick RV.167, file the four rows its report produced"
   },
-  "RV.171": {
+  "RV.169": {
    "date": "2026-09-09 22:16",
    "h": "1ec2b1d",
    "subj": "TASKS+QUEUE: tick RV.167, file the four rows its report produced"
   },
-  "RV.169": {
+  "RV.171": {
    "date": "2026-09-09 22:16",
    "h": "1ec2b1d",
    "subj": "TASKS+QUEUE: tick RV.167, file the four rows its report produced"
@@ -4203,12 +5051,12 @@
    "h": "bc10a10",
    "subj": "Brief every Tier 1 and Tier 2 row, and file RV.173"
   },
-  "RV.175": {
+  "RV.174": {
    "date": "2026-09-10 01:39",
    "h": "a4dac65",
    "subj": "RV.159: a sending gate is drawn as a gate, not as an optional attachment"
   },
-  "RV.174": {
+  "RV.175": {
    "date": "2026-09-10 01:39",
    "h": "a4dac65",
    "subj": "RV.159: a sending gate is drawn as a gate, not as an optional attachment"
@@ -4283,7 +5131,7 @@
    "h": "8dd6155",
    "subj": "TASKS: file RV.189 - imported entries carry a stationId whose row is never written"
   },
-  "RV.190": {
+  "RV.191": {
    "date": "2026-09-10 16:24",
    "h": "c911bcb",
    "subj": "RV.186 + RV.188: a service may share its fill-up's odometer, and the conflict panel names the pair"
@@ -4293,7 +5141,7 @@
    "h": "c911bcb",
    "subj": "RV.186 + RV.188: a service may share its fill-up's odometer, and the conflict panel names the pair"
   },
-  "RV.191": {
+  "RV.190": {
    "date": "2026-09-10 16:24",
    "h": "c911bcb",
    "subj": "RV.186 + RV.188: a service may share its fill-up's odometer, and the conflict panel names the pair"
@@ -4333,12 +5181,12 @@
    "h": "fd57e7b",
    "subj": "PJ.23: a service's line items are editable - title, category and cost"
   },
-  "RV.201": {
+  "RV.200": {
    "date": "2026-09-11 00:05",
    "h": "d088809",
    "subj": "TASKS: two rows from the product owner's capture questions"
   },
-  "RV.200": {
+  "RV.201": {
    "date": "2026-09-11 00:05",
    "h": "d088809",
    "subj": "TASKS: two rows from the product owner's capture questions"
@@ -4393,12 +5241,12 @@
    "h": "f4f62a7",
    "subj": "PJ.34: the F9a sheet renders the ranking the validator had always computed"
   },
-  "RV.212": {
+  "RV.213": {
    "date": "2026-09-11 09:02",
    "h": "f6d4866",
    "subj": "PJ.22: the service log proposes the next service, anchored at the record"
   },
-  "RV.213": {
+  "RV.212": {
    "date": "2026-09-11 09:02",
    "h": "f6d4866",
    "subj": "PJ.22: the service log proposes the next service, anchored at the record"
@@ -4413,17 +5261,17 @@
    "h": "f3e6adc",
    "subj": "RV.201: one inbox merge over entry kind, not a second inbox"
   },
-  "RV.216": {
-   "date": "2026-09-11 15:22",
-   "h": "f3e6adc",
-   "subj": "RV.201: one inbox merge over entry kind, not a second inbox"
-  },
   "RV.217": {
    "date": "2026-09-11 15:22",
    "h": "f3e6adc",
    "subj": "RV.201: one inbox merge over entry kind, not a second inbox"
   },
-  "RV.224": {
+  "RV.216": {
+   "date": "2026-09-11 15:22",
+   "h": "f3e6adc",
+   "subj": "RV.201: one inbox merge over entry kind, not a second inbox"
+  },
+  "RV.218": {
    "date": "2026-09-11 15:57",
    "h": "5db396b",
    "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
@@ -4433,7 +5281,7 @@
    "h": "5db396b",
    "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
   },
-  "RV.220": {
+  "RV.225": {
    "date": "2026-09-11 15:57",
    "h": "5db396b",
    "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
@@ -4443,22 +5291,22 @@
    "h": "5db396b",
    "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
   },
-  "RV.225": {
-   "date": "2026-09-11 15:57",
-   "h": "5db396b",
-   "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
-  },
-  "RV.218": {
-   "date": "2026-09-11 15:57",
-   "h": "5db396b",
-   "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
-  },
-  "RV.219": {
+  "RV.220": {
    "date": "2026-09-11 15:57",
    "h": "5db396b",
    "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
   },
   "RV.223": {
+   "date": "2026-09-11 15:57",
+   "h": "5db396b",
+   "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
+  },
+  "RV.224": {
+   "date": "2026-09-11 15:57",
+   "h": "5db396b",
+   "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
+  },
+  "RV.219": {
    "date": "2026-09-11 15:57",
    "h": "5db396b",
    "subj": "Scenario walks: eight reviewed, F3 implemented, eight rows filed"
@@ -4493,12 +5341,12 @@
    "h": "894e4e6",
    "subj": "F9a walked: NOT IMPLEMENTED on RV.230 and one promised affordance nobody built"
   },
-  "RV.233": {
+  "RV.232": {
    "date": "2026-09-11 19:02",
    "h": "18902ae",
    "subj": "F1 walked: NOT IMPLEMENTED - the Aftermath was never built, and a ticked row was cited as closing it"
   },
-  "RV.232": {
+  "RV.233": {
    "date": "2026-09-11 19:02",
    "h": "18902ae",
    "subj": "F1 walked: NOT IMPLEMENTED - the Aftermath was never built, and a ticked row was cited as closing it"
@@ -4568,12 +5416,12 @@
    "h": "0c815ef",
    "subj": "RV.244: the invoice date reaches the late service recognition, as a date"
   },
-  "RV.248": {
+  "RV.247": {
    "date": "2026-09-12 03:29",
    "h": "04b7c06",
    "subj": "J7c walked: NOT IMPLEMENTED on a wrong-car write and an unread dismissal reason"
   },
-  "RV.247": {
+  "RV.248": {
    "date": "2026-09-12 03:29",
    "h": "04b7c06",
    "subj": "J7c walked: NOT IMPLEMENTED on a wrong-car write and an unread dismissal reason"
@@ -4633,12 +5481,12 @@
    "h": "1b9925f",
    "subj": "F7 reviewed: NOT implemented - RV.259 filed (the wrong-provider question loops when both providers are empty)"
   },
-  "RV.260": {
+  "RV.261": {
    "date": "2026-09-12 09:31",
    "h": "52e3bab",
    "subj": "RV.260 [!] and RV.261 filed from the J11 walk: the restore-from-backup door does not exist; the odometer-source clause is v2"
   },
-  "RV.261": {
+  "RV.260": {
    "date": "2026-09-12 09:31",
    "h": "52e3bab",
    "subj": "RV.260 [!] and RV.261 filed from the J11 walk: the restore-from-backup door does not exist; the odometer-source clause is v2"
@@ -4658,12 +5506,12 @@
    "h": "7912e19",
    "subj": "RV.229: the import review names a consumption outlier as one, with its own next step"
   },
-  "RV.265": {
+  "RV.266": {
    "date": "2026-09-12 17:40",
    "h": "89ee6d3",
    "subj": "F2 re-walked: implemented (REVIEW-SCENARIO-F2-2026-09-12); RV.265 and RV.266 [v1.0.x] filed"
   },
-  "RV.266": {
+  "RV.265": {
    "date": "2026-09-12 17:40",
    "h": "89ee6d3",
    "subj": "F2 re-walked: implemented (REVIEW-SCENARIO-F2-2026-09-12); RV.265 and RV.266 [v1.0.x] filed"
@@ -4693,12 +5541,12 @@
    "h": "b7ee93a",
    "subj": "TASKS: RV.234 ticked (a906dc35), RV.271 filed; QUEUE: RV.248 dispatched"
   },
-  "RV.272": {
+  "RV.273": {
    "date": "2026-09-13 04:09",
    "h": "206a729",
    "subj": "RV.272 [!] and RV.273 filed from RV.271's gate: a scanned receipt's litres saved as gallons on an imperial car; J3's status line cleared"
   },
-  "RV.273": {
+  "RV.272": {
    "date": "2026-09-13 04:09",
    "h": "206a729",
    "subj": "RV.272 [!] and RV.273 filed from RV.271's gate: a scanned receipt's litres saved as gallons on an imperial car; J3's status line cleared"
@@ -4713,12 +5561,12 @@
    "h": "fabc4a2",
    "subj": "RV.275 filed and briefed (owner report 2026-09-13): the car's photo is missing from the Garage list and the car switcher"
   },
-  "RV.276": {
+  "RV.277": {
    "date": "2026-09-13 09:29",
    "h": "4cc9f83",
    "subj": "RV.276 [!] and RV.277 filed from the owner's reports of 2026-09-13; the second Tallinn parking ticket joins the expense corpus (EXIF stripped)"
   },
-  "RV.277": {
+  "RV.276": {
    "date": "2026-09-13 09:29",
    "h": "4cc9f83",
    "subj": "RV.276 [!] and RV.277 filed from the owner's reports of 2026-09-13; the second Tallinn parking ticket joins the expense corpus (EXIF stripped)"
@@ -4762,6 +5610,96 @@
    "date": "2026-09-14 22:05",
    "h": "4f3da4a",
    "subj": "RV.284 [!] and RV.285 [!] filed and briefed from the 2026-09-14 production log: the deployed schema registry rejects the consumption conflict kind on every push with no device surface; the provider call has no bounded timeout (102 s to a 502)"
+  },
+  "RV.286": {
+   "date": "2026-09-15 14:33",
+   "h": "389f6f9",
+   "subj": "PJ.301-303 filed: multi-page invoices through /extract in v1.1 (owner decision); RV.286 filed: sign-in during the deletion grace is locked out - reactivate (owner decision); RV.181: device report, AirDrop reaches, Telegram does not"
+  },
+  "RV.287": {
+   "date": "2026-09-15 15:10",
+   "h": "5928811",
+   "subj": "RV.181: the diagnostics bundle is shared as a .txt file, not a string (device report: AirDrop reached, Telegram did not); RV.287 filed"
+  },
+  "RV.288": {
+   "date": "2026-09-15 15:33",
+   "h": "1288575",
+   "subj": "RV.288-RV.290 filed from the owner's pump photograph (self-contradicting inbox offer, pump prompt, receipt copy on a display); RV.181 second device report (photo to Telegram fails, copy works)"
+  },
+  "RV.289": {
+   "date": "2026-09-15 15:33",
+   "h": "1288575",
+   "subj": "RV.288-RV.290 filed from the owner's pump photograph (self-contradicting inbox offer, pump prompt, receipt copy on a display); RV.181 second device report (photo to Telegram fails, copy works)"
+  },
+  "RV.290": {
+   "date": "2026-09-15 15:33",
+   "h": "1288575",
+   "subj": "RV.288-RV.290 filed from the owner's pump photograph (self-contradicting inbox offer, pump prompt, receipt copy on a display); RV.181 second device report (photo to Telegram fails, copy works)"
+  },
+  "RV.292": {
+   "date": "2026-09-18 11:38",
+   "h": "30f6c20",
+   "subj": "RV.291: the resolved operand pair is never counted as a non-fuel item"
+  },
+  "RV.291": {
+   "date": "2026-09-18 11:38",
+   "h": "30f6c20",
+   "subj": "RV.291: the resolved operand pair is never counted as a non-fuel item"
+  },
+  "RV.293": {
+   "date": "2026-09-18 13:19",
+   "h": "2055a92",
+   "subj": "RV.293: App Review 4.0 - Sign in with Apple is the system control, legible in light mode (RV.294/RV.295 rows, TESTING.md)"
+  },
+  "RV.295": {
+   "date": "2026-09-18 13:19",
+   "h": "2055a92",
+   "subj": "RV.293: App Review 4.0 - Sign in with Apple is the system control, legible in light mode (RV.294/RV.295 rows, TESTING.md)"
+  },
+  "RV.294": {
+   "date": "2026-09-18 13:19",
+   "h": "2055a92",
+   "subj": "RV.293: App Review 4.0 - Sign in with Apple is the system control, legible in light mode (RV.294/RV.295 rows, TESTING.md)"
+  },
+  "RV.296": {
+   "date": "2026-09-18 15:33",
+   "h": "1ea1b80",
+   "subj": "PJ.15: after-save haptic + insight toast - the engine's figure for the segment the save closed, one phrase per language, tap -> Trends (RV.296 filed: MPG/km-per-L cars print a L/100km number)"
+  },
+  "RV.297": {
+   "date": "2026-09-18 15:50",
+   "h": "9a023e5",
+   "subj": "PJ.30: the hero tile's trend arrow - the current window against the one before it, absent when either window does not stand on its own segments (RV.297 filed: the price tile's \u25b20.0%)"
+  },
+  "RV.298": {
+   "date": "2026-09-18 18:30",
+   "h": "e480713",
+   "subj": "PJ.24: 'Scan invoice' on ReminderComplete - two entry doors side by side, the document camera over the pre-filled service entry (RV.298 filed: the expense-kind scan door)"
+  },
+  "RV.299": {
+   "date": "2026-09-18 19:20",
+   "h": "6538cdd",
+   "subj": "PJ.21: share-to-Tankbook - a CSV shared from another app opens the import wizard at its source step with the file waiting (RV.299 filed: a pre-existing Import test red on the iOS 27 simulator)"
+  },
+  "RV.300": {
+   "date": "2026-09-19 00:14",
+   "h": "366d53e",
+   "subj": "RV.115 + RV.180: the station brand vocabulary - GET /reference/station-brands in /catalog's shape (migration 025, 126 brands with aliases and a country), the device's bundled/cached/refreshed pack, a whole-token script-insensitive matcher setting brand once at minting, the Log row and Trends keyed by brand, the brand changeable on the Confirm row and in the Garage; detectedCountry hint on /import/parse"
+  },
+  "RV.301": {
+   "date": "2026-09-21 00:43",
+   "h": "13a04a3",
+   "subj": "Corpus: the owner's 2026-09-21 batch - four receipts, twenty-two pump stills, three running-display clips, six parts documents and the first three service documents; totals only (macOS 27)"
+  },
+  "RV.302": {
+   "date": "2026-09-21 02:46",
+   "h": "dc28cb2",
+   "subj": "RV.302 filed: two parts invoices from the 2026-09-21 intake are categorised wash and toll - RV277ExpenseTotalTests is red on main since 13a04a38, unrelated to the pump work landing beside it"
+  },
+  "RV.303": {
+   "date": "2026-09-22 08:40",
+   "h": "6e1e34b",
+   "subj": "RV.303: a from-zero pull no longer wedges on an entry whose car arrives later on the page - pull order is scn order, scn is per record, so a car edited after its entries carries a higher scn and the entry table's foreign key rejected the first fill-up; pullAll threw, the outcome read serverUnavailable against a 200, the cursor never advanced, nothing was logged. The engine parks a record whose parent is missing and retries after every page; the cursor is saved only for a page that left nothing parked; a record parked past the last page logs sync.orphaned and the cursor moves on; every pull failure logs sync.pull.failed with its class. SyncPullOrderTests (4). Package 2234 (RV.302's known red only), TankbookTests 299, app build 0"
   }
  },
  "death": {
@@ -4771,13 +5709,13 @@
    "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker",
    "how": "ticked"
   },
-  "RV.2": {
+  "RV.1": {
    "date": "2026-09-03 00:18",
    "h": "abd4243",
    "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker",
    "how": "ticked"
   },
-  "RV.1": {
+  "RV.2": {
    "date": "2026-09-03 00:18",
    "h": "abd4243",
    "subj": "RV: register the first TestFlight build's seven bugs, and fix the photo picker",
@@ -4813,13 +5751,13 @@
    "subj": "RV.12: saving inside capture leaves the camera; RV.16: unmatched routes are Debug",
    "how": "ticked"
   },
-  "RV.9": {
+  "RV.13": {
    "date": "2026-09-03 11:17",
    "h": "39586f2",
    "subj": "RV.9 attachment viewer; log text format; 15 corpus fixtures",
    "how": "ticked"
   },
-  "RV.13": {
+  "RV.9": {
    "date": "2026-09-03 11:17",
    "h": "39586f2",
    "subj": "RV.9 attachment viewer; log text format; 15 corpus fixtures",
@@ -4837,13 +5775,13 @@
    "subj": "RV.11 the chooser anchors to its button; RV.15 the CIS feed had never parsed",
    "how": "ticked"
   },
-  "RV.20": {
+  "RV.19": {
    "date": "2026-09-03 12:29",
    "h": "cb56508",
    "subj": "RV.19 + RV.20: all five CIS currencies, KZT from NBK, and a 10,000x RUB bug",
    "how": "ticked"
   },
-  "RV.19": {
+  "RV.20": {
    "date": "2026-09-03 12:29",
    "h": "cb56508",
    "subj": "RV.19 + RV.20: all five CIS currencies, KZT from NBK, and a 10,000x RUB bug",
@@ -4855,13 +5793,13 @@
    "subj": "RV.27: the refresh field carries a chain id, so name it ChainId",
    "how": "ticked"
   },
-  "RV.21": {
+  "RV.14": {
    "date": "2026-09-03 13:31",
    "h": "4e2fb5f",
    "subj": "Mark RV.14 and RV.21 done",
    "how": "ticked"
   },
-  "RV.14": {
+  "RV.21": {
    "date": "2026-09-03 13:31",
    "h": "4e2fb5f",
    "subj": "Mark RV.14 and RV.21 done",
@@ -4921,25 +5859,25 @@
    "subj": "Mark RV.37 verified",
    "how": "ticked"
   },
-  "RV.29": {
-   "date": "2026-09-03 18:56",
-   "h": "207aecb",
-   "subj": "Mark RV.18 and RV.29 verified",
-   "how": "ticked"
-  },
   "RV.18": {
    "date": "2026-09-03 18:56",
    "h": "207aecb",
    "subj": "Mark RV.18 and RV.29 verified",
    "how": "ticked"
   },
-  "RV.31": {
+  "RV.29": {
+   "date": "2026-09-03 18:56",
+   "h": "207aecb",
+   "subj": "Mark RV.18 and RV.29 verified",
+   "how": "ticked"
+  },
+  "RV.24": {
    "date": "2026-09-03 20:02",
    "h": "df067d0",
    "subj": "Mark RV.24 and RV.31 verified",
    "how": "ticked"
   },
-  "RV.24": {
+  "RV.31": {
    "date": "2026-09-03 20:02",
    "h": "df067d0",
    "subj": "Mark RV.24 and RV.31 verified",
@@ -5005,13 +5943,13 @@
    "subj": "Mark RV.39, RV.40 and RV.41 verified",
    "how": "ticked"
   },
-  "RV.40": {
+  "RV.41": {
    "date": "2026-09-04 09:13",
    "h": "00ea585",
    "subj": "Mark RV.39, RV.40 and RV.41 verified",
    "how": "ticked"
   },
-  "RV.41": {
+  "RV.40": {
    "date": "2026-09-04 09:13",
    "h": "00ea585",
    "subj": "Mark RV.39, RV.40 and RV.41 verified",
@@ -5413,13 +6351,13 @@
    "subj": "RV.111: \"Check for rates\" asks for the dates that are actually pending",
    "how": "ticked"
   },
-  "RV.113": {
+  "RV.127": {
    "date": "2026-09-07 22:57",
    "h": "a59efc4",
    "subj": "RV.127: the feedback outbox is actually flushed",
    "how": "ticked"
   },
-  "RV.127": {
+  "RV.113": {
    "date": "2026-09-07 22:57",
    "h": "a59efc4",
    "subj": "RV.127: the feedback outbox is actually flushed",
@@ -5455,13 +6393,13 @@
    "subj": "RV.132: \"Check for rates\" says what it did",
    "how": "ticked"
   },
-  "RV.133": {
+  "RV.82": {
    "date": "2026-09-08 11:29",
    "h": "2035768",
    "subj": "RV.82: the deep-link suite plants its own session",
    "how": "ticked"
   },
-  "RV.82": {
+  "RV.133": {
    "date": "2026-09-08 11:29",
    "h": "2035768",
    "subj": "RV.82: the deep-link suite plants its own session",
@@ -5671,13 +6609,13 @@
    "subj": "RV.186 + RV.188: a service may share its fill-up's odometer, and the conflict panel names the pair",
    "how": "ticked"
   },
-  "RV.190": {
+  "RV.186": {
    "date": "2026-09-10 16:24",
    "h": "c911bcb",
    "subj": "RV.186 + RV.188: a service may share its fill-up's odometer, and the conflict panel names the pair",
    "how": "ticked"
   },
-  "RV.186": {
+  "RV.190": {
    "date": "2026-09-10 16:24",
    "h": "c911bcb",
    "subj": "RV.186 + RV.188: a service may share its fill-up's odometer, and the conflict panel names the pair",
@@ -5701,13 +6639,13 @@
    "subj": "RV.176 + PR.28: a screenshot nobody can reproduce now fails CI",
    "how": "ticked"
   },
-  "RV.193": {
+  "RV.195": {
    "date": "2026-09-10 17:54",
    "h": "24f4acc",
    "subj": "RV.195 + RV.193: an expense can be given its category, and the strip says when the photo was taken",
    "how": "ticked"
   },
-  "RV.195": {
+  "RV.193": {
    "date": "2026-09-10 17:54",
    "h": "24f4acc",
    "subj": "RV.195 + RV.193: an expense can be given its category, and the strip says when the photo was taken",
@@ -5815,13 +6753,13 @@
    "subj": "RV.219: the QR date lands, through the one path",
    "how": "ticked"
   },
-  "RV.222": {
+  "RV.223": {
    "date": "2026-09-11 17:11",
    "h": "bb7887a",
    "subj": "RV.222 + RV.223: the capture cover's two recovery paths, and the comments made true",
    "how": "ticked"
   },
-  "RV.223": {
+  "RV.222": {
    "date": "2026-09-11 17:11",
    "h": "bb7887a",
    "subj": "RV.222 + RV.223: the capture cover's two recovery paths, and the comments made true",
@@ -5833,13 +6771,13 @@
    "subj": "RV.220 + RV.221 + RV.191: the import review row, and the dead-end card under it",
    "how": "ticked"
   },
-  "RV.221": {
+  "RV.191": {
    "date": "2026-09-11 17:53",
    "h": "7d4e1fc",
    "subj": "RV.220 + RV.221 + RV.191: the import review row, and the dead-end card under it",
    "how": "ticked"
   },
-  "RV.191": {
+  "RV.221": {
    "date": "2026-09-11 17:53",
    "h": "7d4e1fc",
    "subj": "RV.220 + RV.221 + RV.191: the import review row, and the dead-end card under it",
@@ -5905,25 +6843,25 @@
    "subj": "RV.208: no sweep - a dangling id is not distinguishable from one not pulled yet",
    "how": "ticked"
   },
-  "RV.216": {
-   "date": "2026-09-11 22:06",
-   "h": "c824041",
-   "subj": "RV.216 + RV.217: the Inbox card counts from one, and its RU labels stop hyphenating",
-   "how": "ticked"
-  },
   "RV.217": {
    "date": "2026-09-11 22:06",
    "h": "c824041",
    "subj": "RV.216 + RV.217: the Inbox card counts from one, and its RU labels stop hyphenating",
    "how": "ticked"
   },
-  "RV.204": {
+  "RV.216": {
+   "date": "2026-09-11 22:06",
+   "h": "c824041",
+   "subj": "RV.216 + RV.217: the Inbox card counts from one, and its RU labels stop hyphenating",
+   "how": "ticked"
+  },
+  "RV.209": {
    "date": "2026-09-11 22:48",
    "h": "f0457a0",
    "subj": "RV.204 + RV.209: one failure contract for every entry kind; two receipt builders, explained and guarded",
    "how": "ticked"
   },
-  "RV.209": {
+  "RV.204": {
    "date": "2026-09-11 22:48",
    "h": "f0457a0",
    "subj": "RV.204 + RV.209: one failure contract for every entry kind; two receipt builders, explained and guarded",
@@ -5935,12 +6873,6 @@
    "subj": "RV.215: a service or expense recognition can arrive late, through the one policy",
    "how": "ticked"
   },
-  "RV.212": {
-   "date": "2026-09-12 01:02",
-   "h": "403306d",
-   "subj": "RV.212 + RV.213 + RV.224: the service create door catches up with the edit door",
-   "how": "ticked"
-  },
   "RV.213": {
    "date": "2026-09-12 01:02",
    "h": "403306d",
@@ -5948,6 +6880,12 @@
    "how": "ticked"
   },
   "RV.224": {
+   "date": "2026-09-12 01:02",
+   "h": "403306d",
+   "subj": "RV.212 + RV.213 + RV.224: the service create door catches up with the edit door",
+   "how": "ticked"
+  },
+  "RV.212": {
    "date": "2026-09-12 01:02",
    "h": "403306d",
    "subj": "RV.212 + RV.213 + RV.224: the service create door catches up with the edit door",
@@ -6085,13 +7023,13 @@
    "subj": "RV.263: a currency the import file declares is a correctable default",
    "how": "ticked"
   },
-  "RV.227": {
+  "RV.235": {
    "date": "2026-09-12 16:56",
    "h": "87c7346",
    "subj": "RV.227 + RV.235: nothing the user needs rests under a pinned bar",
    "how": "ticked"
   },
-  "RV.235": {
+  "RV.227": {
    "date": "2026-09-12 16:56",
    "h": "87c7346",
    "subj": "RV.227 + RV.235: nothing the user needs rests under a pinned bar",
@@ -6127,13 +7065,13 @@
    "subj": "RV.245: a cancelled service scan leaves no orphaned invoice pages",
    "how": "ticked"
   },
-  "RV.265": {
+  "RV.264": {
    "date": "2026-09-12 19:52",
    "h": "db3d69a",
    "subj": "RV.264 + RV.265: the flag surfaces say the right thing",
    "how": "ticked"
   },
-  "RV.264": {
+  "RV.265": {
    "date": "2026-09-12 19:52",
    "h": "db3d69a",
    "subj": "RV.264 + RV.265: the flag surfaces say the right thing",
@@ -6193,13 +7131,13 @@
    "subj": "RV.271: the pace limit and the inbox volume values speak the car's units",
    "how": "ticked"
   },
-  "RV.272": {
+  "RV.273": {
    "date": "2026-09-13 05:49",
    "h": "156cf56",
    "subj": "RV.272 + RV.273: a scanned receipt's litres cross into the car's unit at one boundary; every stored volume renders converted",
    "how": "ticked"
   },
-  "RV.273": {
+  "RV.272": {
    "date": "2026-09-13 05:49",
    "h": "156cf56",
    "subj": "RV.272 + RV.273: a scanned receipt's litres cross into the car's unit at one boundary; every stored volume renders converted",
@@ -6269,6 +7207,126 @@
    "date": "2026-09-15 00:11",
    "h": "770945e",
    "subj": "RV.285: the provider call has a 60 s budget and a timeout is its own outcome",
+   "how": "ticked"
+  },
+  "RV.286": {
+   "date": "2026-09-15 15:10",
+   "h": "8120889",
+   "subj": "RV.286: signing in during the deletion grace period reactivates the account; the deviceId survives sign-out",
+   "how": "ticked"
+  },
+  "RV.291": {
+   "date": "2026-09-18 11:38",
+   "h": "30f6c20",
+   "subj": "RV.291: the resolved operand pair is never counted as a non-fuel item",
+   "how": "ticked"
+  },
+  "RV.293": {
+   "date": "2026-09-18 13:19",
+   "h": "2055a92",
+   "subj": "RV.293: App Review 4.0 - Sign in with Apple is the system control, legible in light mode (RV.294/RV.295 rows, TESTING.md)",
+   "how": "ticked"
+  },
+  "RV.294": {
+   "date": "2026-09-18 13:19",
+   "h": "2055a92",
+   "subj": "RV.293: App Review 4.0 - Sign in with Apple is the system control, legible in light mode (RV.294/RV.295 rows, TESTING.md)",
+   "how": "ticked"
+  },
+  "RV.115": {
+   "date": "2026-09-19 00:14",
+   "h": "366d53e",
+   "subj": "RV.115 + RV.180: the station brand vocabulary - GET /reference/station-brands in /catalog's shape (migration 025, 126 brands with aliases and a country), the device's bundled/cached/refreshed pack, a whole-token script-insensitive matcher setting brand once at minting, the Log row and Trends keyed by brand, the brand changeable on the Confirm row and in the Garage; detectedCountry hint on /import/parse",
+   "how": "ticked"
+  },
+  "RV.180": {
+   "date": "2026-09-19 00:14",
+   "h": "366d53e",
+   "subj": "RV.115 + RV.180: the station brand vocabulary - GET /reference/station-brands in /catalog's shape (migration 025, 126 brands with aliases and a country), the device's bundled/cached/refreshed pack, a whole-token script-insensitive matcher setting brand once at minting, the Log row and Trends keyed by brand, the brand changeable on the Confirm row and in the Garage; detectedCountry hint on /import/parse",
+   "how": "ticked"
+  },
+  "RV.300": {
+   "date": "2026-09-19 00:24",
+   "h": "6831fee",
+   "subj": "PU.3 (partial): SegmentNet - 8 sigmoid segment outputs trained on PU.1 renders with technology decoupled from make, exported to Core ML (64 KB); held-out score waits on PU.2's windows.json",
+   "how": "removed"
+  },
+  "RV.122": {
+   "date": "2026-09-19 01:03",
+   "h": "881733a",
+   "subj": "RV.122: reminder chips across the top of Home - one amber chip per due reminder of the selected car in due order, saying what and when or how far, overdue in words; 'All reminders' is the last chip; nothing due, no strip",
+   "how": "ticked"
+  },
+  "RV.118": {
+   "date": "2026-09-19 01:21",
+   "h": "3d19573",
+   "subj": "RV.118: the headline says what it is made of - '5 fills \u00b7 last 90 days \u00b7 5 full tanks' under the figure on Home and as the Trends tile caption, read off the engine's own span; under the floor the count it has, never an average",
+   "how": "ticked"
+  },
+  "RV.119": {
+   "date": "2026-09-19 01:32",
+   "h": "d8e8666",
+   "subj": "RV.119: the Log's month divider carries the month - distance, the closing segments' consumption, cost per km, and the spend against the month before, only when both months are complete, two fills each and the month is over",
+   "how": "ticked"
+  },
+  "RV.120": {
+   "date": "2026-09-19 02:13",
+   "h": "10be646",
+   "subj": "RV.120: the fill pattern card - distance between fills, frequency, range left on a tank the user's own fills corroborated, the month's pace as a labelled prediction; each absent rather than guessed, none under the floor; HANDOVER for the second 1.1 tranche",
+   "how": "ticked"
+  },
+  "RV.296": {
+   "date": "2026-09-19 05:04",
+   "h": "d2deafb",
+   "subj": "RV.296 + RV.297: a MPG or km/L car reads its own unit everywhere - one per100-to-display conversion in core, the Trends arrow and percent following the displayed figure, the toasts, quotes, divider and anomaly card converted; the price caption treats a sub-1% move as no move",
+   "how": "ticked"
+  },
+  "RV.297": {
+   "date": "2026-09-19 05:04",
+   "h": "d2deafb",
+   "subj": "RV.296 + RV.297: a MPG or km/L car reads its own unit everywhere - one per100-to-display conversion in core, the Trends arrow and percent following the displayed figure, the toasts, quotes, divider and anomaly card converted; the price caption treats a sub-1% move as no move",
+   "how": "ticked"
+  },
+  "RV.298": {
+   "date": "2026-09-19 05:23",
+   "h": "f03ac3d",
+   "subj": "RV.298: an expense reminder's completion offers Scan receipt beside Type amount - the Capture screen opens in Expense mode over the sheet with the completion carried through, and a cover closed without a save drops the hand-off",
+   "how": "ticked"
+  },
+  "RV.299": {
+   "date": "2026-09-19 09:13",
+   "h": "2704e98",
+   "subj": "RV.299: the send-us-the-file consent sheet presented EMPTY on iOS 27 for a real tap - a sheet(isPresented:) whose content was an if-let over state set in the same transaction; now sheet(item:) with the staged file as the item; the L4 taps the card and the button (-seedSendFilePick stages the fixture in place of the picker), 3/3 green; the RV.88 section moved out of ImportUITests",
+   "how": "ticked"
+  },
+  "RV.292": {
+   "date": "2026-09-19 11:51",
+   "h": "74a2a0a",
+   "subj": "RV.292: the two confident-wrong litres - the unit-convention rule keyed on the footnote's structure and every glyph a sideways read leaves, a 10+-digit run with a tail letter is an identifier; the whole-class litres property added beside totals and kinds (proxy-run on macOS 27: 068/072 clean, six runtime-drift volumes recorded on RV.295)",
+   "how": "ticked"
+  },
+  "RV.114": {
+   "date": "2026-09-19 11:59",
+   "h": "7cd7702",
+   "subj": "RV.114: the eight images were scored by the 09-08/09-09 corpus commits - closed by measurement; CorpusPairTests registers the 18 matched pump/receipt pairs (oracle agreement everywhere, extraction agreement on the measured runtime) and EXTRACTION.md records the orientation decision - no pre-rotation, Vision reads rotated text itself",
+   "how": "ticked"
+  },
+  "RV.179": {
+   "date": "2026-09-19 12:13",
+   "h": "b7a05b9",
+   "subj": "RV.179: the station extractor measured - 31/59 (53%) - from a station column written off the fixture filenames and cross-checked against the OCR, 14 blanks each with a reason, scored as its own class so the receipts marks stand; the matcher reads a Latin look-alike inside a Cyrillic word",
+   "how": "ticked"
+  },
+  "RV.288": {
+   "date": "2026-09-19 12:36",
+   "h": "65ff1ea",
+   "subj": "RV.288: the inbox gates a fuel reading's numbers on their own arithmetic - three that cannot coexist are withheld together and the card says so, two are checked against the user's third, a zero read is nil; every seeded and fixture reading made self-consistent",
+   "how": "ticked"
+  },
+  "RV.303": {
+   "date": "2026-09-22 08:40",
+   "h": "6e1e34b",
+   "subj": "RV.303: a from-zero pull no longer wedges on an entry whose car arrives later on the page - pull order is scn order, scn is per record, so a car edited after its entries carries a higher scn and the entry table's foreign key rejected the first fill-up; pullAll threw, the outcome read serverUnavailable against a 200, the cursor never advanced, nothing was logged. The engine parks a record whose parent is missing and retries after every page; the cursor is saved only for a page that left nothing parked; a record parked past the last page logs sync.orphaned and the cursor moves on; every pull failure logs sync.pull.failed with its class. SyncPullOrderTests (4). Package 2234 (RV.302's known red only), TankbookTests 299, app build 0",
    "how": "ticked"
   }
  }

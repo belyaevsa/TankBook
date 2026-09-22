@@ -21,6 +21,10 @@ MILESTONES = [
     ("2026-09-08", "backlog split + generated index"),
     ("2026-09-09", "defect patterns; journeys walk made recurring"),
     ("2026-09-10", "scenario rule; six source-scan guards"),
+    ("2026-09-11", "a scenario is the unit of work; gate.sh compiles the app"),
+    ("2026-09-12", "walks are the orchestrator's own; the gate tests the app target"),
+    ("2026-09-18", "the pump reader tranche opens"),
+    ("2026-09-22", "hard rule 16: the API is live"),
 ]
 
 
@@ -138,8 +142,17 @@ def main():
     ax3.bar(dts, med, width=0.6, color="#7C8592")
     overall = statistics.median([h for v in lead.values() for h in v])
     ax3.axhline(overall, color=AMBER, lw=1.2, ls="--")
-    ax3.text(dts[0], overall + 0.4, f"overall median {overall:.1f} h",
-             color=AMBER, fontsize=9)
+    # A row filed in one tranche and closed in the next (the PU week: 205 h) is
+    # two orders above a same-day close, and on a linear axis it flattens every
+    # other day to nothing. Log, so a 4 h day and a 200 h day both read.
+    if max(med, default=0) > 24:
+        ax3.set_yscale("log")
+        ax3.set_ylim(0.5, max(med) * 2)
+        for d, m in zip(dts, med):
+            if m > 24:
+                ax3.text(d, m * 1.15, f"{m:.0f} h", color=INK, fontsize=8, ha="center")
+    ax3.text(dts[0], overall * 1.2 if ax3.get_yscale() == "log" else overall + 0.4,
+             f"overall median {overall:.1f} h", color=AMBER, fontsize=9)
     ax3.set_ylabel("median h\nto close")
     ax3.grid(True, axis="y", alpha=0.5, lw=0.6)
     ax3.xaxis.set_major_formatter(mdates.DateFormatter("%b %-d"))
