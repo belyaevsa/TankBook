@@ -873,7 +873,11 @@ async function liveSlice() {
   sliceInFlight = false;
   if (sliceAgain) { sliceAgain = false; liveSlice(); }
 }
-canvas.onmouseup = e => {
+// On the window, not the canvas: a corner dragged past the image edge is
+// released outside the canvas, and a release the canvas never sees leaves the
+// drag live - the corner then follows the pointer and the next press lands on
+// it instead of starting a new window.
+window.addEventListener('mouseup', e => {
   if (!drag) return;
   if (drag.kind === 'new') {
     if (Math.abs(drag.x - drag.x0) > 4 && Math.abs(drag.y - drag.y0) > 4) {
@@ -889,7 +893,7 @@ canvas.onmouseup = e => {
   // A dragged quad on a video frame is a human placement: it persists as an
   // anchor at once (debounced), and the retrack leaves the frame verbatim.
   if (wasEdit && frameMode && frameQuadsEdited) { clearTimeout(anchorTimer); anchorTimer = setTimeout(saveAnchor, 600); if (!isVideo) $('#lfState').textContent = 'edited – saving as anchor…'; }
-};
+});
 let anchorTimer = null;
 
 // ---- controls ----
