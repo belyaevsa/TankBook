@@ -697,6 +697,12 @@ Build order, and it is a real dependency chain, not a preference:
 The four rows keep their `PR.*` ids and their own text - **this section is the ordering and the
 rationale, not a duplicate backlog.** Marking any of them done marks the OB step done.
 
+## PU · Pump reader – a trained seven-segment reader, not OCR (2026-09-18)
+
+| # | Row | Check |
+|---|---|---|
+| **[cut]** PU.49 | ~~The glyph cell is cut at the digit band, so a hanging comma is outside the classifier's crop.~~ **Cut 2026-09-22 (product owner: *"let's drop this task"*).** The decimal position rarely comes from the mark: `PumpReadingLaw` places it by field convention (a euro total 2, litres 2, a price 3) and commits only when `total == liters x price` closes; the slicer's own mark search already reaches 25 % below the band and marks the cell (the green dot); the classifier's dp bit is consulted only where the slicer marked nothing. The cropped comma therefore costs a read only on a display that breaks convention AND where the mark search misses - three-decimal litres, two-decimal prices, kopeck-less boards - while the measured bottleneck is coverage (0.568) on digits, at precision 0.990. Against that, the fix is a framing change (taller cells, re-export, synthetic comma redrawn, retrain, floors re-measured) that PU.41 showed can cost 97 -> 64 committed. Re-open only with a measurement: the count of held-out cells whose digits are right and only the decimal position is wrong; under ~5 of 183 it stays cut. Filed and cut the same day, nothing built. | - |
+
 ## AG · Car Agent **[v2]** (Pro)
 
 *Mirror of `docs/AGENT.md` §11, which carries the reasoning; this table carries the checks. A
