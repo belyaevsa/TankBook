@@ -41,6 +41,7 @@
   #list div.sel { background:#2456a5 } #list div .n { color:var(--dim); float:right }
   #list .held { display:inline-block; background:#5b3d00; color:var(--unitPrice); border-radius:3px; padding:0 3px; font-size:10px; font-weight:600 }
   #list div.todo { color:var(--dim) }
+  #list .frames { font-size:11px; font-variant-numeric:tabular-nums } #list .pdone { color:var(--ok) } #list .ppart { color:#ffc857 } #list .pnone { color:var(--dim) }
   #list .live { color:#4cc3ff } #list .live.ok { color:var(--ok) } #list .live.bad { color:var(--bad) }
   canvas { display:block; cursor:crosshair }
   .row { display:flex; gap:6px; align-items:center; margin:4px 0; flex-wrap:wrap }
@@ -92,7 +93,13 @@
   .cmp-col { border:1px solid var(--line); border-radius:6px; padding:6px; min-width:0; display:flex; flex-direction:column; gap:4px }
   .cmp-canvas-wrap { background:#05070a; border:1px solid var(--line); border-radius:4px; overflow:auto; max-height:44vh }
   .cmp-col canvas { display:block; cursor:default }
-  .cmp-layers { font-size:11px; gap:8px }
+  .cmp-layers { font-size:11px; gap:8px; flex-wrap:wrap }
+  .cmp-layers .ref { color:var(--dim) }
+  .cmp-decision { font-size:11px; padding:3px 6px; border-radius:4px; border:1px solid var(--line) }
+  .cmp-decision.bad { border-color:var(--bad); color:var(--bad) }
+  .cmp-decision .pass { color:var(--ok) } .cmp-decision .fail { color:var(--bad) }
+  .cmp-presence { font-size:11px }
+  .cmp-presence .kept { color:#3ecf6e } .cmp-presence .dropped { color:#ffb020 } .cmp-presence .missed { color:#ff5a5f }
   .cmp-funnel table, .cmp-fields table, #cmpVerdict table, #cmpSweepPanel table { border-collapse:collapse; width:100% }
   .cmp-funnel td, .cmp-fields td, .cmp-fields th { padding:1px 4px; border-bottom:1px solid #20252e; font-size:11px; text-align:left }
   .cmp-funnel td.num { text-align:right; font-family:ui-monospace,Menlo,monospace; font-variant-numeric:tabular-nums }
@@ -235,6 +242,11 @@
       <span id="cmpStill" class="mono dim"></span>
       <span id="cmpStatus" class="dim"></span>
       <span style="flex:1"></span>
+      <span class="dim" style="font-size:11px">zoom</span>
+      <button id="cmpZoomOut" title="zoom both panes out (−)">−</button>
+      <span id="cmpZoomLabel" class="mono dim" style="font-size:11px;min-width:3.5em;text-align:center">100%</span>
+      <button id="cmpZoomIn" title="zoom both panes in (+); ⌘/ctrl-scroll over a pane zooms too">+</button>
+      <button id="cmpZoomFit" title="fit both panes (0)">fit</button>
       <button id="cmpBlink" title="swap A and B in place, without moving the eye (b)">⇄ blink</button>
       <button id="cmpSweepBtn" title="run both models over the current list and list the stills whose committed triples differ">sweep…</button>
       <button id="cmpSave" title="write both replies and a PNG of the two panes under ml/pump-reader/runs/&lt;date&gt;/compare/&lt;still&gt;/">save</button>
@@ -275,6 +287,7 @@
         <tr><td>autoplay · loop · fps</td><td>playback of a Live record or movie</td></tr>
         <tr><td>⚖ compare</td><td>two models on this image: overlays, funnel, verdict, sweep, save</td></tr>
         <tr><td><kbd>b</kbd></td><td>in compare: blink - swap A and B in place</td></tr>
+        <tr><td><kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd></td><td>in compare: zoom both panes in / out / fit (⌘/ctrl-scroll too); they scroll together</td></tr>
       </table></div>
       <div><b>Frames view (Live record or movie)</b><table class="keys">
         <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>previous / next frame (always)</td></tr>
@@ -332,6 +345,17 @@ async function loadList() {
   fixtures = await (await fetch('/api/fixtures')).json();
   renderList();
 }
+// A record's size and how far it is done, on its row: the tracked frame count,
+// and for a video the share of those frames that carry a label (owner, the
+// reader's arithmetic, an interpolation or a skip) - the number that says
+// which clip still needs an evening. A Live record has no per-frame label; its
+// "done" is the tracking verdict the ▶ colour already shows.
+function frameCount(x) {
+  if (!x.tracked) return '';
+  if (!x.video) return `<span class="frames dim" title="${x.tracked} tracked frames">${x.tracked}f</span> `;
+  const pct = Math.min(100, Math.round(100 * (x.labelled || 0) / x.tracked));
+  return `<span class="frames" title="${x.labelled || 0} of ${x.tracked} tracked frames labelled; ${x.windows} reference windows">${x.tracked}f · <span class="${pct === 100 ? 'pdone' : pct === 0 ? 'pnone' : 'ppart'}">${pct}%</span></span>`;
+}
 function renderList() {
   const f = $('#filter').value.toLowerCase(), st = $('#state').value;
   const done = fixtures.filter(x => x.windows).length, rev = fixtures.filter(x => x.reviewed).length;
@@ -343,7 +367,7 @@ function renderList() {
     || (st === 'work' && ((x.video && !x.reviewed) || (!x.video && !x.reviewed) || (x.live && x.tracked && !x.tracking && !x.video))));
   const shown = fixtures.filter(x => x.name.toLowerCase().includes(f) && pass(x));
   $('#list').innerHTML = shown.map(x =>
-    `<div data-n="${x.name}" class="${x.name===current?'sel':''} ${x.windows?'':'todo'}" title="${x.name}">${x.reviewed?'✓ ':''}${x.split==='heldout'?'<span class="held" title="heldout - measured once reviewed">H</span> ':''}${x.video?'🎞 ':''}${x.name.replace(/\.(jpe?g|heic|png)$/i,'')}<span class="n">${x.live ? `<span class="live ${x.tracking||''}" data-play="${x.name}" title="${x.live} Live record(s), ${x.tracked} tracked frames${x.tracking ? ', tracking ' + x.tracking : ''} – click to play">▶${x.tracked ? '' : '?'}</span> ` : ''}${x.windows||'·'}</span></div>`).join('');
+    `<div data-n="${x.name}" class="${x.name===current?'sel':''} ${x.windows?'':'todo'}" title="${x.name}">${x.reviewed?'✓ ':''}${x.split==='heldout'?'<span class="held" title="heldout - measured once reviewed">H</span> ':''}${x.video?'🎞 ':''}${x.name.replace(/\.(jpe?g|heic|png)$/i,'')}<span class="n">${x.live ? `<span class="live ${x.tracking||''}" data-play="${x.name}" title="${x.live} Live record(s), ${x.tracked} tracked frames${x.tracking ? ', tracking ' + x.tracking : ''} – click to play">▶${x.tracked ? '' : '?'}</span> ` : ''}${frameCount(x)}${x.video ? '' : (x.windows||'·')}</span></div>`).join('');
   document.querySelectorAll('#list div').forEach(d => d.onclick = () => openFixture(d.dataset.n));
   // The ▶ marker: open the photo, go straight to its frames and play.
   document.querySelectorAll('#list [data-play]').forEach(el => el.onclick = async e => {
@@ -864,6 +888,14 @@ function applyWritten(r, written, fields) {
     for (const w of f.windows) if (fields[w.field] !== undefined) w.text = fields[w.field];
     f.source = (fields.total || fields.liters) ? 'owner' : null;
   }
+  refreshListProgress(r);
+}
+// The list row's "% labelled" follows a save at once, from the record already in
+// memory - not on the next full reload of the list.
+function refreshListProgress(r) {
+  const fx = fixtures.find(x => x.name === r.movie || x.name === current); if (!fx || !fx.video) return;
+  fx.labelled = r.tracked.filter(n => r.frames[n].source).length;
+  renderList();
 }
 async function refreshRecord(movie) {
   if (current !== movie) return;
@@ -1011,6 +1043,18 @@ function collect() {
 }
 async function save() {
   if (!current) return;
+  // A box holding digits under a role ticked "not on display" contradicts
+  // itself (pump-264 carried three); the scorers used to trust the flag and
+  // silently drop the box. Ask before writing it.
+  if (!isVideo) {
+    const nod = new Set([...document.querySelectorAll('[data-nod]:checked')].map(c => c.dataset.nod));
+    const clash = (entry.windows || []).filter(w => nod.has(w.field) && /\d/.test(w.text || ''));
+    if (clash.length && !confirm(`These boxes hold digits but their role is ticked "not on display":\n\n`
+        + clash.map(w => `  ${w.field}  ${w.text}`).join('\n')
+        + `\n\nSave anyway? (Cancel to untick "not on display" or relabel the box.)`)) {
+      setMsg('not saved - "not on display" contradicts a box with digits'); return;
+    }
+  }
   const r = await (await fetch('/api/entry/' + encodeURIComponent(current), {method:'PUT', body: JSON.stringify(collect())})).json();
   if (isVideo) { dirty = false; const fx = fixtures.find(x => x.name === current); if (fx) fx.reviewed = !!entry.reviewed; renderList();
     if (r.retrack === 'started') { setMsg('reference saved, retracking in the background'); notify('busy', `Reference saved – tracking ${current} in progress…`); watchRetrack(current); } else setMsg('saved'); return; }
@@ -1786,6 +1830,26 @@ async function loadClassifiers() {
 loadClassifiers();
 let cmp = null, sweepTimer = null;
 const CMP_FIELDS = ['total', 'liters', 'unitPrice'];
+// The overlays in the order the pipeline runs, numbered the same as the funnel's
+// steps, so a layer's number says where a row was lost. Drawn in this order, a
+// later stage paints over an earlier one. The references (the hand windows and
+// the CSV truth) are the yardstick, not a stage.
+const CMP_LAYERS = [
+  ['detector', '1 · detector'], ['candidates', '2 · other candidates'], ['verifier', '3 · verifier'],
+  ['roles', '4 · roles'], ['cells', '5 · cells'], ['result', '6 · result'],
+  ['hand', 'hand + presence', true], ['truth', 'truth', true],
+];
+const CMP_LAYER_HELP = {
+  detector: 'every box the learned row detector proposed, kept or not (white)',
+  candidates: 'the Vision and classical proposals the verifier also judged (thin grey)',
+  verifier: 'kept rows solid; dropped candidates dashed red with the reason they went',
+  roles: 'the field the assigner gave each kept row, and its cell count',
+  cells: 'the slicer\'s cells in each read row, tinted by the classifier\'s margin (red = unsure)',
+  result: 'what the law committed per field, beside the row it came from, ✓ or ✗ against the CSV',
+  hand: 'the annotation, coloured by what the pipeline did to each window: green kept, amber dropped, red never found',
+  truth: 'the expected.csv row',
+};
+const PRESENCE_IOU = 0.3;
 function matchVerdict(v, e) {
   if (v == null || e == null || e === '') return '–';
   const a = num(v), b = num(e);
@@ -1805,9 +1869,14 @@ async function openCompare() {
   const hand = (frameMode ? windowsToDraw() : (entry ? entry.windows : []))
     .map(w => ({field: w.field, text: w.text, quad: w.quad.map(p => [...p])}));
   cmp = {image, name: current, expected: frameMode ? null : row, hand, img: null,
-         A: {detector: aDet, classifier: shippedCls}, B: {detector: bDet, classifier: shippedCls},
+         // B turns each detector row to its digits' angle (PumpRowDeskew), A reads
+         // it as the app does today: the same models either side of one change.
+         A: {detector: aDet, classifier: shippedCls, deskew: 'off'},
+         B: {detector: aDet, classifier: shippedCls, deskew: 'onRefusal'},
          swapped: false, replyA: null, replyB: null, verdict: null,
-         layers: {truth: true, hand: true, detector: true, kept: true, fields: true, cells: true}};
+         zoom: 1,
+         layers: {detector: true, candidates: false, verifier: true, roles: true, cells: true, result: true,
+                  hand: true, truth: true}};
   // The pane owns its image: opening compare from a sweep row can beat the
   // still's own image load, and a pane with no pixels says nothing.
   cmp.img = new Image();
@@ -1816,6 +1885,7 @@ async function openCompare() {
     ? '/frame/' + image.slice('frame/'.length).split('/').map(encodeURIComponent).join('/')
     : '/image/' + encodeURIComponent(image) + '?t=' + Date.now();
   $('#cmpStill').textContent = image + (hand.length ? ` · ${hand.length} hand window(s)` : '');
+  $('#cmpZoomLabel').textContent = '100%';
   $('#cmpStatus').textContent = 'running…';
   $('#cmpSweepPanel').style.display = 'none';
   $('#compare').style.display = '';
@@ -1828,23 +1898,33 @@ function renderCompare() {
   const body = $('#cmpBody');
   body.innerHTML = '';
   for (const side of cmpOrder()) { body.appendChild(renderPane(side)); fillPane(side); }
+  for (const w of body.querySelectorAll('.cmp-canvas-wrap')) {
+    w.addEventListener('scroll', () => syncCmpScroll(w));
+    w.addEventListener('wheel', e => {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      e.preventDefault(); setCmpZoom(cmp.zoom * (e.deltaY < 0 ? 1.2 : 1 / 1.2));
+    }, {passive: false});
+  }
   renderVerdict();
 }
 function renderPane(side) {
   const sel = cmp[side], L = cmp.layers;
   const el = document.createElement('div');
   el.className = 'cmp-col'; el.dataset.side = side; el.dataset.detector = sel.detector;
-  const layers = [['truth','truth'],['hand','hand'],['detector','detector'],['kept','kept'],['fields','fields'],['cells','cells']];
+  const layers = CMP_LAYERS;
   el.innerHTML = `
     <div class="row">
       <b style="color:${side === 'A' ? 'var(--liters)' : 'var(--unitPrice)'}">${side}</b>
       <label class="dim" style="font-size:11px">det <select data-det="${side}">${cmpOptions(detectors, sel.detector)}</select></label>
       <label class="dim" style="font-size:11px">cls <select data-cls="${side}">${cmpOptions(classifiers, sel.classifier)}</select></label>
+      <label class="dim" style="font-size:11px" title="off: as the app reads today · on refusal: when the upright read commits nothing, turn the rows, then level the whole photo · always (rows): turn every detector row · level (photo): level the whole photo by the rows' median angle and read it">deskew <select data-deskew="${side}">${[['off', 'off'], ['onRefusal', 'on refusal'], ['always', 'always (rows)'], ['level', 'level (photo)']].map(([v, l]) => `<option value="${v}" ${sel.deskew === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
       <button class="quick" data-run="${side}">run</button>
       <span class="dim mono" data-model="${side}" style="font-size:10px"></span>
     </div>
     <div class="cmp-canvas-wrap"><canvas data-canvas="${side}"></canvas></div>
-    <div class="row cmp-layers">${layers.map(([k, label]) => `<label><input type="checkbox" data-layer="${k}" ${L[k] ? 'checked' : ''}> ${label}</label>`).join('')}</div>
+    <div class="row cmp-layers">${layers.map(([k, label, ref]) => `<label class="${ref ? 'ref' : ''}" title="${CMP_LAYER_HELP[k]}"><input type="checkbox" data-layer="${k}" ${L[k] ? 'checked' : ''}> ${label}</label>`).join('')}</div>
+    <div class="cmp-decision" data-decision="${side}"></div>
+    <div class="cmp-presence" data-presence="${side}"></div>
     <div class="cmp-funnel" data-funnel="${side}"></div>
     <div class="cmp-fields" data-fields="${side}"></div>
     <details class="cmp-json"><summary class="dim">raw reply</summary><pre class="mono" data-json="${side}"></pre></details>`;
@@ -1858,59 +1938,135 @@ function fillPane(side) {
   const canvas = el.querySelector(`canvas[data-canvas="${side}"]`);
   if (!reply) { canvas.width = canvas.height = 0; return; }
   drawCompare(canvas, reply);
+  el.querySelector(`[data-decision="${side}"]`).outerHTML = decisionHtml(reply, side);
+  el.querySelector(`[data-presence="${side}"]`).innerHTML = presenceHtml(presence(reply));
   el.querySelector(`[data-funnel="${side}"]`).innerHTML = funnelHtml(reply);
   el.querySelector(`[data-fields="${side}"]`).innerHTML = fieldsHtml(reply);
   el.querySelector(`[data-json="${side}"]`).textContent = JSON.stringify(reply, null, 1);
 }
 // Every overlay comes from the reply the model returned; the hand windows are
 // the annotation, drawn dashed and never used as if the model had found them.
+function cmpBox(q) {
+  const xs = q.map(p => p[0]), ys = q.map(p => p[1]);
+  return {x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys)};
+}
+function cmpIou(a, b) {
+  const A = cmpBox(a), B = cmpBox(b);
+  const w = Math.min(A.x1, B.x1) - Math.max(A.x0, B.x0), h = Math.min(A.y1, B.y1) - Math.max(A.y0, B.y0);
+  if (w <= 0 || h <= 0) return 0;
+  const inter = w * h, area = r => (r.x1 - r.x0) * (r.y1 - r.y0);
+  return inter / (area(A) + area(B) - inter);
+}
+// What the pipeline did to each hand window: a kept candidate over it (kept),
+// only candidates the verifier dropped (dropped, with their reasons), or no
+// candidate at all (missed). Normalised coordinates on both sides; IoU is
+// unchanged by the per-axis scaling.
+function presence(reply) {
+  // A reply from a tool build older than the candidates report says nothing
+  // about presence; painting its rows 'missed' would be a false finding.
+  if (!Array.isArray(reply.candidates)) return null;
+  const cands = reply.candidates;
+  return cmp.hand.filter(w => w.field).map(w => {
+    let kept = 0, dropped = 0, reasons = new Set();
+    for (const c of cands) {
+      const iou = cmpIou(w.quad, c.quad);
+      if (iou < PRESENCE_IOU) continue;
+      if (c.kept) kept = Math.max(kept, iou);
+      else { dropped = Math.max(dropped, iou); (c.dropReasons || []).forEach(r => reasons.add(r)); }
+    }
+    const status = kept ? 'kept' : dropped ? 'dropped' : 'missed';
+    return {w, status, iou: kept || dropped, reasons: [...reasons]};
+  });
+}
+const PRESENCE_COLOR = {kept: '#3ecf6e', dropped: '#ffb020', missed: '#ff5a5f', unknown: '#9aa4b2'};
+function presenceHtml(list) {
+  if (!list) return '<span class="dim">presence: not in this reply – a cached reply from an older pump-read; press run to read it again</span>';
+  const tx = list.filter(p => CMP_FIELDS.includes(p.w.field));
+  if (!tx.length) return '';
+  const n = s => tx.filter(p => p.status === s).length;
+  const items = tx.map(p => `<span class="${p.status}">${p.w.field} ${p.status}${p.iou ? ' ' + p.iou.toFixed(2) : ''}`
+    + `${p.reasons.length ? ' (' + p.reasons.join(', ') + ')' : ''}</span>`).join(' · ');
+  return `<b>hand rows ${tx.length}</b> · <span class="kept">kept ${n('kept')}</span> · `
+    + `<span class="dropped">dropped ${n('dropped')}</span> · <span class="missed">missed ${n('missed')}</span><br>${items}`;
+}
+// The display decision with the inputs it weighed against their limits: a
+// refused display says which test refused it.
+function decisionHtml(reply, side) {
+  const d = reply.appDecision;
+  if (!d) return `<div class="cmp-decision" data-decision="${side}"><span class="dim">display decision: not reported</span></div>`;
+  const L = d.limits || {};
+  const test = (ok, text) => `<span class="${ok ? 'pass' : 'fail'}">${text} ${ok ? '✓' : '✗'}</span>`;
+  const checks = [
+    test(d.rows >= (L.minimumRows ?? 2), `rows ${d.rows} ≥ ${L.minimumRows ?? 2}`),
+    test(d.textLines <= (L.maximumTextLines ?? 30), `text lines ${d.textLines} ≤ ${L.maximumTextLines ?? 30}`),
+    test((d.widestRow ?? 0) >= (L.minimumWidestRow ?? 0.18),
+         `widest row ${(d.widestRow ?? 0).toFixed(2)} ≥ ${L.minimumWidestRow ?? 0.18}`),
+  ].join(' · ');
+  const head = d.display ? `display: yes · ${d.path || ''} path` : 'display: NO – the app treats this frame as a receipt';
+  return `<div class="cmp-decision ${d.display ? '' : 'bad'}" data-decision="${side}"><b>0 ${head}</b><br>${checks}</div>`;
+}
+function cmpLine(c, pts) { c.beginPath(); pts.forEach((p, k) => k ? c.lineTo(...p) : c.moveTo(...p)); c.closePath(); c.stroke(); }
+function cmpTag(c, text, x, y, color) {
+  c.font = '11px system-ui';
+  c.fillStyle = 'rgba(0,0,0,0.72)'; c.fillRect(x, y - 13, c.measureText(text).width + 4, 13);
+  c.fillStyle = color || '#fff'; c.fillText(text, x + 2, y - 3);
+}
 function drawCompare(canvas, reply) {
   const im = cmp.img; if (!im || !im.naturalWidth) return;
   const maxW = Math.max(240, (canvas.parentElement.clientWidth || 420) - 4);
   const maxH = Math.max(180, window.innerHeight * 0.42);
-  const scale = Math.min(maxW / im.naturalWidth, maxH / im.naturalHeight, 1);
+  const fit = Math.min(maxW / im.naturalWidth, maxH / im.naturalHeight, 1);
+  const scale = fit * (cmp.zoom || 1);
   const W = Math.round(im.naturalWidth * scale), H = Math.round(im.naturalHeight * scale);
   canvas.width = W; canvas.height = H;
   const c = canvas.getContext('2d');
   c.clearRect(0, 0, W, H); c.drawImage(im, 0, 0, W, H);
   const L = cmp.layers, P = q => q.map(([nx, ny]) => [nx * W, ny * H]);
+  const cands = reply.candidates || [], rows = reply.rows || [];
+  // Reference first, underneath: the hand windows, coloured by presence.
   if (L.hand) {
-    c.setLineDash([5, 4]); c.lineWidth = 1.5; c.strokeStyle = '#9aa4b2'; c.font = '11px system-ui';
-    for (const w of cmp.hand) {
-      const pts = P(w.quad);
-      c.beginPath(); pts.forEach((p, k) => k ? c.lineTo(...p) : c.moveTo(...p)); c.closePath(); c.stroke();
-      c.fillStyle = '#c9d1da'; c.fillText(`${w.field}${w.text ? ' ' + w.text : ''}`, pts[0][0], pts[0][1] - 3);
+    c.setLineDash([5, 4]); c.lineWidth = 2;
+    for (const p of presence(reply) || cmp.hand.filter(w => w.field).map(w => ({w, status: 'unknown'}))) {
+      const pts = P(p.w.quad);
+      c.strokeStyle = PRESENCE_COLOR[p.status]; cmpLine(c, pts);
+      const bottom = Math.max(...pts.map(q => q[1]));
+      cmpTag(c, `${p.w.field}${p.w.text ? ' ' + p.w.text : ''} · ${p.status}`, pts[3][0], bottom + 14, PRESENCE_COLOR[p.status]);
     }
     c.setLineDash([]);
   }
-  const rows = reply.rows || [];
+  // 1 the learned detector's boxes, kept or not.
   if (L.detector) {
-    c.lineWidth = 2.5; c.strokeStyle = '#fff';
-    for (const r of rows) if (r.detected) { const pts = P(r.quad); c.beginPath(); pts.forEach((p, k) => k ? c.lineTo(...p) : c.moveTo(...p)); c.closePath(); c.stroke(); }
+    c.lineWidth = 2.5; c.strokeStyle = '#ffffff';
+    for (const k of cands) if (k.detected) cmpLine(c, P(k.quad));
   }
-  if (L.kept) {
-    c.lineWidth = 1.5;
+  // 2 the other proposal sources the verifier also judged.
+  if (L.candidates) {
+    c.lineWidth = 1; c.strokeStyle = 'rgba(180,190,205,0.8)';
+    for (const k of cands) if (!k.detected) cmpLine(c, P(k.quad));
+  }
+  // 3 the verifier: kept solid, dropped dashed with the reason.
+  if (L.verifier) {
+    for (const k of cands) {
+      const pts = P(k.quad);
+      if (k.kept) { c.setLineDash([]); c.lineWidth = 1.5; c.strokeStyle = '#3ecf6e'; cmpLine(c, pts); continue; }
+      c.setLineDash([4, 3]); c.lineWidth = 1.5; c.strokeStyle = '#ff5a5f'; cmpLine(c, pts);
+      if ((k.dropReasons || []).length) cmpTag(c, '3 ' + k.dropReasons.join(','), pts[0][0], pts[0][1] - 1, '#ff9b9e');
+    }
+    c.setLineDash([]);
+  }
+  // 4 the role each kept row was given.
+  if (L.roles) {
     for (const r of rows) {
       const pts = P(r.quad);
-      c.strokeStyle = r.field ? (COLORS[r.field] || '#fff') : '#aaa';
-      c.setLineDash(r.detected ? [] : [5, 3]);
-      c.beginPath(); pts.forEach((p, k) => k ? c.lineTo(...p) : c.moveTo(...p)); c.closePath(); c.stroke();
-    }
-    c.setLineDash([]);
-  }
-  if (L.fields) {
-    c.font = '11px system-ui';
-    for (const r of rows) {
-      const pts = P(r.quad), label = `${r.field || '–'} ·${r.cells}${r.detected ? ' det' : ''}`;
-      c.fillStyle = 'rgba(0,0,0,0.7)'; c.fillRect(pts[0][0], pts[0][1] - 13, c.measureText(label).width + 4, 13);
-      c.fillStyle = '#fff'; c.fillText(label, pts[0][0] + 2, pts[0][1] - 3);
+      c.lineWidth = 2; c.strokeStyle = r.field ? (COLORS[r.field] || '#fff') : '#888'; cmpLine(c, pts);
+      cmpTag(c, `4 ${r.field || 'no role'} ·${r.cells}${r.detected ? ' det' : ''}`, pts[0][0], pts[0][1] - 1,
+             r.field ? COLORS[r.field] : '#aaa');
     }
   }
-  // The slicer's cells inside each kept row, tinted by the cell's margin: red is
-  // an uncertain digit. The margins are the reply's own rowTexts.
+  // 5 the slicer's cells inside each read row, tinted by the cell's margin.
   if (L.cells) {
     const texts = {};
-    for (const t of reply.rowTexts || []) { const [f, str, margins] = t.split(' '); texts[f] = (margins || '').split(',').map(Number); }
+    for (const t of reply.rowTexts || []) { const [f, , margins] = t.split(' '); texts[f] = (margins || '').split(',').map(Number); }
     for (const r of rows) {
       const n = r.cells || 0; if (!r.field || !n) continue;
       const margins = texts[r.field] || [];
@@ -1925,12 +2081,47 @@ function drawCompare(canvas, reply) {
       }
     }
   }
+  // 6 what the law committed, beside the row it came from.
+  if (L.result) {
+    const got = reply.committed || {}, exp = cmp.expected || {};
+    for (const r of rows) {
+      if (!r.field || !CMP_FIELDS.includes(r.field)) continue;
+      const v = got[r.field], verdict = matchVerdict(v, exp[r.field]);
+      const pts = P(r.quad), right = Math.max(...pts.map(q => q[0]));
+      const color = verdict === '✓' ? '#3ecf6e' : verdict === '✗' ? '#ff5a5f' : '#c9d1da';
+      cmpTag(c, `6 ${v ?? 'refused'} ${verdict}`, right + 4, pts[1][1] + 12, color);
+    }
+  }
   if (L.truth && cmp.expected) {
     const t = CMP_FIELDS.map(f => `${f} ${cmp.expected[f] ?? '–'}`).join(' · ');
     c.font = '11px ui-monospace, Menlo, monospace';
     c.fillStyle = 'rgba(0,0,0,0.75)'; c.fillRect(0, 0, c.measureText(t).width + 8, 16);
     c.fillStyle = '#ffc857'; c.fillText(t, 4, 12);
   }
+}
+// Zoom is one factor for both panes, and their scroll positions move together,
+// so the same pixels stay under the eye in A and B.
+function setCmpZoom(z) {
+  if (!cmp) return;
+  const wraps = [...document.querySelectorAll('.cmp-canvas-wrap')];
+  const centre = wraps[0] ? {x: (wraps[0].scrollLeft + wraps[0].clientWidth / 2) / Math.max(wraps[0].scrollWidth, 1),
+                             y: (wraps[0].scrollTop + wraps[0].clientHeight / 2) / Math.max(wraps[0].scrollHeight, 1)} : null;
+  cmp.zoom = Math.max(1, Math.min(8, z));
+  $('#cmpZoomLabel').textContent = Math.round(cmp.zoom * 100) + '%';
+  for (const s of ['A', 'B']) fillPane(s);
+  if (centre) for (const w of document.querySelectorAll('.cmp-canvas-wrap')) {
+    w.scrollLeft = centre.x * w.scrollWidth - w.clientWidth / 2;
+    w.scrollTop = centre.y * w.scrollHeight - w.clientHeight / 2;
+  }
+}
+let cmpSyncing = false;
+function syncCmpScroll(source) {
+  if (cmpSyncing) return;
+  cmpSyncing = true;
+  for (const w of document.querySelectorAll('.cmp-canvas-wrap')) if (w !== source) {
+    w.scrollLeft = source.scrollLeft; w.scrollTop = source.scrollTop;
+  }
+  cmpSyncing = false;
 }
 function funnelHtml(reply) {
   const t = reply.timingsMs || {}, rows = reply.rows || [];
@@ -1941,14 +2132,14 @@ function funnelHtml(reply) {
   const lost = (from, to) => Number.isFinite(from) && from > to ? `lost ${from - to}` : '';
   const step = (name, count, ms, extra) => `<tr><td>${name}</td><td class="num">${count}</td><td class="num">${ms != null ? ms + ' ms' : ''}</td><td class="dim">${extra || ''}</td></tr>`;
   return `<table><tr><td class="dim">step</td><td class="num dim">count</td><td class="num dim">time</td><td></td></tr>
-    ${step('detector boxes', detCount, null, 'timingsMs.detectorOnly')}
-    ${step('candidates', '–', t.candidates, 'Vision/classical proposals')}
-    ${step('verified kept', kept, t.verify, lost(detCount, kept))}
-    ${step('roles assigned', assigned, t.assign, lost(kept, assigned))}
-    ${step('cells sliced', cellsSliced, null, `${(reply.cellsPerRow || []).length} row(s) read`)}
-    ${step('read', (reply.cellsPerRow || []).length, t.read, '')}
-    ${step('law', committedN + ' committed', t.law, '')}
-    ${step('whole path', '', t.readPhoto, 'readPhoto')}</table>`;
+    ${step('1 detector boxes', detCount, null, 'the learned row detector')}
+    ${step('2 candidates judged', reply.candidatesOffered ?? '–', t.candidates, 'detector + Vision + classical, merged')}
+    ${step('3 verified kept', kept, t.verify, lost(reply.candidatesOffered, kept))}
+    ${step('4 roles assigned', assigned, t.assign, lost(kept, assigned))}
+    ${step('5 cells sliced', cellsSliced, null, `${(reply.cellsPerRow || []).length} row(s) read`)}
+    ${step('5 read', (reply.cellsPerRow || []).length, t.read, '')}
+    ${step('6 law', committedN + ' committed', t.law, '')}
+    ${step('whole path', '', t.readPhoto, reply.levelDegrees ? `readPhoto · photo LEVELLED by ${reply.levelDegrees.toFixed(1)}°` : reply.deskewed ? 'readPhoto · read from the TURNED rows' : 'readPhoto')}</table>`;
 }
 function fieldsHtml(reply) {
   const c = reply.committed || {}, exp = cmp.expected || {};
@@ -1978,14 +2169,15 @@ function renderVerdict() {
   }).join('');
   el.innerHTML = `<table><tr><th class="dim">field</th><th class="dim">expected.csv</th><th class="dim">A</th><th class="dim">B</th></tr>${CMP_FIELDS.map(row).join('')}</table>${reasons}`;
 }
-async function runCompare() {
+async function runCompare(fresh = false) {
   if (!cmp) return;
   $('#cmpStatus').textContent = 'running…';
   let res;
   try {
     res = await (await fetch('/api/compare', {method: 'POST', body: JSON.stringify({
       image: cmp.image, detectorA: cmp.A.detector, classifierA: cmp.A.classifier,
-      detectorB: cmp.B.detector, classifierB: cmp.B.classifier})})).json();
+      detectorB: cmp.B.detector, classifierB: cmp.B.classifier, deskewA: cmp.A.deskew, deskewB: cmp.B.deskew,
+      cache: !fresh})})).json();
   } catch (err) { $('#cmpStatus').textContent = 'failed: ' + err; return; }
   if (res.error) { $('#cmpStatus').textContent = res.error; return; }
   cmp.expected = res.expected; cmp.replyA = res.a.reply; cmp.replyB = res.b.reply; cmp.verdict = res.verdict;
@@ -2006,8 +2198,10 @@ $('#cmpBody').addEventListener('change', e => {
   if (det) cmp[det].detector = e.target.value;
   if (cls) cmp[cls].classifier = e.target.value;
   if (layer) { cmp.layers[layer] = e.target.checked; for (const s of ['A', 'B']) fillPane(s); }
+  if (e.target.dataset.deskew) { cmp[e.target.dataset.deskew].deskew = e.target.value; runCompare(); }
 });
-$('#cmpBody').addEventListener('click', e => { if (e.target.dataset.run) runCompare(); });
+// run reads again past the cache: the way to refresh a pane after a rebuild.
+$('#cmpBody').addEventListener('click', e => { if (e.target.dataset.run) runCompare(true); });
 function closeCompare() { $('#compare').style.display = 'none'; clearInterval(sweepTimer); }
 // The disagreement sweep: both models over the current list, in the background,
 // cached per (still, model pair). Only the stills whose committed triples differ
@@ -2021,7 +2215,7 @@ async function startSweep() {
   panel.innerHTML = `<div class="row dim">starting a sweep over ${names.length} stills…</div>`;
   await fetch('/api/compare/sweep', {method: 'POST', body: JSON.stringify({
     stills: names, detectorA: cmp.A.detector, classifierA: cmp.A.classifier,
-    detectorB: cmp.B.detector, classifierB: cmp.B.classifier})});
+    detectorB: cmp.B.detector, classifierB: cmp.B.classifier, deskewA: cmp.A.deskew, deskewB: cmp.B.deskew})});
   clearInterval(sweepTimer);
   const tick = async () => {
     let s; try { s = await (await fetch('/api/compare/sweep')).json(); } catch (e) { return; }
@@ -2034,8 +2228,22 @@ function renderSweep(s) {
   const panel = $('#cmpSweepPanel'); panel.style.display = '';
   const rows = (s.rows || []).map(r => `<tr data-sweep="${r.still}" style="cursor:pointer">
     <td>${r.still}</td><td class="mono">${(r.a || []).map(v => v ?? '–').join(' / ')}</td><td class="mono">${(r.b || []).map(v => v ?? '–').join(' / ')}</td></tr>`).join('');
+  // Stills where a hand transaction row was never found (missed) or found and
+  // thrown away by the verifier (dropped), per model - the rows the live path
+  // loses before a digit is read.
+  const pres = s.presence || [];
+  const cell = p => `<span class="missed">${p.missed} missed</span> · <span class="dropped">${p.dropped} dropped</span>`;
+  const presRows = pres.map(r => `<tr data-sweep="${r.still}" style="cursor:pointer">
+    <td>${r.still}</td><td class="cmp-presence">${cell(r.a)}</td><td class="cmp-presence">${cell(r.b)}</td></tr>`).join('');
+  const sum = side => pres.reduce((a, r) => ({missed: a.missed + r[side].missed, dropped: a.dropped + r[side].dropped}),
+                                  {missed: 0, dropped: 0});
+  const sa = sum('a'), sb = sum('b');
   panel.innerHTML = `<div class="row dim" style="font-size:11px">${s.running ? `sweeping ${s.done}/${s.total}` : `swept ${s.total} stills`} · ${(s.rows || []).length} disagree${s.current ? ` · ${s.current}` : ''} · click a row to compare it</div>
-    <table><tr><th class="dim">still</th><th class="dim">A (total / liters / price)</th><th class="dim">B</th></tr>${rows}</table>`;
+    <table><tr><th class="dim">still</th><th class="dim">A (total / liters / price)</th><th class="dim">B</th></tr>${rows}</table>
+    <div class="row dim cmp-presence" style="font-size:11px;margin-top:6px"><b>transaction rows lost before the read</b> · ${pres.length} still(s) ·
+      A <span class="missed">${sa.missed} missed</span> <span class="dropped">${sa.dropped} dropped</span> ·
+      B <span class="missed">${sb.missed} missed</span> <span class="dropped">${sb.dropped} dropped</span></div>
+    <table><tr><th class="dim">still</th><th class="dim">A</th><th class="dim">B</th></tr>${presRows}</table>`;
   panel.querySelectorAll('[data-sweep]').forEach(tr => tr.onclick = async () => {
     await openFixture(tr.dataset.sweep); await openCompare();
   });
@@ -2065,6 +2273,9 @@ async function saveCompare() {
 $('#compareBtn').onclick = openCompare;
 $('#cmpClose').onclick = closeCompare;
 $('#cmpBlink').onclick = blinkCompare;
+$('#cmpZoomIn').onclick = () => setCmpZoom(cmp.zoom * 1.2);
+$('#cmpZoomOut').onclick = () => setCmpZoom(cmp.zoom / 1.2);
+$('#cmpZoomFit').onclick = () => setCmpZoom(1);
 $('#cmpSweepBtn').onclick = startSweep;
 $('#cmpSave').onclick = saveCompare;
 function toggleHelp(show) { const h = $('#help'); h.style.display = (show === undefined ? h.style.display === 'none' : show) ? '' : 'none'; }
@@ -2078,6 +2289,9 @@ document.addEventListener('keydown', e => {
   if ($('#compare').style.display !== 'none') {
     if (e.key === 'Escape') { e.preventDefault(); closeCompare(); return; }
     if (!typing && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); blinkCompare(); return; }
+    if (!typing && (e.key === '+' || e.key === '=')) { e.preventDefault(); setCmpZoom(cmp.zoom * 1.2); return; }
+    if (!typing && e.key === '-') { e.preventDefault(); setCmpZoom(cmp.zoom / 1.2); return; }
+    if (!typing && e.key === '0') { e.preventDefault(); setCmpZoom(1); return; }
     return;
   }
   if (!typing && e.key === '?') { e.preventDefault(); toggleHelp(true); return; }

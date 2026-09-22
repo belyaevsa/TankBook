@@ -208,6 +208,12 @@ the ml venv runs it); the converted images are cached under
 - **The right header reads one fact per line** - the fixture, the record, the
   frame and its position - because a 40-character fixture name and a frame
   counter on one line leave `v…` for the name.
+- **The list shows each record's size and progress**: a video row reads
+  `1184f · 46%` - tracked frames, and the share of them that carry a label
+  (owner, the reader's arithmetic, an interpolation or a skip), green at 100 %,
+  amber in between, dim at 0 - and it follows a save at once rather than the
+  next reload. A still with a Live record shows its frame count (`58f`); its
+  "done" is the tracking verdict the ▶ colour already carries.
 - **The status line is the third top row**, under the two toolbars and above
   the image. It always shows the LATEST notification with its time, and no
   timer clears it - a "saved" that vanished after four seconds could not be
