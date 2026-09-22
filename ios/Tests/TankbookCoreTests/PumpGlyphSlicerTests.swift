@@ -178,12 +178,74 @@ struct PumpGlyphSlicerTests {
         #expect(merged.count == 1, "without the guard the old split-merge fuses them, got \(merged.count)")
     }
 
+    @Test("a glyph split by a washed-out middle column is one run")
+    func splitMergeJoinsAWashedOutGlyph() {
+        // One glyph whose middle column a glare washed out reads as two runs,
+        // each under a body, closer than the split-merge gap and together no
+        // wider than a cell - the two fragments are one glyph.
+        let runs = [
+            PumpGlyphSlicer.Run(start: 10, end: 18, isDecimalPoint: false),
+            PumpGlyphSlicer.Run(start: 22, end: 30, isDecimalPoint: false)
+        ]
+        let merged = PumpGlyphSlicer.splitMerge(runs, pitch: 40, band: 40, options: PumpGlyphSlicer.Options())
+        #expect(merged.count == 1, "the two fragments are one glyph, got \(merged.count)")
+    }
+
+    // MARK: - The dim glyph (PU.42)
+
+    @Test("a dim leading glyph at a third of the bright digits' contrast is counted")
+    func dimLeadingGlyphIsRecovered() {
+        // The leading glyph's ink is 0.35 against the bright digits' 0.10 on a
+        // 0.85 panel: its column-profile peak is a third of a bright digit's,
+        // under the one global Otsu threshold, so the run pass alone leaves its
+        // cell empty.
+        let strip = Self.makeDimStrip(dimInk: 0.35)
+        let cells = PumpGlyphSlicer.slice(strip)
+        #expect(cells.filter { !$0.isBlank }.count == 4,
+                "the dim leading glyph must be counted, got \(cells.filter { !$0.isBlank }.count) digits")
+        #expect(cells.first?.isBlank == false, "the leading cell is the dim glyph, not a blank")
+
+        // The seam is load-bearing: without the recovery the dim glyph's cell
+        // is not a digit.
+        var off = PumpGlyphSlicer.Options()
+        off.dimGlyphRecovery = false
+        let without = PumpGlyphSlicer.slice(strip, options: off)
+        #expect(without.filter { !$0.isBlank }.count == 3,
+                "without the recovery the dim glyph is missed, got \(without.filter { !$0.isBlank }.count) digits")
+    }
+
+    @Test("a genuinely blank leading position is not recovered as a glyph")
+    func blankLeadingPositionStaysBlank() {
+        // The same strip with the leading cell left at the panel level: no ink
+        // to find, so the recovery must not invent a glyph there.
+        let strip = Self.makeDimStrip(dimInk: 0.85)
+        let cells = PumpGlyphSlicer.slice(strip)
+        #expect(cells.filter { !$0.isBlank }.count == 3,
+                "the blank leading cell must not become a digit, got \(cells.filter { !$0.isBlank }.count) digits")
+    }
+
     /// Scales every pixel toward the strip mean until the ink/background
     /// contrast is `remaining` of the original, matching a faint display.
     private static func collapseContrast(_ gray: PumpGrayscale, remaining: Float) -> PumpGrayscale {
         let mean = gray.pixels.reduce(0, +) / Float(gray.pixels.count)
         let pixels = gray.pixels.map { mean + ($0 - mean) * remaining }
         return PumpGrayscale(width: gray.width, height: gray.height, pixels: pixels)
+    }
+
+    private static func makeDimStrip(dimInk: Float) -> PumpGrayscale {
+        let pitch = 24
+        let width = 4 * pitch
+        let height = 40
+        var pixels = [Float](repeating: 0.85, count: width * height)
+        for cell in 0..<4 {
+            let ink: Float = cell == 0 ? dimInk : 0.10
+            for y in 4..<36 {
+                for x in (cell * pitch + 3)..<(cell * pitch + 15) {
+                    pixels[y * width + x] = ink
+                }
+            }
+        }
+        return PumpGrayscale(width: width, height: height, pixels: pixels)
     }
 
     private static func makeStrip(darkOnLight: Bool) -> PumpGrayscale {

@@ -80,6 +80,26 @@ enum PumpGlyphSlicer {
         var splitMergeBodyGuard: Bool = true
         /// A second pass at half the threshold when the snapped count is short.
         var shortCountRetry: Bool = true
+        /// PU.42: recover a dim glyph (a ghosted zero, a faint `1`) whose
+        /// strokes fall under the one global run threshold, by a second look at
+        /// `dimGlyphThresholdFraction` of it. A candidate must snap to an empty
+        /// grid cell, carry ink from the top of the band (a mark is lower-band
+        /// only), and its column-profile peak must stand
+        /// `dimGlyphContrastFraction` of the bright cells' median peak.
+        var dimGlyphRecovery: Bool = true
+        var dimGlyphThresholdFraction: Float = 0.5
+        var dimGlyphContrastFraction: Float = 0.25
+        var dimGlyphInkThresholdFraction: Float = 0.5
+        var dimGlyphTopRowFraction: Float = 0.55
+        /// A recovered cell must overlap the strip by this fraction of a pitch:
+        /// a sliver at the frame edge is a crop artifact, not a glyph.
+        var dimGlyphMinimumCellWidthFraction: Float = 0.35
+        /// The recovery is only meaningful on a row whose pitch is a sane
+        /// fraction of its band height; on a harmonic (pitch ~1.4 bands) or
+        /// subharmonic (~0.34) row the grid itself is wrong, and filling it in
+        /// makes the count worse, not better.
+        var dimGlyphMinimumPitchFraction: Float = 0.45
+        var dimGlyphMaximumPitchFraction: Float = 1.05
         /// The pitch-to-body check: a glyph body (the widest ink run) is at
         /// least this fraction of the band height to count as a body rather
         /// than a `1`, and the pitch must lie within [minimum, maximum) bodies.
@@ -219,7 +239,12 @@ enum PumpGlyphSlicer {
         guard options.shortCountRetry else { return pass }
         let grid = Int((Double(context.width) / Double(context.pitch)).rounded())
         guard pass.count < grid else { return pass }
-        let retry = Self.makePass(context, threshold: threshold * 0.5, options: options)
+        // The retry already runs at half the threshold; its own dim-glyph look
+        // would go a quarter of the way down and pull in noise the main pass
+        // has not sanctioned.
+        var retryOptions = options
+        retryOptions.dimGlyphRecovery = false
+        let retry = Self.makePass(context, threshold: threshold * 0.5, options: retryOptions)
         guard !retry.cells.isEmpty else { return pass }
         if Self.inkMassUniformity(retry.digitRuns, profile: context.profile)
             > Self.inkMassUniformity(pass.digitRuns, profile: context.profile) {
@@ -313,8 +338,8 @@ enum PumpGlyphSlicer {
             let index = cellIndex(run.end)
             cellsByIndex[index, default: []].append(run)
         }
-        let occupied = cellsByIndex.keys.sorted()
-        guard let first = occupied.first else { return Pass(cells: [], digitRuns: [], count: 0) }
+        var occupied = Set(cellsByIndex.keys)
+        guard let first = occupied.min() else { return Pass(cells: [], digitRuns: [], count: 0) }
         // The grid is anchored on the first occupied cell, whose left edge is
         // one pitch before its phase-aligned right edge. A leading blank cell
         // exists only where a whole cell (within a quarter pitch) fits between
@@ -322,26 +347,34 @@ enum PumpGlyphSlicer {
         // that is a margin, not a blank glyph.
         let firstCellStart = phase + Double(first) * pitch - pitch
         let leadingBlanks = max(0, Int((firstCellStart / pitch + 0.25).rounded(.down)))
-        let gridOrigin = firstCellStart - Double(leadingBlanks) * pitch
+        let gridFirst = first - leadingBlanks
+        let last = occupied.max()!
 
+        // PU.42: a dim glyph the run threshold missed sits on an empty grid
+        // position; recover it and widen the grid to hold a leading or
+        // trailing one. A recovered cell is a digit, never a mark, so its
+        // index is struck from the decimal set the main pass may have put it in.
+        let recovered = Self.dimGlyphIndices(context: context, threshold: threshold,
+                                             phase: phase, occupied: occupied, options: options)
         let decimalCells = Set((decimalRuns + markRuns).map { cellIndex($0.start) })
+            .subtracting(recovered)
+        occupied.formUnion(recovered)
+        let cellFirst = min(gridFirst, recovered.min() ?? gridFirst)
+        let cellLast = max(last, recovered.max() ?? last)
 
         // Every grid position from the first leading blank to the last occupied
         // cell is a cell: an empty position between two digits (a wide gap, a
         // separator drawn in its own narrow cell) is a blank cell, never a
         // collapsed one - collapsing it would shift every later cell's rect
         // onto the wrong glyph.
-        let occupiedSet = Set(occupied)
-        let last = occupied.last!
         var cells: [GlyphCell] = []
-        for index in (first - leadingBlanks)...last {
-            let k = index - (first - leadingBlanks)
+        for index in cellFirst...cellLast {
             let rect = CGRect(
-                x: CGFloat(gridOrigin + Double(k) * pitch),
+                x: CGFloat(phase + Double(index - 1) * pitch),
                 y: CGFloat(context.bandTop),
                 width: CGFloat(context.pitch),
                 height: CGFloat(context.bandHeight))
-            let isDigit = occupiedSet.contains(index)
+            let isDigit = occupied.contains(index)
             cells.append(GlyphCell(
                 rect: rect,
                 hasDecimalPoint: isDigit && decimalCells.contains(index),
@@ -394,161 +427,6 @@ enum PumpGlyphSlicer {
                 hasDecimalPoint: run.isDecimalPoint,
                 isBlank: false)
         }
-    }
-
-    // MARK: - Pitch via autocorrelation
-
-    private static func autocorrelationPitch(_ profile: [Float], minLag: Int, maxLag: Int) -> Int? {
-        let count = profile.count
-        guard count > maxLag, maxLag >= minLag else { return nil }
-        let mean = profile.reduce(0, +) / Float(count)
-        let centered = profile.map { $0 - mean }
-        var energy: Float = 0
-        for value in centered { energy += value * value }
-        guard energy > 0 else { return nil }
-        let lags = Array(minLag...min(maxLag, count - 1))
-        var values: [Float] = []
-        values.reserveCapacity(lags.count)
-        for lag in lags {
-            var value: Float = 0
-            for i in 0..<(count - lag) {
-                value += centered[i] * centered[i + lag]
-            }
-            values.append(value / energy)
-        }
-        guard let bestValue = values.max() else { return nil }
-        // The profile of a digit row repeats at the pitch AND at every multiple
-        // of it, and the doubled lag often carries the higher peak (a decimal
-        // mark or a dim `1` every other cell weakens the fundamental). Take the
-        // shortest local peak that is nearly as strong as the strongest, so the
-        // fundamental wins over its harmonic; measured on the train export the
-        // harmonic halved the count on 954 of 8 527 windows.
-        for (i, lag) in lags.enumerated() where values[i] >= harmonicTolerance * bestValue {
-            let before = i == 0 ? -.greatestFiniteMagnitude : values[i - 1]
-            let after = i + 1 < values.count ? values[i + 1] : -.greatestFiniteMagnitude
-            if values[i] >= before && values[i] >= after { return lag }
-        }
-        return lags[values.firstIndex(of: bestValue)!]
-    }
-
-    /// How close to the strongest autocorrelation peak a shorter peak must be
-    /// to be taken as the fundamental pitch.
-    static let harmonicTolerance: Float = 0.6
-
-    // MARK: - Primitives
-
-    private static func runs(in profile: [Float], threshold: Float, mergeGap: Int) -> [Run] {
-        var result: [Run] = []
-        var i = 0
-        while i < profile.count {
-            guard profile[i] > threshold else { i += 1; continue }
-            let start = i
-            var end = i
-            while end < profile.count && profile[end] > threshold { end += 1 }
-            let runEnd = end - 1
-            if let last = result.last, start - last.end <= mergeGap {
-                result[result.count - 1].end = runEnd
-            } else {
-                result.append(Run(start: start, end: runEnd, isDecimalPoint: false))
-            }
-            i = end + 1
-        }
-        return result
-    }
-
-    static func topInkRow(
-        _ run: Run, ink: [Float], width: Int, bandTop: Int, bandBottom: Int, threshold: Float
-    ) -> Int? {
-        for y in bandTop...bandBottom {
-            for x in run.start...run.end where ink[y * width + x] > threshold {
-                return y
-            }
-        }
-        return nil
-    }
-
-    static func boxFilter(_ values: [Float], radius: Int) -> [Float] {
-        let count = values.count
-        guard radius > 0, count > 0 else { return values }
-        var prefix = [Float](repeating: 0, count: count + 1)
-        for i in 0..<count { prefix[i + 1] = prefix[i] + values[i] }
-        var out = [Float](repeating: 0, count: count)
-        for i in 0..<count {
-            let left = max(0, i - radius)
-            let right = min(count - 1, i + radius)
-            out[i] = (prefix[right + 1] - prefix[left]) / Float(right - left + 1)
-        }
-        return out
-    }
-
-    private static func otsuThreshold(_ values: [Float]) -> Float {
-        let count = values.count
-        guard count > 1, let lo = values.min(), let hi = values.max(), hi > lo else {
-            return values.max() ?? 0
-        }
-        let bins = 256
-        var hist = [Float](repeating: 0, count: bins)
-        let scale = Float(bins - 1) / (hi - lo)
-        for value in values {
-            var index = Int(((value - lo) * scale).rounded())
-            index = max(0, min(bins - 1, index))
-            hist[index] += 1
-        }
-        let binCenters = (0..<bins).map { lo + Float($0) * (hi - lo) / Float(bins - 1) }
-        var prefixCount = [Float](repeating: 0, count: bins)
-        var prefixSum = [Float](repeating: 0, count: bins)
-        for i in 0..<bins {
-            prefixCount[i] = (i > 0 ? prefixCount[i - 1] : 0) + hist[i]
-            prefixSum[i] = (i > 0 ? prefixSum[i - 1] : 0) + hist[i] * binCenters[i]
-        }
-        let total = Float(count)
-        let totalSum = prefixSum[bins - 1]
-        var best: Float = -1
-        var bestThreshold = lo
-        for i in 0..<(bins - 1) {
-            let weight1 = prefixCount[i]
-            let weight2 = total - weight1
-            guard weight1 > 0, weight2 > 0 else { continue }
-            let mean1 = prefixSum[i] / weight1
-            let mean2 = (totalSum - prefixSum[i]) / weight2
-            let between = weight1 * weight2 * (mean1 - mean2) * (mean1 - mean2)
-            if between > best {
-                best = between
-                bestThreshold = binCenters[i]
-            }
-        }
-        return bestThreshold
-    }
-
-    static func percentile(_ values: [Float], _ p: Float) -> Float {
-        guard !values.isEmpty else { return 0 }
-        let sorted = values.sorted()
-        let index = min(sorted.count - 1, Int((Float(sorted.count - 1) * p).rounded()))
-        return sorted[index]
-    }
-
-    /// One sort for the three percentiles: sorting the strip's pixels was 45 %
-    /// of the whole live read (Time Profiler, 2026-09-21), and it was sorted
-    /// three times here. Exactly the values `percentile` gives.
-    private static func percentiles(_ values: [Float]) -> (p05: Float, p50: Float, p95: Float) {
-        guard !values.isEmpty else { return (0, 0, 0) }
-        let sorted = values.sorted()
-        func at(_ p: Float) -> Float { sorted[min(sorted.count - 1, Int((Float(sorted.count - 1) * p).rounded()))] }
-        return (at(0.05), at(0.50), at(0.95))
-    }
-
-    private static func circularMean(_ values: [Double], period: Double) -> Double {
-        guard !values.isEmpty, period > 0 else { return 0 }
-        var sx = 0.0
-        var sy = 0.0
-        for value in values {
-            let angle = 2 * Double.pi * value / period
-            sx += cos(angle)
-            sy += sin(angle)
-        }
-        var mean = atan2(sy, sx) * period / (2 * Double.pi)
-        if mean < 0 { mean += period }
-        return mean
     }
 }
 

@@ -33,8 +33,13 @@ struct PumpReaderHarnessTests {
     // 210/238 once the pitch was checked against the glyph body, 209/238 after
     // PU.34b - the mark pass is mark-only and does not move the count. PU.37
     // measured 211/238 with the split-merge body guard, which stops two real
-    // glyphs (a `1` beside a body) being fused into one cell.
-    private static let countAgreementFloor = 0.88
+    // glyphs (a `1` beside a body) being fused into one cell. Decision 9
+    // amended 2026-09-22 (68 stills, 251 windows) left the code unchanged at
+    // 223/251. PU.42 measured 236/251 with the dim-glyph recovery, which fills
+    // a grid cell the one global Otsu threshold left empty when the cell's own
+    // column-profile peak stands a fixed fraction of the bright cells' peak and
+    // its ink reaches the top of the band.
+    private static let countAgreementFloor = 0.94
     // PU.34b: the mark-specific second look finds a dot or comma in the
     // inter-cell gaps at half the run threshold, over the lower band extended
     // below it, so the mark lands on the right cell on 128/237 heldout windows
@@ -42,7 +47,8 @@ struct PumpReaderHarnessTests {
     // Decision 9 amended 2026-09-22 (product owner): four night stills joined
     // the heldout before any model saw them - 68 stills, 251 windows. The same
     // slicer scores 129/250 (0.516) on the new yardstick; the floor follows the
-    // yardstick, the code did not move.
+    // yardstick, the code did not move. PU.42's dim-glyph recovery lifts it to
+    // 131/250 (0.524); the floor stays at the 129 the brief requires.
     private static let dpAgreementFloor = 0.51
     private static let locatorMedianIoUFloor = 0.0
 

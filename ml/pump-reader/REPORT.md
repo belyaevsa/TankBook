@@ -963,6 +963,135 @@ comma under a digit. Each is its own row; this round's write set could not carry
 annotated floor. The two synthetic tests live in `PumpGlyphSlicerTests`; the miscount table is the
 ratchet's own print.
 
+## PU.42 - the dim-glyph class of the slicer's count (2026-09-22)
+
+PU.37's largest heldout class was the dim or lost glyph: 12 of the 29 miscounts, a glyph whose
+strokes fall under the one global Otsu threshold the digits are cut with, so the pass leaves its
+grid cell empty and the count comes up short. PU.37 tried a local-profile threshold and rejected it
+- count 218/238 but two marks and three annotated cells lost. This round recovers the cell without
+moving the threshold or the grid.
+
+### The twelve, by what the profile shows at the lost glyph
+
+| still / field (expected -> got) | class | profile at the lost cell |
+|---|---|---|
+| 014 total 7.01 3->2 | H1 dim trailing `1` | peak 2.49 against thr 2.44; low run 118-168, full extent |
+| 014 board 1.774 4->3 | H1 clipped at the crop edge | the `1` sits at x5-6, its cell mostly off-strip (visible 11 of 60 px) |
+| 028 liters 0025,51 6->5 | H1 dim leading `0` | peak 3.01 against thr 3.26; low runs 10-43 and 68-102 |
+| 035 total 82.01 4->3 | H1 dim trailing `1` | low run 226-227 under a 2.44 threshold |
+| 038 total 77.45 4->2 | H2 glare | the reflection washes the top half; the runs survive only below the band's midline |
+| 062 total 39.55 4->3 | H1 dim trailing `5` | peak ~3.0 against thr 2.97; low run 196-229 |
+| 070 total 0067,05 6->3 | H1 dim + over-merge | the leading `00` fused into one run 3-48; the trailing `0`,`5` dim (peaks 3.0, 2.9 against thr 3.59) |
+| 070 liters 0034,94 6->5 | H1 dim trailing `4` | peak 4.15 against thr 3.48; low run 330-369 |
+| 083 total 1437,2 5->4 | H1 dim leading `1` | peak 3.84 against thr 3.91; low run 12-26 |
+| 092 total 1915.5 5->4 | H1 dim trailing `5` | peak 2.37 against thr 2.63; low run 259-290 |
+| 092 liters 30.00 4->3 | H1 dim trailing `0` | peak 3.55 against thr 2.71; low run 222-252 |
+| 139 total 103.88 5->3 | H1 dim leading `1`,`0` | low runs 17-21 (bottom-only, top at 0.53 band) and 251-291 |
+
+H1 is the class: **10 of 12**. H2 (glare washing a run) is one, and one is an H1 glyph clipped at
+the crop edge. **H3 is refuted**: the half-threshold `shortCountRetry` already ran; it did not catch
+these because it recounts the whole strip and its uniformity check rejects a pass that adds cells at
+the edges, not because the signal was missing.
+
+### What was built
+
+`PumpGlyphSlicer+DimGlyphs.swift`: after the main pass has fixed the grid, a second look at
+`dimGlyphThresholdFraction` (0.5) of the run threshold finds runs the Otsu split missed. A run is
+accepted as a dim glyph only when it snaps to an **empty** grid cell (the main pass's occupied set),
+that cell overlaps the strip by at least `dimGlyphMinimumCellWidthFraction` (0.35) of a pitch, the
+run does not begin inside an occupied cell (a bright digit's lower-threshold spill), the cell's own
+column-profile peak stands `dimGlyphContrastFraction` (0.25) of the bright cells' median peak, and
+the cell carries ink from the top of the band at a lower ink threshold (a mark lives in the lower
+band). The recovered cells widen the grid at either end, so a dim leading or trailing glyph is
+counted. Two guards keep the recovery off rows it cannot help: the pitch must be a sane fraction of
+the band height (0.45-1.05, excluding harmonic and subharmonic rows) and the cell must not be a
+sliver at the frame edge. A recovered cell is struck from the decimal set, so a fragment the main
+pass called a mark does not leave a mark on a digit.
+
+The synthetic tests are in `PumpGlyphSlicerTests`: a dim leading glyph at a third of the bright
+digits' contrast is counted (and is not, with the recovery off); a genuinely blank leading position
+stays blank; a glyph split by a washed-out middle column is one run; the body guard's two glyphs
+stay two.
+
+### Measured
+
+| check | before | after |
+|---|---|---|
+| `PU.4 slicer` count agreement | 223/251 | **236/251** (floor 0.88 -> 0.94) |
+| `PU.4 slicer` dp agreement | 129/250 | **131/250** (0.524) |
+| annotated (`PumpReaderPipelineTests`) | 83 / 0.988 / 23 photos | **106 / 0.962 / 28** |
+| live (detector) | 39 / 1.000 / 11 photos | **43 / 1.000 / 13** |
+
+Per-make count agreement (before -> after): circlek 7/9 -> 9/9, dresser 23/30 -> 24/30, gilbarco
+81/89 -> 83/89, scheidt 7/9 -> 9/9, tatsuno 6/6, tokheim 27/30 -> 29/30, topaz 3/3, unknown 3/3,
+wayne 66/72 -> 70/72.
+
+Ten of the twelve are fixed; the two that are not are 038 (H2 glare, the top of the band gone) and
+014 board (the `1` clipped by the crop). One false positive is introduced on a board row (041 board
+`1.844` 4->5): the recovery finds a 3 px run at the strip's right edge whose cell is a full pitch
+wide, so the width and pitch guards do not reject it. Board rows are not read by the reader; it
+costs one count window.
+
+### The annotated precision
+
+The annotated path's coverage rises 83 -> 106 committed cells and 23 -> 28 photos, but precision
+falls 0.988 -> 0.962 (still above the 0.96 floor). The three new wrong commits are 014 liters
+(3.82 want 3.92), 083 liters (2.1 want 21.0) and 083 total (143.72 want 1437.2). All three are
+law-arbitration effects: the recovered leading `1` makes 083's total directly readable, the slicer
+finds no comma on that row, and the classifier's dp bit places it one cell early, so a value the
+law previously derived correctly is now read wrong. The count fix is right (the `1` is on the
+display); the dp placement that the recovery exposes is a classifier/mark defect, not this rule's.
+The dp agreement itself rises (129 -> 131). This is the trade the brief names: reported, and the
+annotated floor holds.
+
+### Named mutation
+
+Raise `dimGlyphContrastFraction` 0.25 -> 1.0 (a dim glyph must be as strong as a bright one - the
+recovery can then never fire):
+
+```
+◇ Test "a dim leading glyph at a third of the bright digits' contrast is counted" started.
+✘ Test "a dim leading glyph at a third of the bright digits' contrast is counted" recorded an issue at PumpGlyphSlicerTests.swift:204:9: Expectation failed: cells.filter { !$0.isBlank }.count == 4
+↳ the dim leading glyph must be counted, got 3 digits
+↳ cells.filter { !$0.isBlank }.count == 4 → false
+↳   cells.filter { !$0.isBlank }.count → 3
+✘ Test "a dim leading glyph at a third of the bright digits' contrast is counted" failed after 0.050 seconds with 1 issue.
+✘ Suite "PU.4 pump glyph slicer" failed after 0.051 seconds with 1 issue.
+✘ Test run with 1 test in 1 suite failed after 0.051 seconds with 1 issue.
+```
+
+and the ratchet's count falls **236 -> 224** (dp 129). Restored to 0.25, the test is
+`✔ ... passed` and the count is 236.
+
+### Checks (exit code)
+
+| check | exit | note |
+|---|---|---|
+| `swift build` | 0 | |
+| `swiftlint lint` (repo root) | 0 | 0 serious; `type_body_length` fixed by moving the primitives to `PumpGlyphSlicer+Primitives.swift` |
+| `swift test` | 1 | 2230 tests, one failure: **RV.277** (expense category/total) - not the slicer, pre-existing in this tree |
+| app-target `xcodebuild` Debug build | 0 | |
+| app-target unit bundle `-only-testing:TankbookTests` | 0 | **Executed 299 tests, 0 failures** |
+| `scripts/check-screenshot-manifest.sh` | 1 | pre-existing: `PU.29-confirm-pump-alpha` has no capture line; no UI in this row |
+
+The package `swift test` red is RV.277's expense fixtures, which touch no pump code; the slicer's own
+suites (harness, slicer, pipeline) all pass in that same run. `scripts/gate.sh` stops at `swift test`,
+so the app-target bundle was run in its own invocation, as the two-bundle rule requires.
+
+### Found and not fixed
+
+- **041 board's false positive** (4 -> 5): a 3 px edge run whose snapped cell is a full pitch wide.
+  A run-width floor would reject it but also the true 139 leading `1` (4 px, bottom-only); the
+  discriminator is not geometric at this resolution. The count row is the owner.
+- **038 (H2) and 014 board (clipped)**: neither is recoverable by a run that snaps to an empty
+  cell - 038's top half is gone and 014's `1` is mostly outside the warp. H2 needs a rule that
+  joins a washed column to its glyph; the row is the owner.
+- **The 083 dp placement** above: the law commits a directly-read total whose comma the slicer did
+  not find. The classifier's dp bit on a zero-padded total is the seam; PU.34b's mark row owns it.
+- **The live path recovers far more cells than the harness dim class** (the amber LED rows,
+  board rows), most without changing a committed value. The pitch and width guards cut the
+  harmful ones; a future round could measure how many of the rest are real.
+
 ## PU.38 - classification from the detector alone (2026-09-21)
 
 Every capture, attach and re-attach decided "is this a display" only after the whole verifier had
@@ -1046,3 +1175,165 @@ clean ones. What ships instead is a rule in the annotator: on a frame a corner d
 ("keep shape", on by default), so the still defines every window's shape and a frame only
 says where it went. The consistency is then structural, not estimated.
 
+
+### Round 11 (orchestrator, 2026-09-22): the training material fixed first
+
+Round 10 asked for a different lever: the sampler rebalance across heads and the mark bit trained
+on the slicer's own marks. This round implements the four fixes the contact sheets named, each
+measured, and runs round 10's 3-seed protocol on the result. **Nothing ships: no candidate clears
+the live committed floor (37), so round 6 stays in the bundle.** The valuable output is which fix
+helped and which hurt, and the centred filter's own bias (below).
+
+The export used is `ios/.build/pump-reader-out/train/` as it stood (2026-09-21, before the reader's
+read phase and batch 7), per the brief's "do not re-run the Swift export unless it is missing". So
+the corpus growth the brief lists (the 26 clips the reader labelled, the hand-pinned frames) is in
+the database but has no strips and cannot reach the pool; the pool reproduces the round-10 export's
+windows with the current labels. Raw pool: **40 220 cells from 9 336 of 12 110 windows**, 191 train
+fixtures, 396 glitch-labelled frames (a frame whose `total` differs from both neighbours in its
+run).
+
+#### The four changes
+
+| step | what | file |
+|---|---|---|
+| 1 | `--centred 0.25`: keep a cell only when its column-ink centroid is within ±25 % of the cell width from the centre; ink is the deviation from the crop's median in the slicer's polarity direction | `realglyphs.py` |
+| 2 | `--dp-crop gap\|none\|off`: `gap` widens the crop right by 0.4 × pitch; `none` clears every dp bit and `train.py --dp-crop none` drops the dp term from the loss; `off` is the original framing | `realglyphs.py`, `train.py` |
+| 3 | LCD-heavy priors (lcd 0.80 / led 0.15 / vfd 0.05), a grey-panel palette whose contrast draws from the real pool's quantiles, contrast collapse 0.5 | `dataset.py`, `train.py` |
+| 4 | `--cap-fixture 0.02 --hard-weight 4` on the full pool | `realglyphs.py` |
+
+#### The real pool's contrast (step 3's measurement)
+
+Measured on the round-10 real cells (`realglyphs` output, 40 755 cells): ink-vs-panel luminance
+contrast **p10 28, p25 37, p50 52, p75 91, p90 121**; **94.4 % dark-on-light**. The old synthetic
+LCD ranges sat at 80-165, far above the median. `dataset.py` now draws a grey panel (luminance
+70-215) and its contrast from those quantiles, on 75 % of LCD samples; the named hue families keep
+the other 25 %. The synthetic sheet is `runs/2026-09-22/synth-cells-r11.png`, beside the real
+`runs/2026-09-22/real-cells-centred.png`.
+
+#### The centred filter drops 4 439 cells, and most of them are `1`s
+
+`--centred 0.25` dropped **4 439 of 40 220 cells (11.0 %)**: `1` 2 760 of 3 420 (**80.7 %**),
+`3` 686 of 1 426 (48.1 %), `7` 401 of 1 444 (27.8 %), `0` 176 (4.5 %), `8` 156 (7.2 %), `9` 107
+(3.0 %), `5` 65, `2` 42, `4` 41, `6` 5. Top fixtures by drops: `video-002` 528, `pump-024` 274,
+`video-001` 223, `pump-115` 188, `pump-067` 183.
+
+The cause is not misalignment. The slicer right-aligns every cell on the ink's right edge (PU.18:
+all pitch slack sits on the left), so the column-ink centroid sits right of centre for **every**
+class: measured medians `0` 0.58, `1` 0.74, `2` 0.58, `3` 0.70, `4` 0.66, `5` 0.61, `6` 0.57,
+`7` 0.66, `8` 0.61, `9` 0.66. A centre-0.5 test calls a correctly placed `1` "off-centre" and
+drops it. **The filter as specified is biased against the narrow right-aligned glyphs, `1` most of
+all**, which is the fuel reader's most common digit. That is the finding for the next row: the
+filter should compare each cell's centroid to the row's own median centroid (relative phase), not
+to the geometric centre.
+
+#### The dp crop: `gap` wins the brief's A/B, then loses the ship measure
+
+Scored on the heldout slices with `score.py --only-count-correct` (185 windows), the brief's two
+options:
+
+| variant | dp bit | dp AUC | digit only | per-glyph |
+|---|---|---|---|---|
+| `--dp-crop gap` | **0.7572** | 0.5511 | 0.8872 | 0.6835 |
+| `--dp-crop none` | 0.2163 | 0.4571 | 0.8918 | 0.1864 |
+
+`gap` wins by the number the brief names. But `none` does not behave as "the slicer owns the mark":
+`PumpReader` still uses the classifier's dp bit on every row the slicer did not mark
+(`markProbability`), and an untrained 8th output is not silent - it fires, per-glyph 0.186 against
+digit-only 0.892. `none` is unsafe for that reason alone.
+
+The pipeline then separates the crops: on the same control pool and profile, swapping `off` for
+`gap` costs the annotated tier **97 -> 64 committed** and the live tier **36 -> 21**. The widened
+crop compresses the digit into the left 71 % of the frame, a framing the reader's own crop (the
+slicer's cell rect, no gap) never reproduces, so the digit read itself degrades. **The brief's step
+2 is a regression in both of its options; the original `off` framing is the best of the three.**
+
+#### The pool and the seed table
+
+Pool after `--cap-fixture 0.02 --hard-weight 4 --centred 0.25 --dp-crop gap`: **19 800 cells**,
+every source at or under the 2 % cap (`wayne` 4 217, `gilbarco` 9 031, `dresser` 4 228, `unknown`
+812, `topaz` 365, `adast` 299; top fixture `pump-115` 4.1 %). The control (no centred, `off`) is
+22 003 cells. Trained with round 10's recipe (`--steps 15000 --real <pool> --real-frac 0.3`),
+exported, and scored with `PUMP_MODEL=` on the 68 heldout stills / 186 cells (floors: annotated 79
+/ 0.96, live 37 / 0.99):
+
+| model | annotated: committed / correct / precision / photos | live: committed / correct / precision / photos |
+|---|---|---|
+| round 6 (shipped) | 83 / 82 / 0.988 / 23 | 39 / 39 / 1.000 / 11 |
+| control (pool only: cap+hard, `off`, old profile) | 95 / 92 / 0.968 / 24 | 29 / 29 / 1.000 / 6 |
+| + step 3 (new profile) | **97** / 93 / 0.959 / 25 | **36** / 35 / 0.972 / 8 |
+| + step 2 (`gap` dp crop) | 64 / 59 / 0.922 / 16 | 21 / 21 / 1.000 / 5 |
+| full (steps 1-3), seed 0 | 81 / 78 / 0.963 / 23 | 19 / 19 / 1.000 / 4 |
+| full, seed 1 | 79 / 75 / 0.949 / 17 | 30 / 29 / 0.967 / 7 |
+| full, seed 2 | 74 / 71 / 0.959 / 20 | 21 / 21 / 1.000 / 4 |
+
+Read as a decomposition (single seed for the middle rows, so ±2 cells on annotated):
+
+- **Step 3 helped**: the new synthetic profile moved the control 95 -> 97 annotated and 29 -> 36
+  live, the only candidate near the live floor (36 of 37), though at live precision 0.972 (< 0.99).
+- **Step 2 hurt, badly**: `off` -> `gap` on the same pool/profile cost 33 annotated and 15 live
+  cells.
+- **Step 1 helped the annotated tier**: adding the centred filter to the `gap` pool moved 64 -> 74
+  to 81 annotated across the seeds, and the live tier is seed-noisy (19-30).
+- **The pool itself (cap + hard-weight) is the largest single mover**: 83 -> 95 annotated, but it
+  pays on the live path (39 -> 29), the same verifier-margin slide rounds 8 and 9 measured. The
+  live floor 37 is not cleared by any candidate, so **round 6 stays**.
+
+#### Tests
+
+`ml/pump-reader/.venv/bin/pytest -q ml/pump-reader/tests` -> **42 passed** (33 before + 9 new:
+`test_realglyphs_centred.py` 5, `test_dp_crop.py` 3, `test_dataset.py` 1).
+New: the centred filter keeps a centred cell, drops one whose ink is in the outer quarter, keeps a
+no-ink cell (nothing to judge), and `ink_centroid` is `None` without ink and follows the
+light-on-dark polarity; `--dp-crop gap` puts the mark at the crop's right edge while `off` stops
+short, `none` clears every dp bit and `off` keeps it; the technology priors sum to one and LCD
+dominates.
+
+**Named mutation** (compare the centroid against the cell's LEFT edge instead of its centre):
+`abs(centroid - 0.5)` -> `abs(centroid - 0.0)` in the filter. Verbatim:
+
+```
+    def test_centred_filter_keeps_a_centred_cell(tmp_path: Path) -> None:
+        db, manifest = _corpus(tmp_path, lambda d: d.rectangle([18, 2, 22, 18], fill="black"))
+        m = _run(tmp_path, db, manifest, "--centred", "0.25")
+>       assert m["centred_dropped_total"] == 0, "a centred cell must be kept"
+E       AssertionError: a centred cell must be kept
+E       assert 1 == 0
+
+tests/test_realglyphs_centred.py:72: AssertionError
+----------------------------- Captured stdout call -----------------------------
+0 real glyphs from 1/1 windows (1 train fixtures); labels {}
+  centred 0.25: dropped 1 cells by class {'1': 1}
+```
+
+Reverted, `tests/test_realglyphs_centred.py` -> **5 passed**.
+
+#### Checks
+
+| check | exit | note |
+|---|---|---|
+| `pytest -q tests` | 0 | 42 passed |
+| `realglyphs` x4 (gap, none, control, gap-nocentre) | 0 | pools above; no Swift export re-run |
+| `train` x7 | 0 | 963-1037 s each; checkpoints in `.out/`, metrics in `runs/2026-09-22/metrics/` |
+| `export` x5 | 0 | candidate `.mlpackage`s in `.out/` |
+| `PUMP_MODEL=` score x7 | 0 | table above |
+| `score.py` dp A/B | 0 | 185 windows |
+| `scripts/gate.sh` | not run | nothing under `ios/` changed (no seed shipped) |
+
+#### Found and not fixed
+
+- **The export predates the corpus growth the brief names.** `ios/.build/pump-reader-out/train/`
+  was cut 2026-09-21, before the reader's read phase (2026-09-22 00:25) and batch 7; the brief's
+  "do not re-run the export" left the new labels' windows with no strips. The re-export is
+  `PumpTrainSliceExportTests` (PU.36b's row) and is the first thing round 12 needs.
+- **The centred filter is biased against `1`s** (80.7 % dropped) because the slicer right-aligns
+  the ink; a row-relative phase check is the fix. Owned by the next classifier round.
+- **`--dp-crop gap` distorts the digit** (the widened crop is what the reader never feeds at
+  inference); both of the brief's dp options lose to `off`. Owned by the next classifier round.
+- **The live path slides on every retrain** (39 shipped, 19-36 here) because the verifier's margin
+  threshold is fitted to round 6 - the same open seam rounds 8, 9 and 10 recorded; no row owns the
+  verifier's margin yet.
+- **The pipeline numbers were measured with PU.42's uncommitted slicer changes in the tree** (the
+  dim-glyph recovery, `PumpGlyphSlicer.swift` + `PumpGlyphSlicer+DimGlyphs.swift`, running beside
+  this round). The shipped model still read the committed 83 / 39 on that slicer, so every row of
+  the table is on one slicer and the comparison holds, but the absolute numbers are not the
+  committed slicer's. Re-score after PU.42 lands.
