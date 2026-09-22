@@ -61,6 +61,10 @@ the ml venv runs it); the converted images are cached under
   still with no windows has nothing to track. Draw (or `A`) and Save: the save
   tracks every paired record in the background (and re-tracks when the quads
   changed); **↻ track** beside *View frames* does the same by hand.
+- A window drawn on the still after the last track run is on no frame yet. In
+  the frames view it is **carried** onto each frame at the still's quad, drawn
+  dashed and named in the frame line; drag it into place and `⇧⏎` pins it like
+  any quad, or Save the still (or `↻ track`) to track it properly.
 - **Live record / View frames** (shown when the still has a Live record and
   `pump_reader.frames` + `pump_reader.track` have run): steps through the
   record's tracked frames with the carried quads drawn (`←`/`→`, slider,

@@ -416,7 +416,8 @@ function showVideoLabel() {
   $('#liveFrame').style.display = (!isVideo && frameMode) ? '' : 'none';
   if (!isVideo) {
     if (frameMode) { const r = currentRecord(); const name = r.tracked[frameIdx]; const f = r.frames[name];
-      $('#lfName').textContent = name; $('#lfState').textContent = f.verified ? '⚓ anchor (quads placed by hand)' : `tracked from the still · inliers ${f.inliers}` + (frameQuadsEdited ? ' · edited, unsaved' : ''); }
+      const carried = f.windows.filter(w => w.carried).map(w => w.field);
+      $('#lfName').textContent = name; $('#lfState').textContent = (f.verified ? '⚓ anchor (quads placed by hand)' : `tracked from the still · inliers ${f.inliers}`) + (frameQuadsEdited ? ' · edited, unsaved' : '') + (carried.length ? ` · ${carried.join(', ')} carried from the still (dashed), not tracked yet – Save the still or ↻ track` : ''); }
     renderStrip(); return;
   }
   if (!frameMode) return;
@@ -554,6 +555,7 @@ function showFrame() {
   refreshBanner(); $('#retrackBar').style.display = ''; $('#keepShapeLabel').style.display = '';
   frameQuadsEdited = false;
   const r = currentRecord(); const name = r && r.tracked[frameIdx]; if (!name) return;
+  carryUntracked(r.frames[name]);
   showVideoLabel();
   const movie = r.movie, still = current;
   $('#frameSlider').value = frameIdx; $('#frameName').textContent = `${name} · inliers ${r.frames[name].inliers} · ${frameIdx + 1}/${r.tracked.length}`;
@@ -570,6 +572,17 @@ function showFrame() {
     if (keep) { draw(); stage.scrollLeft = sx; stage.scrollTop = sy; } else { frameZoomFor = movie; fit(); draw(); }
   };
   frameImg.src = '/frame/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name);
+}
+// A window drawn on the still after the last track run is on no frame yet:
+// it is carried onto the frame at the still's quad, dashed, so it can be
+// dragged into place and pinned (⇧⏎) like any other quad. The still's Save
+// (or ↻ track) tracks it properly; until then the copy says so.
+function carryUntracked(frame) {
+  if (!entry || !frame) return;
+  for (const w of entry.windows) {
+    if (frame.windows.some(f => f.field === w.field)) continue;
+    frame.windows.push({field: w.field, text: w.text, quad: w.quad.map(p => [...p]), carried: true});
+  }
 }
 function collect() {
   entry.rotationCW = +$('#rot').value || 0;
@@ -731,7 +744,9 @@ function draw() {
   windowsToDraw().forEach((win, i) => {
     const pts = win.quad.map(toDisp);
     ctx.lineWidth = (i === sel ? 3 : 2) / zoom; ctx.strokeStyle = COLORS[win.field] || '#fff';
+    ctx.setLineDash(win.carried ? [6 / zoom, 4 / zoom] : []);
     ctx.beginPath(); pts.forEach((p, k) => k ? ctx.lineTo(...p) : ctx.moveTo(...p)); ctx.closePath(); ctx.stroke();
+    ctx.setLineDash([]);
     ctx.font = `${14 / zoom}px system-ui`;
     const label = `${win.field} ${win.text || win.prefill || ''}`;
     const tw = ctx.measureText(label).width, th = 16 / zoom;
@@ -945,6 +960,8 @@ async function markTrackingOk() {
 // moves. Re-tracking the rest of the record is a separate, explicit action.
 async function saveAnchor(retrack = false) {
   const r = currentRecord(); const name = r.tracked[frameIdx];
+  // A pinned quad is a placement, whatever brought it onto the frame.
+  r.frames[name].windows.forEach(w => delete w.carried);
   const res = await (await fetch('/api/video-anchor/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name), {method:'PUT', body: JSON.stringify({windows: r.frames[name].windows, retrack})})).json();
   r.frames[name].verified = true; frameQuadsEdited = false;
   if (res.liveAnchors && entry) entry.liveAnchors = res.liveAnchors;
