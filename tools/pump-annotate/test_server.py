@@ -488,3 +488,45 @@ def test_compare_disagreement_route_lists_only_differing(server):
     assert names == ["differs", "abstains"], names
     assert res["rows"][0]["a"] == ["20.02", "11.38", "1.759"]
     assert res["rows"][0]["b"] == ["20.02", "11.38", "1.75"]
+
+
+def _server_module(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """The server's pure functions, imported with the database redirected so
+    the import cannot reach the checkout's corpus."""
+    import importlib.util
+    monkeypatch.setenv("PUMP_ANNOTATE_DB", str(copy_db(tmp_path / "corpus.sqlite")))
+    spec = importlib.util.spec_from_file_location("pump_annotate_server", SERVER)
+    module = importlib.util.module_from_spec(spec)
+    sys.path.insert(0, str(TOOL))
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_presence_counts_kept_dropped_missed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    server = _server_module(tmp_path, monkeypatch)
+    box = lambda x0, y0, x1, y1: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
+    hand = [{"field": "total", "quad": box(0.1, 0.1, 0.5, 0.2)},
+            {"field": "liters", "quad": box(0.1, 0.3, 0.5, 0.4)},
+            {"field": "unitPrice", "quad": box(0.1, 0.5, 0.5, 0.6)},
+            {"field": "board", "quad": box(0.7, 0.1, 0.8, 0.2)}]
+    reply = {"candidates": [
+        {"quad": box(0.11, 0.1, 0.5, 0.21), "kept": True},    # over total: kept
+        {"quad": box(0.1, 0.31, 0.49, 0.4), "kept": False},   # over liters: dropped
+        {"quad": box(0.7, 0.1, 0.8, 0.2), "kept": True},      # over the board: not a transaction row
+    ]}
+    # The price has no candidate over it; the board never counts.
+    assert server.presence_counts(hand, reply) == {"kept": 1, "dropped": 1, "missed": 1}
+    # A kept and a dropped candidate over the same row: the row was kept.
+    reply["candidates"].append({"quad": box(0.1, 0.1, 0.5, 0.2), "kept": False})
+    assert server.presence_counts(hand, reply)["kept"] == 1
+
+
+def test_compare_passes_the_stills_currency(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Without the currency the reader's pair tier has no price band and
+    # refuses a total + volume pair, so compare under-reported what the app
+    # commits (decision 11).
+    server = _server_module(tmp_path, monkeypatch)
+    with (ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "pump" / "expected.csv").open() as f:
+        row = next(r for r in csv.DictReader(f) if r["currency"])
+    assert server.image_currency(row["filename"]) == row["currency"]
+    assert server.image_currency("frame/video-001/000.jpg") is None

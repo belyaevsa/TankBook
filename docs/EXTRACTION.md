@@ -1025,6 +1025,18 @@ Measured over the 68 heldout stills (`PumpCompositeArmsTests`, macOS 27): reader
 reader commit, which is the only case where it could contradict the law. It stays; if a corpus
 change ever makes it fill beside a reader commit, that arm's listing names the still.
 
+**Where the cells go (the apportionment, 2026-09-23).** `PumpApportionmentTests` (opt-in) runs the heldout stills
+from the fully oracle chain to the app, swapping in one live stage at a time; the drop between two
+arms is that stage's cost. Over 177 asserted cells on the 66 upright stills: hand boxes and hand roles
+commit **108**; only the rows some candidate found **95** (-13, never detected); only the rows the
+verifier kept **78** (-17); the detector's own boxes for those rows **45** (-33, framing); roles from
+the assigner cost 2 and the app's display decision 5. The same hand windows as UPRIGHT rectangles
+commit 89 at 0.944 - most of the framing loss is the rectangle being upright, not misplaced: 140 of
+190 heldout hand boxes are turned and the detector returns only upright boxes (PU.65). Of 188 hand
+transaction rows, 182 are proposed by some source, 171 by the learned detector, 155 kept by the
+verifier; the verifier's drops are slicer measurements (`cellCount`, `pitch`, `inkBand`), so a row the
+slicer miscounts is not read badly, it disappears. Nothing in this chain is a model training round.
+
 **The operator's corrections.** Every disagreement between a tool's proposal (the tracker's
 quad, the reader's pre-fill) and the annotator's hand is recorded (`pump-live/corrections.jsonl`)
 with the build it came from; `ml/pump-reader/CORRECTIONS.md` is the standing procedure that reads

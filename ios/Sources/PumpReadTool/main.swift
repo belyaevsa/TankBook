@@ -18,6 +18,12 @@ struct Request: Decodable {
     // would reject a request that leaves one out.
     var rotationCW: Int?
     var currency: String?
+    /// When to turn detector rows to their digits' angle: "off", "onRefusal"
+    /// or "always" (PumpReader.DeskewMode).
+    var deskew: String?
+    /// Diagnosis: turn the whole photo by this many degrees (clockwise) before
+    /// anything reads it - what levelling does, at an angle chosen by hand.
+    var level: Double?
     var windows: [Window]?
     struct Window: Decodable {
         let field: String
@@ -151,8 +157,10 @@ let model = try PumpSegmentsModel(contentsOf: URL(fileURLWithPath: classifierPat
 let detector = detectorPath.flatMap { path in
     FileManager.default.fileExists(atPath: path) ? try? PumpRowDetector(contentsOf: URL(fileURLWithPath: path)) : nil
 }
-let reader = PumpReader(model: model, detector: detector)
-let image = PumpQuadWarp.rgbImage(from: oriented)
+let reader = PumpReader(model: model, detector: detector,
+                        deskew: request.deskew.flatMap(PumpReader.DeskewMode.init(rawValue:)) ?? .off)
+let photo = PumpQuadWarp.rgbImage(from: oriented)
+let image = request.level.map { PumpRowDeskew.levelled(photo, degrees: $0) } ?? photo
 let currency = request.currency.flatMap { CurrencyCode(rawValue: $0) }
 // The app's own guard (decision 11): the currency-wide band bounds the price a
 // total + volume pair implies. The tool reads the same bundled pack the app
@@ -210,22 +218,51 @@ if let windows = request.windows, !windows.isEmpty {
     // profiler sees the steady state rather than the model's first load.
     if let repeats = ProcessInfo.processInfo.environment["PUMP_REPEAT"].flatMap(Int.init) {
         for _ in 0..<repeats {
-            _ = try reader.readPhoto(image: image, rotationCW: (request.rotationCW ?? 0),
+            _ = try reader.readPhoto(image: image, rotationCW: request.rotationCW,
                                      currency: currency, priceBand: priceBand)
         }
     }
-    let reading = try timed("readPhoto") {
-        try reader.readPhoto(image: image, rotationCW: (request.rotationCW ?? 0),
-                             currency: currency, priceBand: priceBand)
+    // No rotation in the request means the reader searches for the display's
+    // orientation, as the app does (it has no annotation to ask); a given one
+    // is used as it is.
+    let detailed = try timed("readPhoto") {
+        try reader.readPhotoDetailed(image: image, rotationCW: request.rotationCW,
+                                     currency: currency, priceBand: priceBand)
     }
+    let reading = detailed.reading, readDeskewed = detailed.deskewed, readRotation = detailed.rotationCW
+    reply["rotationCW"] = readRotation
+    reply["levelDegrees"] = detailed.levelDegrees
+    // The rows shown are the ones the reading came from: turned when the
+    // reader turned them (always, or on a refusal it recovered from).
+    reply["deskewed"] = readDeskewed
     reply["committed"] = committed(reading)
     reply["abstainReason"] = reading.reason?.rawValue ?? NSNull()
-    let upright = PumpPanelLocator.rotatedRGB(image, rotationCW: (request.rotationCW ?? 0))
+    // The diagnostics below run on the image the reading came from: turned to
+    // its orientation and, when the reader levelled it, levelled too.
+    let oriented = PumpPanelLocator.rotatedRGB(image, rotationCW: readRotation)
+    let upright = detailed.levelDegrees == 0 ? oriented
+        : PumpRowDeskew.levelled(oriented, degrees: detailed.levelDegrees)
+    // A point normalised over that image, back in the photo's own frame: the
+    // annotator draws on the photo as it was taken.
+    func unturned(_ p: CGPoint) -> [Double] {
+        let back = PumpRowDeskew.unlevelled(CGPoint(x: p.x * Double(upright.width), y: p.y * Double(upright.height)),
+                                            degrees: detailed.levelDegrees, width: upright.width, height: upright.height)
+        var point = CGPoint(x: back.x / Double(upright.width), y: back.y / Double(upright.height))
+        for _ in 0..<((4 - ((readRotation % 360) + 360) % 360 / 90) % 4) { point = CGPoint(x: 1 - point.y, y: point.x) }
+        // A hand-forced level turned the photo before everything: undo it last.
+        if let level = request.level {
+            let px = PumpRowDeskew.unlevelled(CGPoint(x: point.x * Double(photo.width), y: point.y * Double(photo.height)),
+                                              degrees: level, width: photo.width, height: photo.height)
+            point = CGPoint(x: px.x / Double(photo.width), y: px.y / Double(photo.height))
+        }
+        return [point.x, point.y]
+    }
     if let detector, let cg = PumpQuadWarp.makeImage(upright.pixels, width: upright.width, height: upright.height) {
         timings["detectorOnly"] = timed("detectorOnly") { detector.detect(in: cg).count }
     }
-    let candidates = timed("candidates") { reader.candidates(for: upright) }
-    let verified = try timed("verify") { try reader.verify(image: upright, candidates: candidates) }
+    let candidates = timed("candidates") { reader.candidates(for: upright, deskewRows: readDeskewed) }
+    let judged = try timed("verify") { try reader.verdicts(image: upright, candidates: candidates) }
+    let verified = PumpReader.verified(from: judged)
     timings["textLines"] = timed("textLines") { PumpDisplayCapture.textLineCount(upright) }
     reply["timingsMs"] = timings
     let assignment = PumpRowAssignment.assign(
@@ -250,7 +287,14 @@ if let windows = request.windows, !windows.isEmpty {
     if let cg = PumpQuadWarp.makeImage(upright.pixels, width: upright.width, height: upright.height) {
         let handle = PumpReaderHandle(reader: reader)
         let decision = timed("appDecide") { PumpDisplayCapture.detect(image: cg, reader: handle) }
-        reply["appDecision"] = ["display": decision.isPumpDisplay, "rows": decision.displayRows, "textLines": decision.textLines]
+        // The decision with the inputs it compared and the limits it compared
+        // them against, so the annotator can say WHY a frame was refused.
+        reply["appDecision"] = ["display": decision.isPumpDisplay, "rows": decision.displayRows,
+                                "textLines": decision.textLines, "widestRow": decision.widestRow,
+                                "path": decision.path.rawValue,
+                                "limits": ["minimumRows": PumpDisplayCapture.minimumRows,
+                                           "maximumTextLines": PumpDisplayCapture.maximumTextLines,
+                                           "minimumWidestRow": PumpDisplayCapture.minimumWidestRowFraction]]
         _ = timed("appClassifyAndRead") {
             PumpDisplayCapture.classify(image: cg, reader: handle, currency: currency, priceBand: priceBand)
         }
@@ -263,9 +307,20 @@ if let windows = request.windows, !windows.isEmpty {
             }.joined() + " " + read.cells.map { String(format: "%.1f", ($0.ranked[0].logPosterior - $0.ranked[1].logPosterior)) }.joined(separator: ",")
         }
     }
+    // Every candidate the verifier judged, kept or not, with why it went: the
+    // annotator colours each hand window by whether a candidate found it and
+    // whether the verifier kept it. A kept candidate absent from `rows` lost
+    // to a stronger duplicate of the same row.
+    reply["candidates"] = judged.map { v -> [String: Any] in
+        let duplicate = v.kept && !verified.contains { PumpQuadWarp.iou($0.quad, v.quad) > 0.99 }
+        return ["quad": v.quad.map { unturned(CGPoint(x: $0.x / Double(upright.width), y: $0.y / Double(upright.height))) },
+                "detected": v.detected, "kept": v.kept && !duplicate, "cells": v.cells,
+                "dropReasons": duplicate ? ["duplicate"] : v.dropReasons]
+    }
+    reply["candidatesOffered"] = candidates.count
     reply["rows"] = zip(verified, assignment.roles).map { window, role -> [String: Any] in
         ["field": role?.rawValue ?? NSNull(), "cells": window.glyphCount, "detected": window.detected,
-         "quad": window.quad.map { [$0.x / Double(upright.width), $0.y / Double(upright.height)] }]
+         "quad": window.quad.map { unturned(CGPoint(x: $0.x / Double(upright.width), y: $0.y / Double(upright.height))) }]
     }
 }
 FileHandle.standardOutput.write(try JSONSerialization.data(withJSONObject: reply))

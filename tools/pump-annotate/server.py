@@ -211,25 +211,43 @@ def read_binary() -> Path:
     return READ_TOOL
 
 
-def read_model(image: str, detector: Path, classifier: Path, cache: bool = True) -> dict:
+def image_currency(image: str) -> str | None:
+    """The still's currency from `expected.csv`. The reader's pair tier needs
+    the currency's price band (decision 11); without it a total + volume pair
+    refuses, and the compare view would under-report what the app commits.
+    A video frame has no row, so it runs without one, as the app does."""
+    if image.startswith("frame/"):
+        return None
+    return (load_rows().get(image) or {}).get("currency") or None
+
+
+DESKEW_MODES = ("off", "onRefusal", "always", "level")
+
+
+def read_model(image: str, detector: Path, classifier: Path, cache: bool = True, deskew: str = "off") -> dict:
     """One live-path pump-read reply for an image and a model pair, cached by
-    (image content, model pair) so a sweep never runs a pair twice."""
+    (image content, model pair, currency, tool build) so a sweep never runs a
+    pair twice and a rebuilt tool never serves a reply missing its new fields."""
     target = image_target(image)
     if target is None:
         return {"error": f"no such image: {image}"}
+    binary = read_binary()
+    if not binary.exists():
+        return {"error": "pump-read did not build"}
+    currency = image_currency(image)
+    deskew = deskew if deskew in DESKEW_MODES else "off"
     key = model_key(detector, classifier)
     digest = hashlib.sha256(target.read_bytes()).hexdigest()[:16]
-    cached = COMPARE_CACHE / key / f"{digest}.json"
+    tool = f"{int(binary.stat().st_mtime)}-{currency or 'none'}-{deskew}"
+    cached = COMPARE_CACHE / key / f"{digest}-{tool}.json"
     if cache and cached.exists():
         try:
             return json.loads(cached.read_text())
         except json.JSONDecodeError:
             pass
-    binary = read_binary()
-    if not binary.exists():
-        return {"error": "pump-read did not build"}
     r = subprocess.run([str(binary), str(target), "--classifier", str(classifier), "--detector", str(detector)],
-                       input="{}", capture_output=True, text=True, timeout=900)
+                       input=json.dumps({**({"currency": currency} if currency else {}), "deskew": deskew}),
+                       capture_output=True, text=True, timeout=900)
     if r.returncode or not r.stdout.strip():
         return {"error": "pump-read failed", "output": (r.stderr or r.stdout)[-2000:]}
     try:
@@ -274,20 +292,60 @@ def compare_verdict(expected: dict | None, a: dict, b: dict) -> dict:
 # both models and keeps the rows whose committed triples differ.
 sweeps: dict[str, dict] = {}
 
+PRESENCE_IOU = 0.3
+TRANSACTION_FIELDS = ("total", "liters", "unitPrice")
+
+
+def _box(quad):
+    xs, ys = [p[0] for p in quad], [p[1] for p in quad]
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def _iou(a, b) -> float:
+    ax0, ay0, ax1, ay1 = _box(a)
+    bx0, by0, bx1, by1 = _box(b)
+    w, h = min(ax1, bx1) - max(ax0, bx0), min(ay1, by1) - max(ay0, by0)
+    if w <= 0 or h <= 0:
+        return 0.0
+    inter = w * h
+    return inter / ((ax1 - ax0) * (ay1 - ay0) + (bx1 - bx0) * (by1 - by0) - inter)
+
+
+def presence_counts(hand: list[dict], reply: dict) -> dict:
+    """What the pipeline did to each hand transaction window: kept (a kept
+    candidate over it), dropped (only candidates the verifier dropped), or
+    missed (no candidate at all) - the same rule the compare view colours by."""
+    counts = {"kept": 0, "dropped": 0, "missed": 0}
+    if not isinstance(reply.get("candidates"), list):
+        return counts  # a reply from an older tool build carries no presence
+    cands = reply["candidates"]
+    for w in hand:
+        if w.get("field") not in TRANSACTION_FIELDS or not w.get("quad"):
+            continue
+        over = [c for c in cands if _iou(w["quad"], c["quad"]) >= PRESENCE_IOU]
+        counts["kept" if any(c.get("kept") for c in over) else "dropped" if over else "missed"] += 1
+    return counts
+
 
 def start_sweep(stills: list[str], detector_a: Path, classifier_a: Path,
-                detector_b: Path, classifier_b: Path) -> None:
-    sweeps["default"] = {"running": True, "done": 0, "total": len(stills), "current": None, "rows": []}
+                detector_b: Path, classifier_b: Path, deskew_a: str = "off", deskew_b: str = "off") -> None:
+    sweeps["default"] = {"running": True, "done": 0, "total": len(stills), "current": None, "rows": [],
+                         "presence": []}
     job = sweeps["default"]
+    windows = load_windows()
 
     def run() -> None:
         try:
             for name in stills:
                 job["current"] = name
-                ra = read_model(name, detector_a, classifier_a)
-                rb = read_model(name, detector_b, classifier_b)
+                ra = read_model(name, detector_a, classifier_a, deskew=deskew_a)
+                rb = read_model(name, detector_b, classifier_b, deskew=deskew_b)
                 if committed_triple(ra) != committed_triple(rb):
                     job["rows"].append({"still": name, "a": committed_triple(ra), "b": committed_triple(rb)})
+                hand = (windows.get(name) or {}).get("windows") or []
+                pa, pb = presence_counts(hand, ra), presence_counts(hand, rb)
+                if pa["missed"] or pa["dropped"] or pb["missed"] or pb["dropped"]:
+                    job["presence"].append({"still": name, "a": pa, "b": pb})
                 job["done"] += 1
         finally:
             job["running"] = False
@@ -977,16 +1035,19 @@ class Handler(SimpleHTTPRequestHandler):
         if path == "/api/compare/sweep":
             stills = [s for s in body.get("stills", []) if image_target(s) is not None]
             start_sweep(stills, ROOT / sides["a"][0]["path"], ROOT / sides["a"][1]["path"],
-                        ROOT / sides["b"][0]["path"], ROOT / sides["b"][1]["path"])
+                        ROOT / sides["b"][0]["path"], ROOT / sides["b"][1]["path"],
+                        deskew_a=str(body.get("deskewA") or "off"), deskew_b=str(body.get("deskewB") or "off"))
             return self.send_json({"running": True, "total": len(stills)})
         image = body.get("image", "")
         if image_target(image) is None:
             return self.send_json({"error": f"no such image: {image}"}, HTTPStatus.NOT_FOUND)
         cache = body.get("cache", True)
         a = {"detector": sides["a"][0], "classifier": sides["a"][1],
-             "reply": read_model(image, ROOT / sides["a"][0]["path"], ROOT / sides["a"][1]["path"], cache=cache)}
+             "reply": read_model(image, ROOT / sides["a"][0]["path"], ROOT / sides["a"][1]["path"], cache=cache,
+                                 deskew=str(body.get("deskewA") or "off"))}
         b = {"detector": sides["b"][0], "classifier": sides["b"][1],
-             "reply": read_model(image, ROOT / sides["b"][0]["path"], ROOT / sides["b"][1]["path"], cache=cache)}
+             "reply": read_model(image, ROOT / sides["b"][0]["path"], ROOT / sides["b"][1]["path"], cache=cache,
+                                 deskew=str(body.get("deskewB") or "off"))}
         if path == "/api/compare":
             expected = None if image.startswith("frame/") else load_rows().get(image)
             return self.send_json({"image": image, "expected": expected, "a": a, "b": b,

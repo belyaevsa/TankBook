@@ -311,6 +311,18 @@ public enum PumpDisplayCapture {
                 return (decision.detection, searchedReading)
             }
         }
+        // Still nothing: the detector rows turned to their digits' angle, at the
+        // seed orientation, when the reader is set to retry that way.
+        if reader.reader.deskew == .onRefusal {
+            let candidates = reader.reader.candidates(for: decision.upright, deskewRows: true)
+            if let verified = try? reader.reader.verify(image: decision.upright, candidates: candidates),
+               let turned = reading(from: verified, rgb: decision.upright, detection: decision.detection,
+                                    reader: reader.reader, currency: currency, priceBand: priceBand,
+                                    rotationCW: decision.rotationCW),
+               commits(turned) {
+                return (decision.detection, turned)
+            }
+        }
         return (decision.detection, seedReading)
     }
 

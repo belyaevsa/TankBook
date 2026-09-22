@@ -28,10 +28,14 @@ struct PumpReader {
     /// The learned row detector (PU.33); nil runs the Vision + classical
     /// locator alone, which is the fallback either way.
     let detector: PumpRowDetector?
+    /// When to turn each detector row to its digits' angle (`PumpRowDeskew`).
+    /// Off by default while it is measured.
+    var deskew: DeskewMode = .off
 
-    init(model: PumpSegmentsModel, detector: PumpRowDetector? = nil) {
+    init(model: PumpSegmentsModel, detector: PumpRowDetector? = nil, deskew: DeskewMode = .off) {
         self.model = model
         self.detector = detector
+        self.deskew = deskew
     }
 
     /// Fewer detector rows than this and the frame falls back to the Vision +
@@ -43,8 +47,14 @@ struct PumpReader {
     /// keeps it on count and size alone), then the Vision + classical
     /// proposals when the detector found fewer than two rows.
     func candidates(for upright: PumpRGBImage) -> [PumpPanelLocator.Candidate] {
+        candidates(for: upright, deskewRows: deskew == .always)
+    }
+
+    /// The candidates with the detector rows turned to their digits' angle, or not.
+    func candidates(for upright: PumpRGBImage, deskewRows: Bool) -> [PumpPanelLocator.Candidate] {
         var out = detectedRows(for: upright).map {
-            PumpPanelLocator.Candidate(quad: $0.quad, glyphCount: 0, detected: true)
+            PumpPanelLocator.Candidate(quad: deskewRows ? Self.deskewed($0.quad, in: upright) : $0.quad,
+                                       glyphCount: 0, detected: true)
         }
         if out.count < Self.detectorMinimumRows {
             out += PumpPanelLocator.locate(upright, rotationCW: 0)
@@ -145,6 +155,20 @@ struct PumpReader {
     }
 
     static func widened(_ quad: [CGPoint], in image: PumpRGBImage) -> [CGPoint] {
+        // A turned box widens along its own axes; rebuilding it from its upright
+        // bounds would undo the turn.
+        if quad.count == 4, abs(quad[1].y - quad[0].y) > 0.5 {
+            let u = CGPoint(x: quad[1].x - quad[0].x, y: quad[1].y - quad[0].y)
+            let v = CGPoint(x: quad[3].x - quad[0].x, y: quad[3].y - quad[0].y)
+            let lu = max(hypot(u.x, u.y), 1), lv = max(hypot(v.x, v.y), 1)
+            let ux = u.x / lu, uy = u.y / lu, vx = v.x / lv, vy = v.y / lv
+            let dx = detectedMarginHorizontal * lv, dy = detectedMarginVertical * lv
+            let signs: [(CGFloat, CGFloat)] = [(-1, -1), (1, -1), (1, 1), (-1, 1)]
+            return zip(quad, signs).map { p, sign in
+                CGPoint(x: min(max(p.x + sign.0 * dx * ux + sign.1 * dy * vx, 0), CGFloat(image.width)),
+                        y: min(max(p.y + sign.0 * dx * uy + sign.1 * dy * vy, 0), CGFloat(image.height)))
+            }
+        }
         let b = PumpRowAssignment.bounds(quad, rotationCW: 0)
         let dx = detectedMarginHorizontal * b.height
         let dy = detectedMarginVertical * b.height
@@ -275,9 +299,12 @@ struct PumpReader {
     /// `bestOrientation` searches for it.
     func readPhoto(image: PumpRGBImage, rotationCW: Int? = nil, currency: CurrencyCode?,
                    priceBand: FuelPriceBand?) throws -> PumpDisplayReading {
-        let rotation = rotationCW ?? bestOrientation(for: image)
-        let upright = PumpPanelLocator.rotatedRGB(image, rotationCW: rotation)
-        let verified = try verify(image: upright, candidates: candidates(for: upright))
+        try readPhotoDetailed(image: image, rotationCW: rotationCW, currency: currency, priceBand: priceBand).reading
+    }
+
+    func readUpright(_ upright: PumpRGBImage, deskewRows: Bool, currency: CurrencyCode?,
+                             priceBand: FuelPriceBand?) throws -> PumpDisplayReading {
+        let verified = try verify(image: upright, candidates: candidates(for: upright, deskewRows: deskewRows))
         let assignment = PumpRowAssignment.assign(
             windows: verified.map { PumpRowAssignment.Window(quad: $0.quad, glyphCount: $0.glyphCount) },
             rotationCW: 0)
@@ -384,6 +411,9 @@ struct PumpReader {
         let meanMargin: Double
         let kept: Bool
         var detected: Bool = false
+        /// Why a candidate was not kept, for the annotator and the diagnostics.
+        /// Nothing reads it back to decide: `kept` is the verdict.
+        var dropReasons: [String] = []
     }
 
     /// Two verified windows are one row when they overlap this much - the
@@ -395,7 +425,13 @@ struct PumpReader {
 
     func verify(image: PumpRGBImage, candidates: [PumpPanelLocator.Candidate],
                 deadline: Date? = nil) throws -> [VerifiedWindow] {
-        let kept = try verdicts(image: image, candidates: candidates, deadline: deadline).filter(\.kept)
+        Self.verified(from: try verdicts(image: image, candidates: candidates, deadline: deadline))
+    }
+
+    /// The kept verdicts, one per row: `verify` without the judging, for a
+    /// caller that already holds the verdicts.
+    static func verified(from verdicts: [Verdict]) -> [VerifiedWindow] {
+        let kept = verdicts.filter(\.kept)
         // Best version of each row first: more cells read with a wider margin
         // on a taller strip is the fuller window, not a fragment of it.
         let ranked = kept.sorted { Self.strength($0) > Self.strength($1) }
@@ -457,9 +493,13 @@ struct PumpReader {
             // the edge does not reject a row the detector placed inside it.
             let edge = Self.frameEdgeFraction * CGFloat(image.height)
             let touchesEdge = originalYs.min()! <= edge || originalYs.max()! >= CGFloat(image.height) - edge
-            guard heightFraction >= Self.minimumRowHeightFraction, !touchesEdge,
-                  let sliced = Self.sliceDetectedOrOriginal(original, detected: candidate.detected, in: image) else {
-                out.append(Verdict(quad: original, heightFraction: heightFraction, cells: 0, meanMargin: 0, kept: false))
+            let sliced = heightFraction >= Self.minimumRowHeightFraction && !touchesEdge
+                ? Self.sliceDetectedOrOriginal(original, detected: candidate.detected, in: image) : nil
+            guard let sliced else {
+                let reasons = heightFraction < Self.minimumRowHeightFraction ? ["tooShort"]
+                    : touchesEdge ? ["atFrameEdge"] : ["unsliceable"]
+                out.append(Verdict(quad: original, heightFraction: heightFraction, cells: 0, meanMargin: 0, kept: false,
+                                   detected: candidate.detected, dropReasons: reasons))
                 continue
             }
             let quad = sliced.quad, strip = sliced.strip, stripRGB = sliced.rgb, cells = sliced.cells
@@ -494,8 +534,9 @@ struct PumpReader {
                                           cellAspect: cellAspect)
             }
             let kept = geometry.kept && shaped && !keypad
+            let reasons = geometry.reasons.map(\.rawValue) + (shaped ? [] : ["tooWide"]) + (keypad ? ["keypad"] : [])
             out.append(Verdict(quad: quad, heightFraction: heightFraction, cells: cells.count, meanMargin: mean, kept: kept,
-                               detected: candidate.detected))
+                               detected: candidate.detected, dropReasons: reasons))
         }
         return out
     }
