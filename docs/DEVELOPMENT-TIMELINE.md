@@ -11,6 +11,15 @@ decisions.
 
 ---
 
+## 2026-09-22 · The API is live: every change to it is backward-compatible (hard rule 16)
+
+| | |
+|---|---|
+| **Commits** | this entry's commit |
+| **Reason** | Product owner, with build 1368 in the store: *"as the app is live, we should put a rule - all the API changes must be backward-compatible"*. A shipped build cannot be recalled and a user may never update, so the contract an older client speaks has no end date. |
+| **Evidence** | `docs/API.md` already carried two breaking-change notes whose stated justification was *"the only consumer is this repo's own iOS client, changed in the same commit"* (P6.12's `kind` field; the 2026-09-04 nullable last year). That reasoning was sound before the release and is void after it - the client is now on phones this repo cannot update. |
+| **What changed** | Hard rule 16: within `/v1` only additive change (a new optional request field, a new response member, a new endpoint, a new error code, a wider limit); anything else - a removal, a rename, a narrowed type, a newly required field, a changed status or code meaning, a tightened limit, or the same name with a new meaning - is a second endpoint or `/v2`. Every API change states its verdict in `docs/API.md` in the same change and names the oldest client it was checked against. Payload evolution stays under `SYNC.md`'s registry-and-transforms rule. |
+
 ## 2026-09-21 · The frozen heldout set takes four night stills
 
 | | |

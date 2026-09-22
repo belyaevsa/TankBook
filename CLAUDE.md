@@ -161,6 +161,26 @@ Conflict rule: if two docs disagree, the more specific one wins (API.md over SYN
 
 14. **It builds and it lints – every task, before anything else counts.** No task is done until each tier it touched compiles and its linter exits **0**: iOS runs **`scripts/gate.sh`** – `swift build`, `swiftlint lint` **from the repo root** (root-relative `excluded:` paths), the app-target `xcodebuild` Debug build, `swift test`, then the app-target unit bundle (`xcodebuild test -only-testing:TankbookTests`, its own invocation per the two-bundle rule) – and **package-green is not app-green**: `swift build`/`swift test` compile and test the SwiftPM package (`ios/Sources/TankbookCore`) only, while every screen lives in the app target (`ios/App/Sources`), which only `xcodebuild` compiles, and the app-target unit tests are a separate bundle `swift test` never runs, so a gate that stops at the package can pass code that does not compile into the app or a test the package suite never saw (`RV.174`, 2026-09-10; `RV.250`, 2026-09-12). Backend: `dotnet build` + `dotnet format --verify-no-changes`. Zero lint *errors* is the standard and is re-checked every task; warnings do not block but are not to be added casually. Never silence a violation by loosening the rule – fix the code, or exclude genuinely generated output. Verify by **exit code**, not by skimming output. **A task that touches a `#if DEBUG` seam also builds RELEASE** (`RELEASE=1 scripts/gate.sh`): the ordinary gate compiles Debug only, so an unguarded call to a DEBUG-only type passes every check and breaks the release build path instead - which is exactly how `PR.11`/`OB.4` reached `main` verified, and `RV.78` found it two rows later (2026-09-06). **Which gates a change needs is decided by what it TOUCHES** - `docs/TESTING.md` → "Which gates for which change" carries the table, with what each gate has actually caught. Lint-and-compile alone is enough only when nothing that runs is different (docs, briefs, `TASKS.md` ticks, comments). (`docs/TESTING.md` → the baseline gate)
 
+16. **The API is live: every change to it is backward-compatible, or it is a new endpoint.**
+    (product owner, 2026-09-22, with build 1368 in the store.) A shipped build cannot be
+    recalled and a user may never update, so a request an older client still sends must keep
+    working **forever**, not until the next release. The allowed changes are **additive**: a new
+    optional request field the server defaults; a new response member an older client ignores; a
+    new endpoint; a new error `code` (a client that does not know it falls back to the status,
+    `docs/API.md` → Error envelope). Everything else is a **new endpoint or `/v2`**, never an
+    edit in place: removing or renaming a field, narrowing a type or an enum the client sends,
+    making an optional field required, changing a status code or what a code means, tightening a
+    limit a client already relies on, or changing the meaning of a value while keeping its name
+    (the worst of them - nothing fails, the numbers are just wrong). A *payload* change is
+    governed separately and just as strictly by `docs/SYNC.md` → "Payload contract and
+    versioning": the registry and declarative transforms, never a backend deploy (hard rule 9).
+    **Every API change states its verdict in the same change** - `docs/API.md` carries the
+    breaking-change notes and every new one names the oldest client it was checked against;
+    "the only consumer is this repo's own client" is **no longer a reason**, because that client
+    is installed on phones this repo cannot update. When compatibility cannot be kept, the change
+    ships as a second endpoint and the old one stays until the store telemetry says nobody calls
+    it. (`docs/API.md` → Ops / versioning)
+
 ## Code comments: current truth only
 
 Code comments are maintained with the code and describe the version in the

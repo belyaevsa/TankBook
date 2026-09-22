@@ -733,6 +733,32 @@ rows again on its next launch (at-least-once), dedupes by row id, and then acks 
 
 `GET /health` – liveness (public, unversioned). Everything else is versioned under `/v1/…` from day one; additive evolution within v1 (new optional fields, new endpoints), breaking changes = `/v2`.
 
+### Backward compatibility is not optional (hard rule 16, product owner 2026-09-22)
+
+The app is **live in the store**, so a shipped build cannot be recalled and a user may never
+update: a request an older client still sends must keep working **forever**. Within `/v1` the only
+permitted evolution is **additive**.
+
+| Allowed (additive) | Not allowed in place – a new endpoint or `/v2` |
+|---|---|
+| A new **optional** request field the server defaults | Removing or renaming a request or response field |
+| A new response member (an older client ignores what it does not know) | Narrowing a type, or an enum value the client sends |
+| A new endpoint | Making an optional field required |
+| A new error `code` – an unknown code falls back to the status (→ Error envelope) | Changing a status code, or what an existing code means |
+| A wider limit | Tightening a limit a client already relies on |
+| | **Changing the meaning of a value while keeping its name** – nothing fails, the numbers are just wrong |
+
+Payload (`records.payload`) evolution is governed separately and just as strictly by `SYNC.md` →
+"Payload contract and versioning": the schema registry plus declarative transforms, never a
+backend deploy (hard rule 9).
+
+**Every API change states its verdict in the same change**, as a note in this document, and names
+the oldest client version it was checked against. The notes above that reason *"the only consumer
+is this repo's own iOS client, changed in the same commit"* predate the store release; that is
+**no longer a reason**, because that client is installed on phones this repo cannot update. Where
+compatibility genuinely cannot be kept, the change ships as a **second endpoint** and the old one
+stays until telemetry says nobody calls it.
+
 ## Rate limits and request body caps
 
 Every limit here is a flood guard, chosen so a real user can never hit it – a `429` means an attacker or a bug, not a busy human. A rate-limited request is a `429` problem+json carrying `Retry-After` (seconds until the window resets); the client decodes and displays that header, so the user always knows when to retry (hard rule 7). The limits are operational and bind from the `RateLimit` configuration section (`RateLimit__AuthSessionPerMinute` etc.).
