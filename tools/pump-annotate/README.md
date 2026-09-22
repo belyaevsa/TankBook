@@ -242,8 +242,9 @@ the ml venv runs it); the converted images are cached under
   cap on an anchored frame and the hatch colour on a skipped one. A Live record
   has no per-frame label, so its columns colour by what it does have: green for
   an anchor, red where the tracker's inliers fall under its own floor, grey
-  otherwise. The outlined
-  block is the part of the strip on screen and the tick is the current frame;
+  otherwise. Everything outside the part on screen is **dimmed**, so the block
+  you are looking at reads first - an outline alone disappears on a bar of 1184
+  colours - and the tick marks the current frame;
   drag the block, or click anywhere on the bar, to look elsewhere. **The strip
   itself no longer scrolls by hand** - the scrub is what moves it, and it moves
   the VIEW, never the selection, because the ticks are what select. The
