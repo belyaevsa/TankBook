@@ -1337,3 +1337,324 @@ Reverted, `tests/test_realglyphs_centred.py` -> **5 passed**.
   this round). The shipped model still read the committed 83 / 39 on that slicer, so every row of
   the table is on one slicer and the comparison holds, but the absolute numbers are not the
   committed slicer's. Re-score after PU.42 lands.
+
+## PU.47 - the verifier on slicer geometry, never the classifier (2026-09-22)
+
+The live number slid on every retrain (round 11: 39 shipped, 19-36 across the
+seed table) because `PumpReader.verdicts` kept a Vision proposal on the
+classifier's mean decode margin (`minimumMeanMargin`) - a threshold fitted to
+round 6's margin distribution - and because `verify`'s duplicate suppression
+ranked by `meanMargin * cells * height`. Detected rows already bypassed the
+margin (PU.33/PU.35); a fallback frame's proposals did not. This round replaces
+the keep decision with a pure geometry verdict, `PumpRowGeometry`, and removes
+the margin from the rank.
+
+### What was built
+
+`PumpRowGeometry.verdict(cells:stripWidth:stripHeight:)` reads only the
+slicer's `[GlyphCell]` (blanks included) and the strip size and returns a
+verdict with named reasons. `verify` keeps a candidate - detected or proposed -
+on `geometry.kept && shaped && !keypad`; `meanMargin` is still computed and
+carried in `Verdict` for the diagnostic, and no branch reads it. `isKeypadRow`
+stays a separate check: a keypad's cells can look like a display row, and what
+singles it out is its place off the display's span (the candidate set), which a
+per-strip function cannot see.
+
+The rules:
+
+1. cell count in `[minimumVerifiedCells, PumpReadingLaw.maxCells]` = `[3, 8]`
+   (existed);
+2. **pitch**: the cell aspect (pitch / band height) in `[0.3, 1.25]`;
+3. **ink band**: the band height as a fraction of the strip in `[0.35, 1.0]`;
+4. **decimal mark**: the mark's implied fraction digits (`count - 1 - markIndex`)
+   at most 3, the law's maximum placement;
+5. **blank layout**: the longest interior blank run at most 1 (a leading run of
+   unlit cells is allowed; an interior run is a keypad or spaced text).
+
+The brief's literal pitch rule - "coefficient of variation of the non-blank
+cell widths" - is identically zero: `PumpGlyphSlicer` snaps every cell to one
+pitch, so the widths are equal by construction and no bound on their CoV can
+discriminate. The measured, discriminating pitch property is the pitch-to-band
+ratio, which is what rule 2 uses. The dp rule is about the mark's *position*,
+not its host cell: a mark on cell 0 is legitimate ("1,789", 81 train positives),
+so only a mark implying more than three decimals is rejected.
+
+### Bounds (train split only; decision 9)
+
+Positives: the train stills' annotated windows through the current slicer.
+Negatives: the Vision proposals on the same stills that overlap no annotated
+window at IoU 0.3. 250 stills, **954 positives, 4899 negatives**. The heldout
+split was not read while choosing.
+
+| rule | positives p5 / p50 / p95 | negatives p5 / p50 / p95 | kept positives | kept negatives |
+|---|---|---|---|---|
+| cell count `[3, 8]` | 2 / 4 / 6 | 1 / 4 / 12 | 0.919 | 0.566 |
+| pitch `[0.3, 1.25]` | 0.50 / 0.69 / 1.18 | 0.54 / 1.00 / 1.52 | 0.954 | 0.639 |
+| ink band `[0.35, 1.0]` | 0.70 / 0.88 / 1.00 | 0.51 / 0.78 / 1.00 | 0.980 | 0.989 |
+| dp implied <= 3 | 1 / 2 / 3 | -1 / 2 / 12 | 0.990 | 0.947 |
+| blank run <= 1 | 0 / 0 / 1 | 0 / 0 / 1 | 0.980 | 0.953 |
+| all five | - | - | 0.890 | 0.357 |
+
+No single rule separates the sets: a Vision character row is as tall and as
+wide as a display row (the ink-band and blank-layout rules each keep 95-99 % of
+the proposals on their own). The conjunction keeps 89 % of true rows and 36 %
+of the proposals; the proposals that survive are read and then refused by the
+law unless the arithmetic closes, which is why the live precision holds.
+
+### Tests
+
+`PumpRowGeometryTests` (L1, 4 tests, real stills):
+
+- **pitch**: positive pump-032's total (pitch/band 0.69); negative pump-215's
+  keypad - the black 4x4 key grid at the still's right, no annotation window
+  covers it, so the quad is hand-written over the "1 2 3" row (x 0.680-0.795,
+  y 0.555-0.590), whose keys are square (1.36).
+- **dp position**: positive pump-001's liters (`67.00`, mark on cell 1 of 4);
+  negative pump-045's total (`0029,31`, the slicer puts the mark on cell 0 of 6,
+  implying five decimals).
+- **blank layout**: positive pump-215's total; negative pump-263's CLOSED sum
+  window (interior blank runs of 88, 3 and 41).
+- **ink band**: positive pump-032's total (band 0.84 of the strip); negative
+  pump-263's CLOSED (band 0.021). The CLOSED window's occupied count is 5 (its
+  173-cell slice is 168 blanks), so the blank-layout and ink-band tests assert
+  the named reason, not only `!kept`.
+
+**Named mutation 1 - remove the pitch rule** (comment its `if`):
+
+```
+✘ Test "a display's pitch-to-band is kept; a keypad's square keys are not" recorded an issue at PumpRowGeometryTests.swift:95:9: Expectation failed: !keypad.kept
+↳     keypad → Verdict(kept: true, reasons: [])
+↳       reasons → []
+✘ Test "a display's pitch-to-band is kept; a keypad's square keys are not" recorded an issue at PumpRowGeometryTests.swift:96:9: Expectation failed: keypad.reasons.contains(.pitch)
+↳ keypad.reasons.contains(.pitch) → false
+↳   keypad.reasons → []
+✘ Test "a display's pitch-to-band is kept; a keypad's square keys are not" failed after 1.335 seconds with 2 issues.
+✘ Suite "PU.47 row geometry" failed after 1.335 seconds with 2 issues.
+✘ Test run with 1 test in 1 suite failed after 1.335 seconds with 2 issues.
+```
+
+restored:
+
+```
+✔ Test "a display's pitch-to-band is kept; a keypad's square keys are not" passed after 1.311 seconds.
+✔ Suite "PU.47 row geometry" passed after 1.311 seconds.
+✔ Test run with 1 test in 1 suite passed after 1.311 seconds.
+```
+
+**Named mutation 2 - remove the blank-layout rule**:
+
+```
+✘ Test "a display's leading blank run is kept; an interior run is not" recorded an issue at PumpRowGeometryTests.swift:127:9: Expectation failed: closed.reasons.contains(.blankLayout)
+↳ closed.reasons.contains(.blankLayout) → false
+↳   closed.reasons → [TankbookCore.PumpRowGeometry.Reason.inkBand]
+✘ Test "a display's leading blank run is kept; an interior run is not" failed after 1.280 seconds with 1 issue.
+✘ Suite "PU.47 row geometry" failed after 1.280 seconds with 1 issue.
+✘ Test run with 1 test in 1 suite failed after 1.280 seconds with 1 issue.
+```
+
+restored:
+
+```
+✔ Test "a display's leading blank run is kept; an interior run is not" passed after 1.228 seconds.
+✔ Suite "PU.47 row geometry" passed after 1.228 seconds.
+✔ Test run with 1 test in 1 suite passed after 1.228 seconds.
+```
+
+### The decoupling, measured
+
+Heldout live path (`PumpReaderPipelineTests.livePath`), round 6 and the
+round-11 `+step 3` candidate (`ml/pump-reader/.out/train-r11-step3-s0`), through
+the new verifier:
+
+| model | annotated: committed / correct / precision / photos | live: committed / correct / precision / photos | verifier kept rows |
+|---|---|---|---|
+| round 6 (shipped) | 104 / 103 / 0.990 / 30 | 43 / 43 / 1.000 / 14 | 216 |
+| round 11 +step 3 | 96 / 95 / 0.990 / 27 | 35 / 35 / 1.000 / 9 | 216 |
+
+The verifier's kept rows are **identical (216)** for both models - it is
+model-free by construction, and `PumpReaderPipelineTests.decoupling`
+(`PUMP_DECOUPLE=1`) asserts it row by row. **The brief's claim that the two live
+numbers are within 3 cells is not met: they are 8 apart (43 vs 35).** The margin
+gate was one coupling and it is gone, but the live *committed* number is not a
+verifier number: the kept rows are the same, and the difference is the read
+stage - the classifier's decode decides which cells the law commits, and a
+retrain moves that. The brief says to say so and stop; that is the finding. The
+floor is unchanged: round 6 holds at **43 / 1.000**.
+
+### Checks
+
+| check | exit | note |
+|---|---|---|
+| `swift build` | 0 | |
+| `swiftlint lint ios/Tests/.../PumpRowGeometryTests.swift` | 0 | 0 violations (the two new/edited files are clean) |
+| `swiftlint lint ios Spike tools agents ml scripts` | 2 | 1 serious, pre-existing: `CorpusPairTests.swift:59`, a 219-char line from corpus batch 8 - not this row |
+| `swiftlint lint` (repo root) | 132 | crashes on the untracked, gitignored `build/` DerivedData (GRDB sources); `**/.build` excludes the dotted dirs but not `build/` |
+| `swift test --filter "PumpRowGeometryTests\|PumpReaderPipelineTests\|PumpReaderHarnessTests\|PumpReadingLawTests"` | 1 | 28 tests in 4 suites, 1 issue: `PumpReadingLawTests`' pump-300, a corpus-batch-8 fixture |
+| `scripts/gate.sh` | 132 | stops at the lint step (the `build/` crash above); the remaining steps were run in their own invocations |
+| app-target `xcodebuild` Debug build | 0 | |
+| app-target unit bundle `-only-testing:TankbookTests` | 0 | **299 tests, 0 failures** |
+| `swift test` (whole package) | 1 | 2239 tests, 98 issues - all pre-existing/corpus: `PaddleOCRTests`/`CorpusABTests` (the 47 unswept batch-9 fixtures), `PumpReadingLawTests` (pump-300), `PumpRowAssignmentTests` (pump-309), `CaptureOrientationTests` (RV.49), `RV.277` |
+
+The pump suites themselves pass: `PU.47 row geometry`, `PU.4 pump reader
+harness` (count 237/251, dp 133/250) and `PU.22 pump reader on real cells` (104
+/ 0.990 annotated, 43 / 1.000 live) are all green in the full run.
+
+The pipeline suites carry no macOS-runtime gate in this tree (only
+`VisionMeasuredRuntime` suites do, and the pump pipeline is not one), so they
+ran on this macOS 27 without a bypass; the brief's "skip on macOS != 26" did not
+apply.
+
+### Found and not fixed
+
+- **`PumpDisplayCapture.displayRows` still reads the margin**
+  (`window.detected || window.meanMargin >= classificationMinimumMargin`,
+  `PumpDisplayCapture.swift:236`). That is the display/not-a-display decision,
+  not the reader's keep decision, and it is outside this row's write set; it is
+  the next place a retrain can move a live decision. No row owns it yet.
+- **The geometry gate is more permissive than the margin gate** (36 % of the
+  proposals vs the margin's much smaller set). The heldout live precision stays
+  1.000 and the floor holds at 43, but the FPR is the number to watch if a
+  future retrain's read is worse.
+- **The live number still slides with the classifier through the read**, as the
+  decoupling table shows. Removing the verifier's margin was necessary but not
+  sufficient for a retrain-stable live number; a read-stage stability measure
+  (or a heldout read floor that is not tied to one model) is the next lever. No
+  row owns it yet.
+- **`swiftlint lint` from the repo root crashes (exit 132) on the untracked,
+  gitignored `build/` DerivedData**, whose vendored GRDB Swift the root lint
+  scans (`**/.build` excludes the dotted build dirs but not `build/`). The
+  working lint is `swiftlint lint ios Spike tools agents ml scripts`, which is
+  exit 2 only for the pre-existing `CorpusPairTests.swift:59`. Both are outside
+  this row's write set; the `build` exclusion is a one-line `.swiftlint.yml`
+  fix, and no row owns it.
+
+### PU.48 - retrain the row detector on this week's records (2026-09-22)
+
+**Nothing ships.** The retrained detector passes the (c) gate on the current corpus, but the
+live floor falls from 43 to 28 cells at precision 0.964, so the shipped PU.33 model stays in the
+bundle: `ios/App/Resources/DigitRows.mlmodel` is byte-identical (`b560fef2…`) and
+`PumpReaderPipelineTests`' floor comment is untouched.
+
+**The premise holds.** PU.33 trained on **153 train stills** (2026-09-20). The old export's
+`counts.json` (a later re-export, never trained) read 206/64/963/397/104/5 829. Today's export
+reads **249 train stills / 68 heldout / 1 247 Live frames / 819 video frames / 116 negatives /
+9 152 boxes** - batches 6-9 (`pump-242`..`318`, the 60 tracked records and the 16 clips) are
+only in today's set, so the shipped detector never saw this week's heads.
+
+**A concurrent corpus commit landed mid-task.** The first export (13:04) read 248 train stills /
+8 893 boxes; the owner's annotator pass over `pump-287`..`299` and the `detdata.py` skip/negatives
+change (commits `4c21b9ad`, `b97569a9`) landed while the first model trained. The final export
+(14:34, the numbers below) adds one train still and 259 boxes. The heldout yardstick is identical
+between the two (68 stills, 252 boxes), so the old-model measurement is shared; the final model is
+the one reported. There are no `skipped` frames in the corpus yet, so the new filter is a no-op
+here.
+
+**Export** (`detdata --edge 1024 --frame-step 5`, 49 s, exit 0):
+
+| train stills | heldout stills | Live frames | video frames | negatives | boxes |
+|---|---|---|---|---|---|
+| 249 | 68 | 1 247 | 819 | 116 | 9 152 |
+
+`tests/test_detdata_disjoint.py` (new, 2 tests) proves on a scratch database that a heldout
+still and every frame of a Live record paired to it stay out of `train`, and that a record whose
+still is `tracking = bad` contributes no frame. Full suite: **44 passed** (42 + 2).
+**Named mutation** - `heldout = row["split"] == "heldout"` -> `heldout = False` in `detdata.py`:
+`test_no_heldout_still_or_paired_frame_reaches_train` goes red, verbatim
+
+```
+>               assert r["source"] not in heldout_names, f"heldout still in the detector's train set: {r['source']}"
+E               AssertionError: heldout still in the detector's train set: pump-901-held-ee.jpg
+ml/pump-reader/src/pump_reader/detdata.py:171: AssertionError
+1 failed
+```
+
+Reverted byte-identical (no `git diff` on `detdata.py`), the two tests pass.
+
+**Train** (`detector/train.swift`, 3 000 iterations): **2 454 s (41 min)**, model
+**31 751 101 bytes (30.3 MiB)** at
+`ml/pump-reader/.out/det/pu48-latest/DigitRows-pu48-latest.mlmodel`. Create ML validation mAP@50
+**0.9400**. (The first, stale-export model: 2 456 s, the same size, mAP@50 0.9445.)
+
+**Measure** (`detector/measure.swift`, heldout 68 stills, confidence 0.3; the old model
+re-measured today because the old PU.33 numbers are on 64 stills and not comparable):
+
+| metric | old (shipped PU.33) | new (PU.48) | gate |
+|---|---|---|---|
+| recall @ IoU 0.5 | 219/252 = 0.869 | **221/252 = 0.877** | rose |
+| recall @ IoU 0.7 | 185/252 = 0.734 | 178/252 = 0.706 | fell |
+| median IoU | 0.797 | 0.772 | fell |
+| false rows / photo | 43/68 = 0.632 | 56/68 = 0.824 | **+0.191 (<= 0.2)** |
+| photos with any row | 63/68 | 64/68 | rose |
+| photos with every row | 53/68 | **55/68** | rose |
+
+**(c) passes**: recall@0.5 and photos-with-every-row both rise, and false rows rise by 0.191,
+under the 0.2 bound.
+
+Per-still (found / truth), before -> after, for the night set and the PU.33 misses:
+
+| still | old | new |
+|---|---|---|
+| pump-008 Topaz overlay | 0/3 | 1/3 (0 matched - a false row) |
+| pump-186 Tatsuno amber LED | 0/3 | **1/3** |
+| pump-187 Tatsuno amber LED | 0/3 | 0/3 |
+| pump-134 Tokheim Kronur | 0/3 | 0/3 |
+| pump-194 Tokheim dusk | 0/3 | 0/3 |
+| pump-190 Tokheim fog | 1/3 | 1/3 |
+| pump-198 Tokheim reflection | 1/3 | 1/3 (found 3, one matched) |
+| pump-201 Tokheim Belarus night | 2/3 | 2/3 |
+| pump-275 Wayne Neste night | 5/5 | 5/5 (found 8) |
+| pump-277 Gilbarco Peetri night | 3/3 | 3/3 |
+| pump-280 Gilbarco night | 3/3 | 3/3 |
+| pump-281 Gilbarco night | 3/3 | 3/3 |
+
+The extra recall is bought from the false-row budget: the Topaz still's one new box is a false
+row, and pump-198's new box does not match a truth row either. The night stills are found by both
+- they are heldout, so neither model trained on them.
+
+**The gate (d): does not ship.** (c) passes, but the live floor falls - exactly the trap this
+brief names, a candidate may not ship on (c) alone. `PumpReaderPipelineTests` was run with the
+candidate temporarily at `.out/det/DigitRows.mlmodel` (restored after) via
+`cd ios && swift test --filter PumpReaderPipelineTests`; this is macOS 27 and the suite is **not**
+`.visionMeasuredRuntimeOnly`, so it ran with no bypass:
+
+| model | live: committed / correct / precision / photos | annotated: committed / correct / precision / photos |
+|---|---|---|
+| old (shipped) | **43 / 43 / 1.000 / 14 of 68** | 104 / 103 / 0.990 / 30 of 68 |
+| new (PU.48) | **28 / 27 / 0.964 / 7 of 68** | 104 / 103 / 0.990 / 30 of 68 |
+
+The live floor is 43 at 0.99; the candidate reads 28 at 0.964, so it does not ship even though
+(c) passed. The annotated path is identical because it uses the hand-drawn windows, never the
+detector. This is the same "live path slides on every retrain" seam rounds 8-11 recorded: the
+detector's recall improved, but the verifier's margin is fitted to round 6 and rejects the new
+boxes.
+
+#### Checks
+
+| check | exit | note |
+|---|---|---|
+| `pytest -q ml/pump-reader/tests` | 0 | **44 passed** (42 + 2 new) |
+| `detdata` (final) | 0 | 49 s; counts above |
+| `train.swift` 3000 | 0 | 2 454 s; 31 751 101 bytes |
+| `measure.swift` old | 0 | table above |
+| `measure.swift` new | 0 | table above |
+| `swift test --filter PumpReaderPipelineTests` (old) | 0 | live 43 / 1.000 |
+| `swift test --filter PumpReaderPipelineTests` (new) | 1 | live 28 / 0.964 - the floor red, as the gate requires |
+| `scripts/gate.sh` / `swiftlint` | not run | no model shipped; no Swift source or `ios/` file changed (Python test + docs only) |
+
+#### Found and not fixed
+
+- **The detector improved and the live path still fell** (43 -> 28): the verifier's margin is
+  fitted to the round-6 boxes, so a better locator feeds it boxes it discards. The detector's next
+  round cannot be judged by `measure.swift` alone - the verifier's margin is the seam rounds 8-11
+  recorded, and no row owns it.
+- **The two Tokheim stills PU.33 named (Kronur, dusk) and the Topaz overlay are still 0 matched.**
+  The retrain added 96 train stills and ~1 300 frames and moved neither; they are a geometry/
+  verifier problem, not a data-volume one.
+- **False rows rose with the frames** (43 -> 56, +0.191 - inside the 0.2 bound but on the edge).
+  The negatives (116) did not keep pace with the new forecourts; a future retrain should grow the
+  keypad/`CLOSED` negatives with the positives.
+- **`PumpReaderTestSupport.detectorURL` reads `.out/det/DigitRows.mlmodel`, not the shipped
+  `ios/App/Resources/DigitRows.mlmodel`.** A candidate can be scored by the pipeline only after
+  overwriting the dev copy, which is why the swap-and-restore above was needed. The two files are
+  byte-identical today, so it does not change any number, but the seam is a trap for the next
+  detector round; no row owns it.

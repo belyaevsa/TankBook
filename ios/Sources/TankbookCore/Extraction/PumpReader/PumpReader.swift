@@ -121,14 +121,21 @@ struct PumpReader {
         let quad: [CGPoint]
         let strip: CGImage
         let rgb: PumpRGBImage
+        /// The cells a reading uses: the slicer's occupied cells only.
         let cells: [GlyphCell]
+        /// The full slice, blanks included - what the geometry verdict reads
+        /// (a leading blank run is a display's unlit cells; an interior run is
+        /// a keypad or spaced text).
+        let fullCells: [GlyphCell]
     }
 
     static func sliceDetectedOrOriginal(_ original: [CGPoint], detected: Bool, in image: PumpRGBImage) -> SlicedCandidate? {
         func slice(_ quad: [CGPoint]) -> SlicedCandidate? {
             guard let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: quad, stripHeight: Self.stripHeight) else { return nil }
             let rgb = PumpQuadWarp.rgbImage(from: strip)
-            return SlicedCandidate(quad: quad, strip: strip, rgb: rgb, cells: PumpGlyphSlicer.slice(rgb.grayscale()).filter { !$0.isBlank })
+            let cells = PumpGlyphSlicer.slice(rgb.grayscale())
+            return SlicedCandidate(quad: quad, strip: strip, rgb: rgb,
+                                   cells: cells.filter { !$0.isBlank }, fullCells: cells)
         }
         guard let plain = slice(original) else { return nil }
         guard detected, let wide = slice(widened(original, in: image)), wide.cells.count >= plain.cells.count else {
@@ -243,8 +250,10 @@ struct PumpReader {
     }
 
     static let minimumVerifiedCells = 3
-    /// Mean decode margin (nats) below which a row is not digits. A digit cell
-    /// the model is sure of sits well above 2; letters and stickers below 1.
+    /// Mean decode margin (nats) a digit cell carries. The verifier no longer
+    /// gates on it - the keep decision is `PumpRowGeometry`, so a retrain
+    /// cannot move the live number through this constant - but it is still
+    /// computed and reported for the live-path diagnostic.
     static let minimumMeanMargin = 1.0
     /// A digit row is about 0.6 heights wide per cell (seven-segment glyphs
     /// are taller than wide, plus the gaps and a decimal mark). A candidate
@@ -319,8 +328,12 @@ struct PumpReader {
         return out
     }
 
+    /// How the best version of a row is picked when the locator offered it
+    /// twice: more cells read on a taller strip is the fuller window. The
+    /// classifier's margin is deliberately not a term - reading it here would
+    /// let a retrain choose a different duplicate and move the live path.
     private static func strength(_ v: Verdict) -> Double {
-        Double(v.cells) * v.meanMargin * Double(v.heightFraction)
+        Double(v.cells) * Double(v.heightFraction)
     }
 
     /// Intersection over the smaller box: a fragment inside a row scores
@@ -365,25 +378,28 @@ struct PumpReader {
                 continue
             }
             let quad = sliced.quad, strip = sliced.strip, stripRGB = sliced.rgb, cells = sliced.cells
-            guard cells.count >= Self.minimumVerifiedCells, cells.count <= PumpReadingLaw.maxCells else {
-                out.append(Verdict(quad: quad, heightFraction: heightFraction, cells: cells.count, meanMargin: 0, kept: false))
-                continue
+            // The classifier's margin is computed for the diagnostic only; the
+            // keep decision is the strip's geometry, for a detected row and a
+            // Vision proposal alike, so a retrain cannot move it (decision 10).
+            var mean = 0.0
+            if !cells.isEmpty, cells.count <= PumpReadingLaw.maxCells {
+                var margins: [Double] = []
+                for cell in cells {
+                    let probabilities = try Self.averaged(model: model, crops: [Self.resample(
+                        stripRGB, rect: cell.rect, width: PumpSegmentsModel.inputWidth,
+                        height: PumpSegmentsModel.inputHeight)!])
+                    margins.append(PumpCellReading(probabilities: probabilities).margin)
+                }
+                mean = margins.reduce(0, +) / Double(margins.count)
             }
-            var margins: [Double] = []
-            for cell in cells {
-                let probabilities = try Self.averaged(model: model, crops: [Self.resample(
-                    stripRGB, rect: cell.rect, width: PumpSegmentsModel.inputWidth,
-                    height: PumpSegmentsModel.inputHeight)!])
-                margins.append(PumpCellReading(probabilities: probabilities).margin)
-            }
-            let mean = margins.reduce(0, +) / Double(margins.count)
+            let geometry = PumpRowGeometry.verdict(cells: sliced.fullCells, stripWidth: strip.width,
+                                                   stripHeight: strip.height)
             let aspect = CGFloat(strip.width) / CGFloat(strip.height)
-            let shaped = aspect <= Self.maximumAspectPerCell * CGFloat(cells.count) + 1
-            // A detected row is kept on count and size alone: the detector's
-            // confidence already vouched for it, and gating it on the
-            // classifier's margin coupled the live number to every retrain. The
-            // exception is a keypad row, which the shape check cannot see; it is
-            // judged on its cell geometry, never the classifier.
+            let shaped = aspect <= Self.maximumAspectPerCell * CGFloat(max(cells.count, 1)) + 1
+            // A keypad row is the one thing the per-strip geometry cannot see:
+            // its cells can look like a display row, and what singles it out is
+            // its place off the display's span (PU.35), so it stays a separate
+            // check on the detector's rows.
             var keypad = false
             if candidate.detected, let widestDetected,
                let box = detectedBoxes.first(where: { $0.index == index })?.box {
@@ -392,9 +408,7 @@ struct PumpReader {
                                           siblings: detectedBoxes.filter { $0.index != index }.map(\.box),
                                           cellAspect: cellAspect)
             }
-            let kept = candidate.detected
-                ? (shaped && !keypad)
-                : (shaped && mean >= Self.minimumMeanMargin)
+            let kept = geometry.kept && shaped && !keypad
             out.append(Verdict(quad: quad, heightFraction: heightFraction, cells: cells.count, meanMargin: mean, kept: kept,
                                detected: candidate.detected))
         }

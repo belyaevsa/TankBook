@@ -9,6 +9,10 @@ excluded:
   # tripped line-length and trailing-whitespace as errors - failing CI over code
   # nobody wrote and nobody can fix.
   - "**/.build"
+  # Xcode's DerivedData for the app target and the release script's output. Not
+  # a SwiftPM `.build`, so the line above misses it, and linting the GRDB
+  # sources it copies there crashed SwiftLint (exit 132) on 2026-09-22.
+  - "build"
   # The pump-reader training venv (gitignored) vendors coremltools, which ships
   # Swift sources of its own; lint covers our code, not a pip package's.
   - ml/pump-reader/.venv

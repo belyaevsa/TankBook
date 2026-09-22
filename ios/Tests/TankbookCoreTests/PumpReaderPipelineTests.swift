@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import Testing
 @testable import TankbookCore
@@ -37,7 +38,10 @@ struct PumpReaderPipelineTests {
     // operand close from making an exact read abstain. Moves only upward; a run
     // without the detector file (ml/pump-reader/.out/det/DigitRows.mlmodel)
     // falls back to Vision and reads 11 - the floor assumes the detector is
-    // present.
+    // present. PU.47 replaced the classifier's margin gate with
+    // `PumpRowGeometry` (count, pitch, ink band, dp position, blank layout) and
+    // holds at 43 / 1.000: the verifier's kept rows are now model-free, so a
+    // retrain can no longer move them.
     private static let liveCommittedFloor = PumpReaderTestSupport.detectorURL == nil ? 11 : 43
     private static let livePrecisionFloor = 0.99
 
@@ -362,5 +366,86 @@ struct PumpReaderPipelineTests {
         report("fused, every 5th frame (probabilities)", measurement.fifthFrame)
         report("fused, every 5th frame (pixels)", measurement.pixels)
         for line in measurement.flips { print("  FLIP \(line)") }
+    }
+
+    // MARK: - PU.47 decoupling
+
+    private struct DecoupledLive {
+        var committed = 0
+        var correct = 0
+        var photos = 0
+        var keptRows: [[CGPoint]] = []
+    }
+
+    /// The verifier judges on slicer geometry alone, so its kept rows are the
+    /// same for any classifier; the committed cells still differ because the
+    /// read is the classifier's. Opt-in (`PUMP_DECOUPLE=1`): it runs the live
+    /// path twice, once per model, and compares the kept rows.
+    @Test("PU.47 decoupling: round 6 vs the round-11 +step 3 candidate", .pumpFixturesPresent,
+          .enabled(if: ProcessInfo.processInfo.environment["PUMP_DECOUPLE"] == "1", "PUMP_DECOUPLE=1"))
+    func decoupling() throws {
+        let step3 = PumpReaderTestSupport.repoRoot.appendingPathComponent(
+            "ml/pump-reader/.out/train-r11-step3-s0/PumpSegments.mlpackage")
+        guard FileManager.default.fileExists(atPath: step3.path) else {
+            print("PU.47 decoupling: the round-11 +step 3 candidate is absent; skipped")
+            return
+        }
+        let expected = try CorpusScorer.loadExpected(
+            PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent("expected.csv"))
+        let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)
+        let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        let pack = try FuelPriceBandStore.bundledPack()
+
+        func run(_ model: PumpSegmentsModel) throws -> DecoupledLive {
+            let reader = PumpReader(model: model, detector: PumpReaderTestSupport.makeDetector())
+            var live = DecoupledLive()
+            for (name, value) in root.sorted(by: { $0.key < $1.key }) {
+                guard name != "_about", let ann = value as? [String: Any], let want = expected[name],
+                      PumpReaderTestSupport.isHeldout(name) else { continue }
+                guard let image = PumpReaderTestSupport.loadRGB(
+                    url: PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent(name)) else { continue }
+                let rotation = (ann["rotationCW"] as? NSNumber)?.intValue ?? 0
+                let upright = PumpPanelLocator.rotatedRGB(image, rotationCW: rotation)
+                let verified = try reader.verify(image: upright, candidates: reader.candidates(for: upright))
+                live.keptRows += verified.map(\.quad)
+                let reading = try reader.readPhoto(
+                    image: image, rotationCW: rotation, currency: want.currency,
+                    priceBand: want.currency.flatMap { pack.currencyBand(currency: $0) })
+                let disagrees = Set((ann["csvDisagrees"] as? [String: Any])?.keys.map { $0 } ?? [])
+                let cells: [ScoredCell] = [
+                    ScoredCell(field: .liters, reading: reading.liters, want: disagrees.contains("liters") ? nil : want.liters),
+                    ScoredCell(field: .unitPrice, reading: reading.unitPrice, want: disagrees.contains("unitPrice") ? nil : want.unitPrice),
+                    ScoredCell(field: .total, reading: reading.total, want: disagrees.contains("total") ? nil : want.total),
+                ]
+                var total = 0, right = 0
+                for cell in cells {
+                    guard let wantValue = cell.want else { continue }
+                    total += 1
+                    guard let got = cell.reading.value.map({ NSDecimalNumber(decimal: $0).doubleValue }) else { continue }
+                    live.committed += 1
+                    let derived: Bool = { if case .derived? = cell.reading.provenance { return true }; return false }()
+                    if abs(got - wantValue) < (derived ? 0.1 : CorpusScorer.tolerance) { live.correct += 1; right += 1 }
+                }
+                if total > 0, right == total { live.photos += 1 }
+            }
+            return live
+        }
+
+        let shipped = try run(PumpSegmentsModel(contentsOf: Self.modelURL))
+        let candidate = try run(PumpSegmentsModel(contentsOf: step3))
+        func line(_ label: String, _ live: DecoupledLive) -> String {
+            let precision = live.committed > 0 ? Double(live.correct) / Double(live.committed) : 0
+            return "PU.47 \(label): committed \(live.committed), correct \(live.correct), "
+                + "precision \(String(format: "%.3f", precision)), photos \(live.photos)/68, "
+                + "verifier kept rows \(live.keptRows.count)"
+        }
+        print(line("round 6", shipped))
+        print(line("round-11 +step 3", candidate))
+        // The decoupling proof: the verifier's kept rows are identical.
+        #expect(shipped.keptRows.count == candidate.keptRows.count)
+        for (a, b) in zip(shipped.keptRows, candidate.keptRows) {
+            #expect(a.map(\.x) == b.map(\.x) && a.map(\.y) == b.map(\.y),
+                    "the verifier kept a different row for the two models")
+        }
     }
 }

@@ -56,7 +56,10 @@ private let matchedPairs: [MatchedPair] = [
     MatchedPair(pump: "pump-278", receipt: "receipt-086"),   // the display's 69,91 against 34.97 x 1.999 = 69.90: the paper prints 69,91 too
     MatchedPair(pump: "pump-279", receipt: "receipt-087"),
     MatchedPair(pump: "pump-286", receipt: "receipt-088"),
-    MatchedPair(pump: "pump-290", receipt: "receipt-089")    // the display is a Wayne board head: unitPrice blank on the pump side    // the paper carries a 0,36 loyalty discount line; the printed total is the paid one
+    // The display is a Wayne board head, so the pump side asserts no unitPrice;
+    // the paper carries a 0,36 loyalty discount line and its printed total is
+    // the paid one.
+    MatchedPair(pump: "pump-290", receipt: "receipt-089")
 ]
 
 @Suite("Matched pump/receipt pairs (RV.114)")
