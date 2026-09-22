@@ -7,8 +7,11 @@ disableKinds = ["taxonomy", "term", "rss"]
 
 [params]
 email = "to@belyaev.live"
-# The App Store listing (released 2026-09-22). One place, every button reads it.
-appStoreURL = "https://apps.apple.com/app/id6807989868"
+# The App Store listing (released 2026-09-22). The id is the listing; the
+# storefront and slug differ per language, so each language sets its own
+# appStoreURL and the buttons read `site.Params.appStoreURL` - Hugo resolves it
+# to the language's value, and this one is the fallback.
+appStoreURL = "https://apps.apple.com/us/app/tankbook-fuel-mileage-log/id6807989868"
 
 # A typed --- must never render as an em-dash (repo rule: en-dashes only).
 [markup.goldmark.extensions.typographer]
@@ -23,6 +26,9 @@ keepQuotes = true
 languageCode = "en"
 languageName = "English"
 weight = 1
+
+[languages.en.params]
+appStoreURL = "https://apps.apple.com/us/app/tankbook-fuel-mileage-log/id6807989868"
 
 [[languages.en.menus.main]]
 name = "How it works"
@@ -53,6 +59,9 @@ weight = 5
 languageCode = "ru"
 languageName = "Русский"
 weight = 2
+
+[languages.ru.params]
+appStoreURL = "https://apps.apple.com/ru/app/tankbook-топливо-и-расходы/id6807989868"
 
 [[languages.ru.menus.main]]
 name = "Как это работает"

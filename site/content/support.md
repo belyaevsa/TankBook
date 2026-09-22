@@ -32,5 +32,5 @@ want to hear about.
 
 ## Status
 
-Tankbook is on the [App Store](https://apps.apple.com/app/id6807989868). Feedback still shapes every
+Tankbook is on the [App Store](https://apps.apple.com/us/app/tankbook-fuel-mileage-log/id6807989868). Feedback still shapes every
 release: write early, write often.

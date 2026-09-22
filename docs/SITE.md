@@ -123,8 +123,9 @@ newsletter, and any tracking-based personalisation.
 **The CTA follows the listing's state.** Before the listing existed a "Download on the App Store"
 badge would have been a lie, so the CTA was a `mailto:` and then *"Join the TestFlight ring"*.
 **Released 2026-09-22**: the primary CTA is *"Open in the App Store"* on the hero and in the
-footer, both reading `params.appStoreURL` in `hugo.toml` (`https://apps.apple.com/app/id6807989868`)
-- one place, never a second copy of the id. The Apple mark on the button is a masked SVG in CSS
+footer, reading `site.Params.appStoreURL` - set **per language** in `hugo.toml`
+(`/us/app/tankbook-fuel-mileage-log/id6807989868`, `/ru/app/tankbook-топливо-и-расходы/…`), because
+the storefront and the slug differ while the id does not; the buttons never carry a second copy. The Apple mark on the button is a masked SVG in CSS
 (chrome, not content). Still no fake ratings, no invented review quotes; the hero note says the
 mail reaches a human. The pages that said "in testing" (support, roadmap, the footer line) say
 "on the App Store" now.

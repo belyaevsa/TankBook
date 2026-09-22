@@ -32,5 +32,5 @@ description = "Как связаться с нами по Tankbook: форма �
 
 ## Где мы сейчас
 
-Tankbook доступен в [App Store](https://apps.apple.com/app/id6807989868). Отзывы по-прежнему
+Tankbook доступен в [App Store](https://apps.apple.com/ru/app/tankbook-топливо-и-расходы/id6807989868). Отзывы по-прежнему
 попадают в следующий релиз: пишите сразу, как только что-то заметили.
