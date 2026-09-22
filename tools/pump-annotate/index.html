@@ -19,8 +19,9 @@
   nav.rail { background:#0b0e13; border-right:1px solid var(--line); display:flex; flex-direction:column; gap:4px; padding:8px 4px }
   nav.rail button { width:36px; height:36px; padding:0; font-size:18px; background:none; border-color:transparent } nav.rail button:hover { background:#222833 } nav.rail button.on { background:#2456a5; border-color:#2456a5 }
   main { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden }
-  #titlebar { display:flex; gap:8px; align-items:baseline; padding:4px 8px; background:var(--panel); border-bottom:1px solid var(--line); flex:none; white-space:nowrap; overflow:hidden }
-  #titlebar #tbName { text-overflow:ellipsis; overflow:hidden }
+  #titlebar { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:2px 6px; align-items:center; padding:2px 0 }
+  #titlebar #tbName { grid-column:2; min-width:0; overflow-wrap:anywhere }
+  #titlebar #tbRecord, #titlebar #tbFrame, #titlebar #tbInfo { grid-column:2 / -1; min-width:0; overflow-wrap:anywhere }
   #tbCopy { padding:0 5px; line-height:18px }
   #serverDot { font-size:12px; line-height:1; color:#6b7280; flex:none }
   #serverDot.up { color:var(--ok) } #serverDot.down { color:var(--bad) }
@@ -55,12 +56,13 @@
   .warn { color:var(--bad); cursor:help }
   input.prefill { color:#ffc857; font-style:italic }
   #framebar { flex:none; border-top:1px solid var(--line); background:var(--panel); padding:5px 8px; min-height:44px }
-  #frameScrub { position:relative; height:10px; margin-top:3px; background:#232935; border-radius:3px; cursor:pointer; overflow:hidden }
-  #frameView { position:absolute; top:0; bottom:0; background:#39414f; border-radius:3px; min-width:8px }
+  #frameScrub { position:relative; height:12px; margin-top:3px; background:#232935; border-radius:3px; cursor:pointer; overflow:hidden }
+  #frameMap { position:absolute; inset:0; width:100%; height:100% }
+  #frameView { position:absolute; top:0; bottom:0; border:1px solid #cfd6e4; background:rgba(255,255,255,0.14); border-radius:2px; min-width:6px }
   #frameHere { position:absolute; top:0; bottom:0; width:2px; background:var(--fg); opacity:0.8 }
   #frameNav { gap:6px; align-items:center; flex-wrap:wrap; margin-top:4px }
   #frameNav .sep { width:1px; height:18px; background:var(--line); margin:0 2px }
-  #frameStrip { display:flex; flex-wrap:nowrap; gap:2px; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; padding-bottom:2px }
+  #frameStrip { display:flex; flex-wrap:nowrap; gap:2px; overflow:hidden }
   #frameStrip span { flex:none; width:11px; height:26px; background:#2a303a; cursor:pointer; border-radius:2px }
   #frameLegend { font-size:11px; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
   #frameStrip span.owner { background:var(--ok) } #frameStrip span.arithmetic { background:#2e8b57 }
@@ -140,7 +142,7 @@
        view opens, filled only in that view. -->
   <div id="framebar">
     <div id="frameStrip"></div>
-    <div id="frameScrub" style="display:none" title="the whole record; the lighter block is the part of the strip on screen - drag it, or click to look there"><div id="frameView"></div><div id="frameHere"></div></div>
+    <div id="frameScrub" style="display:none" title="the whole record in one bar, coloured like the strip; the outlined block is the part on screen - drag it, or click to look there"><canvas id="frameMap"></canvas><div id="frameView"></div><div id="frameHere"></div></div>
     <div class="row" id="frameNav" style="display:none">
       <button id="fnResume" title="jump to the last frame you saved in this record" style="display:none">⏮ where I left</button>
       <label title="jump to a frame by its number">go to <input id="fnGo" type="number" min="1" step="1" style="width:76px"></label>
@@ -580,6 +582,28 @@ function updateArith() {
 // on screen as a lighter block inside it, and a tick where the current frame
 // sits. It moves the VIEW (the strip's scroll), never the selection - the
 // ticks are what select.
+// The bar is the strip in miniature: one column per frame in that frame's own
+// state colour, so where the work is left shows without scrolling. Drawn on a
+// canvas because 1184 divs for the same picture is a page that stutters.
+const SCRUB_COLOURS = {owner: '#4ade80', arithmetic: '#2e8b57', interpolated: '#2f9e9e',
+                       prefill: '#6b5a1e', attention: '#f87171', tracked: '#555', none: '#39414f'};
+function renderScrubMap() {
+  const canvas = $('#frameMap'), r = frameMode && currentRecord();
+  if (!r) return;
+  const box = canvas.getBoundingClientRect(); if (!box.width) return;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(box.width * dpr); canvas.height = Math.round(box.height * dpr);
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const states = isVideo ? frameStates(r) : null;
+  const n = r.tracked.length, step = canvas.width / n;
+  r.tracked.forEach((name, i) => {
+    const f = r.frames[name];
+    ctx.fillStyle = f.skipped ? '#7a2e2e' : SCRUB_COLOURS[states ? states[name] : 'tracked'] || SCRUB_COLOURS.none;
+    ctx.fillRect(Math.floor(i * step), 0, Math.max(1, Math.ceil(step)), canvas.height);
+    if (f.verified) { ctx.fillStyle = '#fff'; ctx.fillRect(Math.floor(i * step), 0, Math.max(1, Math.ceil(step)), Math.max(1, dpr)); }
+  });
+}
 function renderScrub() {
   const strip = $('#frameStrip'), scrub = $('#frameScrub');
   const r = frameMode && currentRecord();
@@ -591,6 +615,7 @@ function renderScrub() {
   $('#frameView').style.width = `${frac * 100}%`;
   $('#frameHere').style.left = `${(frameIdx / Math.max(1, r.tracked.length - 1)) * 100}%`;
 }
+window.addEventListener('resize', () => { renderScrubMap(); renderScrub(); });
 function scrubTo(clientX) {
   const strip = $('#frameStrip'), scrub = $('#frameScrub');
   const box = scrub.getBoundingClientRect();
@@ -651,7 +676,7 @@ function renderStrip() {
     strip.innerHTML = r.tracked.map((n, i) => `<span class="tracked ${n === cur ? 'cur' : ''} ${r.frames[n].verified ? 'anchor' : ''} ${r.frames[n].skipped ? 'skipped' : ''}" data-i="${i}" title="${n} · inliers ${r.frames[n].inliers}${r.frames[n].verified ? ' · anchor (quads placed by hand)' : ''}${r.frames[n].skipped ? ' · skipped (no display)' : ''}"></span>`).join('');
     legend.innerHTML = `grey = tracked from the still · white outline = anchor (quads you placed) · drag a quad to anchor a frame · <kbd>⇧⏎</kbd> marks tracking ok and saves`;
     strip.querySelectorAll('span[data-i]').forEach(el => el.onclick = () => { frameIdx = +el.dataset.i; showFrame(); });
-    centreStrip(); updateFrameNav();
+    renderScrubMap(); centreStrip(); updateFrameNav();
     return;
   }
   const r = currentRecord(); const states = frameStates(r); const cur = r.tracked[frameIdx];
@@ -661,7 +686,7 @@ function renderStrip() {
   strip.innerHTML = r.tracked.map((n, i) => `<span class="${states[n]} ${n === cur ? 'cur' : ''} ${runStart.has(n) ? 'runstart' : ''} ${n === nextRunFirst ? 'nextrun' : ''} ${r.frames[n].verified ? 'anchor' : ''} ${r.frames[n].skipped ? 'skipped' : ''}" data-i="${i}" title="${n} ${states[n]}${runStart.has(n) ? ' · new value' : ''}${r.frames[n].verified ? ' · anchor (quads placed by hand)' : ''}${r.frames[n].skipped ? ' · skipped (no display)' : ''}"></span>`).join('');
   legend.innerHTML = `red = needs you (unlabelled or breaks the sequence) · yellow = reader pre-fill to confirm · green = labelled · teal = interpolated between keyframes · ▲ next unique value (<kbd>⇧→</kbd>) · gap = value changes`;
   strip.querySelectorAll('span[data-i]').forEach(el => el.onclick = () => { frameIdx = +el.dataset.i; showFrame(); });
-  centreStrip(); updateFrameNav();
+  renderScrubMap(); centreStrip(); updateFrameNav();
 }
 function nextAttention() {
   const r = currentRecord(); const states = frameStates(r);

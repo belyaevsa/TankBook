@@ -192,6 +192,9 @@ the ml venv runs it); the converted images are cached under
   video frame. A button with no meaning in the current view is hidden, not
   disabled, so the row reads as what can be done now. The right panel keeps only
   what is about THIS image: its windows, its negatives, its CSV row, its record.
+- **The right header reads one fact per line** - the fixture, the record, the
+  frame and its position - because a 40-character fixture name and a frame
+  counter on one line leave `v…` for the name.
 - **The window is a grid**: row 1 is the toolbars beside the title / status /
   truth-row block, row 2 is the image beside the window cards. The cards start
   on the image's own top line whatever either header grows to, and the frames
@@ -233,11 +236,14 @@ the ml venv runs it); the converted images are cached under
   the negatives, then the CSV row and the arithmetic it is checked against, then
   processed / rotate, then the record it belongs to (which record, tracking
   verdict), then notOnDisplay and csvDisagrees.
-- The **scrub** under the strip is the whole record as one muted bar: the
-  lighter block inside it is the part of the strip on screen, and the tick is
-  where the current frame sits. Drag the block, or click anywhere on the bar, to
-  look elsewhere in a 1184-frame record without scrolling - it moves the VIEW,
-  never the selection, because the ticks are what select. The
+- The **scrub** under the strip is the strip in miniature: one column per frame
+  in that frame's own state colour (drawn on a canvas - 1184 divs of the same
+  picture stutter), so where the work is left shows at a glance, with a white
+  cap on an anchored frame and the hatch colour on a skipped one. The outlined
+  block is the part of the strip on screen and the tick is the current frame;
+  drag the block, or click anywhere on the bar, to look elsewhere. **The strip
+  itself no longer scrolls by hand** - the scrub is what moves it, and it moves
+  the VIEW, never the selection, because the ticks are what select. The
   **record picker** appears only on a still that has more than one Live record;
   with a single record its name is printed instead of a select with one option.
 - **⏮ where I left** jumps to the last frame you **saved** in this record - a
