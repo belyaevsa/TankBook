@@ -992,6 +992,30 @@ commits and carries `.priceDisagrees` for the F2 confirm; an unvalidated pair ab
 at 1.000, `boardFoundNoPrice` 26 -> 0. A fuel-kind band, if the pipeline ever carries one, would let
 the band do more of this work.
 
+**Amended again 2026-09-22 (product owner), and this one is the ruling PU.54's amendment above
+anticipated wrongly: an unvalidated pair COMMITS, marked.** PU.54's measurement stands - a
+currency-wide band is not a validation, and committing every in-band pair as if it were read at
+1.000 would be the app asserting something it does not know. What does not stand is its
+conclusion, that the only alternative is refusal. Refusing is also a claim: it tells the user the
+photo gave nothing, when total and volume were read cleanly and only the *check* is missing. Both
+horns of that choice lie to the user in opposite directions, and hard rule 13 already names the
+third door - a derived value is **a default input, never a fact**, so the honest answer is to
+offer the pair and say it is unchecked.
+
+So: a pair whose implied price is in band but which no shown price validates **commits with a
+caution**. The fields pre-fill, the cross-check does NOT lock, and the form says the reading was
+not verified and names its next step (hard rule 7) - the user looks at the two numbers, which is
+the same act F2 already asks of an amber field. A validated pair is unchanged and still commits
+clean. The 5 % tolerance survives as what separates the two, not as a gate.
+
+This splits the ship gate in two, and the split is the point: **verified commits keep the 0.99
+precision floor**, cautioned commits are reported as their own tier with their own precision and
+are held to no floor, because the user was told. A single blended number would hide exactly the
+thing the caution exists to expose. The risk this accepts is F2's residue - a cautioned pre-fill
+the user waves through - and it is accepted knowingly, against the alternative of 12 fills the
+user must retype from a photo the app read correctly.
+
+
 **The operator's corrections.** Every disagreement between a tool's proposal (the tracker's
 quad, the reader's pre-fill) and the annotator's hand is recorded (`pump-live/corrections.jsonl`)
 with the build it came from; `ml/pump-reader/CORRECTIONS.md` is the standing procedure that reads
