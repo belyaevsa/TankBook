@@ -51,18 +51,9 @@ public enum PumpReadingLaw {
         let byField = Dictionary(grouping: windows, by: \.field)
         guard let literWindow = byField[.liters]?.first else { return .abstained(.noLitersWindow) }
         guard let priceWindow = byField[.unitPrice]?.first else {
-            // No price window of its own: on a Wayne head the transaction price
-            // is one of the board cells, and only the arithmetic can say which.
-            // Exactly one board cell may close the triple.
-            let boards = byField[.board] ?? []
-            guard !boards.isEmpty else { return .abstained(.boardFoundNoPrice) }
-            let readings = boards.map { board -> PumpDisplayReading in
-                let rest = windows.filter { $0.field != .board }
-                return resolve(windows: rest + [PumpLocatedWindow(field: .unitPrice, cells: board.cells)],
-                               currency: currency, priceBand: priceBand)
-            }
-            let closed = readings.filter { $0.committedCount == 3 }
-            return closed.count == 1 ? closed[0] : .abstained(.boardFoundNoPrice)
+            return resolveWithoutPrice(literWindow: literWindow, totalWindow: byField[.total]?.first,
+                                       boards: byField[.board] ?? [], conventions: conventions,
+                                       priceBand: priceBand)
         }
         let totalWindow = byField[.total]?.first
 
@@ -194,6 +185,117 @@ public enum PumpReadingLaw {
     /// A preset amount is a round number of currency units: 20.00, 1000.00.
     static func isRoundAmount(_ value: Double) -> Bool {
         abs(value - value.rounded()) < 0.0005 && value >= 5
+    }
+
+    // MARK: - Decision 11: the price is optional
+
+    /// The no-price branch. On a Wayne head the transaction price is one of the
+    /// board cells, but the board is not always the paid price - pump-300's
+    /// loyalty discount pays 2.034 against a 2.019-2.219 board - so decision 11
+    /// makes the price optional: a board cell stands in only on a CLEAN close
+    /// (no substituted cell), and otherwise the pair commits on the price it
+    /// implies when a shown price validates it (`docs/EXTRACTION.md` decision 11).
+    static func resolveWithoutPrice(literWindow: PumpLocatedWindow, totalWindow: PumpLocatedWindow?,
+                                    boards: [PumpLocatedWindow], conventions: PumpDisplayConventions,
+                                    priceBand: FuelPriceBand?) -> PumpDisplayReading {
+        if let totalWindow,
+           let clean = cleanBoardClose(literWindow: literWindow, totalWindow: totalWindow,
+                                       boards: boards, conventions: conventions, priceBand: priceBand) {
+            return clean
+        }
+        let shown = boards.compactMap { topCandidate($0, decimals: conventions.priceDecimals)?.value }
+        switch pairOutcome(literWindow: literWindow, totalWindow: totalWindow, shownPrices: shown,
+                           conventions: conventions, priceBand: priceBand) {
+        case .committed(let reading): return reading
+        case .refused(let reason): return .abstained(reason)
+        }
+    }
+
+    /// What the pair tier produced: a total + volume commit, or the reason it
+    /// refused (which the no-price branch carries on the whole reading).
+    enum PairOutcome {
+        case committed(PumpDisplayReading)
+        case refused(PumpAbstentionReason)
+    }
+
+    /// The highest-posterior candidate of a window - its plain top read, with
+    /// the decimal placement the seen mark prefers. Substituted digits rank
+    /// below the top read, so this never carries one.
+    static func topCandidate(_ window: PumpLocatedWindow, decimals: [Int]) -> Candidate? {
+        candidates(window, decimals: decimals).max { $0.logPosterior < $1.logPosterior }
+    }
+
+    /// A board cell stands in for the price only on a CLEAN close: the top read
+    /// of every field, no substituted cell. A close that needs a substitution
+    /// is the arithmetic fabricating a price the customer did not pay
+    /// (pump-300 pays 2.034 against a 2.019-2.219 board, and a beam
+    /// substitution made the board-as-price tier close on a total of 27.67).
+    /// Exactly one distinct clean close commits; none or several return nil so
+    /// the pair below decides.
+    static func cleanBoardClose(literWindow: PumpLocatedWindow, totalWindow: PumpLocatedWindow,
+                                boards: [PumpLocatedWindow], conventions: PumpDisplayConventions,
+                                priceBand: FuelPriceBand?) -> PumpDisplayReading? {
+        guard !boards.isEmpty else { return nil }
+        let liters = candidates(literWindow, decimals: conventions.volumeDecimals)
+            .filter { $0.value >= minLiters && $0.value < 500 && $0.substitutions == 0 }
+        let totals = candidates(totalWindow, decimals: conventions.totalDecimals)
+            .filter { $0.value >= minTotal && $0.substitutions == 0 }
+        var triples: [Triple] = []
+        for board in boards {
+            let prices = candidates(board, decimals: conventions.priceDecimals)
+                .filter { (priceBand?.contains($0.value) ?? ($0.value > 0)) && $0.substitutions == 0 }
+            triples += closingTriples(liters: liters, prices: prices, totals: totals, truncated: [])
+                .filter { $0.substitutions == 0 }
+        }
+        let distinct = Set(triples.map { "\($0.liters)|\($0.price)|\($0.total)" })
+        guard distinct.count == 1, let only = triples.first else { return nil }
+        return commit([only], repair: nil)
+    }
+
+    /// How far a shown price may sit from the implied one and still validate
+    /// the pair. pump-266's loyalty discount pays 1.839 against a 1.919 board
+    /// (4.3 % below), so the tolerance clears a real discount; a larger gap is
+    /// not a discount but a different number - pump-120's misread total implies
+    /// 2.344 against a 1.409 board. The band alone is not a sufficient guard on
+    /// the heldout live path (measured: 6 of 8 pair commits land inside the
+    /// coarse currency band and are wrong), so this tolerance is load-bearing.
+    static let pairValidationTolerance = 0.05
+
+    /// The pair tier: with no usable price, total + volume commit when the
+    /// price they IMPLY (`total / volume`) falls inside the currency's band AND
+    /// a price the display shows sits near that implied price. The band bounds
+    /// the implied price; the shown price is the validation the three-field
+    /// arithmetic used to be, and it is never committed over the paid pair -
+    /// a near disagreement (a loyalty discount) commits and carries the F2
+    /// reason (decision 11, hard rule 13).
+    static func pairOutcome(literWindow: PumpLocatedWindow, totalWindow: PumpLocatedWindow?,
+                            shownPrices: [Double], conventions: PumpDisplayConventions,
+                            priceBand: FuelPriceBand?) -> PairOutcome {
+        // An idle pump shows 0.00 liters: the guard must not resurrect a zero
+        // read as a pair.
+        if literWindow.cells.allSatisfy({ $0.top.digit == 0 }) { return .refused(.litersAllZero) }
+        guard let totalWindow else { return .refused(.noTotalWindow) }
+        // No band: an unbounded implied price is not a guard, so the pair
+        // refuses exactly where the missing price did.
+        guard let band = priceBand else { return .refused(.boardFoundNoPrice) }
+        guard let liters = topCandidate(literWindow, decimals: conventions.volumeDecimals),
+              let total = topCandidate(totalWindow, decimals: conventions.totalDecimals),
+              liters.value >= minLiters, liters.value < 500, total.value >= minTotal else {
+            return .refused(.cellUnknown)
+        }
+        let implied = total.value / liters.value
+        guard band.contains(implied) else { return .refused(.priceOutOfBand) }
+        let nearest = shownPrices.min { abs($0 - implied) < abs($1 - implied) }
+        guard let shown = nearest, abs(shown - implied) <= pairValidationTolerance * implied else {
+            return .refused(.priceUnvalidated)
+        }
+        return .committed(PumpDisplayReading(
+            liters: PumpFieldReading(value: decimal(liters.value), provenance: .read,
+                                     logPosterior: liters.logPosterior),
+            unitPrice: .abstained(.priceDisagrees),
+            total: PumpFieldReading(value: decimal(total.value), provenance: .read,
+                                    logPosterior: total.logPosterior),
+            reason: nil))
     }
 
     /// A display value as an exact decimal: at most three fraction digits,

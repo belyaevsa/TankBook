@@ -978,6 +978,20 @@ decides), never as a silent refusal and never as a silent overwrite of the paid 
 and `pump-266` are why the board may not simply be taken as the price: both are loyalty-discounted
 fills where the paid price is below every board cell.
 
+**Amended 2026-09-22 (PU.54, implementation): the band alone does not guard the pair, so a shown
+price is required, not optional.** Built as written and measured on the heldout live path, the
+currency-wide band (EUR 0.4-3.0, RUB 15-500, KZT 50-1000 - the union across fuel families, because a
+pump display names a currency but no fuel kind) commits every in-band pair at **precision 0.831**: a
+misassigned or misread pair lands inside a band that wide (`pump-032` reads the price row as litres
+and the litres row as total, implying 0.647/L). The band bounds the implied price; it does not
+validate it. The pair therefore commits only when a price the display shows sits within **5 %** of
+the implied price - `pump-266`'s loyalty discount is 4.3 % below its board, so a real discount still
+commits, while a number 40-140 % away (`pump-120`, `pump-023`) does not. A near disagreement still
+commits and carries `.priceDisagrees` for the F2 confirm; an unvalidated pair abstains as
+`.priceUnvalidated`, and a pair with no band at all still abstains. Measured: live 43 -> 47 committed
+at 1.000, `boardFoundNoPrice` 26 -> 0. A fuel-kind band, if the pipeline ever carries one, would let
+the band do more of this work.
+
 **The operator's corrections.** Every disagreement between a tool's proposal (the tracker's
 quad, the reader's pre-fill) and the annotator's hand is recorded (`pump-live/corrections.jsonl`)
 with the build it came from; `ml/pump-reader/CORRECTIONS.md` is the standing procedure that reads

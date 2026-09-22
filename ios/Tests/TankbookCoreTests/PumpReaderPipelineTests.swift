@@ -23,8 +23,9 @@ struct PumpReaderPipelineTests {
     // move only upward.
     // 52 at 0.962, 14/64 photos, once the slicer preferred the fundamental
     // pitch; 66 at 0.970, 18/64, once it checked the pitch against the glyph
-    // body (PU.4 round of 2026-09-20).
-    private static let committedFloor = 104
+    // body (PU.4 round of 2026-09-20). PU.54 (decision 11, 2026-09-22) adds the
+    // pair path: 104 -> 112 committed at 0.991, 30 -> 34 photos.
+    private static let committedFloor = 112
     private static let precisionFloor = 0.96
     // The live path (no annotation): measured on the heldout split on
     // 2026-09-20 after PU.24's verifier round - every candidate verified, a
@@ -42,7 +43,14 @@ struct PumpReaderPipelineTests {
     // `PumpRowGeometry` (count, pitch, ink band, dp position, blank layout) and
     // holds at 43 / 1.000: the verifier's kept rows are now model-free, so a
     // retrain can no longer move them.
-    private static let liveCommittedFloor = PumpReaderTestSupport.detectorURL == nil ? 11 : 43
+    // PU.54 (decision 11, 2026-09-22): the price is optional, so a display
+    // whose total and volume are read with no price commits them on the price
+    // they imply - 43 -> 47 committed, 14 -> 16 photos, precision 1.000. The
+    // rise is small because of the 26 `boardFoundNoPrice` stills only 3 have a
+    // read total + volume with a shown price near the implied one: 9 imply a
+    // price outside the currency band (a misread) and 6 show no price to
+    // validate the pair.
+    private static let liveCommittedFloor = PumpReaderTestSupport.detectorURL == nil ? 11 : 47
     private static let livePrecisionFloor = 0.99
 
     /// The make a fixture's file name names, for the per-head read table. The
@@ -152,13 +160,14 @@ struct PumpReaderPipelineTests {
             print("  \(reason.rawValue): \(count)")
         }
         for line in wrong { print("  WRONG \(line)") }
-        // PU.51 is a pure addition: the reason must not move a verdict, so the
-        // committed count and its precision equal the pre-PU.51 baseline
-        // exactly, not merely clear the floors.
+        // Decision 11 moves this number: the pair path frees the stills whose
+        // total and volume are read with no price and a validating shown price,
+        // and it must not trade precision for the freed coverage - the floor is
+        // exact, not merely clearable.
         #expect(committed == Self.liveCommittedFloor,
-                "PU.51 is a pure addition: committed must equal the baseline (\(Self.liveCommittedFloor)), got \(committed)")
+                "decision 11 baseline is \(Self.liveCommittedFloor) committed, got \(committed)")
         #expect(committedCorrect == committed,
-                "PU.51 is a pure addition: the baseline precision is 1.000, got \(committedCorrect)/\(committed)")
+                "the live baseline precision is 1.000, got \(committedCorrect)/\(committed)")
         #expect(precision >= Self.livePrecisionFloor)
     }
 

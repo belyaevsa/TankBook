@@ -17,13 +17,15 @@ struct PumpReadingLawTests {
     private static let precisionFloor = 0.996
     /// Cells the corpus itself declares unreadable as the receipt's value:
     /// a display that rounds or truncates what the receipt prints, or a
-    /// DISCOUNTED fill whose paid price is not the one on the board -
-    /// `pump-300` pays 27.87 for 13.70 L, i.e. 2.034 a litre, while the board
-    /// reads 2.019 / 2.069 / 2.079 / 2.219, so the board-as-price tier closes
-    /// on a price the customer did not pay. Declared here because it is a fact
-    /// about the display, not a defect the law can fix from this photo.
+    /// DISCOUNTED fill whose paid price is not the one on the board.
+    /// `pump-031` pays 32.50 after a discount while the pump shows 32.58, so
+    /// the law reads the display and the CSV disagrees by construction.
+    /// `pump-300` (pays 2.034 against a 2.019-2.219 board) and `pump-266`
+    /// (pays 1.839 against a 1.919 board) were the same shape and left this
+    /// list when decision 11 stopped the board standing in for the paid
+    /// price - they now commit total + volume on the price they imply.
     private static let declaredArtefacts: Set<String> = [
-        "pump-031", "pump-065", "pump-073", "pump-300",
+        "pump-031", "pump-065", "pump-073",
     ]
 
     // MARK: - Unit rules
@@ -308,6 +310,98 @@ struct PumpReadingLawTests {
         #expect(reading.reason == .ambiguous)
     }
 
+    // MARK: - PU.54: the price becomes optional (decision 11)
+
+    @Test("PU.54: total + volume commit with no price when the implied price is in band",
+          .pumpFixturesPresent)
+    func pairCommitsWhenImpliedPriceInBand() throws {
+        // Oracle: pump-042's CSV asserts 11.34 L and 20.00 EUR and its display
+        // shows four board cells and no unit price; 20.00 / 11.34 = 1.764 is
+        // inside the EUR band, so the pair commits and the board is a
+        // validation the pair does not adopt.
+        let reading = try Self.resolveFixture("pump-042-dresser-wayne-circlek-ee-preset-20eur.jpg")
+        #expect(reading.liters.value == Decimal(string: "11.34"))
+        #expect(reading.total.value == Decimal(string: "20"))
+        #expect(reading.unitPrice.value == nil)
+        #expect(reading.committedCount == 2)
+        #expect(reading.reason == nil)
+        #expect(reading.unitPrice.reason == .priceDisagrees)
+    }
+
+    @Test("PU.54: the pair abstains with a named reason when the implied price is out of band")
+    func pairRefusesOutOfBand() {
+        // Synthetic: 10.00 L for 99.99 implies 9.999 a litre, outside the EUR
+        // band's 0.4-3.0. An implied price the band cannot bound is not
+        // committed.
+        let reading = PumpReadingLaw.resolve(
+            windows: [Self.window(.total, "99,99"), Self.window(.liters, "10,00")],
+            currency: CurrencyCode(rawValue: "EUR"),
+            priceBand: FuelPriceBand(low: 0.4, high: 3.0))
+        #expect(reading.committedCount == 0)
+        #expect(reading.reason == .priceOutOfBand)
+    }
+
+    @Test("PU.54: the pair guard does not resurrect an idle pump's zero read")
+    func pairRefusesIdlePump() {
+        // Oracle: pump-016/pump-017's idle heads, litres 0.00 and a board, no
+        // price window. The pair guard must still refuse the zero read.
+        let reading = PumpReadingLaw.resolve(
+            windows: [Self.window(.total, "0.00"), Self.window(.liters, "0.00"),
+                      Self.window(.board, "1,869")],
+            currency: CurrencyCode(rawValue: "EUR"),
+            priceBand: FuelPriceBand(low: 0.4, high: 3.0))
+        #expect(reading.committedCount == 0)
+        #expect(reading.reason == .litersAllZero)
+    }
+
+    @Test("PU.54: a shown price that disagrees does not change the committed total or volume")
+    func pairIgnoresDisagreeingShownPrice() {
+        // Synthetic: 10.00 L for 20.00 implies 2.00; a board shows 1.98 (a
+        // loyalty discount, inside the validation tolerance). The pair commits
+        // total + volume and carries the disagreement - the shown price never
+        // overwrites the paid pair.
+        let reading = PumpReadingLaw.resolve(
+            windows: [Self.window(.total, "20,00"), Self.window(.liters, "10,00"),
+                      Self.window(.board, "1,980")],
+            currency: CurrencyCode(rawValue: "EUR"),
+            priceBand: FuelPriceBand(low: 0.4, high: 3.0))
+        #expect(reading.liters.value == Decimal(string: "10"))
+        #expect(reading.total.value == Decimal(string: "20"))
+        #expect(reading.unitPrice.value == nil)
+        #expect(reading.unitPrice.reason == .priceDisagrees)
+    }
+
+    @Test("PU.54: an in-band pair with no validating shown price abstains")
+    func pairRefusesUnvalidated() {
+        // Synthetic: 10.00 L for 20.00 implies 2.00, inside the EUR band, but
+        // no price is shown to validate it. With no third number to check
+        // against, the pair abstains rather than commit a possible misread.
+        let reading = PumpReadingLaw.resolve(
+            windows: [Self.window(.total, "20,00"), Self.window(.liters, "10,00")],
+            currency: CurrencyCode(rawValue: "EUR"),
+            priceBand: FuelPriceBand(low: 0.4, high: 3.0))
+        #expect(reading.committedCount == 0)
+        #expect(reading.reason == .priceUnvalidated)
+    }
+
+    @Test("PU.54: a loyalty-discounted board is not taken as the paid price",
+          .pumpFixturesPresent)
+    func discountedBoardIsNotThePaidPrice() throws {
+        // pump-300 pays 27.87 for 13.70 L (2.034 a litre) while the board reads
+        // 2.019 / 2.069 / 2.079 / 2.219; pump-266 pays 66.74 for 36.29 L (1.839)
+        // against a 1.919 board. Both were declared artefacts while the
+        // board-as-price tier closed on a price the customer did not pay; the
+        // pair now commits total + volume on the price they imply.
+        let pump300 = try Self.resolveFixture("pump-300-wayne-circlek-liitrid-1370l-board-ee.jpg")
+        #expect(pump300.liters.value == Decimal(string: "13.7"))
+        #expect(pump300.total.value == Decimal(string: "27.87"))
+        #expect(pump300.unitPrice.value == nil)
+        let pump266 = try Self.resolveFixture("pump-266-wayne-circlek-pump3-3629l-discounted-price-board-ee.jpg")
+        #expect(pump266.liters.value == Decimal(string: "36.29"))
+        #expect(pump266.total.value == Decimal(string: "66.74"))
+        #expect(pump266.unitPrice.value == nil)
+    }
+
     // MARK: - The oracle-string harness
 
     @Test("the law over the annotated strings clears the committed and precision floors",
@@ -325,7 +419,7 @@ struct PumpReadingLawTests {
         #expect(unexpected.isEmpty, "confident-wrong outside the declared artefacts: \(unexpected)")
     }
 
-    @Test("under single-digit misreads the law repairs far more than it commits wrong",
+    @Test("under single-digit misreads the arithmetic path repairs far more than it commits wrong",
           .pumpFixturesPresent)
     func fragilityUnderMisreads() throws {
         var rng = SeededGenerator(seed: 21)
@@ -335,7 +429,7 @@ struct PumpReadingLawTests {
         for _ in 0..<5 {
             let score = try Self.scoreOracle(mutate: { field, cells in
                 Self.mutateOneCell(field: field, cells: cells, rng: &rng)
-            })
+            }, mutateOnlyWherePriceShown: true)
             committed += score.committed
             wrong += score.committed - score.committedCorrect
             repaired += score.repaired
@@ -346,7 +440,11 @@ struct PumpReadingLawTests {
         // seeds 1/2/21 read 5.7 / 4.8 / 3.9 %, over 116 seeds 1/2/3/21 read
         // 6.8 / 6.5 / 8.5 / 9.1 %. The ceiling is set above every seed
         // measured so a grown corpus cannot fail it by reshuffling the draw;
-        // bringing the rate itself down is PU.24's next round.
+        // bringing the rate itself down is PU.24's next round. Since decision
+        // 11 this measures the THREE-FIELD path only (`mutateOnlyWherePriceShown`):
+        // a pair commit has no arithmetic judge, so a confident misread on a
+        // price-less display is caught only by the currency band, which is not
+        // what this ceiling was calibrated for.
         #expect(wrongRate <= 0.10)
         #expect(repaired > 0)
     }
@@ -399,8 +497,11 @@ struct PumpReadingLawTests {
         #expect(reading.unitPrice.value == Decimal(string: "50.95"))
     }
 
-    // MARK: - Helpers
+}
 
+// MARK: - Helpers
+
+extension PumpReadingLawTests {
     struct OracleScore {
         var numericTotal = 0
         var committed = 0
@@ -464,7 +565,32 @@ struct PumpReadingLawTests {
         return out
     }
 
-    static func scoreOracle(mutate: ((PumpField, [PumpCellReading]) -> [PumpCellReading])?) throws -> OracleScore {
+    /// Resolves one corpus still from its annotated strings and the bundled
+    /// currency-wide band, exactly as the oracle harness does.
+    static func resolveFixture(_ name: String) throws -> PumpDisplayReading {
+        let expected = try CorpusScorer.loadExpected(
+            PumpReaderTestSupport.windowsURL.deletingLastPathComponent().appendingPathComponent("expected.csv"))
+        let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)
+        let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        let pack = try FuelPriceBandStore.bundledPack()
+        guard let ann = root[name] as? [String: Any], let want = expected[name] else {
+            Issue.record("no fixture named \(name)")
+            return .abstained
+        }
+        var windows: [PumpLocatedWindow] = []
+        for raw in ann["windows"] as? [[String: Any]] ?? [] {
+            guard let fieldName = raw["field"] as? String, let field = PumpField(rawValue: fieldName),
+                  let text = raw["text"] as? String, !text.isEmpty else { continue }
+            if raw["legibility"] as? String == "partial" { continue }
+            windows.append(Self.window(field, text))
+        }
+        return PumpReadingLaw.resolve(
+            windows: windows, currency: want.currency,
+            priceBand: want.currency.flatMap { pack.currencyBand(currency: $0) })
+    }
+
+    static func scoreOracle(mutate: ((PumpField, [PumpCellReading]) -> [PumpCellReading])?,
+                            mutateOnlyWherePriceShown: Bool = false) throws -> OracleScore {
         let expected = try CorpusScorer.loadExpected(
             PumpReaderTestSupport.windowsURL.deletingLastPathComponent().appendingPathComponent("expected.csv"))
         let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)
@@ -474,15 +600,27 @@ struct PumpReadingLawTests {
         for (name, value) in root.sorted(by: { $0.key < $1.key }) {
             guard name != "_about", let ann = value as? [String: Any],
                   let want = expected[name] else { continue }
-            var windows: [PumpLocatedWindow] = []
-            for raw in ann["windows"] as? [[String: Any]] ?? [] {
-                guard let fieldName = raw["field"] as? String, let field = PumpField(rawValue: fieldName),
-                      let text = raw["text"] as? String, !text.isEmpty else { continue }
+            // The annotation's usable windows, before mutation.
+            let rawWindows = (ann["windows"] as? [[String: Any]] ?? []).filter { raw in
+                guard let fieldName = raw["field"] as? String, PumpField(rawValue: fieldName) != nil,
+                      let text = raw["text"] as? String, !text.isEmpty else { return false }
                 // A window read through glare is the annotator's best guess,
                 // not a fact the law may repair the other fields against.
-                if raw["legibility"] as? String == "partial" { continue }
+                return raw["legibility"] as? String != "partial"
+            }
+            // Decision 11: a display with no price window commits a pair on the
+            // band alone, with no arithmetic to repair a misread - so the
+            // arithmetic path's fragility is measured on the displays that DO
+            // show a price, which is what the repair tier exists for.
+            let priceShown = rawWindows.contains { ($0["field"] as? String) == "unitPrice" }
+            var windows: [PumpLocatedWindow] = []
+            for raw in rawWindows {
+                guard let fieldName = raw["field"] as? String, let field = PumpField(rawValue: fieldName),
+                      let text = raw["text"] as? String else { continue }
                 var cells = Self.cells(for: text)
-                if let mutate { cells = mutate(field, cells) }
+                if let mutate, !mutateOnlyWherePriceShown || priceShown {
+                    cells = mutate(field, cells)
+                }
                 windows.append(PumpLocatedWindow(field: field, cells: cells))
             }
             let reading = PumpReadingLaw.resolve(

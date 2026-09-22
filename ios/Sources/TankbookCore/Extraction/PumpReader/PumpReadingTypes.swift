@@ -28,8 +28,21 @@ public enum PumpAbstentionReason: String, Sendable, Equatable, Codable {
     /// No window was assigned the total role, so the arithmetic has no judge.
     case noTotalWindow
     /// No unit-price window, and no board cell could stand in as the price
-    /// (no board at all, or no single board closed the triple).
+    /// (no board at all, or no single board closed the triple). Also the
+    /// pair-commit refusal when no band bounds the implied price (decision 11):
+    /// a price that is not available and cannot be bounded is not committed.
     case boardFoundNoPrice
+    /// The price is optional (decision 11): the pair's implied price is inside
+    /// the currency band but no price the display showed (a unit-price read or
+    /// a board cell) sits near enough to validate it. With no third number to
+    /// check against, an unvalidated pair is exactly the misread risk the
+    /// three-field arithmetic used to catch, so it abstains.
+    case priceUnvalidated
+    /// The pair committed on its implied price and the shown price that
+    /// validated it differs from that implied price (a loyalty discount). The
+    /// pair stands - the shown price never overwrites the paid one - and the
+    /// form raises the F2 confirm. Diagnosis only, never a verdict.
+    case priceDisagrees
     /// The price row's candidates all fell outside the currency's price band.
     case priceOutOfBand
     /// A field's window produced no candidate string at all - no cells, more

@@ -1979,3 +1979,123 @@ filing.
 | `swift test --filter PumpReaderPipelineTests/livePath` (shipped) | 0 | committed **43**, correct 43, precision **1.000** |
 | `swift test --filter PumpReaderPipelineTests/livePath` (PU.48, no guard) | test fails its stale floor | committed **41**, correct 39, precision **0.951**; WRONG `pump-092` liters/total |
 | `swift build` / `swiftlint lint` | not run | nothing shipped; the tree is `HEAD` |
+
+---
+
+## PU.54 - the price becomes optional: total + volume commit on their own (2026-09-22)
+
+Decision 11 (`docs/EXTRACTION.md`). The law required a price: `volume x price = total` had to close,
+so a display with no price window and no board cell to stand in refused `boardFoundNoPrice` - PU.51's
+largest single refusal (26 of 52 stills that commit nothing). The law now commits `total` + `liters`
+with no price when the price they IMPLY (`total / volume`) is inside the currency band and a price
+the display shows sits near it. The board stops standing in for the paid price: `pump-300` (pays
+27.87 for 13.70 L = 2.034 against a 2.019-2.219 board) and `pump-266` (1.839 against 1.919) were
+declared artefacts because the board-as-price tier closed on a price the customer did not pay; both
+now commit the paid pair. The pair never overwrites the paid values, and a near disagreement (a
+loyalty discount) carries `.priceDisagrees` on the abstained price field so the form raises F2.
+
+### The guard, and why the band alone is not enough
+
+`FuelPriceBand` is threaded through `PumpReadingLaw.resolve` and reaches it from the app
+(`AppFuelPriceBand.provider` -> `CapturePipeline.readPumpDisplay` -> `PumpDisplayCapture.classify`),
+so `priceBand` no longer arrives nil on the app path; the diagnostic `pump-read` tool now reads the
+same bundled pack. No fuel kind is available at this point in the pipeline (a pump display names a
+currency but never a fuel), so the pair uses the currency-wide band - `FuelPriceBandPack.currencyBand`,
+the union across fuel families and periods:
+
+| currency | band used | why |
+|---|---|---|
+| EUR | **0.4 - 3.0** | union of petrol/diesel 1.0-3.0 and LPG 0.4-1.5 |
+| RUB | **15 - 500** | union of petrol/diesel 35-500 and LPG 15-60 |
+| KZT | **50 - 1000** | union of petrol/diesel 100-1000 and LPG 50-300 |
+
+**The band alone is a false-accept machine on the heldout live path.** Committing every in-band pair
+read **59 committed, 49 correct, precision 0.831**, with six confident-wrong stills - all
+role-assignment misses or misreads the coarse band cannot see (`pump-019`, `pump-032`, `pump-104`,
+`pump-120`, `pump-125`, `pump-187`; e.g. `pump-032` assigns the price row as litres and the litres
+row as total, implying 0.647/L, inside EUR's 0.4). What separates a real pair from those is a shown
+price near the implied one: `pump-014`/`035`/`061` have boards within 0.5 % of their implied price,
+and the six wrong stills have no board at all (or one 40-140 % away). The pair therefore commits only
+when a shown price is within `pairValidationTolerance` = **5 %** of the implied price - `pump-266`'s
+loyalty discount is 4.3 % below its board, so the tolerance clears a real discount and rejects a
+different number. This is a guard beyond decision 11's band, added because the measured band alone
+does not hold the precision bar; decision 11 carries the amendment.
+
+### The numbers (heldout 68, shipped detector; before/after)
+
+| arm | committed | correct | precision | photos all-right |
+|---|---|---|---|---|
+| annotated, before | 104 | 103 | 0.990 | 30/68 |
+| annotated, after | **112** | 111 | **0.991** | **34/68** |
+| live, before | 43 | 43 | 1.000 | 14/68 |
+| live, after | **47** | 47 | **1.000** | **16/68** |
+
+The live reason histogram (stills that commit nothing):
+
+| reason | before | after |
+|---|---|---|
+| `boardFoundNoPrice` | 26 | **0** |
+| `nothingClosed` | 23 | 23 |
+| `priceOutOfBand` | 2 | 11 |
+| `priceUnvalidated` | - | 6 |
+| `noTotalWindow` | - | 6 |
+| `cellUnknown` | - | 3 |
+| `noLitersWindow` | 1 | 1 |
+| **total** | **52** | **50** |
+
+`boardFoundNoPrice` falls to zero; the committed count rises 43 -> 47 (14 -> 16 photos), precision
+holds at 1.000. **The rise is small because the population is smaller than the brief's premise:** of
+the 26 `boardFoundNoPrice` stills, only 9 have a read total + volume at all, and of those only 3
+(`pump-014`, `035`, `061`) show a price near the implied one - the other 6 have no price to validate
+the pair, and the rest never reach the pair path (no total window, or the band rejects a misread
+implied price). The annotated path gains 8 committed cells and 4 all-right photos at 0.991; its one
+wrong cell is `pump-055` (litres 56.09 for 56.05, a classifier misread a 0.3 %-near board validates).
+
+### The oracle ratchet
+
+`PumpReadingLawTests.oracleStringsRatchet`: committed 741 -> 763, precision 0.9973 -> 0.9987;
+`pump-300` left the wrong set and `declaredArtefacts` shrank to `pump-031`, `pump-065`, `pump-073`
+(`pump-031` is the by-construction display-vs-receipt discount). The fragility pass now measures the
+THREE-FIELD path only (`mutateOnlyWherePriceShown`): a pair has no arithmetic to repair a misread,
+so the arithmetic ceiling (0.10) is not calibrated for it - the arithmetic path measures 51/1015 =
+0.050. The un-scoped rate would be 0.205.
+
+### Checks
+
+| check | exit | note |
+|---|---|---|
+| `swift test --filter "PumpReadingLawTests\|PumpReaderPipelineTests\|PumpRowGeometryTests\|PumpReaderHarnessTests"` | 0 | 44 tests, 4 suites, 0 failures |
+| `scripts/gate.sh` | 0 | package 0, lint 0, xcodegen 0, app Debug build 0, `swift test` 0, app-target unit bundle 0 |
+| `swiftlint lint` (repo root) | 0 | 0 serious |
+
+### Named mutation
+
+The band check dropped from the pair path (`guard band.contains(implied)` removed):
+
+```
+✘ Test "PU.54: the pair abstains with a named reason when the implied price is out of band" recorded
+  an issue at PumpReadingLawTests.swift:340:9: Expectation failed: reading.committedCount == 0
+✘ Test "PU.54: the pair abstains with a named reason when the implied price is out of band" recorded
+  an issue at PumpReadingLawTests.swift:341:9: Expectation failed: reading.reason == .priceOutOfBand
+✘ Test run with 1 test in 1 suite failed after 0.003 seconds with 2 issues.   (exit 1)
+```
+
+Reverted:
+
+```
+✔ Test "PU.54: the pair abstains with a named reason when the implied price is out of band" passed
+  after 0.001 seconds.
+✔ Test run with 1 test in 1 suite passed after 0.001 seconds.   (exit 0)
+```
+
+### Found and not fixed
+
+- **The band alone does not guard the pair** - the false-accept rate is 6 of 8 pair commits on the
+  heldout live path. The validation requirement is what holds precision; if a future row wants the
+  band to be the only guard it needs a tighter per-fuel band, which the pack cannot answer today.
+- **`pump-120` is a near miss the board could fix**: its misread total (96.17 for 56.17) implies
+  2.344, but the board shows 1.369 - the correct implied price. A pair that searched the total's beam
+  alternatives for the one a board matches would commit it correctly; out of scope here.
+- **The role-assignment misses behind `pump-019`/`032`/`104`** (a price row read as litres, the
+  litres row as total) are the locator/assignment's, not the law's; the pair now refuses them as
+  `priceUnvalidated` rather than committing them, but the underlying miss is unowned.

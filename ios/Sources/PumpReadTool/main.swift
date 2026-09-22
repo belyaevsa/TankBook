@@ -154,6 +154,12 @@ let detector = detectorPath.flatMap { path in
 let reader = PumpReader(model: model, detector: detector)
 let image = PumpQuadWarp.rgbImage(from: oriented)
 let currency = request.currency.flatMap { CurrencyCode(rawValue: $0) }
+// The app's own guard (decision 11): the currency-wide band bounds the price a
+// total + volume pair implies. The tool reads the same bundled pack the app
+// does, so its diagnostic verdict matches the app's.
+let priceBand = currency.flatMap { code in
+    (try? FuelPriceBandStore.bundledPack())?.currencyBand(currency: code)
+}
 var reply: [String: Any] = [:]
 
 func committed(_ reading: PumpDisplayReading) -> [String: Any] {
@@ -188,7 +194,7 @@ if let windows = request.windows, !windows.isEmpty {
         return ["field": read.field.rawValue, "cells": cells, "text": text, "sliced": cellQuads[read.field.rawValue] ?? []]
     }
     let law = PumpReadingLaw.resolve(windows: reads.map { PumpLocatedWindow(field: $0.field, cells: $0.cells) },
-                                     currency: currency, priceBand: nil)
+                                     currency: currency, priceBand: priceBand)
     reply["committed"] = committed(law)
     reply["abstainReason"] = law.reason?.rawValue ?? NSNull()
 } else {
@@ -204,11 +210,13 @@ if let windows = request.windows, !windows.isEmpty {
     // profiler sees the steady state rather than the model's first load.
     if let repeats = ProcessInfo.processInfo.environment["PUMP_REPEAT"].flatMap(Int.init) {
         for _ in 0..<repeats {
-            _ = try reader.readPhoto(image: image, rotationCW: (request.rotationCW ?? 0), currency: currency, priceBand: nil)
+            _ = try reader.readPhoto(image: image, rotationCW: (request.rotationCW ?? 0),
+                                     currency: currency, priceBand: priceBand)
         }
     }
     let reading = try timed("readPhoto") {
-        try reader.readPhoto(image: image, rotationCW: (request.rotationCW ?? 0), currency: currency, priceBand: nil)
+        try reader.readPhoto(image: image, rotationCW: (request.rotationCW ?? 0),
+                             currency: currency, priceBand: priceBand)
     }
     reply["committed"] = committed(reading)
     reply["abstainReason"] = reading.reason?.rawValue ?? NSNull()
@@ -234,7 +242,7 @@ if let windows = request.windows, !windows.isEmpty {
     if let readsTimed {
         _ = timed("law") {
             PumpReadingLaw.resolve(windows: readsTimed.map { PumpLocatedWindow(field: $0.field, cells: $0.cells) },
-                                   currency: currency, priceBand: nil)
+                                   currency: currency, priceBand: priceBand)
         }
         reply["cellsPerRow"] = readsTimed.map { $0.cells.count }
     }
@@ -244,7 +252,7 @@ if let windows = request.windows, !windows.isEmpty {
         let decision = timed("appDecide") { PumpDisplayCapture.detect(image: cg, reader: handle) }
         reply["appDecision"] = ["display": decision.isPumpDisplay, "rows": decision.displayRows, "textLines": decision.textLines]
         _ = timed("appClassifyAndRead") {
-            PumpDisplayCapture.classify(image: cg, reader: handle, currency: currency, priceBand: nil)
+            PumpDisplayCapture.classify(image: cg, reader: handle, currency: currency, priceBand: priceBand)
         }
     }
     reply["timingsMs"] = timings
