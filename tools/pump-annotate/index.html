@@ -7,7 +7,15 @@
   :root { --bg:#0e1116; --panel:#171b22; --line:#2a303a; --fg:#e6e8eb; --dim:#8a919c;
           --total:#ff5a5f; --liters:#4cc3ff; --unitPrice:#ffc857; --board:#9b8cff; --ok:#4ade80; --bad:#f87171; }
   * { box-sizing:border-box }
-  body { margin:0; background:var(--bg); color:var(--fg); font:13px/1.4 -apple-system, system-ui, sans-serif; height:100vh; display:grid; grid-template-columns:44px 260px minmax(0,1fr) 340px; grid-template-rows:100vh; }
+  /* Two rows: the headers (the toolbars, and the title/status/truth block)
+     and, under them, the image beside the window cards - so the cards start on
+     the image's own top line whatever either header grows to. */
+  body { margin:0; background:var(--bg); color:var(--fg); font:13px/1.4 -apple-system, system-ui, sans-serif; height:100vh; display:grid; grid-template-columns:44px 260px minmax(0,1fr) 340px; grid-template-rows:auto minmax(0,1fr); }
+  nav.rail, aside { grid-row:1 / -1 }
+  #head { grid-column:3; grid-row:1; min-width:0 }
+  #righthead { grid-column:4; grid-row:1; background:var(--panel); border-left:1px solid var(--line); border-bottom:1px solid var(--line); padding:4px 8px; min-width:0; overflow:hidden }
+  main { grid-column:3; grid-row:2 }
+  section.right { grid-column:4; grid-row:2 }
   nav.rail { background:#0b0e13; border-right:1px solid var(--line); display:flex; flex-direction:column; gap:4px; padding:8px 4px }
   nav.rail button { width:36px; height:36px; padding:0; font-size:18px; background:none; border-color:transparent } nav.rail button:hover { background:#222833 } nav.rail button.on { background:#2456a5; border-color:#2456a5 }
   main { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden }
@@ -47,6 +55,9 @@
   .warn { color:var(--bad); cursor:help }
   input.prefill { color:#ffc857; font-style:italic }
   #framebar { flex:none; border-top:1px solid var(--line); background:var(--panel); padding:5px 8px; min-height:44px }
+  #frameScrub { position:relative; height:10px; margin-top:3px; background:#232935; border-radius:3px; cursor:pointer; overflow:hidden }
+  #frameView { position:absolute; top:0; bottom:0; background:#39414f; border-radius:3px; min-width:8px }
+  #frameHere { position:absolute; top:0; bottom:0; width:2px; background:var(--fg); opacity:0.8 }
   #frameNav { gap:6px; align-items:center; flex-wrap:wrap; margin-top:4px }
   #frameNav .sep { width:1px; height:18px; background:var(--line); margin:0 2px }
   #frameStrip { display:flex; flex-wrap:nowrap; gap:2px; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; padding-bottom:2px }
@@ -81,18 +92,11 @@
   <div class="row dim" id="counts"></div>
   <div id="list"></div>
 </aside>
-<main>
-  <!-- What is open, once and in one place: the fixture, the record, the frame
-       and where it sits. Nothing else names them - not the toolbar, not the
-       right panel, not the banner. -->
-  <div id="titlebar">
-    <span id="serverDot" title="checking the annotator server…">●</span>
-    <b id="tbName">–</b>
-    <button id="tbCopy" class="quick" title="copy the name (⇧-click: the frame's path)">⧉</button>
-    <span id="tbRecord" class="mono dim"></span>
-    <span id="tbFrame" class="mono"></span>
-    <span id="tbInfo" class="dim"></span>
-  </div>
+<!-- Row 1: the toolbars on the image side, and on the panel side what is
+     open (the title), what just happened (the status) and what the entry is
+     checked against (the truth row). Row 2 is the image and the window
+     cards, so the cards start on the image's own top line. -->
+<div id="head">
   <div id="toolbar">
     <button id="play" title="play / pause the frames (space)">▶</button>
     <button id="stepBack" title="previous frame (←)">⏮</button><button id="stepFwd" title="next frame (→)">⏭</button>
@@ -117,12 +121,26 @@
     <span class="sep"></span>
     <span id="trackBar"><button id="recTrack" title="carry the still's windows into this record's frames (pump_reader.track)">↻ track</button><button id="retrackAll" title="re-register every non-pinned frame of this record to the reference and its anchors">↻ re-track all</button><button id="retrackFrom" title="re-register this frame and the ones after it; earlier frames keep their quads">↻ from here</button><button id="vlRerun" title="retrack the clip from its anchors, then read every tracked frame again; your labels and anchored frames are kept">⟳ retrack + read all</button></span>
   </div>
+</div>
+<div id="righthead">
+  <div id="titlebar">
+    <span id="serverDot" title="checking the annotator server…">●</span>
+    <b id="tbName">–</b>
+    <button id="tbCopy" class="quick" title="copy the name (⇧-click: the frame's path)">⧉</button>
+    <span id="tbRecord" class="mono dim"></span>
+    <span id="tbFrame" class="mono"></span>
+    <span id="tbInfo" class="dim"></span>
+  </div>
+  <div id="banner" class="idle"></div>
+  <div class="row mono" id="csv"></div>
+</div>
+<main>
   <div id="stage"><canvas id="c"></canvas></div>
   <!-- The frames bar: always here so the image never jumps when the frames
        view opens, filled only in that view. -->
   <div id="framebar">
     <div id="frameStrip"></div>
-    <input id="frameSlider" type="range" min="0" max="0" value="0" style="width:100%;display:none">
+    <div id="frameScrub" style="display:none" title="the whole record; the lighter block is the part of the strip on screen - drag it, or click to look there"><div id="frameView"></div><div id="frameHere"></div></div>
     <div class="row" id="frameNav" style="display:none">
       <button id="fnResume" title="jump to the last frame you saved in this record" style="display:none">⏮ where I left</button>
       <label title="jump to a frame by its number">go to <input id="fnGo" type="number" min="1" step="1" style="width:76px"></label>
@@ -149,7 +167,6 @@
   <div id="wins"></div>
   <div class="row"><button id="add">+ window</button> <span class="dim">or drag on the image</span> <label title="drawn boxes are 'not a window' regions (n toggles); ⇧-click a live-read row rejects it the same way"><input type="checkbox" id="negMode"> not a window</label></div>
   <div id="negs"></div>
-  <div class="row mono" id="csv"></div>
   <div class="row mono" id="arith"></div>
   <div class="row"><label title="reviewed by a human; P toggles"><input type="checkbox" id="reviewed"> processed</label>
     <input id="zoom" type="range" min="0.25" max="4" step="0.05" value="1" style="display:none">
@@ -177,7 +194,6 @@
     <div id="disRows"></div>
   </div>
   <div id="status">
-    <div id="banner" class="idle"></div>
     <div class="row"><button id="check">Check</button><button id="dump" title="write every corpus file from the database (corpus_db.py dump) and run the staleness check">⤓ dump to JSON</button>
       <button id="read" title="run the reader on the annotated windows and fill empty texts (r); R runs the app's live path - detector, verifier, law - on the photo with no windows">▶ read</button>
       <button id="auto" title="auto-annotate (A): the live path locates the rows and each assigned row becomes a window with the truth row's text - adjust and save">✦ auto</button></div>
@@ -352,7 +368,7 @@ $('#autoplay').onchange = e => { try { localStorage.setItem('annotator.autoplay'
 let recordsLoaded = Promise.resolve();
 function resetFrames() {
   frameMode = false; frameIdx = 0; records = []; confirmLoop = null; renderStrip();
-  $('#frameSlider').style.display = 'none'; $('#frameSlider').value = 0; $('#frameSlider').max = 0;
+  renderScrub();
   $('#framesToggle').textContent = 'View frames';
 }
 async function loadRecords(n) {
@@ -418,13 +434,12 @@ function showRecordInfo() {
   renderTitle();
   $('#recTrack').style.display = (r.extracted && !frameMode) ? '' : 'none';
   $('#framesToggle').style.display = r.tracked.length ? '' : 'none';
-  $('#frameSlider').max = Math.max(0, r.tracked.length - 1);
   labelSaveButtons();
 }
 async function enterFrames() {
   await recordsLoaded;
   const r = currentRecord(); if (!r || !r.tracked.length) return;
-  frameMode = true; sel = -1; frameIdx = Math.min(frameIdx, r.tracked.length - 1); $('#frameSlider').style.display = ''; labelSaveButtons();
+  frameMode = true; sel = -1; frameIdx = Math.min(frameIdx, r.tracked.length - 1); labelSaveButtons();
   $('#framesToggle').textContent = 'Back to still'; showFrame();
 }
 // The bottom bar acts on the STILL (or a video's reference), never on the frame
@@ -456,7 +471,7 @@ function labelSaveButtons() {
 function leaveFrames() {
   frameZoomFor = null;
   stopPlay(); confirmLoop = null;
-  frameMode = false; img = stillImg; labelSaveButtons(); $('#videoLabel').style.display = 'none'; $('#liveFrame').style.display = 'none'; $('#keepShapeLabel').style.display = 'none'; $('#frameSlider').style.display = 'none'; $('#framesToggle').textContent = 'View frames'; renderStrip();
+  frameMode = false; img = stillImg; labelSaveButtons(); $('#videoLabel').style.display = 'none'; $('#liveFrame').style.display = 'none'; $('#keepShapeLabel').style.display = 'none'; $('#framesToggle').textContent = 'View frames'; renderStrip();
   renderTitle(); fit(); draw();
 }
 function runOf(r, name) { return (r.runs || []).find(run => run.includes(name)) || [name]; }
@@ -561,10 +576,33 @@ function updateArith() {
 // The current frame sits in the middle of the bar, so the frames around it are
 // always the ones on screen - a strip that only scrolls at its edges hides
 // exactly the neighbours a run is judged against.
+// The scrub under the strip: the whole record as a bar, the part of the strip
+// on screen as a lighter block inside it, and a tick where the current frame
+// sits. It moves the VIEW (the strip's scroll), never the selection - the
+// ticks are what select.
+function renderScrub() {
+  const strip = $('#frameStrip'), scrub = $('#frameScrub');
+  const r = frameMode && currentRecord();
+  scrub.style.display = r && r.tracked.length > 1 ? '' : 'none';
+  if (!r) return;
+  const total = strip.scrollWidth || 1;
+  const frac = Math.min(1, strip.clientWidth / total);
+  $('#frameView').style.left = `${(strip.scrollLeft / total) * 100}%`;
+  $('#frameView').style.width = `${frac * 100}%`;
+  $('#frameHere').style.left = `${(frameIdx / Math.max(1, r.tracked.length - 1)) * 100}%`;
+}
+function scrubTo(clientX) {
+  const strip = $('#frameStrip'), scrub = $('#frameScrub');
+  const box = scrub.getBoundingClientRect();
+  const at = Math.max(0, Math.min(1, (clientX - box.left) / box.width));
+  strip.scrollLeft = at * strip.scrollWidth - strip.clientWidth / 2;
+  renderScrub();
+}
 function centreStrip() {
   const strip = $('#frameStrip'); const el = strip.querySelector('span.cur');
   if (!el) return;
   strip.scrollLeft = el.offsetLeft - strip.clientWidth / 2 + el.offsetWidth / 2;
+  renderScrub();
 }
 // Where the operator left off in a record: the last frame they SAVED (a label,
 // a keyframe or an anchor), remembered per record in this browser. Not the last
@@ -593,8 +631,7 @@ function updateFrameNav() {
   btn.textContent = `⏮ where I left (${i + 1})`;
   btn.title = `the last frame you saved in this record: ${at}`;
   $('#fnGo').max = r.tracked.length; $('#fnGo').value = frameIdx + 1;
-  $('#frameSlider').style.display = r.tracked.length > 1 ? '' : 'none';
-  $('#frameSlider').max = Math.max(0, r.tracked.length - 1); $('#frameSlider').value = frameIdx;
+  renderScrub();
   $('#fnCount').textContent = `/ ${r.tracked.length}`;
   for (const id of ['#vlCopy', '#vlSkip', '#vlRun']) $(id).closest('label, button').style.display = isVideo ? '' : 'none';
   $('#lfOk').style.display = isVideo ? 'none' : '';
@@ -799,7 +836,7 @@ function showFrame() {
   carryUntracked(r.frames[name]);
   showVideoLabel();
   const movie = r.movie, still = current;
-  $('#frameSlider').value = frameIdx; renderTitle();
+  renderTitle();
   frameImg = new Image();
   frameImg.onload = () => {
     if (!(frameMode && current === still && currentRecord() && currentRecord().movie === movie)) return;
@@ -1365,8 +1402,13 @@ $('#tbCopy').onclick = async e => {
 };
 $('#fnResume').onclick = () => { const r = currentRecord(); if (r) goToFrame(r.tracked.indexOf(resumeFrame(r.movie))); };
 $('#fnGo').onchange = e => { goToFrame((+e.target.value || 1) - 1); e.target.blur(); };
-$('#frameSlider').oninput = e => { frameIdx = +e.target.value; showFrame(); };
-$('#frameSlider').onchange = e => e.target.blur();
+// Dragging the scrub scrolls the strip; the pointer is captured so the drag
+// survives leaving the 10 px bar.
+let scrubbing = false;
+$('#frameScrub').onpointerdown = e => { scrubbing = true; $('#frameScrub').setPointerCapture(e.pointerId); scrubTo(e.clientX); };
+$('#frameScrub').onpointermove = e => { if (scrubbing) scrubTo(e.clientX); };
+$('#frameScrub').onpointerup = e => { scrubbing = false; try { $('#frameScrub').releasePointerCapture(e.pointerId); } catch (err) {} };
+$('#frameStrip').onscroll = () => renderScrub();
 $('#rec').onchange = () => { frameIdx = 0; showRecordInfo(); if (frameMode) showFrame(); };
 document.querySelectorAll('[name=tracking]').forEach(r => r.onchange = touch);
 $('#save').onclick = () => saveTarget().run(); $('#check').onclick = check;
