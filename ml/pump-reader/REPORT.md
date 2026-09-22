@@ -1786,3 +1786,104 @@ Reverted:
   produced. That is the biggest single lever the histogram exposes and no row owns it yet.
 - **Per-field reasons exist only on partial reads** by the brief's design; a fully abstained
   reading names one display reason, so the per-field histogram is small by construction.
+
+---
+
+## PU.57 - re-gate the row detector on the metric the read stage consumes (2026-09-22)
+
+**Nothing ships and nothing trains.** The detector was gated on recall @ IoU 0.5, but the read stage
+consumes the box's framing; PU.52's review named the mismatch and this row moves the gate to the
+tight metrics, re-scores PU.48 under it, and records that PU.48 would have been **refused**.
+`detector/measure.swift` now prints the gate's numbers first; `docs/EXTRACTION.md` decision 10
+carries the rule; `tests/test_detector_gate.py` pins the ordering.
+
+### Re-measured, both models (heldout 68 stills, confidence 0.3)
+
+`detector/measure.swift` re-run in this session, `exit 0` twice; the shipped model reproduces the
+report's old column exactly (219 / 185 / 0.797 / 43):
+
+| model | sha | recall@0.5 | recall@0.7 | median IoU | false rows/photo |
+|---|---|---|---|---|---|
+| shipped PU.33 (`ios/App/Resources/DigitRows.mlmodel`) | `b560fef2…` | 219/252 = 0.869 | 185/252 = 0.734 | 0.797 | 43/68 = 0.632 |
+| PU.48, first export (`.out/det/pu48/DigitRows-pu48.mlmodel`) | `d18531eb…` | 218/252 = 0.865 | 168/252 = 0.667 | 0.768 | 58/68 = 0.853 |
+| PU.48, final export (`.out/det/pu48-latest/DigitRows-pu48-latest.mlmodel`) | `f48991f4…` | 221/252 = 0.877 | 178/252 = 0.706 | 0.772 | 56/68 = 0.824 |
+
+**Which model is "PU.48's candidate" - the brief's path and the report's table disagree.** The
+brief names `.out/det/pu48/DigitRows-pu48.mlmodel` (`d18531eb…`), but the report's PU.48 measure
+table is the **final** export (`pu48-latest`, `f48991f4…`, the model the PU.48 section calls "the
+final model ... the one reported"), and the brief's expected proof numbers (0.734 -> 0.706,
+0.797 -> 0.772, 0.632 -> 0.824) are that model's. The two exports differ only by the one train
+still and 259 boxes that landed mid-task; their heldout `annotations.json` files are byte-identical,
+so the difference is the model alone. Both are re-measured above and **both are refused** under the
+new gate, so the verdict does not turn on the mix-up - but the old-gate record does: the first
+export's recall@0.5 **fell** (0.869 -> 0.865) and its photos-with-every-row fell (53 -> 51), so the
+old (c) gate would have refused it too. The brief's "the old gate passed it on recall@0.5 0.869 ->
+0.877" is true only of the final export, which is the model the report's table describes and the one
+scored below.
+
+### The new gate, and PU.48 refused
+
+Decision 10's gate (`docs/EXTRACTION.md`): a candidate ships only when **median IoU and recall@0.7
+both hold or rise** and **false rows/photo does not rise by more than 0.05**; recall@0.5 is reported
+but never decides. Re-scoring PU.48's final export against the shipped model:
+
+| metric | shipped PU.33 | PU.48 final | new gate | old gate |
+|---|---|---|---|---|
+| median IoU | 0.797 | 0.772 | **fell - refuse** | not read |
+| recall @ IoU 0.7 | 0.734 | 0.706 | **fell - refuse** | not read |
+| false rows / photo | 0.632 | 0.824 | **+0.191 (> 0.05) - refuse** | not read |
+| recall @ IoU 0.5 | 0.869 | 0.877 | reported, never decides | **rose - pass** |
+
+The old gate passed PU.48 on recall@0.5 0.869 -> 0.877, photos-with-every-row 53 -> 55 and false
+rows +0.191 under the old 0.2 bound; the new gate refuses it on both tight primaries and the
+false-row slack. That is the row's point: the only metric that rose is the one the read stage does
+not consume. `measure.swift`'s summary line now leads with the gate's numbers, so the next round
+reads the decision off one pasteable line:
+
+```
+DET heldout: median IoU 0.772 | recall@0.7 178/252 = 0.706 | false rows/photo 0.824 (56 over 68 photos) | recall@0.5 221/252 = 0.877 (secondary, never decides) | rows 252, photos any row 64, photos all rows 55, confidence >= 0.3
+```
+
+### The ordering test, and the named mutation
+
+`tests/test_detector_gate.py` (2 tests, no new runtime code) scores a synthetic pair against one
+truth: a **tight** set (six exact boxes, no false rows) and a **loose** set (ten boxes shifted to
+IoU 0.60, so all ten match at 0.5 and none at 0.7, plus three false rows). The loose set wins on
+recall@0.5 alone; the new gate refuses it and accepts the tight set, while the old recall@0.5 rule
+prefers the loose set - both directions asserted. **Named mutation**: the gate's primaries replaced
+with recall@0.5, red verbatim:
+
+```
+>       assert not passed, reasons
+E       AssertionError: []
+E       assert not True
+
+ml/pump-reader/tests/test_detector_gate.py:114: AssertionError
+=========================== short test summary info ============================
+FAILED ml/pump-reader/tests/test_detector_gate.py::test_gate_prefers_tight_over_loose
+1 failed, 1 passed in 0.01s
+```
+
+Reverted byte-identical: **46 passed** (44 + 2 new).
+
+### Checks
+
+| check | exit | note |
+|---|---|---|
+| `pytest -q ml/pump-reader/tests` | 0 | **46 passed** (44 + 2 new) |
+| `swift detector/measure.swift <shipped> <heldout>` | 0 | median IoU 0.797, recall@0.7 0.734, false rows/photo 0.632 |
+| `swift detector/measure.swift <pu48 final> <heldout>` | 0 | median IoU 0.772, recall@0.7 0.706, false rows/photo 0.824 |
+| `swiftlint lint` (repo root) | 0 | covers `measure.swift` - `ml/pump-reader/detector` is not excluded (only `.venv` and `.out` are) |
+| `scripts/gate.sh` | not run | no Swift target, `ios/` or app file changed; the row touches a script, docs, a report and a Python test |
+
+### Found and not fixed
+
+- **The brief and the report disagree on which model is PU.48's candidate** (`d18531eb…` first
+  export vs `f48991f4…` final). Recorded above and in the PU.57 table; the PU.48 section still calls
+  the final export "the one reported" while PU.47's re-score names the first. Both are refused under
+  the new gate, so no verdict changes. No row owns reconciling the two records.
+- **The old (c) gate is not written down as a rule anywhere** - it survives only as the PU.48 prose
+  ("recall@0.5 and photos-with-every-row both rise, false rows <= 0.2"). Decision 10 now carries the
+  replacement, so the stale form is superseded, not removed. No row owns the historical note.
+- **`PumpReaderTestSupport.detectorURL` reads `.out/det/DigitRows.mlmodel`, not the shipped
+  resource** - already filed in PU.48; unchanged here.

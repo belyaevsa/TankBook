@@ -943,6 +943,20 @@ text lines against the 30 ceiling), **0/8 receipts leaked**, and the decision is
 plus a text-line count (~50-80 ms in Release on the 12 MP stills) instead of the verifier's
 0.8-3.5 s. The read floors are untouched.
 
+**Decision 10, amended 2026-09-22 (PU.57): the detector's gate is tight IoU, not recall@0.5.** A
+detector candidate ships only when **median IoU and recall @ IoU 0.7 both hold or rise** and
+**false rows per photo does not rise by more than 0.05**; recall @ IoU 0.5 is reported but never
+decides. The reason is one sentence: **the read stage consumes the box's framing** - the slicer and
+the law read the strip the box draws, so a tighter box is a better input even when a looser one
+matches more rows at the loose threshold. The evidence is PU.48 (`ml/pump-reader/REPORT.md` -> PU.48
+and PU.57): its candidate rose on recall@0.5 (0.869 -> 0.877) and passed the old (c) gate while
+median IoU fell 0.797 -> 0.772, recall@0.7 fell 0.734 -> 0.706 and false rows per photo rose
+0.632 -> 0.824 - and the live path fell 43 -> 28 cells. Under this gate that candidate is **refused**
+on both tight primaries; `detector/measure.swift` prints them first (median IoU, recall@0.7, false
+rows per photo) so the decision is read off its summary line, and the ordering rule - tight boxes
+over loose-but-more-overlapping ones, with the old recall@0.5 rule preferring the loose set - is
+asserted in `ml/pump-reader/tests/test_detector_gate.py`.
+
 **Decision 11 (product owner, 2026-09-22): the unit price is OPTIONAL, and a price-like number
 is a cross-check, not a gate.** *"The price per unit is not always available, it might be and it's
 good. If it's missing, accept as it is. Found total, found volume. If there are other numbers close

@@ -1,6 +1,9 @@
-// Scores the digit-row detector on the heldout stills BEFORE it is wired in:
-// recall of annotated rows (IoU >= 0.5 and >= 0.7), false rows per photo,
-// photos with every transaction row found, and the box IoU distribution.
+// Scores the digit-row detector on the heldout stills BEFORE it is wired in.
+// The gate primaries are printed first - median IoU and recall @ IoU >= 0.7,
+// with false rows per photo beside them - because the read stage consumes the
+// box's framing, not loose overlap; recall @ IoU >= 0.5 is reported but never
+// decides (docs/EXTRACTION.md, decision 10). Photos with any/every row and the
+// per-still found/matched counts follow.
 //
 //   swift ml/pump-reader/detector/measure.swift <model.mlmodel|.mlmodelc> <det-dir>/heldout [confidence]
 import CoreML
@@ -64,7 +67,12 @@ for record in records {
 }
 let sorted = ious.sorted()
 let median = sorted.isEmpty ? 0 : sorted[sorted.count / 2]
-print("DET heldout: rows \(rowsTotal), recall@0.5 \(hit50) (\(String(format: "%.3f", Double(hit50) / Double(max(rowsTotal, 1))))), "
-      + "recall@0.7 \(hit70), median IoU \(String(format: "%.3f", median)), false rows \(falseRows) over \(records.count) photos, "
-      + "photos any row \(photosAnyRow), photos all rows \(photosAllRows), confidence >= \(threshold)")
+let recall50 = Double(hit50) / Double(max(rowsTotal, 1))
+let recall70 = Double(hit70) / Double(max(rowsTotal, 1))
+let falseRowsPerPhoto = Double(falseRows) / Double(max(records.count, 1))
+print("DET heldout: median IoU \(String(format: "%.3f", median)) | "
+      + "recall@0.7 \(hit70)/\(rowsTotal) = \(String(format: "%.3f", recall70)) | "
+      + "false rows/photo \(String(format: "%.3f", falseRowsPerPhoto)) (\(falseRows) over \(records.count) photos) | "
+      + "recall@0.5 \(hit50)/\(rowsTotal) = \(String(format: "%.3f", recall50)) (secondary, never decides) | "
+      + "rows \(rowsTotal), photos any row \(photosAnyRow), photos all rows \(photosAllRows), confidence >= \(threshold)")
 for line in perPhoto { print("  " + line) }
