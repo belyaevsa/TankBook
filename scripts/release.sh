@@ -32,8 +32,10 @@ for arg in "$@"; do
   esac
 done
 if [ "$DEBUG" -eq 1 ] && [ "$UPLOAD" -eq 1 ]; then
-  echo "release: --debug builds the Debug configuration onto the plugged-in iPhone and never archives; it cannot be combined with --upload" >&2
-  exit 2
+  # --debug wins: a Debug build is never archived, so there is nothing to
+  # upload - say so and carry on rather than refuse (product owner, 2026-09-22).
+  echo "release: --debug builds the Debug configuration onto the plugged-in iPhone and never archives; --upload is skipped" >&2
+  UPLOAD=0
 fi
 
 # --debug: not a release at all. Builds the DEBUG configuration for the iPhone
