@@ -245,9 +245,10 @@ the ml venv runs it); the converted images are cached under
   otherwise. Everything outside the part on screen is **dimmed**, so the block
   you are looking at reads first - an outline alone disappears on a bar of 1184
   colours - and the tick marks the current frame;
-  drag the block, or click anywhere on the bar, to look elsewhere. **The strip
-  itself no longer scrolls by hand** - the scrub is what moves it, and it moves
-  the VIEW, never the selection, because the ticks are what select. The
+  drag the block, or click anywhere on the bar, to look elsewhere. The drag moves the view live and
+  **releasing it opens the frame the view is centred on**, so the strip, the bar
+  and the picture never disagree about where you are. **The strip itself no
+  longer scrolls by hand** - the scrub is what moves it. The
   **record picker** appears only on a still that has more than one Live record;
   with a single record its name is printed instead of a select with one option.
 - **⏮ where I left** jumps to the last frame you **saved** in this record - a

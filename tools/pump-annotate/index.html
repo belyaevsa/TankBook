@@ -664,17 +664,20 @@ function renderScrub() {
   renderScrubMap();
 }
 window.addEventListener('resize', () => renderScrub());
+function scrubFraction(clientX) {
+  const box = $('#frameScrub').getBoundingClientRect();
+  return Math.max(0, Math.min(1, (clientX - box.left) / box.width));
+}
 function scrubTo(clientX) {
-  const strip = $('#frameStrip'), scrub = $('#frameScrub');
-  const box = scrub.getBoundingClientRect();
-  const at = Math.max(0, Math.min(1, (clientX - box.left) / box.width));
-  strip.scrollLeft = at * strip.scrollWidth - strip.clientWidth / 2;
+  const strip = $('#frameStrip');
+  strip.scrollLeft = scrubFraction(clientX) * strip.scrollWidth - strip.clientWidth / 2;
   renderScrub();
 }
 function centreStrip() {
   const strip = $('#frameStrip'); const el = strip.querySelector('span.cur');
   if (!el) return;
-  strip.scrollLeft = el.offsetLeft - strip.clientWidth / 2 + el.offsetWidth / 2;
+  const at = el.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft;
+  strip.scrollLeft = at - strip.clientWidth / 2 + el.offsetWidth / 2;
   renderScrub();
 }
 // Where the operator left off in a record: the last frame they SAVED (a label,
@@ -1480,7 +1483,12 @@ $('#fnGo').onchange = e => { goToFrame((+e.target.value || 1) - 1); e.target.blu
 let scrubbing = false;
 $('#frameScrub').onpointerdown = e => { scrubbing = true; $('#frameScrub').setPointerCapture(e.pointerId); scrubTo(e.clientX); };
 $('#frameScrub').onpointermove = e => { if (scrubbing) scrubTo(e.clientX); };
-$('#frameScrub').onpointerup = e => { scrubbing = false; try { $('#frameScrub').releasePointerCapture(e.pointerId); } catch (err) {} };
+$('#frameScrub').onpointerup = e => {
+  scrubbing = false;
+  try { $('#frameScrub').releasePointerCapture(e.pointerId); } catch (err) {}
+  const r = currentRecord();
+  if (r) goToFrame(Math.round(scrubFraction(e.clientX) * (r.tracked.length - 1)));
+};
 $('#frameStrip').onscroll = () => renderScrub();
 $('#rec').onchange = () => { frameIdx = 0; showRecordInfo(); if (frameMode) showFrame(); };
 document.querySelectorAll('[name=tracking]').forEach(r => r.onchange = touch);
