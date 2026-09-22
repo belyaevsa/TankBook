@@ -74,6 +74,19 @@ stdin to reproduce any live read yourself - the reply carries the rows, the per-
 timings and the committed triple. Two detectors are on disk: `ios/App/Resources/DigitRows.mlmodel`
 (shipped) and `ml/pump-reader/.out/det/pu48/DigitRows-pu48.mlmodel` (the candidate).
 
+## A previous run's measurements are already on disk (2026-09-22, 17:12)
+
+The first dispatch of this brief wedged after ~45 minutes (no network, no CPU, no log) without
+writing its review. **Its measurements survived** in `ml/pump-reader/.out/review-why/`: a per-still
+live sweep of the 68 heldout stills for four (classifier, detector) pairs - `live-s6d0.jsonl`
+(shipped classifier + shipped detector), `live-s6d48.jsonl` (shipped classifier + PU.48 detector),
+`live-par-s3d0.jsonl` and `live-par-s6d48.jsonl` - plus `sweep.py`, `score.py` and its own scorer's
+summaries. **Read and reuse them** rather than re-running four sweeps; check `sweep.py` to see
+exactly what was run before you trust a line, and say in the review which numbers are that run's
+and which are yours. Its scorer is looser than `PumpReaderPipelineTests` (it counts the declared
+truncated-total artefacts `pump-083`/`pump-106` as wrong), so its absolute precision is not
+comparable to the suite's - the ordering between configurations is.
+
 ## What the review must answer
 
 1. **The mechanism, named.** Why does a better component lower the live number? Give the causal
