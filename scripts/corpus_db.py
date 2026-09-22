@@ -743,32 +743,44 @@ def _render_corrections(con: sqlite3.Connection) -> bytes | None:
     return ("\n".join(lines) + "\n").encode()
 
 
-def render() -> dict[Path, bytes]:
-    """Every dumped file's bytes, without writing."""
+def render(paths: list[Path] | None = None) -> dict[Path, bytes]:
+    """Every dumped file's bytes, without writing. `paths` renders only those
+    files: the annotator dumps two files per save, and rendering the whole
+    corpus - 65k frame windows, 20k readings - to throw all but two away is
+    what made a save wait."""
+    want = {Path(p) for p in paths} if paths is not None else None
+    keep = lambda p: want is None or Path(p) in want
+    # A per-record file (`frames/<record>/windows.json`, `readings.json`) is
+    # rendered by a whole-table pass, so it is skipped only when NO wanted path
+    # lives under that folder.
+    under = lambda folder: want is None or any(str(p).startswith(str(folder)) for p in want)
     con = connect()
     try:
-        out = {
-            WINDOWS_FILE: _render_windows(con),
-            EXPECTED_FILE: _render_expected(con),
-            VIDEOS_FILE: _render_videos(con),
-            LABELS_FILE: _render_labels(con),
-        }
-        out.update(_render_readings(con))
-        out.update(_render_frames(con))
-        corrections = _render_corrections(con)
-        if corrections is not None:
-            out[CORRECTIONS_FILE] = corrections
-        return out
+        out: dict[Path, bytes] = {}
+        if keep(WINDOWS_FILE):
+            out[WINDOWS_FILE] = _render_windows(con)
+        if keep(EXPECTED_FILE):
+            out[EXPECTED_FILE] = _render_expected(con)
+        if keep(VIDEOS_FILE):
+            out[VIDEOS_FILE] = _render_videos(con)
+        if keep(LABELS_FILE):
+            out[LABELS_FILE] = _render_labels(con)
+        if under(FRAMES):
+            out.update(_render_readings(con))
+            out.update(_render_frames(con))
+        if keep(CORRECTIONS_FILE):
+            corrections = _render_corrections(con)
+            if corrections is not None:
+                out[CORRECTIONS_FILE] = corrections
+        return {p: b for p, b in out.items() if keep(p)}
     finally:
         con.close()
 
 
 def dump(paths: list[Path] | None = None) -> list[Path]:
-    """Write the database's files. `paths` limits the write to those files."""
-    rendered = render()
-    if paths is not None:
-        want = {Path(p) for p in paths}
-        rendered = {p: b for p, b in rendered.items() if p in want}
+    """Write the database's files. `paths` limits the write to those files -
+    and, since `render` takes the same list, to the work that produces them."""
+    rendered = render(paths)
     for path, body in rendered.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(body)

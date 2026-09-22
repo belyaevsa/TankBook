@@ -254,6 +254,14 @@ the ml venv runs it); the converted images are cached under
   longer scrolls by hand** - the scrub is what moves it. The
   **record picker** appears only on a still that has more than one Live record;
   with a single record its name is printed instead of a select with one option.
+- **What a step and a save cost.** A save dumps two files, and `corpus_db.dump`
+  used to render the WHOLE corpus - 65k frame windows, 20k readings - and throw
+  all but those two away: **839 ms**, now **28 ms**, because `render` takes the
+  same path list. On the page, stepping a frame used to rebuild 1184 ticks, hang
+  1184 click handlers on them, read 1184 offsets back and repaint the bar; the
+  strip is now rebuilt only when what it draws changes (a signature over every
+  frame's state, anchor and skip), a step moves the `cur` class and re-centres,
+  and one delegated handler on the strip serves every tick.
 - **⏮ where I left** jumps to the last frame you **saved** in this record - a
   label, a keyframe or an anchor - remembered per record in this browser. Not
   the last frame merely looked at: scrolling past forty frames is not progress.

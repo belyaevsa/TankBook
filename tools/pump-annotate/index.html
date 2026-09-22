@@ -739,10 +739,26 @@ function updateFrameNav() {
   $('#lfOk').style.display = isVideo ? 'none' : '';
   $('#vlMargin').style.display = isVideo ? '' : 'none';
 }
+// Stepping a frame rebuilt 1184 spans, hung 1184 click handlers on them, read
+// 1184 offsets back and repainted the bar - for a cursor that moved one tick.
+// The strip is rebuilt only when what it DRAWS changes (the record, or any
+// frame's state); a step moves the `cur` class and re-centres.
+let stripBuilt = '';
+function stripSignature(r, states) {
+  return `${r.movie}/${r.tracked.length}/` + r.tracked.map(n => {
+    const f = r.frames[n];
+    return (states ? states[n][0] : 't') + (f.verified ? 'a' : '') + (f.skipped ? 's' : '');
+  }).join('');
+}
+function moveStripCursor(cur) {
+  const strip = $('#frameStrip');
+  strip.querySelector('span.cur')?.classList.remove('cur');
+  strip.querySelector(`span[data-i="${frameIdx}"]`)?.classList.add('cur');
+}
 function renderStrip() {
   const strip = $('#frameStrip'), legend = $('#frameLegend');
   if (!frameMode) {
-    strip.innerHTML = '';
+    strip.innerHTML = ''; stripBuilt = '';
     legend.textContent = current ? 'frames appear here in the frames view (View frames)' : '';
     updateFrameNav();
     return;
@@ -750,20 +766,33 @@ function renderStrip() {
   if (!isVideo) {
     // A Live record: every tracked frame, anchors outlined; nothing to label per frame.
     const r = currentRecord(); const cur = r.tracked[frameIdx];
+    const sig = stripSignature(r, null);
+    if (sig === stripBuilt) { moveStripCursor(cur); centreStrip(); updateFrameNav(); return; }
+    stripBuilt = sig;
     strip.innerHTML = r.tracked.map((n, i) => `<span class="tracked ${n === cur ? 'cur' : ''} ${r.frames[n].verified ? 'anchor' : ''} ${r.frames[n].skipped ? 'skipped' : ''}" data-i="${i}" title="${n} · inliers ${r.frames[n].inliers}${r.frames[n].verified ? ' · anchor (quads placed by hand)' : ''}${r.frames[n].skipped ? ' · skipped (no display)' : ''}"></span>`).join('');
     legend.innerHTML = `grey = tracked from the still · white outline = anchor (quads you placed) · drag a quad to anchor a frame · <kbd>⇧⏎</kbd> marks tracking ok and saves`;
-    strip.querySelectorAll('span[data-i]').forEach(el => el.onclick = () => { frameIdx = +el.dataset.i; showFrame(); });
     measureStrip(); centreStrip(); updateFrameNav();
     return;
   }
   const r = currentRecord(); const states = frameStates(r); const cur = r.tracked[frameIdx];
+  const sig = stripSignature(r, states);
+  if (sig === stripBuilt) { moveStripCursor(cur); markNextRun(r, cur); centreStrip(); updateFrameNav(); return; }
+  stripBuilt = sig;
   const runStart = new Set((r.runs || []).map(run => run[0]));
   const curRun = runOf(r, cur); const runs = r.runs || []; const ri = runs.findIndex(run => run === curRun);
   const nextRunFirst = runs[ri + 1] ? runs[ri + 1][0] : null;
   strip.innerHTML = r.tracked.map((n, i) => `<span class="${states[n]} ${n === cur ? 'cur' : ''} ${runStart.has(n) ? 'runstart' : ''} ${n === nextRunFirst ? 'nextrun' : ''} ${r.frames[n].verified ? 'anchor' : ''} ${r.frames[n].skipped ? 'skipped' : ''}" data-i="${i}" title="${n} ${states[n]}${runStart.has(n) ? ' · new value' : ''}${r.frames[n].verified ? ' · anchor (quads placed by hand)' : ''}${r.frames[n].skipped ? ' · skipped (no display)' : ''}"></span>`).join('');
   legend.innerHTML = `red = needs you (unlabelled or breaks the sequence) · yellow = reader pre-fill to confirm · green = labelled · teal = interpolated between keyframes · ▲ next unique value (<kbd>⇧→</kbd>) · gap = value changes`;
-  strip.querySelectorAll('span[data-i]').forEach(el => el.onclick = () => { frameIdx = +el.dataset.i; showFrame(); });
   measureStrip(); centreStrip(); updateFrameNav();
+}
+// The ▲ marks the first frame of the NEXT run, so it moves with the cursor even
+// when nothing about the frames themselves changed.
+function markNextRun(r, cur) {
+  const strip = $('#frameStrip');
+  strip.querySelector('span.nextrun')?.classList.remove('nextrun');
+  const runs = r.runs || []; const ri = runs.findIndex(run => run === runOf(r, cur));
+  const first = runs[ri + 1] ? runs[ri + 1][0] : null;
+  if (first) strip.querySelector(`span[data-i="${r.tracked.indexOf(first)}"]`)?.classList.add('nextrun');
 }
 function nextAttention() {
   const r = currentRecord(); const states = frameStates(r);
@@ -1516,6 +1545,11 @@ $('#frameScrub').onpointerup = e => {
   if (r) goToFrame(frameAtContentX(scrubFraction(e.clientX) * stripContent));
 };
 $('#frameStrip').onscroll = () => renderScrub();
+// One handler for every tick, on the strip itself.
+$('#frameStrip').onclick = e => {
+  const el = e.target.closest('span[data-i]'); if (!el) return;
+  goToFrame(+el.dataset.i);
+};
 $('#rec').onchange = () => { frameIdx = 0; showRecordInfo(); if (frameMode) showFrame(); };
 document.querySelectorAll('[name=tracking]').forEach(r => r.onchange = touch);
 $('#save').onclick = () => saveTarget().run(); $('#check').onclick = check;
