@@ -117,3 +117,4 @@ Spike/ReceiptSpike/fixtures/corpus.sqlite.tmp
 # SQLite WAL side files of the corpus database
 Spike/ReceiptSpike/fixtures/corpus.sqlite-wal
 Spike/ReceiptSpike/fixtures/corpus.sqlite-shm
+ios/.build-opt/out/Intermediates.noindex/GRDB.build/Debug/GRDB-t.build/Objects-normal/arm64/Database.d
