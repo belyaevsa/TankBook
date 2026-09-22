@@ -118,9 +118,18 @@ enum PumpRowAssignment {
     /// Greedy groups of near-equal windows sharing a baseline (row) or a
     /// centre line (column), at least `boardMinimumWindows` strong.
     private static func boardGroups(_ boxes: [CGRect], used: inout Set<Int>, axis: Axis, ladder: Bool = false) -> [[Int]] {
-        let widest = boxes.map(\.width).max() ?? 0
+        let widestBox = boxes.max { $0.width < $1.width } ?? .zero
+        let widest = widestBox.width
+        // A ladder cell is small, OR it lies wholly beside the widest window's
+        // horizontal span. The transaction rows share the display's span; a
+        // grade column on a UK pence head has cells as wide as the transaction
+        // rows, so width alone takes it for the transaction column and reads
+        // the whole head in the wrong order.
         func eligible(_ i: Int) -> Bool {
-            !used.contains(i) && (!ladder || boxes[i].width < ladderMaximumWidthFraction * widest)
+            guard !used.contains(i) else { return false }
+            guard ladder else { return true }
+            return boxes[i].width < ladderMaximumWidthFraction * widest
+                || boxes[i].maxX <= widestBox.minX || boxes[i].minX >= widestBox.maxX
         }
         func sameSize(_ a: CGRect, _ b: CGRect) -> Bool {
             abs(a.width - b.width) <= boardWidthTolerance * max(a.width, b.width)

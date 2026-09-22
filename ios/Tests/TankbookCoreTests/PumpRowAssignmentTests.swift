@@ -10,12 +10,13 @@ import Testing
 struct PumpRowAssignmentTests {
 
     // The floor moves only upward on the same corpus; a new hard fixture
-    // re-measures it and names why. 834/837 (0.996) on 217 fixtures after
-    // PU.30 taught the assigner the ladder column. The three left: pump-121,
-    // two lit price cells side by side with the transaction price on the
-    // right (geometry cannot order them; the law's board-as-price trial
-    // does), and pump-137, a UK head whose two pence cells are as wide as
-    // the transaction rows (docs/TASKS.md PU.23, PU.30).
+    // re-measures it and names why (docs/TASKS.md PU.23, PU.30, PU.60). The
+    // misses left: pump-121, two lit price cells side by side with the
+    // transaction price on the right (geometry cannot order them; the law's
+    // board-as-price trial does); pump-137, a UK head whose TWO pence cells
+    // are as wide as the transaction rows, below the three a column needs;
+    // and pump-313, whose price and grade cells sit side by side ABOVE the
+    // transaction rows, a two-cell row the board rules do not form.
     private static let accuracyFloor = 0.99
 
     @Test("every fixture's windows get the roles the annotation gives them", .pumpFixturesPresent)
@@ -25,15 +26,27 @@ struct PumpRowAssignmentTests {
         var total = 0
         var right = 0
         var misses: [String] = []
+        var contradictions: [String] = []
         for (name, value) in root.sorted(by: { $0.key < $1.key }) {
             guard name != "_about", let ann = value as? [String: Any] else { continue }
             let rotation = (ann["rotationCW"] as? NSNumber)?.intValue ?? 0
+            // A field the annotation lists as not on the display has no true
+            // window. A box carrying that role with no digit in it (pump-263's
+            // word `closed` on a closed pump) is where the annotator put the
+            // text, not a claim about the field, so it is not scored. A box
+            // WITH digits under an absent role is a contradiction in the
+            // annotation: it is scored as usual and reported, never hidden.
+            let absent = Set((ann["notOnDisplay"] as? [String]) ?? [])
             var windows: [PumpRowAssignment.Window] = []
             var truth: [PumpField] = []
             for raw in ann["windows"] as? [[String: Any]] ?? [] {
                 guard let fieldName = raw["field"] as? String, let field = PumpField(rawValue: fieldName),
                       let quad = raw["quad"] as? [[Double]] else { continue }
                 let text = raw["text"] as? String ?? ""
+                if absent.contains(fieldName) {
+                    guard text.contains(where: \.isNumber) else { continue }
+                    contradictions.append("\(name.prefix(8)) \(fieldName) '\(text)' is listed notOnDisplay")
+                }
                 // The image size only scales the quads; 1000 x 1000 keeps the geometry.
                 windows.append(PumpRowAssignment.Window(
                     quad: PumpReaderTestSupport.quadPixels(quad, width: 1000, height: 1000),
@@ -58,8 +71,31 @@ struct PumpRowAssignmentTests {
         let accuracy = Double(right) / Double(max(total, 1))
         print("PU.23 row assignment: \(right)/\(total) (\(String(format: "%.3f", accuracy)))")
         for m in misses.prefix(30) { print("  MISS \(m)") }
+        for c in contradictions { print("  ANNOTATION \(c)") }
         #expect(total > 400)
         #expect(accuracy >= Self.accuracyFloor)
+    }
+
+    @Test("a UK pence head's grade column is as wide as the transaction rows and still reads as a board")
+    func widePenceColumnIsABoard() {
+        // pump-308's layout: the transaction column at the right (5.00 / 3.11 /
+        // 160.9) and a grade column of three pence prices at the left whose
+        // cells are ~0.8 of the widest window - too wide for the ladder's width
+        // rule, so without the beside-the-span rule all six windows were read
+        // as one column top-down and every role came out wrong.
+        func box(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat) -> [CGPoint] {
+            [CGPoint(x: x, y: y), CGPoint(x: x + w, y: y), CGPoint(x: x + w, y: y + h), CGPoint(x: x, y: y + h)]
+        }
+        let windows = [
+            PumpRowAssignment.Window(quad: box(494, 235, 186, 80), glyphCount: 3),  // total
+            PumpRowAssignment.Window(quad: box(509, 313, 137, 63), glyphCount: 3),  // liters
+            PumpRowAssignment.Window(quad: box(472, 464, 132, 56), glyphCount: 4),  // price
+            PumpRowAssignment.Window(quad: box(90, 213, 145, 43), glyphCount: 4),   // grade column
+            PumpRowAssignment.Window(quad: box(98, 321, 149, 48), glyphCount: 4),
+            PumpRowAssignment.Window(quad: box(121, 417, 153, 61), glyphCount: 4),
+        ]
+        let roles = PumpRowAssignment.assign(windows: windows, rotationCW: 0).roles
+        #expect(roles == [.total, .liters, .unitPrice, .board, .board, .board])
     }
 
     @Test("pump-009's board of four never becomes the transaction price")

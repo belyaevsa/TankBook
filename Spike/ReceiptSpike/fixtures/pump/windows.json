@@ -26872,11 +26872,6 @@
     "placedBy": "auto"
    }
   ],
-  "notOnDisplay": [
-   "total",
-   "liters",
-   "unitPrice"
-  ],
   "reviewed": true,
   "tracking": "bad"
  },
