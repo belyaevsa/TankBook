@@ -239,7 +239,10 @@ the ml venv runs it); the converted images are cached under
 - The **scrub** under the strip is the strip in miniature: one column per frame
   in that frame's own state colour (drawn on a canvas - 1184 divs of the same
   picture stutter), so where the work is left shows at a glance, with a white
-  cap on an anchored frame and the hatch colour on a skipped one. The outlined
+  cap on an anchored frame and the hatch colour on a skipped one. A Live record
+  has no per-frame label, so its columns colour by what it does have: green for
+  an anchor, red where the tracker's inliers fall under its own floor, grey
+  otherwise. The outlined
   block is the part of the strip on screen and the tick is the current frame;
   drag the block, or click anywhere on the bar, to look elsewhere. **The strip
   itself no longer scrolls by hand** - the scrub is what moves it, and it moves
@@ -294,6 +297,32 @@ the ml venv runs it); the converted images are cached under
   dump carry it too. Remembered per browser. This is how a candidate is judged
   by looking (shipped vs candidate on the same still) rather than only by its
   committed count.
+- **⚖ compare** (toolbar button, on a still or a video frame): two models on
+  ONE image, column A and column B, each with its own **detector** and
+  **classifier** picker (both versioned: folder tag, write date, corpus
+  generation, sha8). Every overlay is drawn from what THAT model returned, never
+  from the annotation: the truth row's numbers as text, the hand windows dashed
+  (the oracle), the detector's own boxes (solid), the rows the verifier kept
+  (dashed, in the assigned field's colour), the assigned field per row, and the
+  slicer's cells inside each kept row tinted by the cell's margin (red = an
+  uncertain digit). Each layer toggles. Under the image, the **funnel** -
+  `detector N boxes -> candidates -> verified kept -> roles assigned -> cells
+  sliced -> read -> law` - carries each step's count and its `timingsMs` entry,
+  and a step that drops rows says how many. The per-field table and the combined
+  **verdict** show `expected.csv` against A and B with ✓ ✗ –, and the law's
+  `abstainReason` when the reply carries one (PU.51). Each side's raw reply is
+  behind a disclosure.
+  - **⇄ blink** (`b`) swaps A and B in place by moving the two panes, so the
+    canvases are not redrawn and nothing on screen shifts - the reliable way to
+    see a box move between models.
+  - **sweep…** runs both models over the current list filter in the background
+    (progress in the panel), caching each reply per (still, model pair) under
+    `ml/pump-reader/.out/compare-cache/`, and lists only the stills whose
+    committed triples differ; click a row to open the compare view on it. This
+    is how the interesting photo is found instead of clicking 68.
+  - **save** writes both replies and a PNG of the two panes to
+    `ml/pump-reader/runs/<date>/compare/<still>/` (`a.json`, `b.json`,
+    `meta.json`, `panes.png`) so a report can carry the evidence.
 - **▶ read** (`r`): runs the app's own reader on what is on
   screen and fills the fields as a prefill - the annotated windows (or a video
   frame's carried quads) are sliced, classified and judged by the law, and the
