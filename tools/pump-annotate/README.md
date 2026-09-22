@@ -378,6 +378,13 @@ the ml venv runs it); the converted images are cached under
   - **save** writes both replies and a PNG of the two panes to
     `ml/pump-reader/runs/<date>/compare/<still>/` (`a.json`, `b.json`,
     `meta.json`, `panes.png`) so a report can carry the evidence.
+- **A pre-fill keeps the display's own form.** The reader commits a number, and
+  a number has no trailing zeros - `17.90` came back as `17.9`, `2.250` as
+  `2.25`, and the card then failed its own `cells 4` check. The pre-fill is
+  rebuilt from the cells the reader read: the placement of the decimal point in
+  those digits that equals the committed value (`1790` + 17.9 → `17.90`, and a
+  zero-padded `003306` + 33.06 → `0033.06`). Where the law changed a digit, the
+  committed value is laid back into the same number of cells.
 - **▶ read** (`r`): runs the app's own reader on what is on
   screen and fills the fields as a prefill - the annotated windows (or a video
   frame's carried quads) are sliced, classified and judged by the law, and the

@@ -889,8 +889,11 @@ function setLabelField(field, value, prefill) {
     if (w.field !== field) return;
     w.text = value;
     const el = document.querySelector(`[data-t="${i}"]`);
-    if (el) { el.value = value; el.classList.toggle('prefill', !!prefill); }
+    if (el) { el.value = value; el.classList.toggle('prefill', !!prefill); updateCells(i); }
   });
+  // The arithmetic line reads these texts: a fill that skipped it left the line
+  // judging the previous numbers ("1.790 x 2250" beside a card saying 17.90).
+  updateArith();
 }
 async function putVideoLabel(movie, frame, body) {
   return await (await fetch('/api/video-label/' + encodeURIComponent(movie) + '/' + encodeURIComponent(frame),
@@ -1705,6 +1708,33 @@ function readImageKey() {
   if (frameMode) { const r = currentRecord(); const name = r && r.tracked[frameIdx]; return name ? `frame/${r.movie}/${name}` : null; }
   return current;
 }
+// The reader commits a NUMBER: 17.90 comes back as "17.9" and 2.250 as "2.25",
+// because the value is a decimal and a decimal has no trailing zeros. A window's
+// text is what the display SHOWS (zero padding and every cell kept), so the
+// pre-fill is rebuilt from the cells the reader actually read: the placement of
+// the decimal point in those digits that equals the committed value. When the
+// law changed a digit (no placement matches), the committed value is kept and
+// padded to the read's own number of fraction digits.
+function displayForm(committed, rawText) {
+  const value = Number(String(committed).replace(',', '.'));
+  const digits = String(rawText || '').replace(/[^0-9]/g, '');
+  if (!Number.isFinite(value) || !digits || /\?/.test(rawText || '')) return String(committed);
+  for (let k = 0; k < digits.length; k++) {
+    const text = k ? `${digits.slice(0, digits.length - k)}.${digits.slice(digits.length - k)}` : digits;
+    if (Math.abs(Number(text) - value) < 1e-9) return text;
+  }
+  // No placement matches: the law changed a digit, and the read's own decimal
+  // mark may be the very thing it overruled. The display still has one cell per
+  // digit, so the committed value is laid back into that many cells: the
+  // fraction takes what the integer part leaves, and the leading zero padding is
+  // restored.
+  const intDigits = String(Math.trunc(Math.abs(value))).replace(/^0$/, '').length || 1;
+  const padding = (digits.match(/^0+/) || [''])[0].length;
+  const fraction = Math.max(0, digits.length - padding - intDigits);
+  const [whole, frac] = value.toFixed(fraction).split('.');
+  const padded = whole.padStart(digits.length - fraction, '0');
+  return frac ? `${padded}.${frac}` : padded;
+}
 async function runReader(live, onDone) {
   const image = readImageKey(); if (!image) return;
   const wins = (frameMode && isVideo) ? windowsToDraw() : (entry ? entry.windows : []);
@@ -1748,7 +1778,7 @@ async function runReader(live, onDone) {
   readCells = {image, cells: (res.windows || []).flatMap(w => w.sliced || []),
                byField: Object.fromEntries((res.windows || []).map(w => [w.field, w.sliced || []]))};
   const raw = f => { const w = (res.windows || []).find(x => x.field === f); return w ? w.text : ''; };
-  const fill = f => c[f] ?? raw(f);
+  const fill = f => c[f] != null ? displayForm(c[f], raw(f)) : raw(f);
   if (frameMode && isVideo) {
     for (const f of ['total', 'liters', 'unitPrice']) {
       const v = fill(f); if (!v) continue;
