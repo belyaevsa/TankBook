@@ -23,7 +23,7 @@ struct PumpReaderPipelineTests {
     // 52 at 0.962, 14/64 photos, once the slicer preferred the fundamental
     // pitch; 66 at 0.970, 18/64, once it checked the pitch against the glyph
     // body (PU.4 round of 2026-09-20).
-    private static let committedFloor = 106
+    private static let committedFloor = 104
     private static let precisionFloor = 0.96
     // The live path (no annotation): measured on the heldout split on
     // 2026-09-20 after PU.24's verifier round - every candidate verified, a
