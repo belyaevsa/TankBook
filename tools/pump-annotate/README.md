@@ -176,6 +176,18 @@ the ml venv runs it); the converted images are cached under
   quads (never its numbers) onto this one - for a frame the tracker drifted on
   when the one before was right - and counts as a quad edit, so `⇧⏎` (or a drag) pins it as an
   anchor and the retrack registers the neighbours to it.
+- **Correcting a frame and carrying it forward** is one Save: open the frame,
+  move / resize / turn its boxes (a drag pins the frame by itself; a turn or a
+  nudge pins on Save), then press **Save** (or `⇧⏎`). The frames AFTER it are
+  re-fitted to the anchors and, on a video, re-read with those boxes - frames
+  before it are not touched. The tracker prefers, for each frame, the nearest
+  pinned frame at or before it, then the nearest after it, and the still only
+  last; inliers are a gate, not a ranking. (It used to rank the reference, or
+  the still, and the two nearest anchors by inlier count, so a fresh correction
+  lost to a far registration that merely matched more features - on
+  video-036 the same anchors now keep 139 frames against 92.) A pinned frame
+  shows a **white dot** on the strip and a white cap on the scrub, **amber**
+  while the frames after it have not been re-fitted to it yet.
 - **Retracking** re-fits the boxes of every frame you did NOT pin: the tracker
   matches each frame's image features against the reference frame (or the
   still) and against the frames you pinned, takes the best match, and carries

@@ -73,7 +73,10 @@
   #frameStrip span.attention { background:var(--bad) } #frameStrip span.prefill { background:#6b5a1e }
   #frameStrip span.cur { outline:2px solid #fff; outline-offset:0; transform:scaleY(1.15) }
   #frameStrip span.runstart { margin-left:7px }
+  #frameStrip span { position:relative }
   #frameStrip span.anchor { box-shadow: inset 0 0 0 1px #fff }
+  #frameStrip span.anchor::before { content:''; position:absolute; top:2px; left:3px; width:5px; height:5px; border-radius:50%; background:#fff }
+  #frameStrip span.pending::before { background:#ffc857; box-shadow:0 0 0 1px #0e1116 }
   #frameStrip span.skipped { background:repeating-linear-gradient(45deg,#7a2e2e 0 2px,#2a303a 2px 4px) }
   .neg { display:inline-block; margin:2px 4px 2px 0; padding:1px 6px; border:1px dashed #999; border-radius:4px; color:#bbb; font-size:12px }
   #frameStrip span.nextrun { position:relative } #frameStrip span.nextrun::after { content:'▲'; position:absolute; top:26px; left:1px; color:#fff; font-size:10px }
@@ -525,9 +528,10 @@ async function enterFrames() {
 // that looks the same as this one.
 function saveTarget() {
   if (!frameMode) return {label: 'Save', title: "the still's annotation (⌘S)", run: save};
-  if (isVideo) return {label: "Save frame's numbers", title: 'writes this frame label (⇧⏎; ⌥⏎ keyframe)', run: () => saveVideoLabel()};
-  return {label: '⚓ Pin frame', title: "pins this frame's boxes as a tracking anchor (⇧⏎)",
-          run: () => { clearTimeout(anchorTimer); saveAnchor(); }};
+  if (isVideo) return {label: "Save frame's numbers", title: "writes this frame's label; if you moved its boxes, the frames after it are re-fitted to them and re-read (⇧⏎; ⌥⏎ keyframe)",
+                        run: async () => { const carry = pinnedHere || frameQuadsEdited; await saveVideoLabel(); if (carry) await retrackForward(); }};
+  return {label: '⚓ Pin frame', title: "pins this frame's boxes and re-fits the frames after it to them (⇧⏎)",
+          run: async () => { clearTimeout(anchorTimer); if (frameQuadsEdited) await saveAnchor(); if (pinnedHere) await retrackForward(); }};
 }
 function labelSaveButtons() {
   const t = saveTarget();
@@ -678,7 +682,7 @@ function renderScrubMap() {
       : states ? (SCRUB_COLOURS[states[name]] || SCRUB_COLOURS.none)
       : (f.verified ? SCRUB_COLOURS.owner : (f.inliers >= 0 && f.inliers < weak) ? SCRUB_COLOURS.attention : SCRUB_COLOURS.tracked);
     ctx.fillRect(x, 0, wpx, canvas.height);
-    if (f.verified) { ctx.fillStyle = '#fff'; ctx.fillRect(x, 0, wpx, Math.max(1, dpr)); }
+    if (f.verified) { ctx.fillStyle = pendingSet(r.movie).has(name) ? '#ffc857' : '#fff'; ctx.fillRect(x, 0, wpx, Math.max(2, 3 * dpr)); }
   });
 }
 let stripPos = [], stripContent = 0, stripTick = 11;
@@ -780,7 +784,7 @@ let stripBuilt = '';
 function stripSignature(r, states) {
   return `${r.movie}/${r.tracked.length}/` + r.tracked.map(n => {
     const f = r.frames[n];
-    return (states ? states[n][0] : 't') + (f.verified ? 'a' : '') + (f.skipped ? 's' : '');
+    return (states ? states[n][0] : 't') + (f.verified ? 'a' : '') + (f.skipped ? 's' : '') + (pendingSet(r.movie).has(n) ? 'p' : '');
   }).join('');
 }
 function moveStripCursor(cur) {
@@ -802,8 +806,8 @@ function renderStrip() {
     const sig = stripSignature(r, null);
     if (sig === stripBuilt) { moveStripCursor(cur); centreStrip(); updateFrameNav(); return; }
     stripBuilt = sig;
-    strip.innerHTML = r.tracked.map((n, i) => `<span class="tracked ${n === cur ? 'cur' : ''} ${r.frames[n].verified ? 'anchor' : ''} ${r.frames[n].skipped ? 'skipped' : ''}" data-i="${i}" title="${n} · inliers ${r.frames[n].inliers}${r.frames[n].verified ? ' · anchor (quads placed by hand)' : ''}${r.frames[n].skipped ? ' · skipped (no display)' : ''}"></span>`).join('');
-    legend.innerHTML = `grey = tracked from the still · white outline = anchor (quads you placed) · drag a quad to anchor a frame · <kbd>⇧⏎</kbd> marks tracking ok and saves`;
+    strip.innerHTML = r.tracked.map((n, i) => `<span class="tracked ${n === cur ? 'cur' : ''} ${r.frames[n].verified ? 'anchor' : ''} ${pendingSet(r.movie).has(n) ? 'pending' : ''} ${r.frames[n].skipped ? 'skipped' : ''}" data-i="${i}" title="${n} · inliers ${r.frames[n].inliers}${r.frames[n].verified ? ' · pinned (boxes placed by hand)' : ''}${pendingSet(r.movie).has(n) ? ' – the frames after it are not re-fitted yet: Save' : ''}${r.frames[n].skipped ? ' · skipped (no display)' : ''}"></span>`).join('');
+    legend.innerHTML = `grey = tracked from the still · ● pinned (boxes you placed) · <span style="color:#ffc857">●</span> pinned, frames after it not re-fitted yet · drag a quad to anchor a frame · <kbd>⇧⏎</kbd> marks tracking ok and saves`;
     measureStrip(); centreStrip(); updateFrameNav();
     return;
   }
@@ -814,8 +818,8 @@ function renderStrip() {
   const runStart = new Set((r.runs || []).map(run => run[0]));
   const curRun = runOf(r, cur); const runs = r.runs || []; const ri = runs.findIndex(run => run === curRun);
   const nextRunFirst = runs[ri + 1] ? runs[ri + 1][0] : null;
-  strip.innerHTML = r.tracked.map((n, i) => `<span class="${states[n]} ${n === cur ? 'cur' : ''} ${runStart.has(n) ? 'runstart' : ''} ${n === nextRunFirst ? 'nextrun' : ''} ${r.frames[n].verified ? 'anchor' : ''} ${r.frames[n].skipped ? 'skipped' : ''}" data-i="${i}" title="${n} ${states[n]}${runStart.has(n) ? ' · new value' : ''}${r.frames[n].verified ? ' · anchor (quads placed by hand)' : ''}${r.frames[n].skipped ? ' · skipped (no display)' : ''}"></span>`).join('');
-  legend.innerHTML = `red = needs you (unlabelled or breaks the sequence) · yellow = reader pre-fill to confirm · green = labelled · teal = interpolated between keyframes · ▲ next unique value (<kbd>⇧→</kbd>) · gap = value changes`;
+  strip.innerHTML = r.tracked.map((n, i) => `<span class="${states[n]} ${n === cur ? 'cur' : ''} ${runStart.has(n) ? 'runstart' : ''} ${n === nextRunFirst ? 'nextrun' : ''} ${r.frames[n].verified ? 'anchor' : ''} ${pendingSet(r.movie).has(n) ? 'pending' : ''} ${r.frames[n].skipped ? 'skipped' : ''}" data-i="${i}" title="${n} ${states[n]}${runStart.has(n) ? ' · new value' : ''}${r.frames[n].verified ? ' · pinned (boxes placed by hand)' : ''}${pendingSet(r.movie).has(n) ? ' – the frames after it are not re-fitted yet: Save' : ''}${r.frames[n].skipped ? ' · skipped (no display)' : ''}"></span>`).join('');
+  legend.innerHTML = `red = needs you (unlabelled or breaks the sequence) · yellow = reader pre-fill to confirm · green = labelled · teal = interpolated between keyframes · ● pinned · <span style="color:#ffc857">●</span> pinned, not carried forward yet · ▲ next unique value (<kbd>⇧→</kbd>) · gap = value changes`;
   measureStrip(); centreStrip(); updateFrameNav();
 }
 // The ▲ marks the first frame of the NEXT run, so it moves with the cursor even
@@ -861,6 +865,14 @@ function showVideoLabel() {
   $('#vlSource').textContent = (f.source ? `(${f.source})` : (pre('total') ? '(reader pre-fill – confirm)' : '(unlabelled)')) + ` · run of ${run.length}` + (f.verified ? ' · ⚓ hand-placed quads' : '') + (f.skipped ? ' · ⊘ skipped (no display)' : '');
 }
 let frameQuadsEdited = false;
+// This frame was pinned during this visit (a drag pins by itself, 600 ms after
+// the mouse lets go). The explicit Save is what turns that into "carry this
+// forward": the frames after it are re-fitted to it and re-read.
+let pinnedHere = false;
+// Pinned frames whose later frames have NOT been re-fitted to them yet, per
+// record - shown amber on the strip and the scrub until a retrack carries them.
+const pendingForward = {};
+function pendingSet(movie) { return pendingForward[movie] || (pendingForward[movie] = new Set()); }
 // The frame label, read from the window cards (the one place it is typed) and
 // written back to them.
 function labelFields() {
@@ -1003,7 +1015,7 @@ function nextUnlabelled() { nextAttention(); }
 function showFrame() {
   if (!frameMode) return;
   refreshBanner(); $('#keepShapeLabel').style.display = '';
-  frameQuadsEdited = false;
+  frameQuadsEdited = false; pinnedHere = false;
   const r = currentRecord(); const name = r && r.tracked[frameIdx]; if (!name) return;
   carryUntracked(r.frames[name]);
   showVideoLabel();
@@ -1635,13 +1647,28 @@ async function saveAnchor(retrack = false) {
   // A pinned quad is a placement, whatever brought it onto the frame.
   r.frames[name].windows.forEach(w => delete w.carried);
   const res = await (await fetch('/api/video-anchor/' + encodeURIComponent(r.movie) + '/' + encodeURIComponent(name), {method:'PUT', body: JSON.stringify({windows: r.frames[name].windows, retrack})})).json();
-  r.frames[name].verified = true; frameQuadsEdited = false;
+  r.frames[name].verified = true; frameQuadsEdited = false; pinnedHere = true;
+  pendingSet(r.movie).add(name);
   markResume(r.movie, name);
   if (res.liveAnchors && entry) entry.liveAnchors = res.liveAnchors;
   if (!isVideo) $('#lfState').textContent = '⚓ anchor (quads placed by hand)';
   renderStrip();
   if (retrack) { setMsg(`anchor at ${name}, retracking`); notify('busy', `Anchor saved at ${name} – tracking ${r.movie} in progress…`); watchRetrack(r.movie); }
   else { setMsg(`frame ${name} saved (${res.anchors.length} anchors)`); notify('done', `Frame ${name} saved as an anchor – ${res.anchors.length} anchor${res.anchors.length === 1 ? '' : 's'} on ${r.movie}; the other frames are untouched (↻ re-track to move them)`); }
+}
+// Save on a frame whose boxes you placed: the frames AFTER it are re-fitted to
+// the anchors (this one first - the tracker prefers the nearest pinned frame
+// at or before each frame) and, on a video, re-read with those boxes.
+async function retrackForward() {
+  const r = currentRecord(); if (!r) return;
+  const name = r.tracked[frameIdx];
+  await fetch('/api/retrack-now/' + encodeURIComponent(r.movie) + '?from=' + encodeURIComponent(name) + (isVideo ? '&read=1' : ''), {method: 'POST'});
+  pinnedHere = false;
+  const at = +name.slice(0, -4);
+  for (const p of [...pendingSet(r.movie)]) if (+p.slice(0, -4) >= at) pendingSet(r.movie).delete(p);
+  stripBuilt = ''; renderStrip();
+  notify('busy', `${name} pinned – re-fitting the frames after it${isVideo ? ', then re-reading them' : ''}…`);
+  watchRetrack(r.movie);
 }
 async function pinBeforeRetrack() {
   if (frameMode && frameQuadsEdited) { clearTimeout(anchorTimer); await saveAnchor(); }
@@ -1650,6 +1677,9 @@ async function retrackNow(fromHere = false) {
   const r = currentRecord(); if (!r) return;
   await pinBeforeRetrack();
   const name = fromHere && frameMode ? r.tracked[frameIdx] : null;
+  if (name) { const at = +name.slice(0, -4); for (const p of [...pendingSet(r.movie)]) if (+p.slice(0, -4) >= at) pendingSet(r.movie).delete(p); }
+  else pendingSet(r.movie).clear();
+  stripBuilt = '';
   await fetch('/api/retrack-now/' + encodeURIComponent(r.movie) + (name ? '?from=' + encodeURIComponent(name) : ''), {method: 'POST'});
   notify('busy', name ? `Tracking ${r.movie} from ${name} on – earlier frames keep their quads…` : `Tracking ${r.movie}, every non-pinned frame…`); watchRetrack(r.movie);
 }
@@ -2328,9 +2358,9 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Enter' && e.altKey) { e.preventDefault(); confirmAll(); return; }
     if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); confirmOne(); return; }
   }
-  if (typing && frameMode && isVideo && e.key === 'Enter' && e.shiftKey) { e.preventDefault(); saveVideoLabel(); return; }
+  if (typing && frameMode && isVideo && e.key === 'Enter' && e.shiftKey) { e.preventDefault(); saveTarget().run(); return; }
   if (typing && frameMode && isVideo && e.key === 'Enter' && e.altKey) { e.preventDefault(); saveVideoLabel({keyframe: true}); return; }
-  if (frameMode && !isVideo && e.key === 'Enter' && e.shiftKey) { e.preventDefault(); if (frameQuadsEdited) { clearTimeout(anchorTimer); saveAnchor(); } else { markTrackingOk(); } return; }
+  if (frameMode && !isVideo && e.key === 'Enter' && e.shiftKey) { e.preventDefault(); if (frameQuadsEdited || pinnedHere) { saveTarget().run(); } else { markTrackingOk(); } return; }
   // Arrow keys nudge the selected window: one screen pixel at the current
   // zoom (shift = 10), in display space so the step is the same whatever the
   // still's 90-degree rotation; alt moves only the active corner.
@@ -2382,7 +2412,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && sel >= 0) { e.preventDefault(); sel = -1; renderWins(); draw(); return; }
   if (frameMode && e.key === 'Escape') { leaveFrames(); return; }
   if (frameMode && isVideo && e.key === 'Enter' && e.altKey) { e.preventDefault(); saveVideoLabel({keyframe: true}); return; }
-  if (frameMode && isVideo && e.key === 'Enter' && e.shiftKey) { e.preventDefault(); saveVideoLabel(); return; }
+  if (frameMode && isVideo && e.key === 'Enter' && e.shiftKey) { e.preventDefault(); saveTarget().run(); return; }
   if (frameMode) return;
   if ((e.key === 'Backspace' || e.key === 'Delete') && sel >= 0) { e.preventDefault(); removeWindow(sel); }
   if (e.key === 'p' || e.key === 'P') { $('#reviewed').checked = !$('#reviewed').checked; touch(); }

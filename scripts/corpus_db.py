@@ -1344,6 +1344,55 @@ def set_frame_key(record: str, frame: str, key: str, con: sqlite3.Connection | N
         con.execute("update frames set s3_key = ? where record = ? and frame = ?", (key, record, frame))
 
 
+def _frame_number(frame: str | None) -> int | None:
+    """`014.jpg` -> 14; anything else -> None."""
+    if not frame:
+        return None
+    stem = str(frame).rsplit(".", 1)[0]
+    return int(stem) if stem.isdigit() else None
+
+
+def _import_readings_from(con: sqlite3.Connection, record: str, readings: dict, labels: dict, in_scope) -> None:
+    """The scoped half of `import_readings`: frames in scope are replaced, the
+    rest are kept, and the whole record is renumbered in frame order so the
+    dump writes readings.json exactly as a full read would."""
+    kept = [dict(r) for r in con.execute("select * from readings where record = ? and frame != '' order by ord",
+                                         (record,)) if not in_scope(r["frame"])]
+    con.execute("delete from readings where record = ?", (record,))
+    rows = [(r["frame"], r["field"], r["text"], r["closes"]) for r in kept]
+    for frame, fields in readings.items():
+        closes = int(bool(fields.get("closes")))
+        rows += [(frame, field, text, closes) for field, text in fields.items() if field != "closes"]
+    order = {f: i for i, f in enumerate(sorted({r[0] for r in rows}, key=lambda f: _frame_number(f) or 0))}
+    for frame, field, text, closes in rows:
+        con.execute("insert into readings values (?,?,?,?,?,?)", (record, frame, field, text, closes, order[frame]))
+    if not rows:
+        con.execute("insert into readings values (?,?,?,?,?,?)", (record, "", "", None, None, -1))
+    # Labels: in scope, the reader's own rows are regenerated (an owner label
+    # stays, an interpolation the read did not touch stays); out of scope,
+    # nothing moves.
+    owner = {r["frame"] for r in con.execute(
+        "select distinct frame from labels where video = ? and source = 'owner'", (record,))}
+    for r in con.execute("select distinct frame from labels where video = ? and (source is null or source not in ('owner','interpolated'))",
+                         (record,)).fetchall():
+        if in_scope(r["frame"]):
+            con.execute("delete from labels where video = ? and frame = ? and (source is null or source not in ('owner','interpolated'))",
+                        (record, r["frame"]))
+    for frame in set(labels) | set(readings):
+        if in_scope(frame) and frame not in owner:
+            con.execute("delete from labels where video = ? and frame = ? and source = 'interpolated'", (record, frame))
+    for frame, fields in labels.items():
+        if frame in owner or not in_scope(frame):
+            continue
+        source = fields.get("source", "arithmetic")
+        for field, text in fields.items():
+            if field == "source":
+                continue
+            con.execute("insert into labels values (?,?,?,?,?)", (record, frame, field, text, source))
+    con.commit()
+    dump([LABELS_FILE, FRAMES / record / "readings.json"])
+
+
 def import_readings(path: Path) -> None:
     """The Swift reader's staging file -> `readings` and arithmetic `labels`,
     one transaction, then the two files dumped.
@@ -1360,9 +1409,16 @@ def import_readings(path: Path) -> None:
     record = data["record"]
     readings = data.get("readings") or {}
     labels = data.get("labels") or {}
+    # `from`: the read covered that frame and the later ones only, so only
+    # their readings and labels are replaced - the earlier frames keep theirs.
+    start = _frame_number(data.get("from")) if data.get("from") else None
+    in_scope = lambda frame: start is None or (_frame_number(frame) or 0) >= start
     con = connect()
     try:
         with con:
+            if start is not None:
+                _import_readings_from(con, record, readings, labels, in_scope)
+                return
             con.execute("delete from readings where record = ?", (record,))
             con.execute("delete from meta where key = ?", ("readings-style:" + record,))
             con.execute("insert into meta values (?,?)", ("readings-style:" + record, "compact"))

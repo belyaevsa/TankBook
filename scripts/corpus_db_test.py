@@ -447,3 +447,31 @@ def test_frame_skip_flag_is_kept_in_extra_and_read_back(tmp_path: Path, monkeypa
     with cdb.transaction() as con:
         assert not cdb.frame_skipped(con.execute("select extra from frames where frame = '007.jpg'").fetchone()["extra"])
     assert not cdb.set_frame_skipped("live-0001", "999.jpg", True)
+
+
+def test_import_readings_from_keeps_the_earlier_frames(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    db = tmp_path / "c.sqlite"
+    monkeypatch.setattr(cdb, "DB", db)
+    monkeypatch.setattr(cdb, "dump", lambda paths=None: [])
+    with sqlite3.connect(db) as con:
+        con.executescript(cdb.SCHEMA)
+    rec = "video-999"
+    full = tmp_path / "full.json"
+    full.write_text(json.dumps({"record": rec,
+                                "readings": {f"{i:03d}.jpg": {"total": str(i), "closes": True} for i in range(1, 7)},
+                                "labels": {f"{i:03d}.jpg": {"total": str(i), "source": "arithmetic"} for i in range(1, 7)}}))
+    cdb.import_readings(full)
+    part = tmp_path / "part.json"
+    part.write_text(json.dumps({"record": rec, "from": "004.jpg",
+                                "readings": {f"{i:03d}.jpg": {"total": f"R{i}", "closes": True} for i in range(4, 7)},
+                                "labels": {"005.jpg": {"total": "R5", "source": "arithmetic"}}}))
+    cdb.import_readings(part)
+    with cdb.transaction() as con:
+        readings = {r["frame"]: r["text"] for r in con.execute("select frame, text from readings where record = ? and field = 'total'", (rec,))}
+        labels = {r["frame"]: r["text"] for r in con.execute("select frame, text from labels where video = ? and field = 'total'", (rec,))}
+        order = [r["frame"] for r in con.execute("select distinct frame, ord from readings where record = ? order by ord", (rec,))]
+    # before 004 untouched; from 004 replaced
+    assert readings == {"001.jpg": "1", "002.jpg": "2", "003.jpg": "3", "004.jpg": "R4", "005.jpg": "R5", "006.jpg": "R6"}
+    # labels: earlier kept; 004 and 006 lost their arithmetic label (the new read did not close there); 005 new
+    assert labels == {"001.jpg": "1", "002.jpg": "2", "003.jpg": "3", "005.jpg": "R5"}
+    assert order == ["001.jpg", "002.jpg", "003.jpg", "004.jpg", "005.jpg", "006.jpg"]

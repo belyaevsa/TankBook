@@ -171,6 +171,36 @@ def carried(source: dict, quad: list) -> dict:
     return cw
 
 
+def candidates(regs: list[dict], index: int) -> list[dict]:
+    """The registrations a frame tries, in the order the owner's placements
+    deserve: the nearest pinned frame AT OR BEFORE it (the correction being
+    carried forward), then the nearest after it, then the rest by distance, and
+    the still (index None) last. The first that fits wins - inliers are a gate,
+    not a ranking: a far registration to the still can out-count a near anchor
+    and still be the wrong one, which is how a fresh correction used to be
+    ignored for the frames right after it."""
+    timed = [r for r in regs if r["index"] is not None]
+    before = sorted((r for r in timed if r["index"] <= index), key=lambda r: index - r["index"])
+    after = sorted((r for r in timed if r["index"] > index), key=lambda r: r["index"] - index)
+    order = before[:1] + after[:1] + sorted(before[1:] + after[1:], key=lambda r: abs(r["index"] - index))
+    return order + [r for r in regs if r["index"] is None]
+
+
+def fit(gray: np.ndarray, regs: list[dict], index: int, min_inliers: int):
+    """The first candidate registration that clears the inlier gate and maps
+    every window plausibly: (H, inliers, reg, mapped quads in frame pixels), or
+    None when none does."""
+    fh, fw = gray.shape
+    for r in candidates(regs, index):
+        H, inliers, _ = r["reg"].homography(gray)
+        if H is None or inliers < min_inliers:
+            continue
+        mapped = [map_quad(H, q) for q in r["quads"]]
+        if all(plausible(m, q, (fw, fh), r["size"]) for m, q in zip(mapped, r["quads"])):
+            return H, inliers, r, mapped
+    return None
+
+
 def track_record(stem: str, still: str, split: str, entry: dict, min_inliers: int,
                  start_at: int = 0) -> dict | None:
     """A Live Photo's frames take the still's quads and texts. The still is the
@@ -218,29 +248,13 @@ def track_record(stem: str, still: str, split: str, entry: dict, min_inliers: in
         gray = cv2.imread(str(frame), cv2.IMREAD_GRAYSCALE)
         fh, fw = gray.shape
         index = int(frame.stem) if frame.stem.isdigit() else 0
-        nearest = [regs[0]] + sorted(regs[1:], key=lambda r: abs(r["index"] - index))[:2]
-        best = None
-        for r in nearest:
-            H, inliers, _ = r["reg"].homography(gray)
-            if H is not None and inliers >= min_inliers and (best is None or inliers > best[1]):
-                best = (H, inliers, r)
-        if best is None:
+        found = fit(gray, regs, index, min_inliers)
+        if found is None:
             dropped += 1
             continue
-        H, inliers, r = best
-        rw, rh = r["size"]
-        windows = []
-        ok = True
-        for i, (w, q) in enumerate(zip(r["windows"], r["quads"])):
-            m = map_quad(H, q)
-            if not plausible(m, q, (fw, fh), (rw, rh)):
-                ok = False
-                break
-            windows.append(carried(source(i, w),
-                                   [[round(float(x) / fw, 4), round(float(y) / fh, 4)] for x, y in m]))
-        if not ok:
-            dropped += 1
-            continue
+        H, inliers, r, mapped = found
+        windows = [carried(source(i, w), [[round(float(x) / fw, 4), round(float(y) / fh, 4)] for x, y in m])
+                   for i, (w, m) in enumerate(zip(r["windows"], mapped))]
         out["frames"][frame.name] = {"windows": windows, "inliers": inliers,
                                      **({"anchor": r["index"]} if r["index"] is not None else {})}
         kept += 1
@@ -319,29 +333,14 @@ def track_video(stem: str, entry: dict, min_inliers: int, start_at: int = 0) -> 
         gray = cv2.imread(str(frame), cv2.IMREAD_GRAYSCALE)
         fh, fw = gray.shape
         index = int(frame.stem)
-        nearest = sorted(regs, key=lambda r: abs(r["index"] - index))[:2]
-        best = None
-        for r in nearest:
-            H, inliers, _ = r["reg"].homography(gray)
-            if H is not None and inliers >= min_inliers and (best is None or inliers > best[1]):
-                best = (H, inliers, r)
-        if best is None:
+        found = fit(gray, regs, index, min_inliers)
+        if found is None:
             dropped += 1
             continue
-        H, inliers, r = best
-        sw, sh = r["size"]
-        windows = []
-        ok = True
-        for w, q in zip(r["windows"], r["quads"]):
-            m = map_quad(H, q)
-            if not plausible(m, q, (fw, fh), (sw, sh)):
-                ok = False
-                break
-            windows.append({"field": w["field"], "text": entry["unitPrice"] if w["field"] == "unitPrice" else "",
-                            "quad": [[round(float(x) / fw, 4), round(float(y) / fh, 4)] for x, y in m]})
-        if not ok:
-            dropped += 1
-            continue
+        H, inliers, r, mapped = found
+        windows = [{"field": w["field"], "text": entry["unitPrice"] if w["field"] == "unitPrice" else "",
+                    "quad": [[round(float(x) / fw, 4), round(float(y) / fh, 4)] for x, y in m]}
+                   for w, m in zip(r["windows"], mapped)]
         out["frames"][frame.name] = {"windows": windows, "inliers": inliers, "anchor": r["index"]}
         kept += 1
     out["_kept"] = kept

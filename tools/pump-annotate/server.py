@@ -655,11 +655,23 @@ def propagate_texts(record: str, windows: list[dict]) -> None:
 retracks: dict[str, dict] = {}
 
 
+def _earliest(a: str | None, b: str | None) -> str | None:
+    """The earlier of two start frames; None (the whole record) wins."""
+    if a is None or b is None:
+        return None
+    return a if int(a[:-4]) <= int(b[:-4]) else b
+
+
 def start_retrack(name: str, read: bool = False, from_frame: str | None = None) -> None:
     import threading  # noqa: PLC0415
     current = retracks.get(name)
     if current and current.get("running"):
-        current["again"] = True   # a save during a run queues one more run
+        # A pin during a run queues one more run, from the EARLIEST frame
+        # anyone asked for - two corrections in a row are one re-fit from the
+        # first of them, not two runs where the second forgets the first.
+        queued = current.get("again")
+        current["againFrom"] = from_frame if not queued else _earliest(current.get("againFrom"), from_frame)
+        current["again"] = True
         current["read"] = current.get("read", False) or read
         return
     retracks[name] = {"running": True, "again": False, "read": read, "phase": "track", "result": None,
@@ -671,7 +683,7 @@ def start_retrack(name: str, read: bool = False, from_frame: str | None = None) 
             python = ml / ".venv" / "bin" / "python"
             retracks[name]["phase"] = "track"
             mode = ["--videos"] if name.startswith("video-") else []
-            start = retracks[name].pop("from", None)
+            start = retracks[name].get("from")
             scope = ["--from", start] if start else []
             result = subprocess.run([str(python), "-m", "pump_reader.track", *mode, "--only", name, *scope],
                                     cwd=ml, env={**os.environ, "PYTHONPATH": "src"}, capture_output=True, text=True)
@@ -681,14 +693,19 @@ def start_retrack(name: str, read: bool = False, from_frame: str | None = None) 
             if retracks[name].get("read"):
                 retracks[name]["read"] = False
                 retracks[name]["phase"] = "read"
+                # The read covers the frames the track just re-fitted and no
+                # others: a correction at frame 900 re-reads 900 on, not 1184.
+                env = {**os.environ, "PUMP_VIDEO_READ": "1", "PUMP_VIDEO_READ_ONLY": name}
+                if start:
+                    env["PUMP_VIDEO_READ_FROM"] = start
                 test = subprocess.run(["swift", "test", "--filter", "PumpVideoReadTests"], cwd=ROOT / "ios",
-                                      env={**os.environ, "PUMP_VIDEO_READ": "1", "PUMP_VIDEO_READ_ONLY": name},
-                                      capture_output=True, text=True)
+                                      env=env, capture_output=True, text=True)
                 out = (test.stdout + test.stderr).strip().splitlines()
                 summary = next((ln for ln in reversed(out) if "Test run" in ln or "error:" in ln), None)
                 retracks[name]["result"] = (summary or f"exit {test.returncode}").strip()
             if retracks[name].get("again"):
                 retracks[name]["again"] = False
+                retracks[name]["from"] = retracks[name].pop("againFrom", None)
                 continue
             retracks[name]["running"] = False
             return
@@ -839,7 +856,8 @@ class Handler(SimpleHTTPRequestHandler):
                         corpus_db.pin_frame(stem, frame, windows, con=con)
                     dump_files([WINDOWS, tracked, corpus_db.CORRECTIONS_FILE])
                 if body.get("retrack"):
-                    start_retrack(stem)
+                    # A pinned frame re-fits the frames after it, not the record.
+                    start_retrack(stem, from_frame=frame)
                 return self.send_json({"ok": True, "anchors": [a["frame"] for a in anchors if a["record"] == stem],
                                        "liveAnchors": anchors, "retrack": bool(body.get("retrack"))})
             if stem not in videos:
@@ -850,7 +868,8 @@ class Handler(SimpleHTTPRequestHandler):
                     corpus_db.pin_frame(stem, frame, windows, {"unitPrice": videos[stem].get("unitPrice", "")}, con=con)
                 dump_files([VIDEOS, FRAMES / stem / "windows.json", corpus_db.CORRECTIONS_FILE])
             if body.get("retrack"):
-                start_retrack(stem)
+                # A pinned video frame re-fits the frames after it, then re-reads them.
+                start_retrack(stem, read=True, from_frame=frame)
             return self.send_json({"ok": True, "anchors": anchors, "retrack": bool(body.get("retrack"))})
         if path.startswith("/api/video-label/"):
             # /api/video-label/<stem>/<frame>: the owner's texts for one frame.
@@ -1102,8 +1121,11 @@ class Handler(SimpleHTTPRequestHandler):
             # ?from=NNN.jpg re-registers only that frame and the ones after it.
             query = dict(p.split("=", 1) for p in urlparse(self.path).query.split("&") if "=" in p)
             from_frame = unquote(query.get("from", "")) or None
-            start_retrack(stem, from_frame=from_frame)
-            return self.send_json({"ok": True, "from": from_frame})
+            # ?read=1 re-reads the re-fitted frames too (a video; a Live record
+            # has no per-frame label to read).
+            read = query.get("read") == "1" and stem.startswith("video-")
+            start_retrack(stem, read=read, from_frame=from_frame)
+            return self.send_json({"ok": True, "from": from_frame, "read": read})
         if path.startswith("/api/rerun/"):
             # /api/rerun/<stem>: retrack the clip from its anchors, then read every
             # tracked frame again. Owner labels, anchored frames and a reviewed
