@@ -189,6 +189,16 @@ the ml venv runs it); the converted images are cached under
   video frame. A button with no meaning in the current view is hidden, not
   disabled, so the row reads as what can be done now. The right panel keeps only
   what is about THIS image: its windows, its negatives, its CSV row, its record.
+- **The frames bar sits under the image**, not in the right panel: always
+  present so the picture never jumps when the frames view opens, filled only in
+  that view. It scrolls horizontally and **keeps the current frame in the
+  middle**, so the neighbours a run is judged against are always the ones on
+  screen; the ticks are tall enough to hit, the legend under them carries the
+  colours and the frame count. Click a tick to jump to it.
+- **The file name is in the toolbar only** - the record, the frame and the
+  position (`video-002-… · 001.jpg · 1/1184`); the right panel carries what is
+  about the image's annotation, never its name again, and the banner says only
+  `ready` or `unsaved changes`.
 - **↶ undo** (`⌘Z`) steps back through the box edits the browser cannot undo: a
   window drawn, moved, turned, nudged or deleted, boxes copied from the previous
   frame, auto-annotate, a pad, a negative added or removed. Text typed in a card
