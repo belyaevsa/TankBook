@@ -943,6 +943,27 @@ text lines against the 30 ceiling), **0/8 receipts leaked**, and the decision is
 plus a text-line count (~50-80 ms in Release on the 12 MP stills) instead of the verifier's
 0.8-3.5 s. The read floors are untouched.
 
+**Decision 11 (product owner, 2026-09-22): the unit price is OPTIONAL, and a price-like number
+is a cross-check, not a gate.** *"The price per unit is not always available, it might be and it's
+good. If it's missing, accept as it is. Found total, found volume. If there are other numbers close
+to the cost per unit - that's a validation, not a pass/fail decision."* The law today requires a
+price: it needs `volume x price = total` to close, so a display with no price window and no board
+cell to stand in for one abstains - **26 of the ~52 heldout stills that commit nothing refuse for
+exactly this reason** (`boardFoundNoPrice`, PU.51's histogram). That is the largest single refusal
+in the corpus, and it refuses a fill the user could have logged: total and volume are a complete
+`FillUp` (`docs/SCHEMA.md`), the price per litre is derived from them everywhere else in the app.
+
+What changes: **total + volume may commit without a price.** What replaces the arithmetic as the
+guard is the price the pair IMPLIES - `total / volume` must fall inside the plausible band for the
+currency and fuel (`FuelPriceBand`, already threaded through `PumpReadingLaw.resolve` and unused on
+this path today); outside it the read still abstains, because an implausible implied price is how a
+misread digit shows itself when there is no third number to check against. A price the display DOES
+show, or a board cell near the implied price, becomes a **validation**: agreement raises confidence,
+disagreement surfaces as the F2 confirm on the form (hard rule 13 - the app suggests, the user
+decides), never as a silent refusal and never as a silent overwrite of the paid price. `pump-300`
+and `pump-266` are why the board may not simply be taken as the price: both are loyalty-discounted
+fills where the paid price is below every board cell.
+
 **The operator's corrections.** Every disagreement between a tool's proposal (the tracker's
 quad, the reader's pre-fill) and the annotator's hand is recorded (`pump-live/corrections.jsonl`)
 with the build it came from; `ml/pump-reader/CORRECTIONS.md` is the standing procedure that reads
