@@ -3,6 +3,7 @@
 //
 //   pump-read <image> [--classifier <PumpSegments.mlpackage>] [--detector <DigitRows.mlmodel>] < request.json
 //   pump-read --slice-serve            # resident slicer: one request per stdin line, no model
+//   pump-read --read-serve [--classifier p]  # resident video-frame reader, model loaded once
 //
 // Request (stdin): {"rotationCW": 0, "currency": "EUR",
 //                   "windows": [{"field": "total", "quad": [[x, y] x 4]}, ...]}
@@ -130,6 +131,48 @@ if arguments.contains("--slice-serve") {
                     return ["field": window.field.rawValue, "sliced": sliced.quads,
                             "cells": sliced.cells.count,
                             "dpCell": sliced.cells.firstIndex(where: { $0.hasDecimalPoint }) ?? NSNull()]
+                }
+            } else {
+                reply["error"] = "cannot load image"
+            }
+        } else {
+            reply["error"] = "bad request"
+        }
+        reply["ms"] = Int(Date().timeIntervalSince(started) * 1000)
+        if let out = try? JSONSerialization.data(withJSONObject: reply), let text = String(data: out, encoding: .utf8) {
+            print(text)
+        }
+    }
+    exit(0)
+}
+
+// `--read-serve`: a resident video-frame reader for the annotator's re-read
+// after a retrack. One JSON request per stdin line - {"image": path,
+// "priceText": "2.250", "windows": [...]} with quads normalised over the
+// oriented frame - one JSON reply per line with the frame's reading and, when
+// total == liters x price closes, its arithmetic label. It reads through
+// PumpVideoFrameRead, the same code PumpVideoReadTests labels with, so the
+// model is loaded once instead of per `swift test` launch.
+if arguments.contains("--read-serve") {
+    struct ReadRequest: Decodable {
+        var image: String?
+        var priceText: String?
+        var windows: [Request.Window]?
+    }
+    let reader = PumpReader(model: try PumpSegmentsModel(contentsOf: URL(fileURLWithPath: classifierPath)))
+    setvbuf(stdout, nil, _IOLBF, 0)
+    while let line = readLine(strippingNewline: true) {
+        let started = Date()
+        var reply: [String: Any] = [:]
+        if let data = line.data(using: .utf8), let request = try? JSONDecoder().decode(ReadRequest.self, from: data),
+           let path = request.image, let priceText = request.priceText {
+            if let image = PumpQuadWarp.loadOrientedImage(from: URL(fileURLWithPath: path)).map(PumpQuadWarp.rgbImage(from:)) {
+                let windows = (request.windows ?? []).map { PumpVideoFrameRead.Window(field: $0.field, quad: $0.quad) }
+                if let read = PumpVideoFrameRead.read(reader: reader, image: image, windows: windows, priceText: priceText) {
+                    reply["reading"] = read.reading
+                    reply["label"] = read.label(priceText: priceText) ?? NSNull()
+                } else {
+                    reply["reading"] = NSNull()
                 }
             } else {
                 reply["error"] = "cannot load image"

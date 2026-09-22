@@ -141,7 +141,7 @@ struct PumpVideoReadTests {
     private static func readFrames(stem: String, video: [String: Any], frameNames: [String],
                                    skip: Set<String>) throws -> ReadResult {
         guard let priceText = video["unitPrice"] as? String,
-              let price = Double(priceText.replacingOccurrences(of: ",", with: ".")) else {
+              Double(priceText.replacingOccurrences(of: ",", with: ".")) != nil else {
             return ReadResult(readings: [:], arithmetic: [:], closed: 0, read: 0)
         }
         let trackedURL = live.appendingPathComponent("frames/\(stem)/windows.json")
@@ -151,7 +151,6 @@ struct PumpVideoReadTests {
         }
         let model = try PumpSegmentsModel(contentsOf: modelURL)
         let reader = PumpReader(model: model)
-        let comma = priceText.contains(",")
         var readings: [String: Any] = [:]
         var arithmetic: [String: Any] = [:]
         var closed = 0, read = 0
@@ -162,38 +161,20 @@ struct PumpVideoReadTests {
                   // is human-reviewed; it keeps whatever it has.
                   (frame["verified"] as? Bool) != true,
                   let image = PumpReaderTestSupport.loadRGB(url: live.appendingPathComponent("frames/\(stem)/\(frameName)")) else { continue }
-            var located: [PumpReader.Window] = []
-            for w in windows {
-                guard let field = w["field"] as? String, let quad = (w["quad"] as? [[NSNumber]])?.map({ $0.map(\.doubleValue) }),
-                      field != "unitPrice", let role = PumpField(rawValue: field) else { continue }
-                located.append(PumpReader.Window(field: role, quad: PumpReaderTestSupport.quadPixels(quad, width: image.width, height: image.height)))
+            let windowsIn = windows.compactMap { window -> PumpVideoFrameRead.Window? in
+                guard let field = window["field"] as? String,
+                      let quad = (window["quad"] as? [[NSNumber]])?.map({ $0.map(\.doubleValue) }) else { return nil }
+                return PumpVideoFrameRead.Window(field: field, quad: quad)
             }
-            guard let reads = try? reader.read(image: image, windows: located) else { continue }
+            guard let frameRead = PumpVideoFrameRead.read(reader: reader, image: image, windows: windowsIn,
+                                                          priceText: priceText) else { continue }
             read += 1
-            // The cells as strings, no law: the arithmetic is the whole check.
-            var strings: [PumpField: String] = [:]
-            var margins: [Double] = []
-            for r in reads {
-                let digits = r.cells.map { cell -> String in
-                    guard let best = cell.ranked.first else { return "?" }
-                    return String(best.digit) + (cell.decimalPoint ? (comma ? "," : ".") : "")
-                }.joined()
-                strings[r.field] = digits
-                if r.field == .total || r.field == .liters { margins.append(contentsOf: r.cells.map(\.margin)) }
-            }
-            let t = strings[.total] ?? "", l = strings[.liters] ?? ""
-            let total = Double(t.replacingOccurrences(of: ",", with: "."))
-            let liters = Double(l.replacingOccurrences(of: ",", with: "."))
-            let closes = !t.contains("?") && !l.contains("?") && total != nil && liters != nil && liters! > 0
-                && (abs(total! - (liters! * price * 100).rounded() / 100) < 0.011 || abs(total! - (liters! * price * 10).rounded() / 10) < 0.06)
             // Every reading is kept for the annotator's pre-fill; only a closing
             // one is a label.
-            var reading: [String: Any] = ["total": t, "liters": l, "closes": closes]
-            if let margin = margins.min() { reading["margin"] = margin }
-            readings[frameName] = reading
-            guard closes else { continue }
+            readings[frameName] = frameRead.reading
+            guard let label = frameRead.label(priceText: priceText) else { continue }
             closed += 1
-            arithmetic[frameName] = ["total": t, "liters": l, "unitPrice": priceText, "source": "arithmetic"]
+            arithmetic[frameName] = label
         }
         return ReadResult(readings: readings, arithmetic: arithmetic, closed: closed, read: read)
     }

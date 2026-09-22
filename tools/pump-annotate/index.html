@@ -500,8 +500,9 @@ function watchRetrack(name) {
   if (retrackWatch[name]) return;
   retrackWatch[name] = setInterval(async () => {
     const st = await (await fetch('/api/retrack/' + encodeURIComponent(name))).json();
-    $('#out').textContent = st.running ? `${st.phase === 'read' ? 'reading' : 'retracking'} ${name.slice(0, 9)}…` : `done: ${st.result || ''}`;
-    notify(st.running ? 'busy' : 'done', st.running ? `${st.phase === 'read' ? 'Reading every frame of' : 'Tracking'} ${name} in progress…` : `Re-tracking completed – ${st.result || 'no result line'}`);
+    const readCount = st.readTotal ? ` ${st.readDone}/${st.readTotal}` : '';
+    $('#out').textContent = st.running ? `${st.phase === 'read' ? 'reading' + readCount : 'retracking'} ${name.slice(0, 9)}…` : `done: ${st.result || ''}`;
+    notify(st.running ? 'busy' : 'done', st.running ? `${st.phase === 'read' ? `Reading${readCount} frames of` : 'Tracking'} ${name} in progress…` : `Re-tracking completed – ${st.result || 'no result line'}`);
     if (!st.running) { clearInterval(retrackWatch[name]); delete retrackWatch[name]; const mine = current === name || (currentRecord() && currentRecord().movie === name); if (mine) { recordsLoaded = loadRecords(current); if (frameMode) recordsLoaded.then(showFrame); } }
   }, 2000);
 }

@@ -36,6 +36,7 @@ from urllib.parse import unquote, urlparse
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 import corpus_db  # noqa: E402
+from reader import ResidentReader, read_video  # noqa: E402
 from slicer import ResidentSlicer  # noqa: E402
 
 FIX = ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "pump"
@@ -67,6 +68,9 @@ def build_slice_tool() -> bool:
 
 
 SLICER = ResidentSlicer(SLICE_TOOL, build=build_slice_tool, cwd=ROOT)
+# The same optimised binary reads a retrack's moved frames with the model held
+# in memory (`--read-serve`), instead of a `swift test` launch per Save.
+READER = ResidentReader(SLICE_TOOL, build=build_slice_tool, cwd=ROOT)
 CLASSIFIER = ROOT / "ios" / "App" / "Resources" / "PumpSegments.mlpackage"
 DETECTOR = ROOT / "ios" / "App" / "Resources" / "DigitRows.mlmodel"
 # Every row detector on this machine: the one in the bundle, the dev copy the
@@ -702,22 +706,30 @@ def start_retrack(name: str, read: bool = False, from_frame: str | None = None, 
                 retracks[name]["phase"] = "read"
                 # The read covers the frames the track just re-fitted and no
                 # others: a correction at frame 900 re-reads 900 on, not 1184.
-                env = {**os.environ, "PUMP_VIDEO_READ": "1", "PUMP_VIDEO_READ_ONLY": name}
-                if start:
-                    env["PUMP_VIDEO_READ_FROM"] = start
                 # Only the frames whose boxes the re-fit moved are read again: an
                 # unmoved box reads the same pixels and cannot change its label.
-                if changed is not None:
-                    env["PUMP_VIDEO_READ_FRAMES"] = ",".join(changed)
+                moved = f" · re-read {len(changed)} moved frame(s)" if changed is not None else ""
                 if changed == []:
                     retracks[name]["result"] += " · nothing to re-read"
                 else:
-                    test = subprocess.run(["swift", "test", "--filter", "PumpVideoReadTests"], cwd=ROOT / "ios",
-                                          env=env, capture_output=True, text=True)
-                    out = (test.stdout + test.stderr).strip().splitlines()
-                    summary = next((ln for ln in reversed(out) if "Test run" in ln or "error:" in ln), None)
-                    retracks[name]["result"] = (summary or f"exit {test.returncode}").strip() + (
-                        f" · re-read {len(changed)} moved frame(s)" if changed is not None else "")
+                    try:
+                        retracks[name]["result"] = read_video(
+                            READER, name, start=start, frames=changed,
+                            progress=lambda done, total: retracks[name].update(readDone=done, readTotal=total)) + moved
+                    except Exception as exc:  # noqa: BLE001 - the test run is the fallback reader
+                        sys.stderr.write(f"resident read failed for {name}: {exc}; reading through swift test\n")
+                        env = {**os.environ, "PUMP_VIDEO_READ": "1", "PUMP_VIDEO_READ_ONLY": name}
+                        if start:
+                            env["PUMP_VIDEO_READ_FROM"] = start
+                        if changed is not None:
+                            env["PUMP_VIDEO_READ_FRAMES"] = ",".join(changed)
+                        test = subprocess.run(["swift", "test", "--filter", "PumpVideoReadTests"], cwd=ROOT / "ios",
+                                              env=env, capture_output=True, text=True)
+                        out = (test.stdout + test.stderr).strip().splitlines()
+                        summary = next((ln for ln in reversed(out) if "Test run" in ln or "error:" in ln), None)
+                        retracks[name]["result"] = (summary or f"exit {test.returncode}").strip() + moved
+                    retracks[name].pop("readDone", None)
+                    retracks[name].pop("readTotal", None)
             if retracks[name].get("again"):
                 retracks[name]["again"] = False
                 retracks[name]["from"] = retracks[name].pop("againFrom", None)

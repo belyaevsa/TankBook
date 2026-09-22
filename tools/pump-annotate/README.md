@@ -183,6 +183,13 @@ the ml venv runs it); the converted images are cached under
   that one, so re-fitting it is wasted), and on a video **only the frames whose
   boxes moved** (any box overlapping its stored self by less than 0.97) are read
   again - an unmoved box reads the same pixels and cannot change its label.
+  The read goes through a resident `pump-read --read-serve` (`reader.py`, the
+  same optimised binary as the live slicers) that holds the classifier in
+  memory and reads through `PumpVideoFrameRead`, the code `PumpVideoReadTests`
+  labels with - about 25 ms a frame instead of a `swift test` launch (video-035,
+  48 frames: 1.4 s against 24 s, the readings and labels byte-identical). The
+  status line counts `reading n/N`. If the resident reader fails, the same read
+  runs through `swift test` instead.
   Frames before it are not touched. Each anchor's matcher is built the first
   time a frame tries it, so a Save on a record with 36 pins re-fits in about a
   second (12.8 s when every matcher was built up front). The tracker prefers, for each frame, the nearest
