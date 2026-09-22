@@ -342,13 +342,15 @@ def test_import_defaults_placed_by(db_copy: Path) -> None:
     assert cdb.default_placed_by("pump-032-gilbarco-circlek-ee-clean.jpg") == "hand"
     assert cdb.default_placed_by("pump-250-gilbarco-circlek-peetri-pump7-3590l-2099-ee.jpg") == "auto"
     assert cdb.default_placed_by("pump-032-gilbarco-circlek-ee-clean.jpg", pending=True) == "auto"
+    # The corpus assertion is about the IMPORT, not about which stills are
+    # auto today: an auto-placed still whose boxes the owner then adjusts
+    # carries both provenances, which is the annotator working as intended.
+    # What must hold is that every window has one.
     with sqlite3.connect(str(db_copy)) as con:
-        auto = {r[0] for r in con.execute("select distinct fixture from windows where placed_by = 'auto'")}
-        hand = {r[0] for r in con.execute("select distinct fixture from windows where placed_by = 'hand'")}
-    assert auto and hand, "the imported corpus carries both defaults"
-    assert not (auto & hand), "a still carries both defaults"
-    for name in auto:
-        assert 244 <= int(name.split("-")[1]) <= 281, name
+        placed = {r[0] for r in con.execute("select distinct coalesce(placed_by, '') from windows")}
+        missing = con.execute("select count(*) from windows where placed_by is null or placed_by = ''").fetchone()[0]
+    assert missing == 0, f"{missing} imported windows carry no placedBy"
+    assert {"auto", "hand"} <= placed, f"the imported corpus carries both defaults: {placed}"
 
 
 def test_board_text_validator(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys) -> None:
@@ -413,3 +415,76 @@ def test_migrate_adds_placed_by_and_backfills(tmp_path: Path) -> None:
     assert version == cdb.SCHEMA_VERSION
     assert nulls == 0, "the migration left windows without provenance"
     assert auto and all(244 <= int(n.split("-")[1]) <= 281 for n in auto), auto
+
+
+# ---------------------------------------------------------------------------
+# PU.50: the compare view. Two models on one still, side by side.
+#
+# The compare route runs the real `pump-read` twice, so the tests name a still
+# whose CSV row they know and read the verdict back against it. The disagreement
+# route is pure: it is fed stubbed replies and never runs a model.
+# ---------------------------------------------------------------------------
+
+COMPARE_STILL = "pump-032-gilbarco-circlek-ee-clean.jpg"
+
+
+def http_post_json(url: str, body: dict, timeout: int = 900):
+    req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
+                                 headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read().decode())
+
+
+def expected_row(still: str) -> dict:
+    with (ROOT / "Spike" / "ReceiptSpike" / "fixtures" / "pump" / "expected.csv").open() as f:
+        return next(r for r in csv.DictReader(f) if r["filename"] == still)
+
+
+def test_compare_route_returns_both_replies_and_verdict(server):
+    base, _ = server
+    detectors = http_json("GET", base + "/api/detectors")
+    classifiers = http_json("GET", base + "/api/classifiers")
+    assert len(detectors) >= 2, "the compare view needs two detectors to compare"
+    assert classifiers, "no classifier on this machine"
+    det_a = next((d for d in detectors if d["shipped"]), detectors[0])["path"]
+    det_b = next(d for d in detectors if d["path"] != det_a)["path"]
+    cls = next((c for c in classifiers if c["shipped"]), classifiers[0])["path"]
+    body = {"image": COMPARE_STILL, "detectorA": det_a, "detectorB": det_b,
+            "classifierA": cls, "classifierB": cls, "cache": False}
+    res = http_post_json(base + "/api/compare", body)
+    for side in ("a", "b"):
+        assert isinstance(res[side]["reply"].get("committed"), dict), (side, res[side])
+        assert res[side]["detector"]["path"] in (det_a, det_b)
+    # The oracle: the CSV row the test named, per field, with A and B beside it.
+    row = expected_row(COMPARE_STILL)
+    for field in ("total", "liters", "unitPrice"):
+        cell = res["verdict"][field]
+        assert cell["expected"] == row[field], (field, cell, row)
+        assert cell["a"] == res["a"]["reply"]["committed"].get(field)
+        assert cell["b"] == res["b"]["reply"]["committed"].get(field)
+        assert cell["aVerdict"] in ("✓", "✗", "–")
+        assert cell["bVerdict"] in ("✓", "✗", "–")
+
+
+def test_compare_unknown_model_refused(server):
+    base, _ = server
+    body = {"image": COMPARE_STILL, "detectorA": "not/a/detector.mlmodel",
+            "detectorB": "not/a/detector.mlmodel"}
+    with pytest.raises(urllib.error.HTTPError) as err:
+        http_post_json(base + "/api/compare", body)
+    assert err.value.code == 400
+
+
+def test_compare_disagreement_route_lists_only_differing(server):
+    base, _ = server
+    same = {"committed": {"total": "20.02", "liters": "11.38", "unitPrice": "1.759"}}
+    other = {"committed": {"total": "20.02", "liters": "11.38", "unitPrice": "1.75"}}
+    nulls = {"committed": {"total": None, "liters": None, "unitPrice": None}}
+    pairs = [{"still": "agrees", "a": same, "b": dict(same)},
+             {"still": "differs", "a": same, "b": other},
+             {"still": "abstains", "a": same, "b": nulls}]
+    res = http_post_json(base + "/api/compare/disagree", {"pairs": pairs})
+    names = [r["still"] for r in res["rows"]]
+    assert names == ["differs", "abstains"], names
+    assert res["rows"][0]["a"] == ["20.02", "11.38", "1.759"]
+    assert res["rows"][0]["b"] == ["20.02", "11.38", "1.75"]

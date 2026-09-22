@@ -17,6 +17,7 @@ interface.
 """
 from __future__ import annotations
 
+import base64
 import csv
 import hashlib
 import io
@@ -116,6 +117,184 @@ def detectors() -> list[dict]:
                         "sha": digest[:8],
                         "shipped": digest == shipped})
     return out
+
+CLASSIFIER_DIRS = [ROOT / "ios" / "App" / "Resources", ROOT / "ml" / "pump-reader" / ".out"]
+
+
+def package_sha(package: Path) -> str:
+    """The mlpackage's own identity: the compiled model inside it, hashed, so two
+    packages both named PumpSegments can be told apart."""
+    model = package / "Data" / "com.apple.CoreML" / "model.mlmodel"
+    if model.exists():
+        return hashlib.sha256(model.read_bytes()).hexdigest()
+    manifest = package / "Manifest.json"
+    return hashlib.sha256(manifest.read_bytes()).hexdigest() if manifest.exists() else ""
+
+
+def classifier_packages() -> list[Path]:
+    """Every segment classifier on this machine: the bundle's, and each training
+    round's candidate under `.out/<round>/`."""
+    found: list[Path] = []
+    for folder in CLASSIFIER_DIRS:
+        if not folder.exists():
+            continue
+        found += sorted(folder.glob("*.mlpackage")) + sorted(folder.glob("*/*.mlpackage"))
+    return found
+
+
+def classifiers() -> list[dict]:
+    """Every segment classifier on this machine, versioned the way the detectors
+    are: the folder's tag, the corpus generation its sibling export was built
+    from (`counts.json`'s train stills), the date it was written, and the first
+    eight of its model sha. The bundle's is marked shipped; a candidate is not."""
+    shipped_pkg = CLASSIFIER
+    shipped = package_sha(shipped_pkg) if shipped_pkg.exists() else None
+    out, seen = [], set()
+    for package in classifier_packages():
+        key = str(package.resolve())
+        if key in seen:
+            continue
+        seen.add(key)
+        digest = package_sha(package)
+        if not digest:
+            continue
+        parent = package.parent
+        counts_file = parent / "counts.json"
+        counts = {}
+        if counts_file.exists():
+            try:
+                counts = json.loads(counts_file.read_text())
+            except json.JSONDecodeError:
+                counts = {}
+        written = datetime.fromtimestamp(package.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+        stills = counts.get("train_stills")
+        tag = "bundle" if parent == CLASSIFIER_DIRS[0] else parent.name
+        out.append({"path": str(package.relative_to(ROOT)), "name": package.stem,
+                    "where": str(parent.relative_to(ROOT)), "tag": tag,
+                    "trainStills": stills, "boxes": counts.get("boxes"), "modified": written,
+                    "version": f"{tag} · {written[:10]}" + (f" · {stills} stills" if stills else "") + f" · {digest[:8]}",
+                    "sha": digest[:8], "shipped": digest == shipped})
+    return out
+
+
+# The compare view's cache: one pump-read reply per (image content, detector sha,
+# classifier sha), so a disagreement sweep never runs a pair twice. Scratch only.
+COMPARE_CACHE = Path(os.environ.get("PUMP_COMPARE_CACHE") or (ROOT / "ml" / "pump-reader" / ".out" / "compare-cache"))
+COMPARE_RUNS = Path(os.environ.get("PUMP_COMPARE_RUNS") or (ROOT / "ml" / "pump-reader" / "runs"))
+
+
+def image_target(image: str) -> Path | None:
+    """The file behind a compare request's `image`: a still name or `frame/<stem>/<file>`."""
+    if image.startswith("frame/"):
+        _, stem, file = image.split("/", 2)
+        target = FRAMES / stem / file
+    else:
+        target = FIX / image
+    if not target.name or "/" in target.name or not target.exists():
+        return None
+    return target
+
+
+def model_key(detector: Path, classifier: Path) -> str:
+    det = hashlib.sha256(detector.read_bytes()).hexdigest()[:8] if detector.exists() else "00000000"
+    cls = package_sha(classifier)[:8] if classifier.exists() else "00000000"
+    return f"{det}-{cls}"
+
+
+def read_binary() -> Path:
+    """The optimised build when the resident slicer has made one (about 30x faster
+    pixel work), else the debug product, built on first use."""
+    if SLICE_TOOL.exists():
+        return SLICE_TOOL
+    if not READ_TOOL.exists():
+        subprocess.run(["swift", "build", "--product", "pump-read"], cwd=ROOT / "ios", capture_output=True, text=True)
+    return READ_TOOL
+
+
+def read_model(image: str, detector: Path, classifier: Path, cache: bool = True) -> dict:
+    """One live-path pump-read reply for an image and a model pair, cached by
+    (image content, model pair) so a sweep never runs a pair twice."""
+    target = image_target(image)
+    if target is None:
+        return {"error": f"no such image: {image}"}
+    key = model_key(detector, classifier)
+    digest = hashlib.sha256(target.read_bytes()).hexdigest()[:16]
+    cached = COMPARE_CACHE / key / f"{digest}.json"
+    if cache and cached.exists():
+        try:
+            return json.loads(cached.read_text())
+        except json.JSONDecodeError:
+            pass
+    binary = read_binary()
+    if not binary.exists():
+        return {"error": "pump-read did not build"}
+    r = subprocess.run([str(binary), str(target), "--classifier", str(classifier), "--detector", str(detector)],
+                       input="{}", capture_output=True, text=True, timeout=900)
+    if r.returncode or not r.stdout.strip():
+        return {"error": "pump-read failed", "output": (r.stderr or r.stdout)[-2000:]}
+    try:
+        reply = json.loads(r.stdout)
+    except json.JSONDecodeError:
+        return {"error": "pump-read replied with something that is not JSON"}
+    if cache:
+        cached.parent.mkdir(parents=True, exist_ok=True)
+        cached.write_text(json.dumps(reply))
+    return reply
+
+
+def committed_triple(reply: dict) -> list:
+    c = reply.get("committed") or {}
+    return [c.get(f) for f in ("total", "liters", "unitPrice")]
+
+
+def _match(value, expected) -> str:
+    """`✓` when the model's value equals the truth row, `✗` when it is present and
+    differs, `–` when either side is missing (the law abstained)."""
+    if value is None or expected in (None, ""):
+        return "–"
+    try:
+        return "✓" if abs(float(str(value).replace(",", ".")) - float(str(expected).replace(",", "."))) < 0.005 else "✗"
+    except (TypeError, ValueError):
+        return "✓" if str(value) == str(expected) else "✗"
+
+
+def compare_verdict(expected: dict | None, a: dict, b: dict) -> dict:
+    """Per field: the truth row, A's commit, B's commit, and each side's verdict."""
+    out = {}
+    for field in ("total", "liters", "unitPrice"):
+        exp = (expected or {}).get(field)
+        av = (a.get("committed") or {}).get(field)
+        bv = (b.get("committed") or {}).get(field)
+        out[field] = {"expected": exp, "a": av, "b": bv,
+                      "aVerdict": _match(av, exp), "bVerdict": _match(bv, exp)}
+    return out
+
+
+# One disagreement sweep at a time: a background thread reads each still with
+# both models and keeps the rows whose committed triples differ.
+sweeps: dict[str, dict] = {}
+
+
+def start_sweep(stills: list[str], detector_a: Path, classifier_a: Path,
+                detector_b: Path, classifier_b: Path) -> None:
+    sweeps["default"] = {"running": True, "done": 0, "total": len(stills), "current": None, "rows": []}
+    job = sweeps["default"]
+
+    def run() -> None:
+        try:
+            for name in stills:
+                job["current"] = name
+                ra = read_model(name, detector_a, classifier_a)
+                rb = read_model(name, detector_b, classifier_b)
+                if committed_triple(ra) != committed_triple(rb):
+                    job["rows"].append({"still": name, "a": committed_triple(ra), "b": committed_triple(rb)})
+                job["done"] += 1
+        finally:
+            job["running"] = False
+            job["current"] = None
+
+    threading.Thread(target=run, daemon=True).start()
+
 
 # Writes go database-first: one transaction and one dump per request, and no
 # two requests interleave between the two.
@@ -482,6 +661,10 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_bytes((HERE / "index.html").read_bytes(), "text/html; charset=utf-8")
         if path == "/api/detectors":
             return self.send_json(detectors())
+        if path == "/api/classifiers":
+            return self.send_json(classifiers())
+        if path == "/api/compare/sweep":
+            return self.send_json(sweeps.get("default", {"running": False, "done": 0, "total": 0, "rows": []}))
         if path == "/api/fixtures":
             ann, rows = load_windows(), load_rows()
             names = list(rows) + [n for n in ann if not n.startswith("_") and n not in rows]
@@ -758,8 +941,89 @@ class Handler(SimpleHTTPRequestHandler):
                     tracked.append(rec["movie"] + " (texts)")
         return self.send_json({"ok": True, "entry": saved, "tracking": tracked, "reviewedCleared": reviewed_cleared})
 
+    def compare_models(self, body: dict):
+        """Resolve the two sides' (detector, classifier) from a request body,
+        validating each against the machine's listings. A missing classifier
+        falls back to the shipped one."""
+        dets = {d["path"]: d for d in detectors()}
+        clss = {c["path"]: c for c in classifiers()}
+        shipped_cls = next((c for c in clss.values() if c["shipped"]), None)
+        sides = {}
+        for side in ("a", "b"):
+            det_path = body.get(f"detector{side.upper()}") or body.get("detector")
+            det = dets.get(det_path)
+            if det is None:
+                return None, f"unknown detector: {det_path}"
+            cls_path = body.get(f"classifier{side.upper()}") or body.get("classifier")
+            cls = clss.get(cls_path) if cls_path else shipped_cls
+            if cls is None:
+                return None, f"unknown classifier: {cls_path}"
+            sides[side] = (det, cls)
+        return sides, None
+
+    def compare_route(self, path: str):
+        length = int(self.headers.get("Content-Length", "0"))
+        body = json.loads(self.rfile.read(length) or b"{}")
+        if path == "/api/compare/disagree":
+            rows = []
+            for pair in body.get("pairs", []):
+                a, b = pair.get("a") or {}, pair.get("b") or {}
+                if committed_triple(a) != committed_triple(b):
+                    rows.append({"still": pair.get("still"), "a": committed_triple(a), "b": committed_triple(b)})
+            return self.send_json({"rows": rows})
+        sides, error = self.compare_models(body)
+        if error:
+            return self.send_json({"error": error}, HTTPStatus.BAD_REQUEST)
+        if path == "/api/compare/sweep":
+            stills = [s for s in body.get("stills", []) if image_target(s) is not None]
+            start_sweep(stills, ROOT / sides["a"][0]["path"], ROOT / sides["a"][1]["path"],
+                        ROOT / sides["b"][0]["path"], ROOT / sides["b"][1]["path"])
+            return self.send_json({"running": True, "total": len(stills)})
+        image = body.get("image", "")
+        if image_target(image) is None:
+            return self.send_json({"error": f"no such image: {image}"}, HTTPStatus.NOT_FOUND)
+        cache = body.get("cache", True)
+        a = {"detector": sides["a"][0], "classifier": sides["a"][1],
+             "reply": read_model(image, ROOT / sides["a"][0]["path"], ROOT / sides["a"][1]["path"], cache=cache)}
+        b = {"detector": sides["b"][0], "classifier": sides["b"][1],
+             "reply": read_model(image, ROOT / sides["b"][0]["path"], ROOT / sides["b"][1]["path"], cache=cache)}
+        if path == "/api/compare":
+            expected = None if image.startswith("frame/") else load_rows().get(image)
+            return self.send_json({"image": image, "expected": expected, "a": a, "b": b,
+                                   "verdict": compare_verdict(expected, a["reply"], b["reply"])})
+        if path == "/api/compare/save":
+            return self.save_compare(image, a, b, body.get("png", ""))
+        return self.send_error(HTTPStatus.NOT_FOUND)
+
+    def save_compare(self, image: str, a: dict, b: dict, png: str):
+        """Both replies and a PNG of the two panes under
+        `runs/<date>/compare/<still>/`, so a report carries the evidence."""
+        if image.startswith("frame/"):
+            _, stem, file = image.split("/", 2)
+            still = f"{stem}__{Path(file).stem}"
+        else:
+            still = Path(image).stem
+        outdir = COMPARE_RUNS / datetime.now().strftime("%Y-%m-%d") / "compare" / still
+        outdir.mkdir(parents=True, exist_ok=True)
+        (outdir / "a.json").write_text(json.dumps({"detector": a["detector"]["path"],
+                                                   "classifier": a["classifier"]["path"],
+                                                   "reply": a["reply"]}, indent=1))
+        (outdir / "b.json").write_text(json.dumps({"detector": b["detector"]["path"],
+                                                   "classifier": b["classifier"]["path"],
+                                                   "reply": b["reply"]}, indent=1))
+        (outdir / "meta.json").write_text(json.dumps({"image": image, "saved": datetime.now().isoformat(timespec="seconds")}, indent=1))
+        written = ["a.json", "b.json", "meta.json"]
+        wrote_png = False
+        if isinstance(png, str) and png.startswith("data:image/png;base64,"):
+            (outdir / "panes.png").write_bytes(base64.b64decode(png.split(",", 1)[1]))
+            written.append("panes.png")
+            wrote_png = True
+        return self.send_json({"dir": str(outdir.relative_to(ROOT)), "files": written, "png": wrote_png})
+
     def do_POST(self):
         path = urlparse(self.path).path
+        if path.startswith("/api/compare"):
+            return self.compare_route(path)
         if path.startswith("/api/retrack-now/"):
             # /api/retrack-now/<stem>: re-register every non-anchored frame to the
             # reference and the anchors - the owner's call after pinning frames.
