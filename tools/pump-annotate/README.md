@@ -173,11 +173,29 @@ the ml venv runs it); the converted images are cached under
   quads (never its numbers) onto this one - for a frame the tracker drifted on
   when the one before was right - and counts as a quad edit, so `⇧⏎` (or a drag) pins it as an
   anchor and the retrack registers the neighbours to it.
-- **Which Save is which.** The bottom bar always acts on the **still** (or a
-  video's reference) and says so while the frames view is open ("Save the
-  still" / "Save the reference"); the frame's own action sits in the frame row -
-  **Save this frame's numbers** on a video, **⚓ Pin this frame's boxes** on a
-  Live record. Nothing in the frames view writes the still by accident.
+- **One Save, in the toolbar's second row.** Its label and its target follow the
+  view, because the view is what you are looking at: on a still **Save** writes
+  the annotation; on a video frame **Save frame's numbers** writes that frame's
+  label; on a Live record's frame **⚓ Pin frame** pins its boxes as a tracking
+  anchor. `⌘S` and `⇧⏎` run whichever one is showing. The still behind a frame
+  is saved by leaving the frames view (`Esc`) - there is no second button that
+  looks the same and writes somewhere else.
+- **The toolbar has two rows.** Row 1 is the frame player and the per-view
+  switches (play, fps, autoplay, loop, live slicers, keep shape). **Row 2 is
+  what does not change with the image**: the one Save and **✓ & next**, **↶
+  undo**, **⟲ reload**, the zoom (**−** / **fit** / **+**, with the factor
+  beside it) and the retrack group - **↻ track** on a still with a Live record,
+  **↻ re-track all** / **↻ from here** on a frame, **⟳ retrack + read all** on a
+  video frame. A button with no meaning in the current view is hidden, not
+  disabled, so the row reads as what can be done now. The right panel keeps only
+  what is about THIS image: its windows, its negatives, its CSV row, its record.
+- **↶ undo** (`⌘Z`) steps back through the box edits the browser cannot undo: a
+  window drawn, moved, turned, nudged or deleted, boxes copied from the previous
+  frame, auto-annotate, a pad, a negative added or removed. Text typed in a card
+  keeps the browser's own undo. A burst of arrow-key nudges is one step; the
+  stack belongs to the open image and is cleared when another opens.
+- **⟲ reload** re-reads the still or record from the database and drops unsaved
+  edits (it asks first) - the way out of a half-made change.
 - **Anchors**: on any video frame the quads can be dragged (corners and body);
   the frame is pinned as an anchor by itself (`videos.json` and the tracked
   file) and nothing else moves. **↻ re-track all** / **↻ from here** (toolbar) re-register every other frame,

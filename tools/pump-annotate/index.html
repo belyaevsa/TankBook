@@ -13,6 +13,9 @@
   main { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden }
   #toolbar { display:flex; gap:8px; align-items:center; padding:4px 8px; background:var(--panel); border-bottom:1px solid var(--line); flex:none }
   #toolbar button { min-width:32px } #toolbar .dim { font-size:12px }
+  #toolbar2 { display:flex; gap:6px; align-items:center; padding:4px 8px; background:var(--panel); border-bottom:1px solid var(--line); flex:none; flex-wrap:wrap }
+  #toolbar2 .sep { width:1px; height:18px; background:var(--line); margin:0 4px }
+  #toolbar2 .dim { font-size:12px }
   #stage { position:relative; overflow:auto; flex:1 1 0; min-height:0; background:#05070a }
   aside, section.right { background:var(--panel); border-right:1px solid var(--line); overflow:auto; padding:8px }
   section.right { border-right:0; border-left:1px solid var(--line) }
@@ -78,8 +81,21 @@
     <label title="while a box is dragged, nudged or turned, the slicer's cells are drawn on it as it will be cut (resident pump-read, ~20 ms)"><input type="checkbox" id="liveSlice"> live slicers</label>
     <span id="sliceInfo" class="dim mono"></span>
     <label id="keepShapeLabel" style="display:none" title="on a frame, dragging a corner moves the whole window instead of resizing it - the shape comes from the still or the reference frame, so every frame's quad has the same margins"><input type="checkbox" id="keepShape" checked> keep shape</label>
-    <span id="retrackBar" style="display:none"><button id="retrackAll" title="re-register every non-pinned frame of this record to the reference and its anchors">↻ re-track all</button><button id="retrackFrom" title="re-register this frame and the ones after it; earlier frames keep their quads">↻ from here</button></span>
     <span id="playInfo" class="dim"></span>
+  </div>
+  <!-- Row 2: what is the same whatever is open - the one Save (its label and
+       target follow the view), undo, reload, zoom and the retrack group. -->
+  <div id="toolbar2">
+    <button id="save" class="primary" title="⌘S">Save</button>
+    <button id="savenext" title="mark processed, save, open the next">✓ &amp; next</button>
+    <button id="undo" title="undo the last box or text change (⌘Z)" disabled>↶ undo</button>
+    <button id="reload" title="reload this still/record from the database, discarding unsaved changes">⟲ reload</button>
+    <span class="sep"></span>
+    <button id="zoomOut" title="zoom out (-)">−</button><button id="zoomFit" title="fit (0)">fit</button><button id="zoomIn" title="zoom in (+)">+</button>
+    <span id="zoomInfo" class="dim mono"></span>
+    <span class="sep"></span>
+    <span id="trackBar"><button id="recTrack" title="carry the still's windows into this record's frames (pump_reader.track)">↻ track</button><button id="retrackAll" title="re-register every non-pinned frame of this record to the reference and its anchors">↻ re-track all</button><button id="retrackFrom" title="re-register this frame and the ones after it; earlier frames keep their quads">↻ from here</button><button id="vlRerun" title="retrack the clip from its anchors, then read every tracked frame again; your labels and anchored frames are kept">⟳ retrack + read all</button></span>
+    <span id="msg" class="dim"></span>
   </div>
   <div id="banner" class="idle"></div>
   <div id="stage"><canvas id="c"></canvas></div>
@@ -87,13 +103,13 @@
 <section class="right">
   <div class="row"><b id="name" style="flex:1">–</b> <label title="reviewed by a human; P toggles"><input type="checkbox" id="reviewed"> processed</label></div>
   <div class="row dim">Drag = new window · click = select · drag a corner or the ring = adjust / turn · <kbd>?</kbd> all keys <button id="helpBtn" class="quick">keys</button></div>
-  <div class="row">Zoom <input id="zoom" type="range" min="0.25" max="4" step="0.05" value="1" style="flex:1">
+  <div class="row"><input id="zoom" type="range" min="0.25" max="4" step="0.05" value="1" style="display:none">
     Rotate <select id="rot"><option>0</option><option>90</option><option>180</option><option>270</option></select></div>
   <div class="row mono" id="csv"></div>
   <div class="row mono" id="arith"></div>
   <div class="win" id="live" style="display:none">
     <div class="row"><b>Live record</b> <select id="rec"></select> <span id="recinfo" class="dim"></span></div>
-    <div class="row"><button id="framesToggle">View frames</button> <button id="recTrack" title="carry the still's windows into this record's frames (pump_reader.track); saving a still with changed windows does this by itself">↻ track</button> <input id="frameSlider" type="range" min="0" max="0" value="0" style="flex:1;display:none">
+    <div class="row"><button id="framesToggle">View frames</button> <input id="frameSlider" type="range" min="0" max="0" value="0" style="flex:1;display:none">
       <span id="frameName" class="mono dim"></span></div>
     <div class="row"><b>tracking</b>
       <label><input type="radio" name="tracking" value=""> unreviewed</label>
@@ -103,13 +119,13 @@
     <div id="frameStrip" style="display:none"></div>
     <div class="row" id="liveFrame" style="display:none"><b>frame</b> <span id="lfName" class="mono dim"></span>
       <button id="lfCopyPrev" title="put the previous frame's boxes on this frame (C); ⇧⏎ then pins them as an anchor">⇤ boxes from previous</button>
-      <button id="lfSave">⚓ Pin this frame's boxes</button> <span class="dim"><kbd>⇧⏎</kbd> – an anchor the tracker registers its neighbours to; nothing else moves</span>
+      <span class="dim"><kbd>⇧⏎</kbd> or Save – the frame's boxes are pinned as an anchor the tracker registers its neighbours to; nothing else moves</span>
       <button id="lfOk" title="mark the record's tracking ok and save the still">✓ tracking ok</button>
       <span id="lfState" class="dim"></span></div>
     <div class="row" id="videoLabel" style="display:none"><b>frame label</b>
       <span class="dim">type it on the window cards below</span>
       <span id="vlMargin" class="mono dim" title="the reader's lowest cell margin for this frame (from readings)">–</span>
-      <span id="vlSource" class="dim"></span> <button id="vlSave" class="primary">Save this frame's numbers</button> <span class="dim"><kbd>⇧⏎</kbd> run · <kbd>⌥⏎</kbd> keyframe</span>
+      <span id="vlSource" class="dim"></span> <span class="dim">Save (<kbd>⇧⏎</kbd>) writes this frame · <kbd>⌥⏎</kbd> keyframe</span>
       <button id="vlCopy" title="copy the previous labelled frame's numbers here and save">← same as previous</button> <span class="dim"><kbd>⇧←</kbd></span>
       <button id="vlSkip" title="jump to the next frame that needs you">next attention ▸</button>
       <button id="vlRead" title="run the reader on this frame's windows and fill the label (nothing saved)">▶ read</button> <span class="dim"><kbd>r</kbd> / <kbd>R</kbd> live path</span>
@@ -117,8 +133,7 @@
       <span class="dim"><kbd>⇧→</kbd> next run</span>
       <button id="vlCopyPrev" title="put the previous frame's boxes on this frame (C); ⇧⏎ or a drag then pins them as an anchor">⇤ boxes from previous</button>
       <span class="dim" title="a dragged quad on a frame pins it as an anchor by itself; nothing else moves until ↻ re-track">⚓ a drag pins the frame</span><button id="vlAnchor" style="display:none"></button>
-
-      <button id="vlRerun" title="retrack the clip from its anchors, then read every tracked frame again; your labels and anchored frames are kept">⟳ retrack + read all</button></div>
+</div>
   </div>
   <div id="wins"></div>
   <div class="row"><button id="add">+ window</button> <span class="dim">or drag on the image</span> <label title="drawn boxes are 'not a window' regions (n toggles); ⇧-click a live-read row rejects it the same way"><input type="checkbox" id="negMode"> not a window</label></div>
@@ -131,9 +146,9 @@
     <div class="row">unitPrice <input data-dis="unitPrice" style="flex:1"></div>
   </div>
   <div id="status">
-    <div class="row"><button id="save" class="primary">Save</button><button id="savenext" title="mark processed, save, open the next">✓ Save &amp; next</button><button id="check">Check</button><button id="dump" title="write every corpus file from the database (corpus_db.py dump) and run the staleness check">⤓ dump to JSON</button>
+    <div class="row"><button id="check">Check</button><button id="dump" title="write every corpus file from the database (corpus_db.py dump) and run the staleness check">⤓ dump to JSON</button>
       <button id="read" title="run the reader on the annotated windows and fill empty texts (r); R runs the app's live path - detector, verifier, law - on the photo with no windows">▶ read</button>
-      <button id="auto" title="auto-annotate (A): the live path locates the rows and each assigned row becomes a window with the CSV's text - adjust and save">✦ auto</button><span id="msg" class="dim"></span></div>
+      <button id="auto" title="auto-annotate (A): the live path locates the rows and each assigned row becomes a window with the CSV's text - adjust and save">✦ auto</button></div>
     <pre id="out"></pre>
   </div>
 </section>
@@ -245,7 +260,7 @@ function renderList() {
 }
 async function openFixture(n) {
   if (dirty && !confirm('Discard unsaved changes?')) return;
-  current = n; sel = -1; dirty = false; readRows = null; readCells = null;
+  current = n; sel = -1; dirty = false; readRows = null; readCells = null; undoStack = [];
   let r;
   try { r = await (await fetch('/api/entry/' + encodeURIComponent(n))).json(); }
   catch (err) { setMsg('load failed: ' + err); return; }
@@ -255,6 +270,7 @@ async function openFixture(n) {
   $('#reviewed').parentElement.style.display = '';
   if (isVideo) $('#reviewed').checked = !!entry.reviewed;
   $('#name').textContent = n;
+  labelSaveButtons();
   $('#rot').value = String(entry.rotationCW || 0);
   $('#reviewed').checked = !!entry.reviewed;
   document.querySelectorAll('[data-nod]').forEach(c => c.checked = (entry.notOnDisplay||[]).includes(c.dataset.nod));
@@ -329,8 +345,9 @@ function watchRetrack(name) {
 function showRecordInfo() {
   const r = currentRecord(); if (!r) return;
   $('#recinfo').textContent = `${r.tracked.length} tracked of ${r.extracted} frames` + (r.extracted ? (r.tracked.length ? '' : ' – not tracked yet: save the windows, or ↻ track') : ' – frames not extracted: pump_reader.frames');
-  $('#recTrack').style.display = r.extracted ? '' : 'none';
+  $('#recTrack').style.display = (r.extracted && !frameMode) ? '' : 'none';
   $('#frameSlider').max = Math.max(0, r.tracked.length - 1);
+  labelSaveButtons();
 }
 async function enterFrames() {
   await recordsLoaded;
@@ -341,23 +358,32 @@ async function enterFrames() {
 // The bottom bar acts on the STILL (or a video's reference), never on the frame
 // on screen - so while the frames view is open it says so, and the frame's own
 // save sits in the frame row.
+// ONE Save. Its label, its tooltip and what it writes follow the view, because
+// the view is what the operator is looking at: the still's annotation, a video
+// frame's numbers, or a Live frame's boxes as an anchor. The still behind a
+// frame is saved by leaving the frames view (Esc) - never by a second button
+// that looks the same as this one.
+function saveTarget() {
+  if (!frameMode) return {label: 'Save', title: "the still's annotation (⌘S)", run: save};
+  if (isVideo) return {label: "Save frame's numbers", title: 'writes this frame label (⇧⏎; ⌥⏎ keyframe)', run: () => saveVideoLabel()};
+  return {label: '⚓ Pin frame', title: "pins this frame's boxes as a tracking anchor (⇧⏎)",
+          run: () => { clearTimeout(anchorTimer); saveAnchor(); }};
+}
 function labelSaveButtons() {
-  const save = $('#save'), next = $('#savenext');
-  if (frameMode) {
-    save.textContent = isVideo ? 'Save the reference' : 'Save the still';
-    save.title = isVideo ? "the video's reference windows and reviewed - not this frame (this frame: Save this frame's numbers)"
-                         : "the still's own windows - not this frame (this frame: pin its boxes)";
-    save.classList.remove('primary');
-    next.style.display = 'none';
-  } else {
-    save.textContent = 'Save'; save.title = ''; save.classList.add('primary');
-    next.style.display = '';
-  }
+  const t = saveTarget();
+  $('#save').textContent = t.label; $('#save').title = t.title;
+  $('#savenext').style.display = frameMode ? 'none' : '';
+  $('#trackBar').style.display = (current && (currentRecord() || isVideo)) ? '' : 'none';
+  $('#recTrack').style.display = frameMode ? 'none' : '';
+  for (const id of ['#retrackAll', '#retrackFrom']) $(id).style.display = frameMode ? '' : 'none';
+  $('#vlRerun').style.display = (frameMode && isVideo) ? '' : 'none';
+  $('#undo').disabled = !undoStack.length;
+  $('#zoomInfo').textContent = `${zoom.toFixed(2)}x`;
 }
 function leaveFrames() {
   frameZoomFor = null;
   stopPlay(); $('#playInfo').textContent = ''; confirmLoop = null;
-  frameMode = false; img = stillImg; labelSaveButtons(); $('#videoLabel').style.display = 'none'; $('#liveFrame').style.display = 'none'; $('#retrackBar').style.display = 'none'; $('#keepShapeLabel').style.display = 'none'; $('#frameStrip').style.display = 'none'; $('#frameSlider').style.display = 'none'; $('#framesToggle').textContent = 'View frames';
+  frameMode = false; img = stillImg; labelSaveButtons(); $('#videoLabel').style.display = 'none'; $('#liveFrame').style.display = 'none'; $('#keepShapeLabel').style.display = 'none'; $('#frameStrip').style.display = 'none'; $('#frameSlider').style.display = 'none'; $('#framesToggle').textContent = 'View frames';
   $('#frameName').textContent = ''; fit(); draw();
 }
 function runOf(r, name) { return (r.runs || []).find(run => run.includes(name)) || [name]; }
@@ -592,7 +618,7 @@ async function copyPrevious() {
 function nextUnlabelled() { nextAttention(); }
 function showFrame() {
   if (!frameMode) return;
-  refreshBanner(); $('#retrackBar').style.display = ''; $('#keepShapeLabel').style.display = '';
+  refreshBanner(); $('#keepShapeLabel').style.display = '';
   frameQuadsEdited = false;
   const r = currentRecord(); const name = r && r.tracked[frameIdx]; if (!name) return;
   carryUntracked(r.frames[name]);
@@ -665,6 +691,35 @@ function notify(kind, text) {
 }
 function refreshBanner() { const b = $('#banner'); if (b.className === 'idle') b.textContent = idleText(); }
 function setMsg(t) { $('#msg').textContent = t; setTimeout(() => { if ($('#msg').textContent === t) $('#msg').textContent = dirty ? 'unsaved' : ''; }, 1500); }
+// One undo step: the boxes (and, on a still, the negatives) as they were
+// before the last edit. Text typed in an input keeps the browser's own undo;
+// this stack is for what the mouse and the keys do to the quads, because those
+// have none. Cleared when another image opens.
+let undoStack = [];
+// A burst of arrow-key nudges is one undo step, not twenty.
+let nudging = false;
+function undoKey() { return frameMode ? `${(currentRecord() || {}).movie}/${frameIdx}` : current; }
+function pushUndo() {
+  undoStack.push({key: undoKey(), windows: JSON.stringify(editable()),
+                  negatives: JSON.stringify((entry && entry.negatives) || [])});
+  if (undoStack.length > 50) undoStack.shift();
+  const b = $('#undo'); if (b) b.disabled = false;
+}
+function undo() {
+  const step = undoStack.pop();
+  if (!step) { setMsg('nothing to undo'); return; }
+  if (step.key !== undoKey()) { undoStack = []; setMsg('nothing to undo here'); labelSaveButtons(); return; }
+  const windows = JSON.parse(step.windows);
+  if (frameMode) {
+    const r = currentRecord(); const f = r && r.frames[r.tracked[frameIdx]];
+    if (f) { f.windows = windows; frameQuadsEdited = true; }
+  } else if (entry) {
+    entry.windows = windows; entry.negatives = JSON.parse(step.negatives); touch();
+  }
+  sel = Math.min(sel, windows.length - 1);
+  renderWins(); draw(); labelSaveButtons();
+  setMsg('undone');
+}
 function touch() { dirty = true; $('#msg').textContent = 'unsaved'; }
 
 // ---- windows panel ----
@@ -715,9 +770,10 @@ function renderNegs() {
   const negs = (entry && entry.negatives) || [];
   $('#negs').innerHTML = negs.length ? `<span class="dim">not a window:</span> ` + negs.map((n, i) =>
     `<span class="neg" title="${n.source || 'operator'}${n.reason ? ' · ' + n.reason : ''}">✕ ${n.reason || n.source || 'region'} <button data-negx="${i}" title="remove">×</button></span>`).join('') : '';
-  document.querySelectorAll('[data-negx]').forEach(b => b.onclick = e => { e.stopPropagation(); entry.negatives.splice(+b.dataset.negx, 1); touch(); renderNegs(); draw(); });
+  document.querySelectorAll('[data-negx]').forEach(b => b.onclick = e => { e.stopPropagation(); pushUndo(); entry.negatives.splice(+b.dataset.negx, 1); touch(); renderNegs(); draw(); });
 }
 function addNegative(quad, source, reason) {
+  pushUndo();
   entry.negatives = entry.negatives || [];
   entry.negatives.push({quad: quad.map(p => p.map(v => Math.round(v * 10000) / 10000)), source, reason});
   touch(); renderNegs(); draw();
@@ -761,6 +817,7 @@ function updateCells(i) {
 // display space so the turn matches what is on screen whatever the 90-degree
 // rotation; the corners are written back in image space.
 function turnWindow(i, deg) {
+  pushUndo();
   const w = editable()[i]; if (!w) return;
   const pts = w.quad.map(toDisp), cx = pts.reduce((a, p) => a + p[0] / 4, 0), cy = pts.reduce((a, p) => a + p[1] / 4, 0);
   const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
@@ -770,6 +827,7 @@ function turnWindow(i, deg) {
   touch(); renderWins(); draw(); liveSlice();
 }
 function addWindow(field, text, quad) {
+  pushUndo();
   quad = quad || [[0.3,0.4],[0.7,0.4],[0.7,0.5],[0.3,0.5]];
   entry.windows.push({field: field || 'total', text: text || '', quad, placedBy: 'hand', zoom});
   sel = entry.windows.length - 1; touch(); renderWins(); draw();
@@ -781,7 +839,7 @@ function markHand(i) {
   const w = entry.windows[i]; if (!w) return;
   w.placedBy = 'hand'; w.zoom = zoom;
 }
-function removeWindow(i) { entry.windows.splice(i, 1); sel = -1; touch(); renderWins(); draw(); }
+function removeWindow(i) { pushUndo(); entry.windows.splice(i, 1); sel = -1; touch(); renderWins(); draw(); }
 
 // ---- geometry: image space (oriented, normalised) <-> display space (rotated, pixels) ----
 function rot() { return frameMode ? 0 : (+$('#rot').value || 0); }
@@ -918,6 +976,8 @@ function hitWindow(p) {
 }
 canvas.onmousedown = e => {
   if (!img) return; const [x, y] = mouse(e);
+  // Every drag that can move a quad is one undo step, pushed before it starts.
+  if (hitTurnHandle([x, y]) || hitCorner([x, y]) >= 0 || hitWindow([x, y]) >= 0) pushUndo();
   if (hitTurnHandle([x, y])) {
     const pts = editable()[sel].quad.map(toDisp), cx = pts.reduce((a, q) => a + q[0] / 4, 0), cy = pts.reduce((a, q) => a + q[1] / 4, 0);
     drag = {kind:'turn', cx, cy, a0: Math.atan2(y - cy, x - cx), quad: editable()[sel].quad.map(q => [...q])}; return;
@@ -944,6 +1004,7 @@ canvas.onmousedown = e => {
     const quad = rr.quad.map(([nx, ny]) => toImg([nx * dispSize()[0], ny * dispSize()[1]]));
     if (e.shiftKey) { addNegative(quad, 'reader', `live row ${rr.field || '–'} ·${rr.cells}`); }
     else {
+      pushUndo();
       const field = rr.field || ['total','liters','unitPrice'].find(f => !entry.windows.some(x => x.field === f)) || 'board';
       entry.windows.push({field, text: row && row[field] ? row[field] : '', quad: quad.map(p => p.map(v => Math.round(v * 10000) / 10000)), placedBy: 'reader', zoom});
       sel = entry.windows.length - 1; touch(); renderWins(); draw();
@@ -1054,9 +1115,25 @@ function setZoom(z, focus) {
   const onScreen = vx >= 0 && vx <= main.clientWidth && vy >= 0 && vy <= main.clientHeight;
   const tx = onScreen ? vx : main.clientWidth / 2, ty = onScreen ? vy : main.clientHeight / 2;
   zoom = Math.max(0.25, Math.min(4, z)); $('#zoom').value = zoom; draw();
+  const zi = $('#zoomInfo'); if (zi) zi.textContent = `${zoom.toFixed(2)}x`;
   main.scrollLeft = f.p[0] * zoom - tx; main.scrollTop = f.p[1] * zoom - ty;
 }
 $('#zoom').oninput = e => setZoom(+e.target.value);
+$('#undo').onclick = undo;
+$('#zoomIn').onclick = () => setZoom(zoom * 1.2);
+$('#zoomOut').onclick = () => setZoom(zoom / 1.2);
+$('#zoomFit').onclick = () => { fit(); draw(); labelSaveButtons(); };
+// Reload: the database's version of what is open, discarding local edits - the
+// way out of a half-made change that Esc cannot undo.
+$('#reload').onclick = async () => {
+  if (!current) return;
+  if ((dirty || frameQuadsEdited || undoStack.length) && !confirm('Reload from the database? Unsaved changes are lost.')) return;
+  const wasFrames = frameMode, at = frameIdx;
+  dirty = false; frameQuadsEdited = false; undoStack = [];
+  await openFixture(current);
+  if (wasFrames) { frameIdx = at; await enterFrames(); }
+  setMsg('reloaded');
+};
 $('#rot').onchange = () => { touch(); fit(); draw(); };
 $('#add').onclick = () => addWindow();
 $('#framesToggle').onclick = e => { e.target.blur(); frameMode ? leaveFrames() : enterFrames(); };
@@ -1064,7 +1141,7 @@ $('#frameSlider').oninput = e => { frameIdx = +e.target.value; showFrame(); };
 $('#frameSlider').onchange = e => e.target.blur();
 $('#rec').onchange = () => { frameIdx = 0; showRecordInfo(); if (frameMode) showFrame(); };
 document.querySelectorAll('[name=tracking]').forEach(r => r.onchange = touch);
-$('#save').onclick = save; $('#check').onclick = check;
+$('#save').onclick = () => saveTarget().run(); $('#check').onclick = check;
 $('#dump').onclick = async () => {
   notify('busy', 'Dumping the database to the corpus files…');
   let r; try { r = await (await fetch('/api/dump', {method: 'POST'})).json(); } catch (err) { notify('failed', 'Dump failed: ' + err); return; }
@@ -1073,7 +1150,6 @@ $('#dump').onclick = async () => {
   notify(r.check === 0 ? 'done' : 'failed', `Dump completed – ${r.files} files, check ${r.check === 0 ? 'ok' : 'FAILED'}, ${r.changedCount} changed vs git (stage them by path when the batch is done)`);
 };
 $('#reviewed').onchange = touch;
-$('#vlSave').onclick = () => saveVideoLabel();
 // A Live record reviewed in its frames: tracking ok on the still, saved, next.
 async function markTrackingOk() {
   const radio = document.querySelector('input[name="tracking"][value="ok"]'); if (radio) { radio.checked = true; entry.tracking = 'ok'; touch(); }
@@ -1100,7 +1176,6 @@ async function retrackNow(fromHere = false) {
   notify('busy', name ? `Tracking ${r.movie} from ${name} on – earlier frames keep their quads…` : `Tracking ${r.movie}, every non-pinned frame…`); watchRetrack(r.movie);
 }
 $('#vlAnchor').onclick = saveAnchor;
-$('#lfSave').onclick = () => { clearTimeout(anchorTimer); saveAnchor(); };
 for (const id of ['#recTrack', '#retrackAll']) { const b = $(id); if (b) b.onclick = () => retrackNow(false); }
 if ($('#retrackFrom')) $('#retrackFrom').onclick = () => retrackNow(true);
 $('#lfOk').onclick = markTrackingOk;
@@ -1178,6 +1253,7 @@ $('#read').onclick = () => runReader(false);
 function autoAnnotate() {
   if (!entry || (frameMode && isVideo)) return;
   runReader(true, res => {
+    pushUndo();
     const [w, h] = dispSize();
     const have = new Set(entry.windows.map(x => x.field));
     let first = -1;
@@ -1190,6 +1266,7 @@ function autoAnnotate() {
       if (first < 0) first = entry.windows.length - 1;
     }
     if (first < 0) { setMsg('auto-annotate: the reader placed no new row'); return; }
+    // (the boxes were pushed as one step before the first was added)
     sel = first; touch(); renderWins(); draw();
     setMsg(`auto-annotate: ${entry.windows.length - first} window(s) from the reader's rows - adjust the boxes, then save`);
   });
@@ -1229,6 +1306,7 @@ async function padConventions() {
     if (after !== w.text) did.push({field: w.field, before: w.text, after});
   }
   if (!did.length) { setMsg('pad: nothing to change'); return; }
+  pushUndo();
   for (const d of did) { const w = entry.windows.find(x => x.field === d.field); if (w) w.text = d.after; }
   touch(); renderWins();
   const c = fields[did[0].field];
@@ -1247,6 +1325,7 @@ document.querySelectorAll('[data-nod],[data-dis]').forEach(i => i.oninput = touc
 // frame before was right (often an anchor), copy its quads here, then pin
 // (⇧⏎ / a drag) so the tracker registers its neighbours to this frame too.
 function copyPrevQuads() {
+  pushUndo();
   const r = currentRecord(); if (!frameMode || !r || frameIdx < 1) { setMsg('no previous frame'); return; }
   const prev = r.frames[r.tracked[frameIdx - 1]], cur = r.frames[r.tracked[frameIdx]];
   if (!prev || !cur) return;
@@ -1262,7 +1341,8 @@ function toggleHelp(show) { const h = $('#help'); h.style.display = (show === un
 $('#helpBtn').onclick = () => toggleHelp(true); $('#helpClose').onclick = () => toggleHelp(false); $('#help').onclick = () => toggleHelp(false);
 document.addEventListener('keydown', e => {
   const t = e.target; const typing = t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !['range','checkbox','radio'].includes(t.type));
-  if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); save(); return; }
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); saveTarget().run(); return; }
+  if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); undo(); return; }
   if ($('#help').style.display !== 'none') { if (e.key === 'Escape' || e.key === '?') { e.preventDefault(); toggleHelp(false); } return; }
   if (!typing && e.key === '?') { e.preventDefault(); toggleHelp(true); return; }
   // The run-confirm loop owns the keys that advance or leave it.
@@ -1286,6 +1366,7 @@ document.addEventListener('keydown', e => {
     || (frameMode && (e.key === ',' || e.key === '.' || e.key === '<' || e.key === '>'));
   if (!typing && sel >= 0 && nudgeKey) {
     e.preventDefault();
+    if (!nudging) { pushUndo(); nudging = true; setTimeout(() => { nudging = false; }, 600); }
     const big = e.shiftKey || e.key === '<' || e.key === '>';
     const step = (big ? 10 : 1) / zoom;
     const left = e.key === 'ArrowLeft' || e.key === ',' || e.key === '<', right = e.key === 'ArrowRight' || e.key === '.' || e.key === '>';
