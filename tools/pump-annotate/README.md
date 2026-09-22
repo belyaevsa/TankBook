@@ -189,6 +189,22 @@ the ml venv runs it); the converted images are cached under
   video frame. A button with no meaning in the current view is hidden, not
   disabled, so the row reads as what can be done now. The right panel keeps only
   what is about THIS image: its windows, its negatives, its CSV row, its record.
+- **The title bar** is the top line: the fixture, the record, the frame and
+  where it sits (`1/1184`), plus the frame's inliers or the record's tracked
+  count. Nothing else names them - not the toolbar, not the right panel, not the
+  banner, which says only `ready` or `unsaved changes`.
+- **"When the photo and the truth row do not match"** (right panel, below the
+  notes) holds the only two escape hatches `pump-windows-check` honours, and the
+  panel now says what each does. **The display does not show it** ticks a field
+  the truth row asserts but the face has no window for - a head with no price
+  window is the usual case - and the checker stops asking for that window
+  (`notOnDisplay`). **The display shows a different number** takes a reason and
+  the checker stops comparing that field (`csvDisagrees`), so write which side
+  is right: the display, or the receipt the truth row came from. A live line
+  under them names the exact field the checker would complain about, or says
+  everything matches. The **truth row** is the fixture's entry in the database
+  (`expected.csv` is its dump) - the page says "truth row" everywhere, because
+  the CSV stopped being the write store on 2026-09-21.
 - **Where each control lives.** The **toolbar** carries what is the same
   whatever is open (Save, next, undo, reload, zoom, retrack, View frames). The
   **frames bar** under the image carries what acts on the frame you are looking

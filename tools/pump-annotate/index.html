@@ -11,6 +11,10 @@
   nav.rail { background:#0b0e13; border-right:1px solid var(--line); display:flex; flex-direction:column; gap:4px; padding:8px 4px }
   nav.rail button { width:36px; height:36px; padding:0; font-size:18px; background:none; border-color:transparent } nav.rail button:hover { background:#222833 } nav.rail button.on { background:#2456a5; border-color:#2456a5 }
   main { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden }
+  #titlebar { display:flex; gap:8px; align-items:baseline; padding:4px 8px; background:var(--panel); border-bottom:1px solid var(--line); flex:none; white-space:nowrap; overflow:hidden }
+  #titlebar #tbName { text-overflow:ellipsis; overflow:hidden }
+  #titlebar #tbFrame { color:var(--fg) }
+  #titlebar .dim { font-size:12px }
   #toolbar { display:flex; gap:8px; align-items:center; padding:4px 8px; background:var(--panel); border-bottom:1px solid var(--line); flex:none }
   #toolbar button { min-width:32px } #toolbar .dim { font-size:12px }
   #toolbar2 { display:flex; gap:6px; align-items:center; padding:4px 8px; background:var(--panel); border-bottom:1px solid var(--line); flex:none; flex-wrap:wrap }
@@ -75,6 +79,15 @@
   <div id="list"></div>
 </aside>
 <main>
+  <!-- What is open, once and in one place: the fixture, the record, the frame
+       and where it sits. Nothing else names them - not the toolbar, not the
+       right panel, not the banner. -->
+  <div id="titlebar">
+    <b id="tbName">–</b>
+    <span id="tbRecord" class="mono dim"></span>
+    <span id="tbFrame" class="mono"></span>
+    <span id="tbInfo" class="dim"></span>
+  </div>
   <div id="toolbar">
     <button id="play" title="play / pause the frames (space)">▶</button>
     <button id="stepBack" title="previous frame (←)">⏮</button><button id="stepFwd" title="next frame (→)">⏭</button>
@@ -84,7 +97,6 @@
     <label title="while a box is dragged, nudged or turned, the slicer's cells are drawn on it as it will be cut (resident pump-read, ~20 ms)"><input type="checkbox" id="liveSlice"> live slicers</label>
     <span id="sliceInfo" class="dim mono"></span>
     <label id="keepShapeLabel" style="display:none" title="on a frame, dragging a corner moves the whole window instead of resizing it - the shape comes from the still or the reference frame, so every frame's quad has the same margins"><input type="checkbox" id="keepShape" checked> keep shape</label>
-    <span id="playInfo" class="dim mono"></span>
   </div>
   <!-- Row 2: what is the same whatever is open - the one Save (its label and
        target follow the view), undo, reload, zoom and the retrack group. -->
@@ -128,7 +140,7 @@
 </main>
 <section class="right">
   <!-- The windows first: they are the work. Everything below is what the work
-       is checked against (the CSV row, the arithmetic), then the record it
+       is checked against (the truth row, the arithmetic), then the record it
        belongs to, then the per-image notes. The frame's own buttons live under
        the image, with the frames they act on. -->
   <div id="wins"></div>
@@ -141,28 +153,33 @@
     Rotate <select id="rot"><option>0</option><option>90</option><option>180</option><option>270</option></select>
     <button id="helpBtn" class="quick" title="every key (?)">keys</button></div>
   <div class="win" id="live" style="display:none">
-    <div class="row"><b>Live record</b> <select id="rec"></select> <span id="recName" class="mono dim"></span> <span id="recinfo" class="dim"></span></div>
+    <div class="row"><b>Live record</b> <select id="rec"></select></div>
     <div class="row"><b>tracking</b>
       <label><input type="radio" name="tracking" value=""> unreviewed</label>
       <label><input type="radio" name="tracking" value="ok"> ok</label>
       <label><input type="radio" name="tracking" value="bad"> bad – skip this record</label></div>
-    <div class="row dim" id="liveFrame" style="display:none"><span id="lfName" class="mono"></span>
-      <span>a drag pins the frame as an anchor; <kbd>⇧⏎</kbd> or Save does the same</span></div>
-    <div class="row dim" id="videoLabel" style="display:none"><span id="frameName" class="mono"></span>
+    <div class="row dim" id="liveFrame" style="display:none">a drag pins the frame as an anchor; <kbd>⇧⏎</kbd> or Save does the same</div>
+    <div class="row dim" id="videoLabel" style="display:none">
       <span>type the numbers on the cards above · Save (<kbd>⇧⏎</kbd>) writes this frame · <kbd>⌥⏎</kbd> keyframe</span>
       <button id="vlAnchor" style="display:none"></button></div>
   </div>
   <div class="win">
-    <div class="row"><b>notOnDisplay</b> <label><input type="checkbox" data-nod="total">total</label> <label><input type="checkbox" data-nod="liters">liters</label> <label><input type="checkbox" data-nod="unitPrice">unitPrice</label></div>
-    <div class="row"><b>csvDisagrees</b> <span class="dim">reason per field, blank = none</span></div>
-    <div class="row">total <input data-dis="total" style="flex:1"></div>
-    <div class="row">liters <input data-dis="liters" style="flex:1"></div>
-    <div class="row">unitPrice <input data-dis="unitPrice" style="flex:1"></div>
+    <div class="row"><b>When the photo and the truth row do not match</b></div>
+    <div class="row dim">The truth row is this fixture's entry in the database (dumped to <span class="mono">expected.csv</span>); the line above shows it. These two are the only escape hatches <span class="mono">pump-windows-check</span> honours - leave both empty while the display shows what the truth row says.</div>
+    <div class="row"><b>The display does not show it</b> <span class="dim">(the value came from the paired receipt)</span></div>
+    <div class="row dim">Tick a field and the checker stops asking for a window for it. A face with no price window is the usual case.</div>
+    <div class="row"><label><input type="checkbox" data-nod="total">total</label> <label><input type="checkbox" data-nod="liters">liters</label> <label><input type="checkbox" data-nod="unitPrice">unitPrice</label></div>
+    <div class="row"><b>The display shows a different number</b></div>
+    <div class="row dim">Type WHY and the checker stops comparing that field (stored as <span class="mono">csvDisagrees</span>). Say which side is right: the display, or the receipt the truth row came from. Example: <span class="mono">the receipt's discounted total; the display shows 32,58</span>. Blank = no disagreement.</div>
+    <div class="row">total <input data-dis="total" style="flex:1" placeholder="why they differ"></div>
+    <div class="row">liters <input data-dis="liters" style="flex:1" placeholder="why they differ"></div>
+    <div class="row">unitPrice <input data-dis="unitPrice" style="flex:1" placeholder="why they differ"></div>
+    <div class="row dim" id="csvHint"></div>
   </div>
   <div id="status">
     <div class="row"><button id="check">Check</button><button id="dump" title="write every corpus file from the database (corpus_db.py dump) and run the staleness check">⤓ dump to JSON</button>
       <button id="read" title="run the reader on the annotated windows and fill empty texts (r); R runs the app's live path - detector, verifier, law - on the photo with no windows">▶ read</button>
-      <button id="auto" title="auto-annotate (A): the live path locates the rows and each assigned row becomes a window with the CSV's text - adjust and save">✦ auto</button></div>
+      <button id="auto" title="auto-annotate (A): the live path locates the rows and each assigned row becomes a window with the truth row's text - adjust and save">✦ auto</button></div>
     <pre id="out"></pre>
   </div>
 </section>
@@ -177,7 +194,7 @@
         <tr><td><kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd></td><td>zoom in / out / fit - about the selected box</td></tr>
         <tr><td><kbd>r</kbd></td><td>read the annotated boxes (prefill)</td></tr>
         <tr><td><kbd>R</kbd></td><td>read with the app's live path (rows drawn dashed)</td></tr>
-        <tr><td><kbd>A</kbd></td><td>auto-annotate: the live path's rows become boxes with the CSV text</td></tr>
+        <tr><td><kbd>A</kbd></td><td>auto-annotate: the live path's rows become boxes with the truth row's text</td></tr>
         <tr><td><kbd>n</kbd></td><td>toggle "not a window": a drawn box is a judged negative (grey, dashed) for the locator, not a window; click a live-read row (dashed, after <kbd>R</kbd>) to adopt it as a window, <kbd>⇧</kbd>-click to reject it as a negative</td></tr>
         <tr><td><kbd>Z</kbd></td><td>pad texts to the make's convention (derived from its reviewed entries)</td></tr>
         <tr><td><kbd>Esc</kbd></td><td>leave the confirm loop → deselect → back to the still</td></tr>
@@ -279,7 +296,7 @@ async function openFixture(n) {
   try { r = await (await fetch('/api/entry/' + encodeURIComponent(n))).json(); }
   catch (err) { setMsg('load failed: ' + err); return; }
   entry = r.entry; row = r.row; isVideo = !!r.video;
-  $('#playInfo').textContent = n;
+  renderTitle();
   refreshBanner();
   entry.windows = entry.windows || [];
   $('#reviewed').parentElement.style.display = '';
@@ -289,9 +306,10 @@ async function openFixture(n) {
   $('#reviewed').checked = !!entry.reviewed;
   document.querySelectorAll('[data-nod]').forEach(c => c.checked = (entry.notOnDisplay||[]).includes(c.dataset.nod));
   document.querySelectorAll('[data-dis]').forEach(i => i.value = (entry.csvDisagrees||{})[i.dataset.dis] || '');
+  renderCsvHint();
   $('#csv').innerHTML = row ? ['liters','unitPrice','total'].map(k =>
       `<span>${k} <b>${row[k]||'–'}</b> <button data-use="${k}" title="add a window with this text">use</button></span>`).join(' ') + ` <span class="dim">${row.currency||''}</span>`
-    : '<span class="bad">not in expected.csv – add the truth row first</span>';
+    : '<span class="bad">no truth row in the database – add it first (expected.csv, then corpus_db.py import)</span>';
   document.querySelectorAll('[data-use]').forEach(b => b.onclick = () => addWindow(b.dataset.use, row[b.dataset.use]));
   img = new Image();
   img.onload = () => { fit(); draw(); };
@@ -335,19 +353,31 @@ let recordsLoaded = Promise.resolve();
 function resetFrames() {
   frameMode = false; frameIdx = 0; records = []; confirmLoop = null; renderStrip();
   $('#frameSlider').style.display = 'none'; $('#frameSlider').value = 0; $('#frameSlider').max = 0;
-  $('#framesToggle').textContent = 'View frames'; $('#frameName').textContent = ''; $('#recinfo').textContent = '';
+  $('#framesToggle').textContent = 'View frames';
 }
 async function loadRecords(n) {
   const got = await (await fetch('/api/records/' + encodeURIComponent(n))).json();
   if (n !== current) return;   // the user moved on while this was in flight
   records = got;
   $('#live').style.display = records.length ? '' : 'none';
-  $('#recName').style.display = 'none';
   $('#rec').innerHTML = records.map((r, i) => `<option value="${i}">${r.movie}</option>`).join('');
   $('#rec').style.display = records.length > 1 ? '' : 'none';
-  $('#recName').textContent = records.length === 1 ? records[0].movie : '';
-  $('#recName').style.display = records.length === 1 ? '' : 'none';
   showRecordInfo();
+  renderTitle();
+}
+// The one writer of the title bar. Everything it needs is state, so it can be
+// called from anywhere that changes what is open.
+function renderTitle() {
+  $('#tbName').textContent = current || '–';
+  const r = frameMode && currentRecord();
+  const multi = records.length > 1;
+  $('#tbRecord').textContent = r && (multi || !isVideo) ? `· ${r.movie}` : '';
+  $('#tbFrame').textContent = r ? `· ${r.tracked[frameIdx]} · ${frameIdx + 1}/${r.tracked.length}` : '';
+  const rec = currentRecord();
+  $('#tbInfo').textContent = !current ? ''
+    : r ? `· inliers ${(r.frames[r.tracked[frameIdx]] || {}).inliers}`
+    : rec ? `· ${rec.tracked.length} tracked of ${rec.extracted} frames` + (rec.extracted ? (rec.tracked.length ? '' : ' – not tracked yet: save the windows, or ↻ track') : ' – frames not extracted: pump_reader.frames')
+    : '';
 }
 function currentRecord() { return records[+$('#rec').value || 0]; }
 const retrackWatch = {};
@@ -362,7 +392,7 @@ function watchRetrack(name) {
 }
 function showRecordInfo() {
   const r = currentRecord(); if (!r) return;
-  $('#recinfo').textContent = `${r.tracked.length} tracked of ${r.extracted} frames` + (r.extracted ? (r.tracked.length ? '' : ' – not tracked yet: save the windows, or ↻ track') : ' – frames not extracted: pump_reader.frames');
+  renderTitle();
   $('#recTrack').style.display = (r.extracted && !frameMode) ? '' : 'none';
   $('#framesToggle').style.display = r.tracked.length ? '' : 'none';
   $('#frameSlider').max = Math.max(0, r.tracked.length - 1);
@@ -402,9 +432,9 @@ function labelSaveButtons() {
 }
 function leaveFrames() {
   frameZoomFor = null;
-  stopPlay(); $('#playInfo').textContent = current || ''; confirmLoop = null;
+  stopPlay(); confirmLoop = null;
   frameMode = false; img = stillImg; labelSaveButtons(); $('#videoLabel').style.display = 'none'; $('#liveFrame').style.display = 'none'; $('#keepShapeLabel').style.display = 'none'; $('#frameSlider').style.display = 'none'; $('#framesToggle').textContent = 'View frames'; renderStrip();
-  $('#frameName').textContent = ''; fit(); draw();
+  renderTitle(); fit(); draw();
 }
 function runOf(r, name) { return (r.runs || []).find(run => run.includes(name)) || [name]; }
 function num(t) { return parseFloat(String(t ?? '').replace(',', '.')); }
@@ -441,9 +471,30 @@ function frameStates(r) {
   }
   return states;
 }
-// The still's live arithmetic mark, beside the CSV line: reads the WINDOW
-// texts (what the display shows), never the CSV row. Informational - it never
+// The still's live arithmetic mark, beside the truth line: reads the WINDOW
+// texts (what the display shows), never the truth row. Informational - it never
 // blocks Save; the corpus has legitimate off-by-a-cent displays.
+// What the checker would say about this entry right now, in its own words -
+// the two hatches above exist for exactly these two lines.
+function renderCsvHint() {
+  const el = $('#csvHint'); if (!el || !entry || frameMode) { if (el) el.textContent = ''; return; }
+  if (!row) { el.textContent = ''; return; }
+  const nod = new Set(entry.notOnDisplay || []);
+  const dis = entry.csvDisagrees || {};
+  const shown = {};
+  for (const w of entry.windows) if (['total','liters','unitPrice'].includes(w.field)) shown[w.field] = (w.text || '').trim();
+  const lines = [];
+  for (const f of ['total','liters','unitPrice']) {
+    const truth = (row[f] || '').toString().trim(); if (!truth) continue;
+    if (shown[f] === undefined) {
+      if (!nod.has(f)) lines.push(`${f}: the truth row says ${truth} and there is no window - draw one, or tick "${f}" above`);
+    } else if (shown[f] && !dis[f] && num(shown[f]) !== null && Math.abs(num(shown[f]) - +truth) > 0.0005) {
+      lines.push(`${f}: the display reads ${shown[f]}, the truth row says ${truth} - fix the text, or say why below`);
+    }
+  }
+  el.innerHTML = lines.length ? lines.map(l => `⚠ ${l}`).join('<br>') : '✓ every asserted field has a window and matches the truth row';
+  el.className = lines.length ? 'row bad' : 'row dim';
+}
 function updateArith() {
   const el = $('#arith'); if (!el) return;
   const text = f => (editable().find(w => w.field === f) || {}).text || '';
@@ -491,7 +542,7 @@ function updateFrameNav() {
   $('#fnGo').max = r.tracked.length; $('#fnGo').value = frameIdx + 1;
   $('#frameSlider').style.display = r.tracked.length > 1 ? '' : 'none';
   $('#frameSlider').max = Math.max(0, r.tracked.length - 1); $('#frameSlider').value = frameIdx;
-  $('#fnCount').textContent = `/ ${r.tracked.length} · ${r.tracked[frameIdx]}`;
+  $('#fnCount').textContent = `/ ${r.tracked.length}`;
   for (const id of ['#vlCopy', '#vlSkip', '#vlRun']) $(id).closest('label, button').style.display = isVideo ? '' : 'none';
   $('#lfOk').style.display = isVideo ? 'none' : '';
   $('#vlMargin').style.display = isVideo ? '' : 'none';
@@ -508,7 +559,7 @@ function renderStrip() {
     // A Live record: every tracked frame, anchors outlined; nothing to label per frame.
     const r = currentRecord(); const cur = r.tracked[frameIdx];
     strip.innerHTML = r.tracked.map((n, i) => `<span class="tracked ${n === cur ? 'cur' : ''} ${r.frames[n].verified ? 'anchor' : ''} ${r.frames[n].skipped ? 'skipped' : ''}" data-i="${i}" title="${n} · inliers ${r.frames[n].inliers}${r.frames[n].verified ? ' · anchor (quads placed by hand)' : ''}${r.frames[n].skipped ? ' · skipped (no display)' : ''}"></span>`).join('');
-    legend.innerHTML = `${frameIdx + 1}/${r.tracked.length} · grey = tracked from the still · white outline = anchor (quads you placed) · drag a quad to anchor a frame · <kbd>⇧⏎</kbd> marks tracking ok and saves`;
+    legend.innerHTML = `grey = tracked from the still · white outline = anchor (quads you placed) · drag a quad to anchor a frame · <kbd>⇧⏎</kbd> marks tracking ok and saves`;
     strip.querySelectorAll('span[data-i]').forEach(el => el.onclick = () => { frameIdx = +el.dataset.i; showFrame(); });
     centreStrip(); updateFrameNav();
     return;
@@ -518,7 +569,7 @@ function renderStrip() {
   const curRun = runOf(r, cur); const runs = r.runs || []; const ri = runs.findIndex(run => run === curRun);
   const nextRunFirst = runs[ri + 1] ? runs[ri + 1][0] : null;
   strip.innerHTML = r.tracked.map((n, i) => `<span class="${states[n]} ${n === cur ? 'cur' : ''} ${runStart.has(n) ? 'runstart' : ''} ${n === nextRunFirst ? 'nextrun' : ''} ${r.frames[n].verified ? 'anchor' : ''} ${r.frames[n].skipped ? 'skipped' : ''}" data-i="${i}" title="${n} ${states[n]}${runStart.has(n) ? ' · new value' : ''}${r.frames[n].verified ? ' · anchor (quads placed by hand)' : ''}${r.frames[n].skipped ? ' · skipped (no display)' : ''}"></span>`).join('');
-  legend.innerHTML = `${frameIdx + 1}/${r.tracked.length} · red = needs you (unlabelled or breaks the sequence) · yellow = reader pre-fill to confirm · green = labelled · teal = interpolated between keyframes · ▲ next unique value (<kbd>⇧→</kbd>) · gap = value changes`;
+  legend.innerHTML = `red = needs you (unlabelled or breaks the sequence) · yellow = reader pre-fill to confirm · green = labelled · teal = interpolated between keyframes · ▲ next unique value (<kbd>⇧→</kbd>) · gap = value changes`;
   strip.querySelectorAll('span[data-i]').forEach(el => el.onclick = () => { frameIdx = +el.dataset.i; showFrame(); });
   centreStrip(); updateFrameNav();
 }
@@ -533,7 +584,7 @@ function showVideoLabel() {
   if (!isVideo) {
     if (frameMode) { const r = currentRecord(); const name = r.tracked[frameIdx]; const f = r.frames[name];
       const carried = f.windows.filter(w => w.carried).map(w => w.field);
-      $('#lfName').textContent = name; $('#lfState').textContent = (f.skipped ? '⊘ skipped – no display on this frame (x un-skips)' : f.verified ? '⚓ anchor (quads placed by hand)' : `tracked from the still · inliers ${f.inliers}`) + (frameQuadsEdited ? ' · edited, unsaved' : '') + (carried.length ? ` · ${carried.join(', ')} carried from the still (dashed), not tracked yet – Save the still or ↻ track` : ''); }
+      $('#lfState').textContent = (f.skipped ? '⊘ skipped – no display on this frame (x un-skips)' : f.verified ? '⚓ anchor (quads placed by hand)' : `tracked from the still · inliers ${f.inliers}`) + (frameQuadsEdited ? ' · edited, unsaved' : '') + (carried.length ? ` · ${carried.join(', ')} carried from the still (dashed), not tracked yet – Save the still or ↻ track` : ''); }
     renderStrip(); return;
   }
   if (!frameMode) return;
@@ -695,8 +746,7 @@ function showFrame() {
   carryUntracked(r.frames[name]);
   showVideoLabel();
   const movie = r.movie, still = current;
-  $('#frameSlider').value = frameIdx; $('#frameName').textContent = `${name} · inliers ${r.frames[name].inliers} · ${frameIdx + 1}/${r.tracked.length}`;
-  $('#playInfo').textContent = `${r.movie} · ${name} · ${frameIdx + 1}/${r.tracked.length}`;
+  $('#frameSlider').value = frameIdx; renderTitle();
   frameImg = new Image();
   frameImg.onload = () => {
     if (!(frameMode && current === still && currentRecord() && currentRecord().movie === movie)) return;
@@ -832,6 +882,7 @@ ${onFrame ? '' : `<button data-x="${i}" title="delete">×</button>`}</div>
   list.forEach((w, i) => updateCells(i));
   updateArith();
   renderNegs();
+  renderCsvHint();
 }
 // The "not a window" regions: judged negatives for the locator (a board cell
 // that is not the price, a totem, a reflected display, a live-read row the
@@ -1320,7 +1371,7 @@ async function runReader(live, onDone) {
 $('#read').onclick = () => runReader(false);
 // Auto-annotate a still (A): the live path locates the rows; each row the
 // reader assigned a field to becomes a window on the still, its text the
-// CSV's truth (what the annotation asserts) rather than the reader's read, so
+// truth row (what the annotation asserts) rather than the reader's read, so
 // a misread cannot be frozen in. Windows already drawn are kept; the first new
 // one is selected for the small adjustments the row box usually needs.
 function autoAnnotate() {
@@ -1333,7 +1384,7 @@ function autoAnnotate() {
     for (const rr of res.rows || []) {
       const f = rr.field; if (!f || !FIELDS.includes(f) || (f !== 'board' && have.has(f))) continue;
       const quad = rr.quad.map(([nx, ny]) => toImg([nx * w, ny * h]));
-      // A board cell has no CSV truth: its text is left for the owner to type.
+      // A board cell has no truth row: its text is left for the owner to type.
       const truth = f !== 'board' && row && row[f] ? String(row[f]) : '';
       entry.windows.push({field: f, text: truth, quad, placedBy: 'auto', zoom}); have.add(f);
       if (first < 0) first = entry.windows.length - 1;
