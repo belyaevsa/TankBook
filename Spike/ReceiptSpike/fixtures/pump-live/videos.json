@@ -4950,5 +4950,815 @@
    }
   ],
   "reviewed": false
+ },
+ "video-029-unknown-this-sale-dollars-gallons-running-display-us": {
+  "reference": "001.jpg",
+  "currency": "USD",
+  "unitPrice": "2.799",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.535,
+      0.385
+     ],
+     [
+      0.905,
+      0.385
+     ],
+     [
+      0.905,
+      0.545
+     ],
+     [
+      0.535,
+      0.545
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.535,
+      0.555
+     ],
+     [
+      0.905,
+      0.555
+     ],
+     [
+      0.905,
+      0.665
+     ],
+     [
+      0.535,
+      0.665
+     ]
+    ]
+   }
+  ],
+  "reviewed": false
+ },
+ "video-030-tatsuno-leclerc-static-display-4868-2653l-1835-fr": {
+  "reference": "075.jpg",
+  "currency": "EUR",
+  "unitPrice": "1.835",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.12,
+      0.325
+     ],
+     [
+      0.66,
+      0.325
+     ],
+     [
+      0.66,
+      0.415
+     ],
+     [
+      0.12,
+      0.415
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.22,
+      0.455
+     ],
+     [
+      0.66,
+      0.455
+     ],
+     [
+      0.66,
+      0.535
+     ],
+     [
+      0.22,
+      0.535
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.36,
+      0.54
+     ],
+     [
+      0.66,
+      0.54
+     ],
+     [
+      0.66,
+      0.595
+     ],
+     [
+      0.36,
+      0.595
+     ]
+    ]
+   }
+  ],
+  "reviewed": false
+ },
+ "video-031-wayne-breuillet-one-cent-litre-running-display-fr": {
+  "reference": "151.jpg",
+  "currency": "EUR",
+  "unitPrice": "0.010",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.22,
+      0.36
+     ],
+     [
+      0.62,
+      0.36
+     ],
+     [
+      0.62,
+      0.44
+     ],
+     [
+      0.22,
+      0.44
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.24,
+      0.44
+     ],
+     [
+      0.65,
+      0.44
+     ],
+     [
+      0.65,
+      0.5
+     ],
+     [
+      0.24,
+      0.5
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.42,
+      0.58
+     ],
+     [
+      0.55,
+      0.58
+     ],
+     [
+      0.55,
+      0.63
+     ],
+     [
+      0.42,
+      0.63
+     ]
+    ]
+   }
+  ],
+  "reviewed": false
+ },
+ "video-032-unknown-quebec-diesel-snow-dollars-running-display-ca": {
+  "reference": "181.jpg",
+  "currency": "CAD",
+  "unitPrice": "2.149",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.4,
+      0.332
+     ],
+     [
+      0.7,
+      0.332
+     ],
+     [
+      0.7,
+      0.39
+     ],
+     [
+      0.4,
+      0.39
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.42,
+      0.39
+     ],
+     [
+      0.7,
+      0.39
+     ],
+     [
+      0.7,
+      0.443
+     ],
+     [
+      0.42,
+      0.443
+     ]
+    ]
+   }
+  ],
+  "reviewed": false
+ },
+ "video-033-tokheim-prix-volume-caption-band-running-display-fr": {
+  "reference": "061.jpg",
+  "currency": "EUR",
+  "unitPrice": "2.389",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.42,
+      0.305
+     ],
+     [
+      0.8,
+      0.305
+     ],
+     [
+      0.8,
+      0.35
+     ],
+     [
+      0.42,
+      0.35
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.42,
+      0.35
+     ],
+     [
+      0.8,
+      0.35
+     ],
+     [
+      0.8,
+      0.395
+     ],
+     [
+      0.42,
+      0.395
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.66,
+      0.43
+     ],
+     [
+      0.8,
+      0.43
+     ],
+     [
+      0.8,
+      0.455
+     ],
+     [
+      0.66,
+      0.455
+     ]
+    ]
+   }
+  ],
+  "reviewed": false
+ },
+ "video-034-unknown-lcd-refresh-glitch-static-5011-2170l-2309-fr": {
+  "reference": "023.jpg",
+  "currency": "EUR",
+  "unitPrice": "2.309",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.3,
+      0.305
+     ],
+     [
+      0.6,
+      0.305
+     ],
+     [
+      0.6,
+      0.35
+     ],
+     [
+      0.3,
+      0.35
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.42,
+      0.38
+     ],
+     [
+      0.6,
+      0.38
+     ],
+     [
+      0.6,
+      0.405
+     ],
+     [
+      0.42,
+      0.405
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.5,
+      0.415
+     ],
+     [
+      0.62,
+      0.415
+     ],
+     [
+      0.62,
+      0.44
+     ],
+     [
+      0.5,
+      0.44
+     ]
+    ]
+   }
+  ],
+  "reviewed": false
+ },
+ "video-035-wayne-yellow-lcd-raquette-caption-take1-running-display-fr": {
+  "reference": "029.jpg",
+  "currency": "EUR",
+  "unitPrice": "2.250",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.05,
+      0.19
+     ],
+     [
+      0.95,
+      0.19
+     ],
+     [
+      0.95,
+      0.36
+     ],
+     [
+      0.05,
+      0.36
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.05,
+      0.4
+     ],
+     [
+      0.95,
+      0.4
+     ],
+     [
+      0.95,
+      0.53
+     ],
+     [
+      0.05,
+      0.53
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.06,
+      0.68
+     ],
+     [
+      0.36,
+      0.68
+     ],
+     [
+      0.36,
+      0.76
+     ],
+     [
+      0.06,
+      0.76
+     ]
+    ]
+   }
+  ],
+  "reviewed": false
+ },
+ "video-036-wayne-yellow-lcd-raquette-caption-take2-running-display-fr": {
+  "reference": "073.jpg",
+  "currency": "EUR",
+  "unitPrice": "2.250",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.02,
+      0.19
+     ],
+     [
+      0.95,
+      0.19
+     ],
+     [
+      0.95,
+      0.42
+     ],
+     [
+      0.02,
+      0.42
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.3,
+      0.44
+     ],
+     [
+      0.95,
+      0.44
+     ],
+     [
+      0.95,
+      0.57
+     ],
+     [
+      0.3,
+      0.57
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.02,
+      0.78
+     ],
+     [
+      0.32,
+      0.78
+     ],
+     [
+      0.32,
+      0.86
+     ],
+     [
+      0.02,
+      0.86
+     ]
+    ]
+   }
+  ],
+  "reviewed": false
+ },
+ "video-037-wayne-yellow-lcd-raquette-caption-take3-running-display-fr": {
+  "reference": "074.jpg",
+  "currency": "EUR",
+  "unitPrice": "2.250",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.05,
+      0.24
+     ],
+     [
+      0.98,
+      0.24
+     ],
+     [
+      0.98,
+      0.47
+     ],
+     [
+      0.05,
+      0.47
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.4,
+      0.5
+     ],
+     [
+      0.98,
+      0.5
+     ],
+     [
+      0.98,
+      0.62
+     ],
+     [
+      0.4,
+      0.62
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.12,
+      0.83
+     ],
+     [
+      0.45,
+      0.83
+     ],
+     [
+      0.45,
+      0.91
+     ],
+     [
+      0.12,
+      0.91
+     ]
+    ]
+   }
+  ],
+  "reviewed": false
+ },
+ "video-038-wayne-yellow-lcd-raquette-caption-take4-running-display-fr": {
+  "reference": "073.jpg",
+  "currency": "EUR",
+  "unitPrice": "2.250",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.05,
+      0.26
+     ],
+     [
+      0.98,
+      0.26
+     ],
+     [
+      0.98,
+      0.47
+     ],
+     [
+      0.05,
+      0.47
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.3,
+      0.5
+     ],
+     [
+      0.95,
+      0.5
+     ],
+     [
+      0.95,
+      0.62
+     ],
+     [
+      0.3,
+      0.62
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.05,
+      0.83
+     ],
+     [
+      0.36,
+      0.83
+     ],
+     [
+      0.36,
+      0.91
+     ],
+     [
+      0.05,
+      0.91
+     ]
+    ]
+   }
+  ],
+  "reviewed": false
+ },
+ "video-039-wayne-yellow-lcd-raquette-caption-take5-running-display-fr": {
+  "reference": "076.jpg",
+  "currency": "EUR",
+  "unitPrice": "2.250",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.1,
+      0.29
+     ],
+     [
+      1.0,
+      0.29
+     ],
+     [
+      1.0,
+      0.52
+     ],
+     [
+      0.1,
+      0.52
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.35,
+      0.55
+     ],
+     [
+      1.0,
+      0.55
+     ],
+     [
+      1.0,
+      0.68
+     ],
+     [
+      0.35,
+      0.68
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.02,
+      0.9
+     ],
+     [
+      0.36,
+      0.9
+     ],
+     [
+      0.36,
+      0.98
+     ],
+     [
+      0.02,
+      0.98
+     ]
+    ]
+   }
+  ],
+  "reviewed": false
+ },
+ "video-040-wayne-yellow-lcd-raquette-caption-take6-running-display-fr": {
+  "reference": "073.jpg",
+  "currency": "EUR",
+  "unitPrice": "2.250",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.02,
+      0.23
+     ],
+     [
+      0.9,
+      0.23
+     ],
+     [
+      0.9,
+      0.45
+     ],
+     [
+      0.02,
+      0.45
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.3,
+      0.47
+     ],
+     [
+      0.9,
+      0.47
+     ],
+     [
+      0.9,
+      0.59
+     ],
+     [
+      0.3,
+      0.59
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.05,
+      0.78
+     ],
+     [
+      0.4,
+      0.78
+     ],
+     [
+      0.4,
+      0.86
+     ],
+     [
+      0.05,
+      0.86
+     ]
+    ]
+   }
+  ],
+  "reviewed": false
  }
 }

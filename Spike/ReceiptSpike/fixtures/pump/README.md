@@ -1406,3 +1406,51 @@ rows on the oblique Wayne).
   glare (blank).
 
 Pump cells asserted: 774 → 820, totals only (macOS 27).
+
+## Added 2026-09-22 (batch 9: France, Belgium, Germany, the UK, Finland - PRIX / VOLUME and This Sale faces)
+
+Sixteen second-hand stills, all **train**, windows drawn by hand from a 5 % grid (unreviewed in the
+annotator).
+
+- `pump-303` a French **LPG** face - `€` 32.22, `L` 78.77, `€/L 0409` (0.409, no decimal mark
+  lit) with a `15°C` label; three separate LCD windows on a black head. `78.77 x 0.409 = 32.22`.
+- `pump-304` **Tokheim** (`PRIX 220,47 €`, `VOLUME 91,52 LITRES`, `PRIX DU LITRE 2,409`),
+  `Note du service de la Métrologie` plate, a **bystander reflected** in the glass over the
+  price window. `91.52 x 2.409 = 220.47`.
+- `pump-305` Tokheim-style **tilted ~10°** (`Prix 152,50 €`, `Volume 60,78 Litres`, `2,509
+  €/Litre`); the total and litres share one LCD panel. `60.78 x 2.509 = 152.50`.
+- `pump-306` a **German twin-face Tokheim, idle** (`BETRAG 0,00 EURO / ABGABE 0,00 LITER / Preis
+  je Liter 0.0 Cent`, pumps 3 and 4 on one head, `Super E10 / Super 95` below). Nothing
+  asserted; pump 3's zeros carry the windows, pump 4 is not annotated.
+- `pump-307` a **Belgian Total Excellium** face (`0197,72 €`, `0084,75 L`, `€/L 2,333`, `Volume
+  gecorrigeerd naar 15°C / Volume corrigé à 15°C`) with the three-grade board down the left
+  (`1,991` Excellium 98, `1,920` Excellium 95, `2,333` Diesel - the diesel cell IS the
+  transaction price). `84.75 x 2.333 = 197.72`.
+
+- **UK, Gilbarco Veeder-Root `This Sale` heads in pence per litre** (CSV `1.609` for `160.9`, GBP,
+  the `pump-217` cents convention; three- or four-cell `Pence per Litre` board on the left):
+  `pump-308` a **£5.00 preset** / 3.11 L at 160.9 (Diesel 173.9, Momentum 99 167.9, Unleaded
+  160.9); `309` a **£16.00 preset** / 12.34 at 129.7, pump 7, `Volume corrected to 15°C`
+  (129.7 / 143.9 / 149.9 / 135.7); `310` **oblique**, 141.66 / 86.96 at 162.9 with **glare over
+  the pound row** (`partial`), the diesel and Momentum board cells unreadable, Unleaded 153.9
+  partial; `311` a **Tesco pump 7 photographed from afar** (810 px wide, the digits ~12 px):
+  73.83 / 52.03 at 141.9 (135.9 / 141.9 / 133.9); `312` a **night** head under a TikTok caption:
+  78.91 / 41.12 at 191.9 (171.9 / 215.9 / 191.9 / 195.9). Every triple closes to the penny.
+
+- **Four more**: `pump-313` a **blue UK head with no transaction price window** (`Pence Per
+  Litre` board only: Supreme 99 unlit, Diesel 168.9 under glare, Unleaded 144.9) - 96.39 /
+  57.07 closes on 168.9, so the diesel board cell carries the `unitPrice` field (the `pump-007`
+  convention: a board cell that IS the price); `314` Gilbarco `This Sale` 153.86 / 92.74 at
+  165.9 (165.9 / 161.9 / 152.9); `315` a **Finnish** `EUROA / LITRAA` face, 12.26 / 5.83, a
+  four-cell board on the right (2.103 / 2.013 / 2.167 / 2.397) whose **first cell is the price**
+  - and the display **reflected in its own glass** above the digits plus the photographer's
+  hand; `316` a night Gilbarco **£49.00 preset** / 36.32 at 134.9 (134.9 / 136.9 / 127.9).
+
+- **Two Lafon Technologies / Wayne French faces**: `pump-317` 35.08 / 23.40 at 1.499
+  (`€uro / Litres / €uro/litre`, `LIVRAISON MINIMALE 5 LITRES`) beside the GAZOLE / SP95-E10 /
+  S/PLOMB 95 nozzles; `318` **E.Leclerc Louhans**, 83.73 / 43.63 at 1.919 with a `CONTRÔLE
+  QUALITÉ DES CARBURANTS 2026` sticker - the photo was **cropped to the head**: the customer
+  in the original is not in the corpus, and the pound row reflects the trees (`partial`).
+
+Pump cells 820 → 865 (totals only, macOS 27: hits 53 / committed 56 / committed-correct 53
+stand). Beside them `../pump-live/` batch 9: five running-display clips.

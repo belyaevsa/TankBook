@@ -7,7 +7,7 @@ paper before any station extractor existed, cross-checked against the OCR text (
 INPUT, never its output). Where the two cannot agree the cell is empty and the reason is here - a
 blank for any other reason is a miss hiding, which is the RV.161 trap.
 
-Asserted: 75 of 89 receipts (the 2026-09-21/22 eleven all assert). Blank, with the reason:
+Asserted: 82 of 97 receipts (the 2026-09-21/22 eleven all assert; of the 2026-09-22 French batch, seven assert). Blank, with the reason:
 
 | fixture | why the cell is blank |
 |---|---|
@@ -25,6 +25,7 @@ Asserted: 75 of 89 receipts (the 2026-09-21/22 eleven all assert). Blank, with t
 | `receipt-041-zolotaya-seredina-tver-95-fuelcard-ru.jpg` | brand not legible in the OCR text (the filename names it, the read does not carry it on any line) |
 | `receipt-053-gpn-tver-95-ru.jpg` | brand not legible in the OCR text (the filename names it, the read does not carry it on any line) |
 | `receipt-057-gpn-valday-95-occluded-ru.jpg` | brand not legible in the OCR text (the filename names it, the read does not carry it on any line) |
+| `receipt-096-unknown-gazole-3463l-1843-no-total-cropped-fr.jpg` | the photo is cropped above the header: no station name is on the paper that was photographed, only `TICKET CLIENT A CONSERVER` |
 
 `receipt-006` (`ИП Гридяева А.В.`) and `receipt-043` (`ООО "Артемовск-Газсервис"`) are single
 stations, not chains, and the filename names them - asserted as `gridyaeva` and

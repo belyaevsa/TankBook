@@ -1101,3 +1101,39 @@ at night. Station `circle k|circlek`. Their Live records (`../pump-live/live-634
 `pump-286`) and `receipt-089` (Järvevana, 95EO miles 14,79 L at 2,024, 29,93, pump 2, 10:08 -
 **pair** with `pump-290`). Station `circle k|circlek`; Live records `../pump-live/live-6359`,
 `6364`. Receipt cells: 414 → 424, stations 73 → 75.
+
+## Added 2026-09-22 (batch 9: France, Luxembourg - the French-language tickets)
+
+Eight second-hand receipts the owner collected (photos, EXIF stripped, station names in the
+brand pack's spelling), the corpus's first French-language tickets. All **EUR**.
+
+- `receipt-090` / `092` **TOTAL Frisange (LU)**: `TICKET CLIENT`, one article line `*Excellium 98`
+  with `MONTANT € 54.72`, and the volume and price on the NEXT line in parentheses -
+  `(COL. 7; 51.24 ℓ * € 1.068/ℓ)` - the litre sign is `ℓ`, the total repeats as `TOTAL € 54.72`
+  and again beside `MASTERCARD`. `092`: 45.00 ℓ at 1.134, 51.03 (three totals of 51.03 on one
+  ticket). Station `total|totalenergies`, `petrol98`.
+- `receipt-091` / `094` **Aral Merl 2 / Aral Bettembourg (LU)**, in **German**: `Ultimate 102` with
+  the amount on the article line (`56,25 EUR E*`), then `*Zp 03  44,50 l  1,264 EUR/l` on the
+  next; `Gesamtbetrag`, `Kredit Eurocard`, and a `Netto / Mwst / Brutto` block at 17 %. `094` is
+  stamped `!!!!! Kopie !!!!!`: 49,75 l at 1,582, 78,70. Station `aral`, `petrol100` (RON 102).
+- `receipt-093` **TotalEnergies Relais Saint-Michel-sur-Rhône (FR)** - **two tickets in one
+  photo**, held side by side: E85 42,29 l at 0,779 (32,94) on the left, cut off at the edge, and
+  `SP 95-E10` 18,51 l at 1,645 (30,45) on the right, complete. The truth is the **right**
+  ticket; a parser that reads the left one is reading the wrong document, not misreading a
+  digit. Field labels are English on a French ticket (`Proof of payment`, `Rate Gross VAT`,
+  `Total net`), the line shape `18,51 litre pompe 01`, `1,645 ? / litre` (the `?` is the
+  printer's missing `€`).
+- `receipt-095` **E.Leclerc Chambly (FR)**: `Pompe 9 / Gazole`, `Volume 52.10 ℓ`, `Prix
+  € 1.689/ℓ`, `TOT TTC € 88.00` - a round total; blue pen marks over the price line and a
+  pixelated card-number block. Station `e.leclerc|leclerc`, `diesel`.
+- `receipt-096` **unknown French station**, cropped: `Carburant = GAZOLE`, `Quantite = 34,63 L`,
+  `Prix unit. = 1.843 EUR`, `TVA 20,00% = 10,64 EUR` - and **no total anywhere on the ticket**
+  (34,63 x 1,843 = 63,82; the TVA closes on it). `total` is blank in the CSV: a value the parser
+  produces here is invented. Comma litres beside a dot price on one ticket.
+- `receipt-097` **TotalEnergies La Côte-Saint-André (FR)**: `DIESEL EXC / pompe 02 / 38,43 lit /
+  2,250 €/lit`, `Total 86,47€` under **purple highlighter**, then `CB € 76,48` and `Avantage €
+  9,99` - the loyalty discount the fuel total does not include (hard rule 4: the fuel amount is
+  86,47, the card paid 76,48). `Total H.T.` block at 20 %.
+
+Receipt cells 424 → 463 (39 asserted: `096` has no total), stations 75 → 82. Measured on
+macOS 27, so the hit marks stand (`high-water.json`).
