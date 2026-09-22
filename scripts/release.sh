@@ -19,15 +19,22 @@ cd "$(dirname "$0")/.."
 UPLOAD=0
 REBUILD=0
 DEBUG=0
-case "${1:-}" in
-  "")        ;;
-  --upload)  UPLOAD=1 ;;
-  --rebuild) REBUILD=1 ;;
-  --debug)   DEBUG=1 ;;
-  *) echo "release: unknown argument '${1}'. The flags are --upload, --rebuild and --debug;" >&2
-     echo "  -allowProvisioningUpdates is already passed to xcodebuild internally." >&2
-     exit 2 ;;
-esac
+# Every argument is read - a second flag used to be ignored in silence, and
+# `--upload --debug` archived and uploaded a Release build (2026-09-22).
+for arg in "$@"; do
+  case "$arg" in
+    --upload)  UPLOAD=1 ;;
+    --rebuild) REBUILD=1 ;;
+    --debug)   DEBUG=1 ;;
+    *) echo "release: unknown argument '${arg}'. The flags are --upload, --rebuild and --debug;" >&2
+       echo "  -allowProvisioningUpdates is already passed to xcodebuild internally." >&2
+       exit 2 ;;
+  esac
+done
+if [ "$DEBUG" -eq 1 ] && [ "$UPLOAD" -eq 1 ]; then
+  echo "release: --debug builds the Debug configuration onto the plugged-in iPhone and never archives; it cannot be combined with --upload" >&2
+  exit 2
+fi
 
 # --debug: not a release at all. Builds the DEBUG configuration for the iPhone
 # plugged in (or the first physical device devicectl lists) and installs it
