@@ -329,10 +329,16 @@ struct CorpusAccuracyGateTests {
     private func scorePump() async throws -> PumpScore {
         let folder = Self.fixturesRoot.appendingPathComponent("pump")
         let expected = try CorpusScorer.loadExpected(folder.appendingPathComponent("expected.csv"))
+        // Heldout only (PU.61). The reader is a trained model and the split is
+        // frozen (decision 9), so scoring it over every fixture would score it
+        // on its own training data. The rules arm is indifferent to the split;
+        // the composite is not, and the composite is what this gate measures.
         let images = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
             .filter { CorpusScorer.imageExtensions.contains($0.pathExtension.lowercased()) }
+            .filter { PumpReaderTestSupport.isHeldout($0.lastPathComponent) }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
-        let records = try await extractRecords(folder: folder, images: images, expected: expected, source: .pump)
+        let records = try await extractRecords(folder: folder, images: images, expected: expected,
+                                               source: .pump, pumpReader: Self.pumpReaderHandle())
         return CorpusScorer.scorePump(
             name: "pump",
             images: images.map(\.lastPathComponent),
@@ -398,8 +404,21 @@ struct CorpusAccuracyGateTests {
             name: "expenses", fixtures: loaded.fixtures, expected: loaded.expected)
     }
 
+    /// The reader the app runs ahead of the rules parser, or nil when the
+    /// models are not in the tree. Built once per score: loading the classifier
+    /// and compiling the detector per image would dominate the run.
+    private static func pumpReaderHandle() -> PumpReaderHandle? {
+        let modelURL = ProcessInfo.processInfo.environment["PUMP_MODEL"].map { URL(fileURLWithPath: $0) }
+            ?? PumpReaderTestSupport.repoRoot
+                .appendingPathComponent("ios/App/Resources/PumpSegments.mlpackage")
+        guard let model = try? PumpSegmentsModel(contentsOf: modelURL) else { return nil }
+        return PumpReaderHandle(reader: PumpReader(model: model,
+                                                   detector: PumpReaderTestSupport.makeDetector()))
+    }
+
     private func extractRecords(folder: URL, images: [URL], expected: [String: ExpectedRow],
-                                source: ExtractionSource) async throws -> [String: ExtractionRecord] {
+                                source: ExtractionSource,
+                                pumpReader: PumpReaderHandle? = nil) async throws -> [String: ExtractionRecord] {
         // The scorer injects the bundled band pack - a corpus fixture has no
         // user history (a fresh device, no prior fill-ups), so ladder step 3
         // yields nothing and the recorded number is the parser running with the
@@ -419,7 +438,27 @@ struct CorpusAccuracyGateTests {
             // the app composes it, so the scored number measures the pipeline
             // the app runs rather than a weaker OCR-only one.
             let qrAnchor = CorpusScorer.qrAnchor(forImage: image.lastPathComponent, in: folder)
-            let result = extractor.extract(lines: ocrLines, source: source, qrAnchor: qrAnchor)
+            var result = extractor.extract(lines: ocrLines, source: source, qrAnchor: qrAnchor)
+            // PU.61: the app runs the reader FIRST and lets the rules arm fill
+            // what it abstained on (`CapturePipeline.process`). Scoring either
+            // arm alone measures a path the user never meets - which is what
+            // this gate did until now, and why no reader change could move it.
+            // The composition is deliberately the same three lines as the app's;
+            // whether the fallthrough should exist at all is PU.62.
+            if let pumpReader, source == .pump,
+               let rgb = PumpReaderTestSupport.loadRGB(url: image),
+               let cgImage = PumpQuadWarp.makeImage(rgb.pixels, width: rgb.width, height: rgb.height) {
+                let currency = expected[image.lastPathComponent]?.currency
+                let reading = PumpDisplayCapture.classify(
+                    image: cgImage, reader: pumpReader, currency: currency,
+                    priceBand: DefaultFuelPriceBandProvider(pack: pack).currencyBand(currency: currency),
+                    rotationCW: 0).reading
+                if let reading {
+                    result.liters = reading.extraction.liters ?? result.liters
+                    result.unitPrice = reading.extraction.unitPrice ?? result.unitPrice
+                    result.total = reading.extraction.total ?? result.total
+                }
+            }
             // The record keeps Double money (the scorer's boundary - see
             // CorpusABScorer); the exact Decimal the extraction now carries is
             // converted through NSDecimalNumber, lossless in the measured

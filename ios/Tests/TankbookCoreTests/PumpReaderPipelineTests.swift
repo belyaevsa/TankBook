@@ -50,7 +50,11 @@ struct PumpReaderPipelineTests {
     // read total + volume with a shown price near the implied one: 9 imply a
     // price outside the currency band (a misread) and 6 show no price to
     // validate the pair.
-    private static let liveCommittedFloor = PumpReaderTestSupport.detectorURL == nil ? 11 : 47
+    // PU.61: the floor IS the gate's reader constant, so a reader change that
+    // moves this number moves what `PumpPhotoGate` reports. Without the
+    // detector the live path is a different measurement and keeps its own floor.
+    private static let liveCommittedFloor = PumpReaderTestSupport.detectorURL == nil
+        ? 11 : PumpPhotoGate.readerCommitted
     private static let livePrecisionFloor = 0.99
 
     /// The make a fixture's file name names, for the per-head read table. The
@@ -94,6 +98,19 @@ struct PumpReaderPipelineTests {
         #expect(measurement.committedCorrect == measurement.committed,
                 "the live path's committed cells are all correct, got \(measurement.committedCorrect)/\(measurement.committed)")
         #expect(measurement.precision >= Self.livePrecisionFloor)
+        // PU.61: the gate's reader constants are this run, not a remembered
+        // number. Unlike the composite constants above them, this check is
+        // Vision-free and runs on every runtime.
+        if PumpReaderTestSupport.detectorURL != nil {
+            #expect(measurement.committedCorrect == PumpPhotoGate.readerCommittedCorrect,
+                    Comment(stringLiteral: "PumpPhotoGate.readerCommittedCorrect is "
+                        + "\(PumpPhotoGate.readerCommittedCorrect), the run says "
+                        + "\(measurement.committedCorrect)"))
+            #expect(measurement.numericTotal == PumpPhotoGate.readerNumericTotal,
+                    Comment(stringLiteral: "PumpPhotoGate.readerNumericTotal is "
+                        + "\(PumpPhotoGate.readerNumericTotal), the run says "
+                        + "\(measurement.numericTotal)"))
+        }
     }
 
     /// The three PU.53 arms side by side: the annotation's rotation (the

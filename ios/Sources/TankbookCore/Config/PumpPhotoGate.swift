@@ -63,6 +63,45 @@ public enum PumpPhotoGate {
     /// against the precision threshold and coverage floor below.
     public static let measuredNumericTotal: Int = 865
 
+    // MARK: - The reader's own measurement (PU.61)
+    //
+    // The constants above are the COMPOSITE score - the reader with the rules
+    // arm behind it, the path `CapturePipeline` runs - and they are recorded on
+    // the Vision runtime they were measured on, so the test that binds them
+    // (`CorpusAccuracyGateTests`) skips on any other macOS. For the whole pump
+    // tranche that meant the gate's binding test did not execute at all on the
+    // development machine.
+    //
+    // These three are the reader's own numbers over the frozen heldout split.
+    // They are Vision-free - Core ML and the law only - so the test that binds
+    // them (`PumpReaderPipelineTests.livePath`) runs on every runtime, and a
+    // change to the reader has somewhere in the gate to land. They are not a
+    // second gate: `allowsPumpPhoto` is still decided by the composite above,
+    // because the composite is what the user meets.
+
+    /// Numeric cells the READER committed over the heldout split, of
+    /// `readerNumericTotal`.
+    public static let readerCommitted: Int = 47
+
+    /// Of `readerCommitted`, the cells that match the corpus. Equal to
+    /// `readerCommitted` today: the reader commits only what the arithmetic
+    /// pins uniquely, so its measured precision is 1.000.
+    public static let readerCommittedCorrect: Int = 47
+
+    /// The numeric cells the heldout split asserts (liters, unitPrice, total;
+    /// blanks skipped), the reader's coverage denominator.
+    public static let readerNumericTotal: Int = 183
+
+    /// The reader's committed-value precision over the heldout split.
+    public static var readerPrecision: Double {
+        readerCommitted > 0 ? Double(readerCommittedCorrect) / Double(readerCommitted) : 0
+    }
+
+    /// The reader's numeric coverage over the heldout split.
+    public static var readerCoverage: Double {
+        readerNumericTotal > 0 ? Double(readerCommitted) / Double(readerNumericTotal) : 0
+    }
+
     /// The precision threshold (B1): committed-value precision at or above this
     /// ships. ~99% is the analyses' convergence - a mode that pre-fills a wrong
     /// digit on one fill in a hundred is the wrong side of hard rule 13, and
