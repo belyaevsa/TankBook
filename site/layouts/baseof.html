@@ -16,8 +16,10 @@
   {{ partial "head/css.html" . }}
   {{ partial "head/seo.html" . }}
   {{ partial "head/jsonld.html" . }}
+  {{ partial "head/analytics.html" . }}
 </head>
 <body>
+  {{ partial "analytics-noscript.html" . }}
   <a class="skip-link" href="#main">{{ i18n "skipToContent" }}</a>
 
   <header class="site-nav">

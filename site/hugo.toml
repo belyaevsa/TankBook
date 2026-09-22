@@ -12,6 +12,11 @@ email = "to@belyaev.live"
 # appStoreURL and the buttons read `site.Params.appStoreURL` - Hugo resolves it
 # to the language's value, and this one is the fallback.
 appStoreURL = "https://apps.apple.com/us/app/tankbook-fuel-mileage-log/id6807989868"
+# Yandex.Metrika on the website (product owner, 2026-09-22). Emitted only by a
+# production build (`layouts/_partials/head/analytics.html`), so a local run
+# never writes into the account's numbers. The APP carries no analytics SDK;
+# the privacy page states what this counter does, in both languages.
+metrikaId = "112924565"
 
 # A typed --- must never render as an em-dash (repo rule: en-dashes only).
 [markup.goldmark.extensions.typographer]

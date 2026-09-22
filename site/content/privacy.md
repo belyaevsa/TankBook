@@ -15,7 +15,7 @@ how the app actually behaves – every statement below is true of Tankbook today
 - **One deliberate exception:** third-party import parsing. An uploaded file and its parse result **are stored for 30 days**, then purged. No sign-in is required.
 - Deleting your account is a **tombstone**: your other devices learn on their next sync, and **the log on your phone stays on your phone**.
 - Export is **always free**, in CSV or JSON. There are **no ads** and **no server-side analytics**.
-- **This website sets no cookies and runs no third-party analytics.**
+- **This website** (not the app) runs a **visitor counter**, Yandex.Metrika, which sets cookies. It measures the site, never your log. [What it collects, and how to turn it off](#this-website).
 
 ## No account needed
 
@@ -93,8 +93,25 @@ content analytics: nothing computes over your entries except serving them back t
 
 ## This website
 
-This website sets no cookies and runs no third-party analytics. If that ever changes, this page
-will change with it.
+Since **22 September 2026** this website runs **Yandex.Metrika** (counter `112924565`) to measure
+how many people visit it and which pages they read. It is on **tankbook.live only** – the app
+carries no analytics SDK and never will (see above).
+
+What it collects, from your visit to this site: the pages you open, the referring link, your
+browser, screen size and approximate region derived from your IP address, clicks and scrolling
+(clickmap), outbound link clicks, and a **session recording** (Webvisor) of the pointer, scrolling
+and typing on this site's own pages. It sets **cookies** to tell one visit from the next. The data
+is processed by Yandex on their servers under
+[their terms](https://yandex.com/legal/metrica_termsofuse/), not by us.
+
+What it never sees: your fuel log. Nothing from the app passes through this website, and the site
+has no form that takes your data.
+
+**Turning it off:** decline cookies through your browser's settings, use a blocker, or send
+`Do Not Track` / `Global Privacy Control` – Metrika's Webvisor and clickmap follow it. Nothing on
+this site needs the counter to work.
+
+If that ever changes, this page will change with it.
 
 ## Contact
 

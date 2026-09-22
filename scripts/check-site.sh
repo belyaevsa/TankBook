@@ -490,12 +490,15 @@ else
   pass "W2 hygiene: no em-dash anywhere under site/"
 fi
 
-# screenshot.html is the only path to an <img>; the shortcode delegates to it
-# and must not own an img tag of its own.
+# screenshot.html is the only path to a CONTENT <img>; the shortcode delegates to
+# it and must not own an img tag of its own. The one other allowed file is the
+# analytics noscript pixel, which is not content: it carries no alt text to get
+# wrong and no size to serve badly, and it exists only so a visitor with
+# JavaScript off is still counted.
 img_files="$(grep -rln '<img' site/layouts 2>/dev/null)"
-img_bad="$(printf '%s' "$img_files" | grep -v '_partials/screenshot.html' | grep -v '^$' || true)"
+img_bad="$(printf '%s' "$img_files" | grep -v '_partials/screenshot.html' | grep -v '_partials/analytics-noscript.html' | grep -v '^$' || true)"
 if [ -z "$img_bad" ] && printf '%s' "$img_files" | grep -q '_partials/screenshot.html'; then
-  pass "W2 hygiene: <img exists only in _partials/screenshot.html"
+  pass "W2 hygiene: <img exists only in _partials/screenshot.html (plus the analytics pixel)"
 else
   fail "W2 hygiene: <img outside _partials/screenshot.html (violations below)"
   printf '%s\n' "$img_bad"
