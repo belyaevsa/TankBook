@@ -37,6 +37,17 @@ llm_usage  (account_id fk, period date, requests int, tokens bigint)
 ```
 
 - `records.scn` has a per-account index; pull is `WHERE account_id = ? AND scn > ? ORDER BY scn LIMIT n`.
+- **Pull order is scn order, and scn is per record - so a page is NOT in dependency order.** A car
+  edited after its entries were logged carries a higher scn than every entry, and a device pulling
+  the account from zero (a fresh install, a restore, a re-keyed cursor) receives the entries before
+  the car they reference. The entry, reminder and tire-set tables carry a foreign key to the vehicle
+  and the service item to its record, so the client **parks** a record whose parent is missing and
+  retries it after every page (`SyncEngine.pullAll`); the cursor is persisted only for a page that
+  left nothing parked. A record still parked when the last page is applied has a parent on no page
+  of the account: it is logged as `sync.orphaned` (entity type and id), left on the server, and the
+  cursor moves past it - a cursor that never advances replays the same page every cycle and the
+  account never restores (RV.303, found in production 2026-09-22 as a from-zero pull that ended
+  every cycle in `serverUnavailable` against a `200`).
 - **Forward compatibility of entity types:** `entity_type` is an open set (adding `tireset` or any future entity needs zero server changes). Clients MUST preserve records whose `entity_type` or payload fields they don't understand – store opaquely, sync back unchanged, never drop. An older app version syncing against newer data keeps everything intact; it just doesn't render the new type until updated. (Same rule as backup's additive-evolution: unknown ≠ invalid.) This rule is not a promise, it is a **tested invariant** – see the round-trip test in "Payload contract".
 
 ## Payload contract and versioning

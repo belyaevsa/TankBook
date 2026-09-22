@@ -248,6 +248,20 @@ extension TankbookRepository {
         }
     }
 
+    /// True when a write failed because the row it references does not exist -
+    /// the SQLite foreign-key rejection, the one apply failure the pull parks
+    /// rather than fails on (`SyncEngine.pullAll`).
+    public static func isMissingParentFailure(_ error: any Error) -> Bool {
+        (error as? DatabaseError)?.extendedResultCode == .SQLITE_CONSTRAINT_FOREIGNKEY
+    }
+
+    /// SQLite's extended result code when `error` is a database failure, else
+    /// nil. A code is loggable; the error's description is not (it can quote
+    /// statement arguments).
+    public static func databaseResultCode(_ error: any Error) -> Int32? {
+        (error as? DatabaseError)?.extendedResultCode.rawValue
+    }
+
     /// Applies a pulled/merged record as `synced(scn)`.
     public func applyRemoteRecord(_ record: SyncRecord, scn: Int64) throws -> Set<UUID> {
         try applyRecord(record, syncState: .synced(scn: scn))

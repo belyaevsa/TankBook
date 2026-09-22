@@ -223,6 +223,16 @@ only – a code and a JSON pointer (a field path) are loggable, the payload neve
 A non-zero count is the signal that a device holds rows it will never push until edited or the app
 updates, which is a defect, not a transient failure.
 
+`sync.pull.failed` (RV.303) – the pull half threw and the cycle stopped: `error` is the failure's
+class (`SyncServerError.<case>`, `DatabaseError:<sqlite extended code>`, or a type name) – never
+its description, which for a database error can quote statement arguments (hard rule 12). The
+outcome folds every pull failure into `serverUnavailable`, so without this line a diagnostics
+export could show a `200` pull and a "server unavailable" verdict and name nothing.
+
+`sync.orphaned` (RV.303) – one line per pull that ends with records it could not apply because the
+row they reference is on no page of the account: the count and `entityType:id` per item. The
+records stay on the server; the cursor moves past them (`docs/SYNC.md` → pull order).
+
 ### Reference data refreshes (RV.139)
 `rates.refresh` – `outcome` (`attempted` / `joined` / `deferred` / `noFetcher`), `trigger`
 (`background` / `userInitiated`). One line per `RateStore.refresh` decision,

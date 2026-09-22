@@ -121,7 +121,10 @@ public struct SyncEngine {
             // answered, so the honest reading is "the service is down" - never
             // offline. `applyTransportFailure` splits the one case (offline) that
             // did NOT reach the host. The refusal folding is the pre-existing
-            // pull-side asymmetry PR.7 noted.
+            // pull-side asymmetry PR.7 noted. The class is logged because the
+            // outcome cannot carry it, and a diagnostics export that says
+            // "server unavailable" against a 200 pull names nothing.
+            log?.emit(SyncPullFailed(error: error))
             outcome.applyTransportFailure(error)
             return outcome
         }
@@ -211,31 +214,9 @@ public struct SyncEngine {
         return outcome
     }
 
-    // MARK: - Pull
+    // MARK: - Merge
 
-    private func pullAll(tally: SyncCycleTally) async throws -> (pulled: Int, touched: Set<UUID>) {
-        var since = try cursorStore.load() ?? 0
-        var pulled = 0
-        var touched = Set<UUID>()
-
-        while true {
-            let response = try await transport.pull(since: since, limit: pullPageLimit)
-            for remote in response.records {
-                touched.formUnion(try applyPull(remote, tally: tally))
-                pulled += 1
-            }
-            // Persist the cursor only after the page is applied (cursor safety:
-            // a crash before the next page resumes from the applied cursor and
-            // re-reads the same page - nothing is skipped).
-            try cursorStore.save(response.nextSince)
-            if !response.more { break }
-            since = response.nextSince
-        }
-        tally.pulled = pulled
-        return (pulled, touched)
-    }
-
-    private func applyPull(_ remote: SyncPullRecord, tally: SyncCycleTally) throws -> Set<UUID> {
+    func applyPull(_ remote: SyncPullRecord, tally: SyncCycleTally) throws -> Set<UUID> {
         guard let local = try repository.localSyncRecord(id: remote.id, entityType: remote.entityType) else {
             let touched = try repository.applyRemoteRecord(remote.asRecord(), scn: remote.scn)
             payloadMemory.recordSynced(id: remote.id, payload: remote.payload)
@@ -608,7 +589,7 @@ fileprivate struct PushCandidate {
 /// Counts only - never a record list, never a domain value. A reference
 /// box (not a struct) because it crosses async calls; it is touched only
 /// from the one synchronize task, so it needs no lock.
-fileprivate final class SyncCycleTally {
+final class SyncCycleTally {
     var pulled = 0
     var overwriteConflicts = 0
     var pushTransportConflicts = 0
