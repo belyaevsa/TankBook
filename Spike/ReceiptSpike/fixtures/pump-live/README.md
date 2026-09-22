@@ -177,6 +177,39 @@ and a longer 4K video walking the angle with the LCD flickering; plus a third fi
 | `live-6285` | 224 | 4K video, moving angle, flicker | `pump-116` (same fill) |
 | `live-6279` | 149 | 4K video, moving angle, flicker | **new fill, video only** - 62.12 / 32.37 / 1.919 (read by eye from the frames) |
 
+## Batch 8 (2026-09-22, product owner): Sikupilli, Järvevana and two more Circle K forecourts
+
+Twenty-one pump stills (`pump-282`..`302`), two receipts (`receipt-088`/`089`) - two matched pairs -
+every one with its Live record, and a 4K running fill. The HEICs arrived twice (plain, then the
+Live-record copies); the copies were byte-identical and the records are the copies' `.mov`s.
+
+| live | frames | what | paired still / truth |
+|---|---|---|---|
+| `live-6354` | 53 | Live record of the pump still | `pump-282` |
+| `live-6355` | 56 | Live record of the pump still | `pump-283` |
+| `live-6356` | 82 | Live record of the pump still | `pump-284` |
+| `live-6357` | 37 | Live record of the pump still | `pump-285` |
+| `live-6358` | 89 | Live record of the pump still | `pump-286` |
+| `live-6359` | 71 | Live record of the receipt | `receipt-088` |
+| `live-6360` | 53 | Live record of the pump still | `pump-287` |
+| `live-6361` | 49 | Live record of the pump still | `pump-288` |
+| `live-6362` | 61 | Live record of the pump still | `pump-289` |
+| `live-6363` | 58 | Live record of the pump still | `pump-290` |
+| `live-6364` | 40 | Live record of the receipt | `receipt-089` |
+| `live-6365` | 47 | Live record of the pump still | `pump-291` |
+| `live-6366` | 82 | Live record of the pump still | `pump-292` |
+| `live-6367` | 58 | Live record of the pump still | `pump-293` |
+| `live-6368` | 69 | Live record of the pump still | `pump-294` |
+| `live-6369` | 89 | Live record of the pump still | `pump-295` |
+| `live-6371` | 58 | Live record of the pump still | `pump-296` |
+| `live-6372` | 83 | Live record of the pump still | `pump-297` |
+| `live-6373` | 89 | Live record of the pump still | `pump-298` |
+| `live-6374` | 88 | Live record of the pump still | `pump-299` |
+| `live-6375` | 67 | Live record of the pump still | `pump-300` |
+| `live-6376` | 53 | Live record of the pump still | `pump-301` |
+| `live-6377` | 65 | Live record of the pump still | `pump-302` |
+| `video-028-gilbarco-circlek-pump4-running-display-ee` | 327 (3840x2160, 24 fps, 13.6 s) | Gilbarco Veeder-Root at a Circle K, pump 4, the five-grade board down the left, **counting up** through a fill at `2,199` from 0003,95 / 0001,80 to ~0022,15 / 0010,07 (the owner's `IMG_6370.MOV`, whole clip) | price `2.199` constant; `1.80 x 2.199 = 3.96`, `10.07 x 2.199 = 22.14` close to the cent |
+
 ## Batch 7 (2026-09-21, product owner): the night set
 
 Eight night stills (`pump-274`..`281`) and two receipts (`receipt-086`/`087`) with their Live

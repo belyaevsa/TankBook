@@ -1379,3 +1379,30 @@ the corpus's highest Estonian price) and `0045,78 / 0023,49` at `1,949`.
 The Live records were lost at the first intake (the orchestrator's cleanup deleted the `.mov`
 files after a failed conversion step) and **re-exported by the owner the same evening** -
 `../pump-live/live-6339`..`6349`, batch 7 there. Pump cells: 753 → 774.
+
+## Added 2026-09-22 (batch 8: Sikupilli, Järvevana and two more Circle K forecourts - 21 stills)
+
+All **train**, every one with a Live record (`../pump-live/` batch 8), auto-annotated through the
+live path (`scripts/pump-auto-annotate.py`, unreviewed); six stay `pendingWindows` where an
+asserted cell got no row (`283`, `284`, `286`, `292` the price window; `300` the total; `291` no
+rows on the oblique Wayne).
+
+- **Circle K Sikupilli, Gilbarco** (zero-padded): `pump-282` 0034,44 / 0017,23 at 1,999; `283`
+  0033,06 / 0014,38 at 2,299 (the corpus's highest Estonian price, D miles+); `284` 0043,45 /
+  0020,03 at 2,169 under heavy glare; `285` 0011,00 / 0005,00 at 2,199 (a 5-litre preset -
+  Vmin=5L exactly); `286` pump 7 0089,92 / 0040,89 at 2,199 - **pair** with `receipt-088`.
+- **Circle K Järvevana, Dresser Wayne** (`SUMMA` / `LIITRIT` and the `LIITRID` variant, four-cell
+  board): `287` pump 8 66.22 / 29.91; `288` 69.27 / 34.14; `289` a **60.00 preset** / 27.10;
+  `290` pump 2 29.93 / 14.79 - **pair** with `receipt-089` (95EO miles at 2,024); `291` pump 1
+  shot obliquely, 86.50 / 41.81. `unitPrice` blank throughout (board, not a transaction price).
+- **A Circle K Gilbarco with the five-grade board** (2,019 / 2,069 / 2,079 / 2,209 / 2,309):
+  `292`/`293` pump 5 0080,36 / 0040,10 at 2,004 (the second angle has the price window out of
+  frame); `294` pump 3 0039,52 / 0019,01 at 2,079; `295` pump 4 0030,04 / 0013,60 at 2,209.
+  `../pump-live/video-028` is a running fill on this pump 4.
+- **Circle K Wayne `LIITRID` heads** (the Estonian plural variant on the litres label): `296`
+  114.28 / 51.27; `297` litres 7.65, the total washed out (blank); `298` 154.98 / 69.53 (the
+  corpus's largest Estonian fill); `299` 50.13 / 22.76; `300` 27.87 / 13.70; `301` **idle**
+  0.00 / 0.00 with the photographer in the glass; `302` tilted, litres 13.84, the total under
+  glare (blank).
+
+Pump cells asserted: 774 → 820, totals only (macOS 27).

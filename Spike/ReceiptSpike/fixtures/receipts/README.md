@@ -1094,3 +1094,10 @@ Receipt cells: 389 → 404, stations 68 → 71.
 `pump-278`) and `receipt-087` (98EO miles+ 8,00 L at 2,059, 16,47, pump 3, 20:31 - **pair** with
 `pump-279`), held over the paving under the forecourt lights, the first receipt photographed
 at night. Station `circle k|circlek`. Their Live records (`../pump-live/live-6345`, `6347`) were re-exported after a lost first intake. Receipt cells: 404 → 414, stations 71 → 73.
+
+## Added 2026-09-22 (batch 8: two Circle K receipts with Live records)
+
+`receipt-088` (Sikupilli, D B0 miles 40,89 L at 2,199, KOKKU 89,92, pump 7, 10:06 - **pair** with
+`pump-286`) and `receipt-089` (Järvevana, 95EO miles 14,79 L at 2,024, 29,93, pump 2, 10:08 -
+**pair** with `pump-290`). Station `circle k|circlek`; Live records `../pump-live/live-6359`,
+`6364`. Receipt cells: 414 → 424, stations 73 → 75.
