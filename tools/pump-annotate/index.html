@@ -93,7 +93,8 @@
     <button id="stepBack" title="previous frame (←)">⏮</button><button id="stepFwd" title="next frame (→)">⏭</button>
     <label title="frames per second">fps <input id="fps" type="number" min="1" max="60" value="12" style="width:52px"></label>
     <label title="start playing as soon as a Live photo or movie opens"><input type="checkbox" id="autoplay"> autoplay</label>
-    <label title="the row detector ⇧R runs: the one in the app bundle, or a candidate a training round left behind">det <select id="detector" style="max-width:260px"></select></label>
+    <label title="the row detector ⇧R runs: the one in the app bundle, or a candidate a training round left behind">det <select id="detector" style="max-width:240px"></select></label>
+    <span id="detectorVersion" class="mono dim" title="the version ⇧R will run"></span>
     <label><input type="checkbox" id="loop" checked> loop</label>
     <label title="while a box is dragged, nudged or turned, the slicer's cells are drawn on it as it will be cut (resident pump-read, ~20 ms)"><input type="checkbox" id="liveSlice"> live slicers</label>
     <span id="sliceInfo" class="dim mono"></span>
@@ -1196,13 +1197,24 @@ async function loadDetectors() {
   const has = detectors.some(d => d.path === saved);
   const shipped = (detectors.find(d => d.shipped) || detectors[0] || {}).path;
   $('#detector').innerHTML = detectors.map(d =>
-    `<option value="${d.path}" title="${d.path} · ${d.mb} MB · sha ${d.sha}">${d.shipped ? '★ ' : ''}${d.name} · ${d.modified}</option>`).join('');
+    `<option value="${d.path}" title="${d.path} · ${d.mb} MB">${d.shipped ? '★ ' : ''}${d.name} · ${d.version}</option>`).join('');
   $('#detector').value = has ? saved : shipped;
+  showDetectorVersion();
+}
+// The version stays on screen, not only inside the closed dropdown: a candidate
+// is one keystroke from looking like the shipped model otherwise.
+function showDetectorVersion() {
+  const d = detectors.find(x => x.path === $('#detector').value);
+  const el = $('#detectorVersion');
+  el.textContent = d ? (d.shipped ? '★ ' : '⚗ ') + d.version : '';
+  el.style.color = d && !d.shipped ? 'var(--unitPrice)' : '';
+  el.title = d ? `${d.path} · ${d.mb} MB${d.boxes ? ` · ${d.boxes} boxes` : ''}${d.shipped ? ' · identical to the app bundle' : ' · a candidate, not shipped'}` : '';
 }
 $('#detector').onchange = e => {
   try { localStorage.setItem('annotator.detector', e.target.value); } catch (err) {}
+  showDetectorVersion();
   const d = detectors.find(x => x.path === e.target.value);
-  setMsg(d ? `⇧R now runs ${d.name} (${d.where}, ${d.modified}, sha ${d.sha})` : '');
+  setMsg(d ? `⇧R now runs ${d.name} — ${d.version}` : '');
 };
 loadDetectors();
 
@@ -1385,10 +1397,12 @@ async function runReader(live, onDone) {
   const c = res.committed || {};
   const committedText = ['total', 'liters', 'unitPrice'].map(f => `${f} ${c[f] ?? '–'}`).join(' · ');
   const det = detectors.find(x => x.path === $('#detector').value);
-  const rowsText = live ? ` · rows found ${(res.rows || []).length}${det ? ` · detector ${det.name} (${det.modified})` : ''}` : '';
+  const rowsText = live ? ` · rows found ${(res.rows || []).length}${det ? ` · detector ${det.name} — ${det.version}` : ''}` : '';
   notify(Object.values(c).some(v => v) ? 'done' : 'failed',
          (live ? 'Live path read' : 'Layout read') + ' completed – ' + committedText + rowsText + (Object.values(c).some(v => v) ? '' : ' (nothing committed)'));
-  const lines = [`reader${live ? ' (live path)' : ''}: total ${c.total ?? '–'}  liters ${c.liters ?? '–'}  price ${c.unitPrice ?? '–'}`];
+  const lines = [];
+  if (live && det) lines.push(`detector ${det.name} — ${det.version}`);
+  lines.push(`reader${live ? ' (live path)' : ''}: total ${c.total ?? '–'}  liters ${c.liters ?? '–'}  price ${c.unitPrice ?? '–'}`);
   for (const w of res.windows || []) lines.push(`  ${w.field.padEnd(9)} ${w.text.padEnd(10)} margins ${w.cells.map(x => x.margin.toFixed(1)).join(' ')}`);
   for (const r of res.rows || []) lines.push(`  row ${(r.field || '–').padEnd(9)} ${r.cells} cells${r.detected ? ' (detector)' : ''}`);
   for (const t of res.rowTexts || []) lines.push(`  read ${t}`);

@@ -77,19 +77,41 @@ DETECTOR_DIRS = [ROOT / "ios" / "App" / "Resources", ROOT / "ml" / "pump-reader"
 
 
 def detectors() -> list[dict]:
+    """Every row detector on this machine, each with a VERSION that is unique
+    even when two files share a name: the folder's tag, the corpus generation
+    the export beside it was built from (`counts.json`'s train stills, which is
+    what actually changes between rounds), the date it was written, and the
+    first eight of its sha256. `DigitRows` appears three times on this machine
+    and only the version tells them apart."""
     shipped = hashlib.sha256(DETECTOR.read_bytes()).hexdigest() if DETECTOR.exists() else None
+    tags = {"ios/App/Resources": "bundle", "ml/pump-reader/.out/det": "dev"}
     out, seen = [], set()
     for folder in DETECTOR_DIRS:
+        where = str(folder.relative_to(ROOT))
+        tag = tags.get(where, folder.name)
+        counts = {}
+        counts_file = folder / "counts.json"
+        if counts_file.exists():
+            try:
+                counts = json.loads(counts_file.read_text())
+            except json.JSONDecodeError:
+                counts = {}
         for path in sorted(folder.glob("*.mlmodel")) if folder.exists() else []:
             key = str(path.resolve())
             if key in seen:
                 continue
             seen.add(key)
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            written = datetime.fromtimestamp(path.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+            stills = counts.get("train_stills")
             out.append({"path": str(path.relative_to(ROOT)),
                         "name": path.stem,
-                        "where": str(folder.relative_to(ROOT)),
-                        "modified": datetime.fromtimestamp(path.stat().st_mtime).strftime("%Y-%m-%d %H:%M"),
+                        "where": where,
+                        "tag": tag,
+                        "trainStills": stills,
+                        "boxes": counts.get("boxes"),
+                        "modified": written,
+                        "version": f"{tag} · {written[:10]}" + (f" · {stills} stills" if stills else "") + f" · {digest[:8]}",
                         "mb": round(path.stat().st_size / 1e6, 1),
                         "sha": digest[:8],
                         "shipped": digest == shipped})

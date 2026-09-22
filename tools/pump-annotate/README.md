@@ -260,12 +260,18 @@ the ml venv runs it); the converted images are cached under
   frozen in); a board row becomes a `board` window with an empty text to type. Windows already drawn are kept; the first new one is selected so
   the box can be tightened. Nothing is saved until Save.
 - **det** (toolbar): the row detector `⇧R`'s live path runs - the model in the
-  app bundle (marked `★`), the dev copy the Swift tests read, and every
-  candidate under `ml/pump-reader/.out/det/`, each shown with the date it was
-  written so two rounds of the same name are distinguishable. Remembered per
-  browser; the read's status line names the detector it used. This is how a
-  candidate is judged by looking (shipped vs candidate on the same still)
-  rather than only by its committed count.
+  app bundle, the dev copy the Swift tests read, and every candidate under
+  `ml/pump-reader/.out/det/`. Three of them are called `DigitRows`, so each
+  carries a **version**: the folder's tag, the date it was written, the corpus
+  generation its export was built from (`counts.json`'s train stills - what
+  actually changes between rounds) and the first eight of its sha256, e.g.
+  `pu48 · 2026-09-22 · 248 stills · d18531eb`. The version stays on screen
+  beside the picker, amber with a `⚗` when it is a candidate and grey with a
+  `★` when it is byte-identical to the app bundle's, so a candidate can never
+  be mistaken for the shipped model; the read's status line and the diagnostic
+  dump carry it too. Remembered per browser. This is how a candidate is judged
+  by looking (shipped vs candidate on the same still) rather than only by its
+  committed count.
 - **▶ read** (`r`): runs the app's own reader on what is on
   screen and fills the fields as a prefill - the annotated windows (or a video
   frame's carried quads) are sliced, classified and judged by the law, and the
