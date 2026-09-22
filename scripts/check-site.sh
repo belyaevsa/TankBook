@@ -297,12 +297,23 @@ fi
 # a redirect is not a page, and grepping only the home page is the classic
 # vacuous check this loop exists to prevent.
 alias_pages=0
+verify_pages=0
 page_count=0
 for f in $(find site/public -name '*.html' | sort); do
   if grep -q 'http-equiv="refresh"' "$f"; then
     alias_pages=$((alias_pages + 1))
     continue
   fi
+  # A search engine's ownership file (`static/yandex_<token>.html`) is not a
+  # page of the site: its bytes are dictated by the engine, which refuses the
+  # verification when anything else is in them. It ships, it is not linked, and
+  # it is not in the sitemap.
+  case "${f##*/}" in
+    yandex_*.html|google*.html)
+      verify_pages=$((verify_pages + 1))
+      continue
+      ;;
+  esac
   page_count=$((page_count + 1))
   rel="${f#site/public}"
   dir="${rel%/*}"
@@ -349,7 +360,7 @@ for f in $(find site/public -name '*.html' | sort); do
   done
 done
 if [ "$page_count" -ge 16 ] && [ "$alias_pages" -ge 1 ]; then
-  pass "S4 hreflang loop covered $page_count pages ($alias_pages redirect alias(es) skipped)"
+  pass "S4 hreflang loop covered $page_count pages ($alias_pages redirect alias(es), $verify_pages ownership file(s) skipped)"
 else
   fail "S4 hreflang loop covered only $page_count page(s) with $alias_pages alias(es) - page count suspiciously low"
 fi
