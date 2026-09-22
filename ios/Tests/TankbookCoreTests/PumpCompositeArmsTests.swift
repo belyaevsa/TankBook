@@ -88,18 +88,19 @@ struct PumpCompositeArmsTests {
 
             // Every cell the fallthrough supplies, and whether it is right.
             let r = readerOnly[name]!, c = composite[name]!
-            let cells: [(String, Double?, Double?, Double?)] = [
-                ("liters", r.liters, c.liters, want.liters),
-                ("unitPrice", r.unitPrice, c.unitPrice, want.unitPrice),
-                ("total", r.total, c.total, want.total),
-            ]
+            // A cell's value is the composite's; it is a fill when the reader had none.
+            let cells = [Cell(field: "liters", value: r.liters == nil ? c.liters : nil, truth: want.liters),
+                         Cell(field: "unitPrice", value: r.unitPrice == nil ? c.unitPrice : nil,
+                              truth: want.unitPrice),
+                         Cell(field: "total", value: r.total == nil ? c.total : nil, truth: want.total)]
             let readerCommitted = [r.liters, r.unitPrice, r.total].contains { $0 != nil }
-            for (field, fromReader, filled, truth) in cells where fromReader == nil && filled != nil {
+            for cell in cells {
+                guard let filled = cell.value else { continue }
                 let verdict: String
-                if let truth, let filled { verdict = abs(filled - truth) < 0.011 ? "right" : "WRONG want \(truth)" }
+                if let truth = cell.truth { verdict = abs(filled - truth) < 0.011 ? "right" : "WRONG want \(truth)" }
                 else { verdict = "unasserted" }
                 fills.append("\(name.prefix(8)) \(readerCommitted ? "beside reader" : "reader silent") "
-                    + "\(field)=\(filled!) \(verdict)")
+                    + "\(cell.field)=\(filled) \(verdict)")
             }
         }
         let names = images.map(\.lastPathComponent)
@@ -110,29 +111,43 @@ struct PumpCompositeArmsTests {
             print("PU.62 \(label): committed \(s.committed), correct \(s.committedCorrect), "
                 + "precision \(String(format: "%.3f", precision)), of \(s.numericTotal) cells, \(names.count) stills")
         }
-        // Every committed cell of the reader alone that the corpus contradicts,
-        // and every still it commits on, for a diff against the live floor's run.
+        reportReader(names: names, readerOnly: readerOnly, noBudget: noBudget, floor: floor,
+                     expected: expected)
+        print("PU.62 fallthrough fills: \(fills.count)")
+        for f in fills { print("  FILL \(f)") }
+        #expect(!names.isEmpty)
+    }
+
+    private struct Cell {
+        let field: String
+        let value: Double?
+        let truth: Double?
+    }
+
+    /// Every still the reader alone commits on and every committed cell the
+    /// corpus contradicts, then where the app's entry point and the live
+    /// floor's call part company.
+    private func reportReader(names: [String], readerOnly: [String: ExtractionRecord],
+                              noBudget: [String: ExtractionRecord], floor: [String: ExtractionRecord],
+                              expected: [String: ExpectedRow]) {
         for name in names {
             guard let r = readerOnly[name], let want = expected[name] else { continue }
-            let got = [("liters", r.liters, want.liters), ("unitPrice", r.unitPrice, want.unitPrice),
-                       ("total", r.total, want.total)]
-            let committed = got.compactMap { f, v, _ in v.map { "\(f)=\($0)" } }
+            let cells = [Cell(field: "liters", value: r.liters, truth: want.liters),
+                         Cell(field: "unitPrice", value: r.unitPrice, truth: want.unitPrice),
+                         Cell(field: "total", value: r.total, truth: want.total)]
+            let committed = cells.compactMap { c in c.value.map { "\(c.field)=\($0)" } }
             if !committed.isEmpty { print("  READER \(name.prefix(8)) \(committed.joined(separator: " "))") }
-            for (field, value, truth) in got {
-                if let value, let truth, abs(value - truth) >= 0.011 {
-                    print("  WRONG reader \(name.prefix(8)) \(field) got \(value) want \(truth)")
+            for c in cells {
+                if let value = c.value, let truth = c.truth, abs(value - truth) >= 0.011 {
+                    print("  WRONG reader \(name.prefix(8)) \(c.field) got \(value) want \(truth)")
                 }
             }
         }
-        // Where the app's entry point and the floor's call part company.
         for name in names {
             guard let a = noBudget[name], let f = floor[name] else { continue }
             let app = [a.liters, a.unitPrice, a.total].compactMap { $0 }.count
             let bare = [f.liters, f.unitPrice, f.total].compactMap { $0 }.count
             if app != bare { print("  DIFF \(name.prefix(8)) app \(app) cells, floor's call \(bare) cells") }
         }
-        print("PU.62 fallthrough fills: \(fills.count)")
-        for f in fills { print("  FILL \(f)") }
-        #expect(!names.isEmpty)
     }
 }
