@@ -80,6 +80,17 @@ def main() -> int:
         tracking = Counter(r["final"] for r in rows if r["kind"] == "tracking")
         if tracking:
             print("\nTracking verdicts:", dict(tracking))
+
+        # Windows the operator moved, added or deleted on a still (or added to /
+        # deleted from a frame): per kind and per who placed the quad - a run of
+        # `quad` rows against `auto` says the auto-placer is off, a run of
+        # `delete` against `reader` says it invents windows.
+        edits = [r for r in rows if r["kind"] in ("quad", "add", "delete") and r.get("still")]
+        frame_edits = [r for r in rows if r["kind"] in ("add", "delete") and not r.get("still")]
+        if edits or frame_edits:
+            print("\nWindow edits on stills:", dict(Counter((r["kind"], r.get("proposedBy")) for r in edits)))
+            if frame_edits:
+                print("Window edits on frames:", dict(Counter((r["kind"], r.get("proposedBy")) for r in frame_edits)))
         return 0
     finally:
         con.close()

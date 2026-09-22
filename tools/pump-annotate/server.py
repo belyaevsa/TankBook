@@ -646,6 +646,9 @@ class Handler(SimpleHTTPRequestHandler):
         if entry.get("tracking") and entry.get("tracking") != ann.get(name, {}).get("tracking"):
             corrections.append({"kind": "tracking", "still": name, "final": entry["tracking"]})
         before = corpus_db.entry(name) or ann.get(name, {})
+        # Every window the save moves, adds or deletes is a ledger row too (the
+        # text corrections above cover only what the reader pre-filled).
+        corrections += corpus_db.window_corrections(name, before.get("windows", []), entry.get("windows", []))
         # Decision 9: a heldout still measures only once reviewed, so editing a
         # reviewed heldout entry's windows clears reviewed - a changed heldout
         # still never measures silently. Identical windows keep it.

@@ -65,6 +65,11 @@ the ml venv runs it); the converted images are cached under
   the frames view it is **carried** onto each frame at the still's quad, drawn
   dashed and named in the frame line; drag it into place and `⇧⏎` pins it like
   any quad, or Save the still (or `↻ track`) to track it properly.
+- **Every window edit on a still is a ledger row** (`pump-live/corrections.jsonl`, the
+  `corrections` table): a moved quad (`kind: quad`, with who placed it - `auto`, `reader`,
+  `tracker`, `template` or `operator` - and the IoU), a window drawn (`add`) and one deleted
+  (`delete`, carrying the window it was). A window carried onto a frame and pinned there is an
+  `add` on the frame. `scripts/corrections-report.py` counts them per kind and placer.
 - **Focusing any control on a window card** (the field select, the text, the
   partial box) selects that window: the card lights and its quad thickens on
   the picture, without the panel re-rendering under the cursor.

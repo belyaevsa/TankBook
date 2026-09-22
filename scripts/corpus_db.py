@@ -74,6 +74,9 @@ ENTRY_KEYS = ("windows", "rotationCW", "notOnDisplay", "csvDisagrees", "reviewed
 VIDEO_KEYS = ("reference", "currency", "unitPrice", "windows", "reviewed", "anchors", "firstFrame", "lastFrame", "note")
 FRAME_KEYS = ("windows", "inliers", "anchor", "verified")
 CORRECTION_ORDER = ("still", "record", "video", "frame", "field", "proposedBy", "proposed", "final", "iou", "inliers")
+# The kinds whose `proposed` / `final` are JSON (a quad, or a whole window for
+# an added / deleted one) rather than a text; the dump decodes them back.
+JSON_CORRECTION_KINDS = ("quad", "add", "delete")
 
 SCHEMA = """
 create table meta (key text primary key, value text);
@@ -733,7 +736,7 @@ def _render_corrections(con: sqlite3.Connection) -> bytes | None:
             v = r[k]
             if v is None:
                 continue
-            obj[k] = json.loads(v) if k in ("proposed", "final") and r["kind"] == "quad" else v
+            obj[k] = json.loads(v) if k in ("proposed", "final") and r["kind"] in JSON_CORRECTION_KINDS else v
         obj.update(json.loads(r["extra"]) if r["extra"] else {})
         lines.append(json.dumps(obj, ensure_ascii=False))
     return ("\n".join(lines) + "\n").encode()
@@ -923,7 +926,7 @@ def corrections(con: sqlite3.Connection | None = None) -> list[dict]:
                 v = r[k]
                 if v is None:
                     continue
-                obj[k] = json.loads(v) if k in ("proposed", "final") and r["kind"] == "quad" else v
+                obj[k] = json.loads(v) if k in ("proposed", "final") and r["kind"] in JSON_CORRECTION_KINDS else v
             obj.update(json.loads(r["extra"]) if r["extra"] else {})
             out.append(obj)
         return out
@@ -1075,6 +1078,45 @@ def save_video_anchor(stem: str, frame: str, windows: list[dict],
         return [r["frame"] for r in con.execute("select distinct frame from video_anchors where stem = ? order by ord", (stem,))]
 
 
+def window_corrections(still: str, before: list[dict], after: list[dict]) -> list[dict]:
+    """The ledger rows a still's save owes for its windows: a moved quad (`quad`),
+    a window that was not there (`add`) and one that is gone (`delete`). Windows
+    pair by field and, among same-field ones (a board has several), by the best
+    overlap; a pair below `PAIR_IOU` is an add and a delete, not a move, because a
+    quad dragged across the face is a different window. `proposedBy` names who
+    placed the quad being changed (`placedBy`: auto, reader, tracker, template)
+    or `operator` for a hand-drawn one."""
+    PAIR_IOU = 0.2
+    who = lambda w: "operator" if w.get("placedBy", "hand") == "hand" else w.get("placedBy")
+    shape = lambda w: {"field": w.get("field"), "quad": w.get("quad"), "text": w.get("text", "")}
+    unmatched_after = list(range(len(after)))
+    matched_before: set[int] = set()
+    rows: list[dict] = []
+    for i, w in enumerate(before):
+        best, best_iou = None, PAIR_IOU
+        for j in unmatched_after:
+            if after[j].get("field") != w.get("field"):
+                continue
+            iou = quad_iou(w["quad"], after[j]["quad"])
+            if iou > best_iou:
+                best, best_iou = j, iou
+        if best is None:
+            continue
+        unmatched_after.remove(best)
+        matched_before.add(i)
+        if after[best]["quad"] != w["quad"]:
+            rows.append({"kind": "quad", "still": still, "field": w["field"], "proposedBy": who(w),
+                         "proposed": w["quad"], "final": after[best]["quad"], "iou": best_iou})
+    for i, w in enumerate(before):
+        if i not in matched_before:
+            rows.append({"kind": "delete", "still": still, "field": w.get("field"), "proposedBy": who(w),
+                         "proposed": shape(w)})
+    for j in unmatched_after:
+        rows.append({"kind": "add", "still": still, "field": after[j].get("field"), "proposedBy": "operator",
+                     "final": shape(after[j])})
+    return rows
+
+
 def quad_iou(a: list, b: list) -> float:
     """Axis-aligned IoU of two normalised quads - enough to rank how far a
     tracked quad sat from the hand-placed one."""
@@ -1152,6 +1194,17 @@ def pin_frame(record: str, frame: str, windows: list[dict], texts: dict[str, str
                                     "proposedBy": "operator" if was_anchor else "tracker",
                                     "proposed": before["quad"], "final": w["quad"],
                                     "iou": quad_iou(before["quad"], w["quad"]), "inliers": row["inliers"]})
+            elif before is None:
+                # A window the frame did not have - carried from the still after
+                # the last track run and pinned here by hand.
+                corrections.append({"kind": "add", "record": record, "frame": frame, "field": w["field"],
+                                    "proposedBy": "operator",
+                                    "final": {"field": w["field"], "quad": w["quad"], "text": (texts or {}).get(w["field"], "")}})
+        for index in range(len(windows), len(previous)):
+            gone = previous[index]
+            corrections.append({"kind": "delete", "record": record, "frame": frame, "field": gone["field"],
+                                "proposedBy": "operator" if was_anchor else "tracker",
+                                "proposed": {"field": gone["field"], "quad": gone["quad"], "text": gone.get("text", "")}})
         out = []
         for index, w in enumerate(windows):
             before = previous[index] if index < len(previous) and previous[index]["field"] == w["field"] else None

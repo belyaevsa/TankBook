@@ -390,3 +390,28 @@ def test_migrate_adds_s3_key_without_losing_rows(corpus: Path) -> None:
     assert after == before, "the migration lost frames rows"
     assert version == cdb.SCHEMA_VERSION
 
+
+
+def test_window_corrections_record_moves_adds_and_deletes() -> None:
+    q = lambda x0, y0, x1, y1: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
+    before = [
+        {"field": "total", "text": "12.34", "quad": q(0.1, 0.1, 0.5, 0.2), "placedBy": "auto"},
+        {"field": "board", "text": "1.999", "quad": q(0.1, 0.5, 0.2, 0.55), "placedBy": "hand"},
+        {"field": "board", "text": "2.099", "quad": q(0.1, 0.6, 0.2, 0.65), "placedBy": "hand"},
+    ]
+    after = [
+        {"field": "total", "text": "12.34", "quad": q(0.12, 0.1, 0.52, 0.2), "placedBy": "hand"},   # nudged
+        {"field": "board", "text": "2.099", "quad": q(0.1, 0.6, 0.2, 0.65), "placedBy": "hand"},    # kept (the other board deleted)
+        {"field": "liters", "text": "5.67", "quad": q(0.1, 0.3, 0.5, 0.4), "placedBy": "hand"},     # new
+    ]
+    rows = cdb.window_corrections("pump-999.jpg", before, after)
+    kinds = sorted((r["kind"], r["field"]) for r in rows)
+    assert kinds == [("add", "liters"), ("delete", "board"), ("quad", "total")]
+    moved = next(r for r in rows if r["kind"] == "quad")
+    assert moved["proposedBy"] == "auto" and 0.2 < moved["iou"] < 1
+    gone = next(r for r in rows if r["kind"] == "delete")
+    assert gone["proposed"]["text"] == "1.999" and gone["proposedBy"] == "operator"
+    added = next(r for r in rows if r["kind"] == "add")
+    assert added["final"] == {"field": "liters", "quad": q(0.1, 0.3, 0.5, 0.4), "text": "5.67"}
+    # Unchanged windows owe nothing.
+    assert cdb.window_corrections("pump-999.jpg", before, before) == []
