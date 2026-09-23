@@ -43,12 +43,9 @@ const css = `
 #pipeline .pl-top select, #pipeline .pl-top input { font-size:12px }
 #pipeline .pl-chip { padding:1px 8px; border-radius:10px; font-size:11px; border:1px solid var(--line) }
 #pipeline .pl-chip.app { color:${OK}; border-color:${OK} } #pipeline .pl-chip.diff { color:${WARN}; border-color:${WARN} }
-#pipeline .pl-body { display:grid; grid-template-columns:200px 150px 1fr 300px; min-height:0 }
-#pipeline .pl-list, #pipeline .pl-rail, #pipeline .pl-info { overflow:auto; border-right:1px solid var(--line); font-size:12px }
+#pipeline .pl-body { display:grid; grid-template-columns:150px 1fr 300px; min-height:0 }
+#pipeline .pl-rail, #pipeline .pl-info { overflow:auto; border-right:1px solid var(--line); font-size:12px }
 #pipeline .pl-info { border-right:none; border-left:1px solid var(--line); padding:8px }
-#pipeline .pl-list div.item { padding:3px 8px; cursor:pointer; display:flex; gap:6px; align-items:center; white-space:nowrap; overflow:hidden }
-#pipeline .pl-list div.item.sel { background:#223 }
-#pipeline .pl-list .nm { overflow:hidden; text-overflow:ellipsis }
 #pipeline .dot { width:9px; height:9px; border-radius:50%; flex:none; display:inline-block }
 #pipeline .pl-rail div.stage { padding:7px 10px; cursor:pointer; display:flex; gap:8px; align-items:center; border-bottom:1px solid var(--line) }
 #pipeline .pl-rail div.stage.sel { background:#223 }
@@ -82,13 +79,14 @@ function build() {
     <div class="pl-top">
       <b>Debugging</b>
       <span class="muted">set</span>
-      <select id="plSplit" title="what ←/→ steps through: the image picked in the library, the library list as it is filtered now, a split, or the picked video's frames"><option value="selected">picked image</option><option value="library">library list</option><option value="heldout">heldout</option><option value="heldout2">heldout2</option><option value="train">train</option><option value="all">all stills</option><option value="video">video frames</option></select>
+      <select id="plSplit" title="what ←/→ steps through: the library list as it is filtered now, the picked image alone, a split, or the picked video's frames"><option value="library" selected>library list</option><option value="selected">picked image</option><option value="heldout">heldout</option><option value="heldout2">heldout2</option><option value="train">train</option><option value="all">all stills</option><option value="video">video frames</option></select>
       <span class="muted">|</span>
       <span class="muted">detector</span><select id="plDet"></select>
       <span class="muted">classifier</span><select id="plCls"></select>
       <span class="muted">deskew</span><select id="plDeskew"><option>off</option><option>onRefusal</option><option>always</option><option>level</option></select>
       <span class="muted">budget</span><select id="plBudget" title="the slow path's wall-clock cap"><option value="app">app 1.5 s</option><option value="none">no cap</option></select>
       <span id="plChip" class="pl-chip app">app pipeline</span>
+      <span id="plTally" class="muted"></span>
       <span id="plTool" class="muted"></span>
       <span style="flex:1"></span>
       <button id="plRetrace" title="run again, ignoring the cache">⟳ re-run</button>
@@ -97,7 +95,6 @@ function build() {
       <button id="plSave" title="write the trace and a PNG under ml/pump-reader/runs/<date>/trace/">save</button>
     </div>
     <div class="pl-body">
-      <div class="pl-list"><div id="plTally" class="muted" style="padding:6px 8px"></div><div id="plItems"></div></div>
       <div class="pl-rail"><div id="plStages"></div><div class="attempts" id="plAttempts"></div></div>
       <div class="pl-main">
         <div class="pl-tools">
@@ -158,7 +155,7 @@ async function select(name) {
   st.picked = name;
   if (entry && entry.video) $p('#plSplit').value = 'video';
   else if ($p('#plSplit').value === 'video') $p('#plSplit').value = 'selected';
-  else if (st.set.includes(name) && $p('#plSplit').value !== 'selected') { await go(st.set.indexOf(name)); return; }
+  else if (st.set.includes(name) && !['selected', 'library'].includes($p('#plSplit').value)) { await go(st.set.indexOf(name)); return; }
   await loadSet(name);
 }
 
@@ -223,24 +220,29 @@ async function loadSet(here) {
   if (names.length) await go(st.index); else render();
 }
 
+// The set's position and where its traced images first fail, in the header;
+// the per-image dots are drawn on the library rows (index.html asks statusOf).
 function renderList() {
   const tally = {};
   let traced = 0;
   for (const n of st.set) {
     const s = st.statuses[n]; if (!s) continue; traced++;
     const first = s.findIndex(x => x === 'bad');
-    const key = first < 0 ? (s.includes('warn') ? 'refused/partial' : 'all right') : `fails at ${first} ${STAGES[first].name}`;
+    const key = first < 0 ? (s.includes('warn') ? 'refused' : 'right') : `fail at ${first}`;
     tally[key] = (tally[key] || 0) + 1;
   }
-  $p('#plTally').innerHTML = `${st.set.length} image(s), ${traced} traced` +
-    (traced ? '<br>' + Object.entries(tally).sort().map(([k, v]) => `${esc(k)}: <b>${v}</b>`).join('<br>') : '');
-  $p('#plItems').innerHTML = st.set.map((n, i) => {
-    const s = st.statuses[n];
-    const first = s ? s.findIndex(x => x === 'bad') : -1;
-    const color = !s ? STATUS_COLOR.none : first >= 0 ? BAD : s.includes('warn') ? WARN : OK;
-    return `<div class="item ${i === st.index ? 'sel' : ''}" data-i="${i}" title="${esc(n)}"><span class="dot" style="background:${color}"></span>${first >= 0 ? `<span class="muted">${first}</span>` : ''}<span class="nm">${esc(n.replace(/^frame\//, '').replace(/\.(jpe?g|heic|png)$/i, ''))}</span></div>`;
-  }).join('');
-  for (const el of document.querySelectorAll('#plItems .item')) el.onclick = () => go(+el.dataset.i);
+  const pos = st.set.length ? `${st.index + 1}/${st.set.length}` : '0 images';
+  $p('#plTally').innerHTML = `${pos} · ${traced} traced` +
+    (traced ? ' · ' + Object.entries(tally).sort().map(([k, v]) => `${esc(k.replace('fail at', 'fails at'))}: <b>${v}</b>`).join(' · ') : '');
+  if (typeof window.onDebugStatuses === 'function') window.onDebugStatuses();
+}
+
+/// A traced image's library dot: its colour and the first stage it fails at.
+function statusOf(name) {
+  const s = st.statuses[name]; if (!s) return null;
+  const first = s.findIndex(x => x === 'bad');
+  return {color: first >= 0 ? BAD : s.includes('warn') ? WARN : OK, first: first >= 0 ? first : null,
+          stage: first >= 0 ? STAGES[first].name : null};
 }
 
 async function go(i) {
@@ -250,7 +252,6 @@ async function go(i) {
   renderList();
   // The library follows: it highlights this image, and Annotation opens it.
   if (typeof window.onDebugImage === 'function') window.onDebugImage(st.set[st.index]);
-  const sel = document.querySelector('#plItems .item.sel'); if (sel) sel.scrollIntoView({block: 'nearest'});
   await traceCurrent(true);
 }
 
@@ -767,5 +768,5 @@ function keys(e) {
   return true;
 }
 
-window.pipelineView = {show, hide, select, keys, get isOpen() { return st.open; }};
+window.pipelineView = {show, hide, select, keys, statusOf, get isOpen() { return st.open; }};
 })();

@@ -390,10 +390,12 @@ the ml venv runs it); the converted images are cached under
 - **Workspaces** (the rail on the right edge): **✎ Annotation** - everything
   above and below this item - and **🔬 Debugging**, the app's own pump path on
   one image or a set, stage by stage, drawn rather than printed. Debugging keeps
-  the library on the left: a click there opens that image in the debugger (a
-  video opens on ~40 of its frames), and the set ←/→ steps through is the
-  picked image, the library list as it is filtered now, a split, or the video's
-  frames. Switching back to Annotation opens the image the debugger had. It runs
+  the library on the left as its only list: a click there opens that image in
+  the debugger (a video opens on ~40 of its frames), ←/→ steps through the
+  library as it is filtered now (or the picked image alone, a split, the video's
+  frames), and every traced still carries its verdict on its library row - a
+  dot, and the first stage it fails at; the header carries the position and the
+  tally. Switching back to Annotation opens the image the debugger had. It runs
   `PumpDisplayCapture.classify` - the call the app's capture makes, with the
   capture's seed 0, the fast / slow decision and its 1.5 s cap, the
   orientation search and the turned-row retry - with a `PumpTrace` observing
@@ -414,8 +416,8 @@ the ml venv runs it); the converted images are cached under
     repaired cell, the refusal reason, the arithmetic, every attempt).
   - **Status per stage**: green matches the hand boxes / truth row, red is
     wrong, amber refused or low-margin, grey nothing to judge. The first red
-    stage is where the image failed; the list shows it per image and the tally
-    counts them over the set (▶ trace set). An unreviewed annotation is said so:
+    stage is where the image failed; the library row shows it per image and the tally
+    counts them over the set (▶ trace set) - on the library rows and in the header. An unreviewed annotation is said so:
     a mismatch there may be the box.
   - **Sets**: the picked image, the library list (filter it on the left:
     `rain`, `neste`, the quick buttons), a split (`heldout`, `heldout2`,
