@@ -5,6 +5,10 @@ its papers. Product owner, 2026-09-23: **"review the published research to apply
 instead of coming up with our own solution."** A research-grounded pump row (the PU.67 tranche in
 `docs/TASKS.md`) is not briefed for building until this note exists.*
 
+*Scope (product owner, 2026-09-24): a note is written only for a row that changes the law, a model, or
+the statistics. Engineering and derived rows name their sources in a line of their brief instead;
+the completeness review runs on every row either way (`docs/DEVELOPMENT-TIMELINE.md`).*
+
 ## Fill these in for the run
 
 - **Row:** `<PU.nn>` – `<title>` (`docs/TASKS.md`)

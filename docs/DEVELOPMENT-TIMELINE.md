@@ -11,6 +11,15 @@ decisions.
 
 ---
 
+## 2026-09-24 · A research note only where a row changes a method
+
+| | |
+|---|---|
+| **Commits** | this entry's commit (`agents/briefs/RESEARCH-TO-CODE.md` header) |
+| **Reason** | Product owner, asked whether a research note per task was too much, agreed to: *"yes, follow this rule"* - a full note only for rows that change how the reader decides; engineering and derived rows name their sources in the brief. |
+| **Evidence** | The notes that changed the build: PU.78 (traced all eight wrong cells to the admitting rule, replaced a tolerance with an exact check, and ruled out fixes that could not work), PU.74 (the cited paper was the wrong tool; the leak was a one-line default in the conventions table), PU.68 (the statistics that showed 45/45 proves far less than assumed). The note that did not: PU.67 (confirmed our deskew is a known method; nothing changed). Each note costs 30-90 agent minutes and blocks the row it precedes. |
+| **What changed** | A `RESEARCH-TO-CODE` note is written only for a row that changes the law, a model, or the statistics (in the pump tranche: PU.69's angle method, PU.71, PU.72, PU.73, PU.74, PU.76, PU.77). Engineering and derived rows (PU.70, PU.75, fixes such as RV.305) name their sources in a line of the brief. The completeness review (`REVIEW-PU-COMPLETENESS.md`) still runs on every row before its commit. |
+
 ## 2026-09-23 · Pump rows apply published methods, and an agent reviews each for completeness
 
 | | |
