@@ -387,8 +387,13 @@ the ml venv runs it); the converted images are cached under
   - **save** writes both replies and a PNG of the two panes to
     `ml/pump-reader/runs/<date>/compare/<still>/` (`a.json`, `b.json`,
     `meta.json`, `panes.png`) so a report can carry the evidence.
-- **⛓ pipeline** (toolbar button): the app's own pump path on one image or a
-  set, stage by stage, drawn rather than printed. It runs
+- **Workspaces** (the rail on the right edge): **✎ Annotation** - everything
+  above and below this item - and **🔬 Debugging**, the app's own pump path on
+  one image or a set, stage by stage, drawn rather than printed. Debugging keeps
+  the library on the left: a click there opens that image in the debugger (a
+  video opens on ~40 of its frames), and the set ←/→ steps through is the
+  picked image, the library list as it is filtered now, a split, or the video's
+  frames. Switching back to Annotation opens the image the debugger had. It runs
   `PumpDisplayCapture.classify` - the call the app's capture makes, with the
   capture's seed 0, the fast / slow decision and its 1.5 s cap, the
   orientation search and the turned-row retry - with a `PumpTrace` observing
@@ -412,9 +417,10 @@ the ml venv runs it); the converted images are cached under
     stage is where the image failed; the list shows it per image and the tally
     counts them over the set (▶ trace set). An unreviewed annotation is said so:
     a mismatch there may be the box.
-  - **Sets**: this image, all stills, a split (`heldout`, `heldout2`, `train`),
-    a name filter (`rain`, `neste`), or ~40 frames of the open video. ←/→ steps,
-    the next image is traced ahead. **▦ grid** (`G`) shows the current stage
+  - **Sets**: the picked image, the library list (filter it on the left:
+    `rain`, `neste`, the quick buttons), a split (`heldout`, `heldout2`,
+    `train`), all stills, or ~40 frames of a video. ←/→ steps, the next image is
+    traced ahead. **▦ grid** (`G`) shows the current stage
     across every traced image.
   - **Same pipeline as the app, switched only on purpose**: shipped detector
     and classifier, deskew off, the app's 1.5 s budget by default; changing any
@@ -428,7 +434,7 @@ the ml venv runs it); the converted images are cached under
     `ml/pump-reader/runs/<date>/trace/`.
   - Zoom `+` / `−` / fit / 1:1 (ctrl-wheel too), layer toggles for the hand
     boxes, dropped candidates and labels, overlay opacity; hovering a box on
-    stages 0-4 lists what the pipeline knew about it. Esc closes.
+    stages 0-4 lists what the pipeline knew about it.
 - **A pre-fill keeps the display's own form.** The reader commits a number, and
   a number has no trailing zeros - `17.90` came back as `17.9`, `2.250` as
   `2.25`, and the card then failed its own `cells 4` check. The pre-fill is

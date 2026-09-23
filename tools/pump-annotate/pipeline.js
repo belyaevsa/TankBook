@@ -37,13 +37,13 @@ const st = {
 
 // ---------------------------------------------------------------- styles + DOM
 const css = `
-#pipeline { position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:65 }
-#pipeline .pl-panel { position:absolute; inset:1.5vh 0.8vw; background:var(--panel); border:1px solid var(--line); border-radius:10px; display:grid; grid-template-rows:auto 1fr; overflow:hidden }
+#pipeline { grid-column:3 / 5; grid-row:1 / -1; min-width:0; min-height:0 }
+#pipeline .pl-panel { height:100%; background:var(--panel); display:grid; grid-template-rows:auto 1fr; overflow:hidden }
 #pipeline .pl-top { display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:6px 10px; border-bottom:1px solid var(--line); font-size:12px }
 #pipeline .pl-top select, #pipeline .pl-top input { font-size:12px }
 #pipeline .pl-chip { padding:1px 8px; border-radius:10px; font-size:11px; border:1px solid var(--line) }
 #pipeline .pl-chip.app { color:${OK}; border-color:${OK} } #pipeline .pl-chip.diff { color:${WARN}; border-color:${WARN} }
-#pipeline .pl-body { display:grid; grid-template-columns:230px 150px 1fr 300px; min-height:0 }
+#pipeline .pl-body { display:grid; grid-template-columns:200px 150px 1fr 300px; min-height:0 }
 #pipeline .pl-list, #pipeline .pl-rail, #pipeline .pl-info { overflow:auto; border-right:1px solid var(--line); font-size:12px }
 #pipeline .pl-info { border-right:none; border-left:1px solid var(--line); padding:8px }
 #pipeline .pl-list div.item { padding:3px 8px; cursor:pointer; display:flex; gap:6px; align-items:center; white-space:nowrap; overflow:hidden }
@@ -80,11 +80,9 @@ function build() {
   const root = document.createElement('div'); root.id = 'pipeline'; root.style.display = 'none';
   root.innerHTML = `<div class="pl-panel">
     <div class="pl-top">
-      <b>Pipeline</b>
+      <b>Debugging</b>
       <span class="muted">set</span>
-      <select id="plSplit" title="which stills to step through"><option value="current">this image</option><option value="all">all stills</option><option value="heldout">heldout</option><option value="heldout2">heldout2</option><option value="train">train</option><option value="video">this video's frames</option></select>
-      <input id="plFilter" placeholder="filter names (rain, neste, pump-32…)" size="24">
-      <button id="plLoad" title="build the set">load</button>
+      <select id="plSplit" title="what ←/→ steps through: the image picked in the library, the library list as it is filtered now, a split, or the picked video's frames"><option value="selected">picked image</option><option value="library">library list</option><option value="heldout">heldout</option><option value="heldout2">heldout2</option><option value="train">train</option><option value="all">all stills</option><option value="video">video frames</option></select>
       <span class="muted">|</span>
       <span class="muted">detector</span><select id="plDet"></select>
       <span class="muted">classifier</span><select id="plCls"></select>
@@ -97,7 +95,6 @@ function build() {
       <button id="plAll" title="trace every image in the set and tally where each first fails">▶ trace set</button>
       <button id="plGrid" title="this stage across every traced image (G)">▦ grid</button>
       <button id="plSave" title="write the trace and a PNG under ml/pump-reader/runs/<date>/trace/">save</button>
-      <button id="plClose" title="Esc">✕</button>
     </div>
     <div class="pl-body">
       <div class="pl-list"><div id="plTally" class="muted" style="padding:6px 8px"></div><div id="plItems"></div></div>
@@ -119,8 +116,7 @@ function build() {
       <div class="pl-info" id="plInfo"></div>
     </div></div>`;
   document.body.appendChild(root);
-  $p('#plClose').onclick = close;
-  $p('#plLoad').onclick = () => loadSet();
+  $p('#plSplit').onchange = () => loadSet();
   $p('#plRetrace').onclick = () => traceCurrent(false);
   $p('#plAll').onclick = traceAll;
   $p('#plGrid').onclick = () => { st.grid = !st.grid; render(); };
@@ -145,10 +141,28 @@ function build() {
 }
 
 // ------------------------------------------------------------------- opening
-async function open() {
+async function show(name) {
   if (!document.getElementById('pipeline')) build();
   st.open = true;
   $p('#pipeline').style.display = '';
+  if (!st.detectors.length) await loadModels();
+  if (name) await select(name); else render();
+}
+function hide() { st.open = false; if (document.getElementById('pipeline')) $p('#pipeline').style.display = 'none'; }
+
+// A library pick: a video opens on its frames; a still opens alone, or at its
+// place in the set when the set is a list it belongs to.
+async function select(name) {
+  if (!st.open) return;
+  const entry = typeof window.libraryEntry === 'function' ? window.libraryEntry(name) : null;
+  st.picked = name;
+  if (entry && entry.video) $p('#plSplit').value = 'video';
+  else if ($p('#plSplit').value === 'video') $p('#plSplit').value = 'selected';
+  else if (st.set.includes(name) && $p('#plSplit').value !== 'selected') { await go(st.set.indexOf(name)); return; }
+  await loadSet(name);
+}
+
+async function loadModels() {
   const [dets, clss, tool] = await Promise.all([
     fetch('/api/detectors').then(r => r.json()), fetch('/api/classifiers').then(r => r.json()),
     fetch('/api/trace/tool').then(r => r.json()).catch(() => null)]);
@@ -161,12 +175,7 @@ async function open() {
   $p('#plDet').value = st.opts.detector; $p('#plCls').value = st.opts.classifier;
   $p('#plDeskew').value = st.opts.deskew; $p('#plBudget').value = st.opts.budget;
   toolLine(tool); chip();
-  // The set starts as the image open in the annotator.
-  const here = typeof readImageKey === 'function' ? readImageKey() : null;
-  if (here) { $p('#plSplit').value = here.startsWith('frame/') ? 'video' : 'current'; }
-  await loadSet(here);
 }
-function close() { st.open = false; $p('#pipeline').style.display = 'none'; }
 
 function toolLine(tool) {
   if (!tool) return;
@@ -189,12 +198,14 @@ function chip() {
 
 // ----------------------------------------------------------------------- sets
 async function loadSet(here) {
-  const mode = $p('#plSplit').value, filter = $p('#plFilter').value.trim().toLowerCase();
-  here = here || (st.set[st.index]);
+  const mode = $p('#plSplit').value;
+  here = here || st.picked || st.set[st.index];
   let names = [];
-  if (mode === 'current') names = here ? [here] : [];
+  const isStill = n => { const e = window.libraryEntry && window.libraryEntry(n); return !(e && e.video); };
+  if (mode === 'selected') names = here && isStill(here) ? [here] : [];
+  else if (mode === 'library') names = (window.libraryNames ? window.libraryNames() : []).filter(isStill);
   else if (mode === 'video') {
-    const stem = here && here.startsWith('frame/') ? here.split('/')[1] : (typeof current === 'string' && current.startsWith('video-') ? current : null);
+    const stem = here && here.startsWith('frame/') ? here.split('/')[1] : here;
     if (stem) {
       const recs = await fetch('/api/records/' + encodeURIComponent(stem)).then(r => r.json());
       const rec = recs[0] || {tracked: []};
@@ -207,7 +218,6 @@ async function loadSet(here) {
     const fx = await fetch('/api/fixtures').then(r => r.json());
     names = fx.filter(f => !f.video && f.windows && (mode === 'all' || f.split === mode)).map(f => f.name);
   }
-  if (filter) names = names.filter(n => n.toLowerCase().includes(filter));
   st.set = names; st.index = Math.max(0, names.indexOf(here));
   renderList();
   if (names.length) await go(st.index); else render();
@@ -238,6 +248,8 @@ async function go(i) {
   st.index = Math.max(0, Math.min(st.set.length - 1, i));
   st.attempt = null;
   renderList();
+  // The library follows: it highlights this image, and Annotation opens it.
+  if (typeof window.onDebugImage === 'function') window.onDebugImage(st.set[st.index]);
   const sel = document.querySelector('#plItems .item.sel'); if (sel) sel.scrollIntoView({block: 'nearest'});
   await traceCurrent(true);
 }
@@ -391,7 +403,7 @@ async function render() {
   const keep = {x: view.scrollLeft, y: view.scrollTop};
   $p('#plAllStripsWrap').style.display = st.stage === 5 ? '' : 'none';
   if (st.grid) { await renderGrid(); return; }
-  if (!image) { view.innerHTML = '<p class="muted" style="padding:12px">no images in the set</p>'; return; }
+  if (!image) { view.innerHTML = '<p class="muted" style="padding:12px">Pick an image in the library on the left, or choose a set above (the library list as filtered, a split).</p>'; return; }
   if (!trace) { view.innerHTML = '<p class="muted" style="padding:12px">running…</p>'; return; }
   if (trace.error) { view.innerHTML = `<pre style="color:${BAD};padding:12px;white-space:pre-wrap">${esc(trace.error)}\n${esc(trace.output || '')}</pre>`; return; }
   const a = attemptOf(trace);
@@ -741,7 +753,6 @@ function keys(e) {
   if (!st.open) return false;
   const t = e.target;
   const typing = t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && !['range', 'checkbox', 'radio'].includes(t.type));
-  if (e.key === 'Escape') { e.preventDefault(); close(); return true; }
   if (typing) return true;
   const k = e.key;
   if (k === 'ArrowRight') { e.preventDefault(); go(st.index + 1); }
@@ -756,5 +767,5 @@ function keys(e) {
   return true;
 }
 
-window.pipelineView = {open, close, keys, get isOpen() { return st.open; }};
+window.pipelineView = {show, hide, select, keys, get isOpen() { return st.open; }};
 })();
