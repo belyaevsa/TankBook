@@ -123,6 +123,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--frame-step", type=int, default=5)
     parser.add_argument("--edge", type=int, default=1024)
     parser.add_argument("--db", type=Path, default=None, help="corpus database (default: the committed one)")
+    parser.add_argument("--hand-only", action="store_true",
+                        help="only frames whose boxes the owner placed (verified); tracker-boxed frames are left out")
     parser.add_argument("--rotations", default="",
                         help="comma-separated angles; each hand-boxed train image also goes in turned by +/- each (PU.66)")
     args = parser.parse_args(argv)
@@ -196,6 +198,11 @@ def main(argv: list[str] | None = None) -> int:
             # nozzle, a glare pass): its quads are wherever the tracker left
             # them, and a detector must not learn a box on nothing.
             names = [n for n in names if not t["frames"][n].get("skipped")]
+            # --hand-only: a tracker's box carries its drift into the detector's
+            # framing (PU.66: where the owner corrected it, median IoU 0.77), so
+            # only frames the owner placed by hand stay in.
+            if args.hand_only:
+                names = [n for n in names if t["frames"][n].get("verified")]
             for i, frame in enumerate(names):
                 if i % args.frame_step:
                     continue
