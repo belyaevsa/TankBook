@@ -114,6 +114,48 @@ struct PumpReaderPipelineTests {
         }
     }
 
+    /// An upper bound on the app path's wrong-commit rate, computed on the TRAIN
+    /// split as `agents/research/PU.68.md` derives it: certifying a fixed
+    /// pipeline is Learn-then-Test with one setting (arXiv:2110.01052), the
+    /// photo is the unit, and the bound is the exact binomial UCB (RCPS,
+    /// arXiv:2101.02703, App. B). The shipped classifier trained on these
+    /// stills, so the bound is IN-SAMPLE - it is printed beside the heldout
+    /// point estimate, never in its place. Opt-in: the reviewed train split
+    /// (244 stills at the 2026-09-23 corpus), ~30 minutes in Debug.
+    @Test("the in-sample risk bound on the train split", .pumpFixturesPresent,
+          .enabled(if: ProcessInfo.processInfo.environment["PUMP_CERTIFY"] == "1", "PUMP_CERTIFY=1"))
+    func trainSplitRiskBound() throws {
+        let reader = try #require(PumpDisplayCapture.makeReader(
+            modelURL: Self.modelURL, detectorURL: PumpReaderTestSupport.detectorURL)).reader
+        let expected = try CorpusScorer.loadExpected(
+            PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent("expected.csv"))
+        let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)
+        let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        let m = try measureLive(reader: reader, root: root, expected: expected,
+                                pack: try FuelPriceBandStore.bundledPack(), appPath: true,
+                                includes: PumpReaderTestSupport.isReviewedTrain, rotation: { _ in nil })
+        report("PU.68 train split, in-sample (the app's classify)", m)
+        let alpha = 0.01
+        for delta in [0.05, 0.10] {
+            let photoUCB = PumpPrecisionBounds.binomialUCB(m.photosWrong, m.photosCommitting, delta: delta)
+            let cellUCB = PumpPrecisionBounds.binomialUCB(m.committed - m.committedCorrect, m.committed, delta: delta)
+            let hb = PumpPrecisionBounds.hoeffdingBentkusPValue(
+                risk: m.photosCommitting > 0 ? m.fractionalLoss / Double(m.photosCommitting) : 0,
+                n: m.photosCommitting, alpha: alpha)
+            print(String(format: "PU.68 in-sample bound, delta %.2f: photo wrong-commit UCB %.4f (%@ %.2f); "
+                         + "cell UCB %.4f (cells within a photo are not independent - secondary); "
+                         + "fractional-loss HB p-value %.4f (%@)",
+                         delta, photoUCB, photoUCB <= alpha ? "certifies <=" : "does not certify <=", alpha,
+                         cellUCB, hb, hb <= delta ? "rejects risk > 0.01" : "cannot reject risk > 0.01"))
+        }
+        #expect(m.photosCommitting > 0)
+        // The photo loss is the certificate's k: it must count the photos the
+        // wrong-cell list names, one per photo however many cells it got wrong.
+        let wrongPhotos = Set(m.wrong.map { String($0.prefix(8)) })
+        #expect(m.photosWrong == wrongPhotos.count,
+                "photosWrong \(m.photosWrong), photos named in the wrong list \(wrongPhotos.count)")
+    }
+
     /// The three PU.53 arms side by side: the annotation's rotation (the
     /// baseline, which the phone never has), no rotation at all (the honest
     /// floor), and the search. Opt-in because it runs the split three times.
@@ -226,6 +268,7 @@ struct PumpReaderPipelineTests {
               + "precision \(String(format: "%.3f", precision)), coverage \(String(format: "%.3f", coverage)) "
               + "of \(numericTotal); photos with every field right \(fixturesAllRight)/\(fixturesScored); "
               + "\(String(format: "%.1f", Date().timeIntervalSince(start)))s")
+        print("  " + PumpPrecisionBounds.precisionLine(correct: committedCorrect, committed: committed))
         for (field, s) in perField.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
             print("  \(field.rawValue): \(s.ok)/\(s.committed) committed right, \(s.total) asserted")
         }
@@ -376,6 +419,7 @@ struct PumpReaderPipelineTests {
                   + "precision \(String(format: "%.3f", totals.precision)), "
                   + "photos with every field right \(totals.photosRight)/\(totals.photosScored); "
                   + "\(String(format: "%.1f", totals.seconds))s")
+            print("  " + PumpPrecisionBounds.precisionLine(correct: totals.correct, committed: totals.committed))
         }
         report("still only", measurement.still)
         report("fused, all frames (probabilities)", measurement.allFrames)
@@ -453,7 +497,8 @@ struct PumpReaderPipelineTests {
             let precision = live.committed > 0 ? Double(live.correct) / Double(live.committed) : 0
             return "PU.47 \(label): committed \(live.committed), correct \(live.correct), "
                 + "precision \(String(format: "%.3f", precision)), photos \(live.photos)/68, "
-                + "verifier kept rows \(live.keptRows.count)"
+                + "verifier kept rows \(live.keptRows.count)\n  "
+                + PumpPrecisionBounds.precisionLine(correct: live.correct, committed: live.committed)
         }
         print(line("round 6", shipped))
         print(line("round-11 +step 3", candidate))
@@ -482,6 +527,14 @@ extension PumpReaderPipelineTests {
         var wrong: [String] = []
         var perHead: [String: (committed: Int, correct: Int)] = [:]
         var seconds = 0.0
+        /// Photos that committed at least one scored cell, and of those the
+        /// ones with any wrong cell - the per-photo loss the certificate uses
+        /// (the law commits a photo's cells together, so the photo is the
+        /// exchangeable unit, `agents/research/PU.68.md` §5.3).
+        var photosCommitting = 0
+        var photosWrong = 0
+        /// The sum over committing photos of wrong / committed cells.
+        var fractionalLoss = 0.0
 
         var precision: Double { committed > 0 ? Double(committedCorrect) / Double(committed) : 0 }
     }
@@ -492,12 +545,13 @@ extension PumpReaderPipelineTests {
     /// each still; the shipped arm returns nil, which makes the reader search.
     fileprivate func measureLive(reader: PumpReader, root: [String: Any], expected: [String: ExpectedRow],
                                  pack: FuelPriceBandPack, appPath: Bool = false,
+                                 includes: (String) -> Bool = PumpReaderTestSupport.isHeldout,
                                  rotation: ([String: Any]) -> Int?) throws -> LiveMeasurement {
         var m = LiveMeasurement()
         let start = Date()
         for (name, value) in root.sorted(by: { $0.key < $1.key }) {
             guard name != "_about", let ann = value as? [String: Any], let want = expected[name],
-                  PumpReaderTestSupport.isHeldout(name) else { continue }
+                  includes(name) else { continue }
             guard let image = PumpReaderTestSupport.loadRGB(
                 url: PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent(name)) else { continue }
             let band = want.currency.flatMap { pack.currencyBand(currency: $0) }
@@ -534,23 +588,29 @@ extension PumpReaderPipelineTests {
                 m.abstainedStills += 1
                 if let reason = reading.reason { m.stillReasons[reason, default: 0] += 1 }
             }
-            var fixtureTotal = 0, fixtureRight = 0
+            var fixtureTotal = 0, fixtureRight = 0, fixtureCommitted = 0, fixtureWrong = 0
             let head = Self.head(name)
             for cell in cells {
                 guard let wantValue = cell.want else { continue }
                 m.numericTotal += 1; fixtureTotal += 1
                 guard let got = cell.reading.value.map({ NSDecimalNumber(decimal: $0).doubleValue }) else { continue }
-                m.committed += 1
+                m.committed += 1; fixtureCommitted += 1
                 m.perHead[head, default: (0, 0)].committed += 1
                 let derived: Bool = { if case .derived? = cell.reading.provenance { return true }; return false }()
                 if abs(got - wantValue) < (derived ? 0.1 : CorpusScorer.tolerance) {
                     m.committedCorrect += 1; fixtureRight += 1
                     m.perHead[head]!.correct += 1
                 } else {
+                    fixtureWrong += 1
                     m.wrong.append("\(name.prefix(8)) \(cell.field.rawValue) got \(got) want \(wantValue)")
                 }
             }
             if fixtureTotal > 0 { m.fixturesScored += 1; if fixtureRight == fixtureTotal { m.fixturesAllRight += 1 } }
+            if fixtureCommitted > 0 {
+                m.photosCommitting += 1
+                if fixtureWrong > 0 { m.photosWrong += 1 }
+                m.fractionalLoss += Double(fixtureWrong) / Double(fixtureCommitted)
+            }
         }
         m.seconds = Date().timeIntervalSince(start)
         return m
@@ -562,6 +622,11 @@ extension PumpReaderPipelineTests {
               + "coverage \(String(format: "%.3f", Double(m.committed) / Double(max(m.numericTotal, 1)))) "
               + "of \(m.numericTotal); photos with every field right \(m.fixturesAllRight)/\(m.fixturesScored); "
               + "\(String(format: "%.1f", m.seconds))s")
+        print("  " + PumpPrecisionBounds.precisionLine(correct: m.committedCorrect, committed: m.committed))
+        let photoLower = PumpPrecisionBounds.wilson(m.photosCommitting - m.photosWrong, m.photosCommitting,
+                                                    z: PumpPrecisionBounds.z95OneSided).lower
+        print("  photos: \(m.photosCommitting) committing, \(m.photosWrong) with a wrong cell; "
+              + "one-sided 95% Wilson lower on photo precision \(String(format: "%.4f", photoLower))")
         for (head, score) in m.perHead.sorted(by: { $0.key < $1.key }) {
             print("  \(head): \(score.committed) committed, \(score.correct) correct")
         }

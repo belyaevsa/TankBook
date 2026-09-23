@@ -898,7 +898,7 @@ processed they are neither measured nor trained on.
 **Amended 2026-09-23 (product owner): a second frozen draw, `heldout2`.** The first set can no
 longer say whether a pipeline constant generalises: several of the slicer's fractions, the law's
 windows and the widening margin were swept against heldout live numbers (PU.35), and 45/45
-committed-correct bounds precision at only ~0.92 (Wilson, one-sided 95 %) - both from the outside
+committed-correct bounds precision at only ~0.92 (Wilson two-sided 95 %; the one-sided 95 % lower bound is 0.943) - both from the outside
 review `agents/reviews/PUMP-REVIEW-2026-09-23-qwen.md` §2.1 and §2.4. `heldout2` is a set no
 model trains on **and no constant is tuned against**: it is measured when a change is judged, never
 while one is being fitted. Its first members are four rain stills of batch 10 - `pump-322` and

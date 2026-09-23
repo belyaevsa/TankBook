@@ -23,7 +23,15 @@ enum PumpReaderTestSupport {
 
     /// The row detector trained by ml/pump-reader/detector/train.swift (PU.33),
     /// when a training has produced it; the live path runs without it otherwise.
+    /// `PUMP_DETECTOR=<path>` scores a candidate instead, so a candidate is never
+    /// measured by overwriting the dev copy the shipped model is exported from.
+    /// A `PUMP_DETECTOR` that names no file stops the run: silently falling back
+    /// to no detector would score the candidate as the Vision-only locator.
     static let detectorURL: URL? = {
+        if let path = ProcessInfo.processInfo.environment["PUMP_DETECTOR"], !path.isEmpty {
+            precondition(FileManager.default.fileExists(atPath: path), "PUMP_DETECTOR names no file: \(path)")
+            return URL(fileURLWithPath: path)
+        }
         let url = repoRoot.appendingPathComponent("ml/pump-reader/.out/det/DigitRows.mlmodel")
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
     }()
@@ -75,6 +83,9 @@ enum PumpReaderTestSupport {
     static func isHeldout(_ name: String) -> Bool { split[name] == "heldout" && reviewed.contains(name) }
     /// A still a model may train on: in the train split (absent from the file = train).
     static func isTrain(_ name: String) -> Bool { (split[name] ?? "train") == "train" }
+    /// A train still a human has confirmed - the calibration population of the
+    /// in-sample certificate (`agents/research/PU.68.md` §6).
+    static func isReviewedTrain(_ name: String) -> Bool { isTrain(name) && reviewed.contains(name) }
 
     /// The glyph-count oracle: digits plus leading spaces, never separators.
     static func glyphCount(_ text: String) -> Int {
