@@ -1,0 +1,107 @@
+import CoreGraphics
+import Foundation
+import Testing
+@testable import TankbookCore
+
+// PU.58 - the ink-band trim. A loose detector box brings the panel's bezel
+// into the warped strip, and the plain row-sum band then includes it, so the
+// pitch and the run threshold are taken over bezel rows. The slicer trims the
+// strip to the rows that are glyph and not solid bezel before the pitch is
+// computed. These are synthetic strips, so the oracle is construction, not a
+// measurement.
+@Suite("PU.58 pump band trim")
+struct PumpBandTrimTests {
+
+    // MARK: - The padding the trim removes
+
+    @Test("a solid bezel band above and below the glyphs does not change the count")
+    func bezelPaddingDoesNotChangeTheCount() {
+        // The last glyph is faint, as pump-092's trailing `0` is: the bezel
+        // raises the run threshold and the faint glyph falls under it. The
+        // trim cuts the bezel, the threshold drops and the glyph is counted.
+        let plain = Self.glyphStrip(bezel: 0, faintLast: true)
+        let plainCount = PumpGlyphSlicer.slice(plain).filter { !$0.isBlank }.count
+        #expect(plainCount == Self.cellCount, "the unpadded strip must count \(Self.cellCount), got \(plainCount)")
+
+        var brokenAt: Float?
+        for ratio in stride(from: Float(0.05), through: 0.10, by: 0.05) {
+            let padded = Self.glyphStrip(bezel: ratio, faintLast: true)
+            let onCount = PumpGlyphSlicer.slice(padded).filter { !$0.isBlank }.count
+            #expect(onCount == plainCount,
+                    "a bezel of \(ratio) of the glyph height changed the count to \(onCount)")
+
+            var off = PumpGlyphSlicer.Options()
+            off.bandTrim = false
+            let offCount = PumpGlyphSlicer.slice(padded, options: off).filter { !$0.isBlank }.count
+            if offCount != plainCount, brokenAt == nil { brokenAt = ratio }
+        }
+        print("PU.58 the untrimmed slicer breaks at a bezel of \(brokenAt.map { String($0) } ?? "never") "
+              + "of the glyph height")
+        #expect(brokenAt != nil,
+                "the padding never broke the untrimmed slicer - the test proves nothing")
+    }
+
+    // MARK: - The correctness property
+
+    @Test("a strip whose band already fills the frame is unchanged by the trim")
+    func bandFillsFrameIsUnchanged() {
+        // Glyphs span the full strip with no bezel, so the plain band is the
+        // whole frame and there is no solid edge row to trim. The trim must be
+        // a no-op: the cells are byte-identical, not merely the same count.
+        let strip = Self.glyphStrip(bezel: 0, fillFrame: true)
+        var off = PumpGlyphSlicer.Options()
+        off.bandTrim = false
+        let plain = PumpGlyphSlicer.slice(strip, options: off)
+        let trimmed = PumpGlyphSlicer.slice(strip)
+        #expect(trimmed == plain, "the trim changed a strip whose band fills the frame")
+        #expect(!plain.isEmpty, "the fixture sliced to nothing - a vacuous pass")
+    }
+
+    @Test("a strip with no ink is unchanged and does not divide by zero")
+    func blankStripIsUnchanged() {
+        let blank = PumpGrayscale(width: 40, height: 30,
+                                  pixels: [Float](repeating: 0.85, count: 40 * 30))
+        #expect(PumpGlyphSlicer.slice(blank).isEmpty, "a blank strip must slice to nothing")
+        var off = PumpGlyphSlicer.Options()
+        off.bandTrim = false
+        #expect(PumpGlyphSlicer.slice(blank) == PumpGlyphSlicer.slice(blank, options: off),
+                "the trim must not change a strip with no ink")
+    }
+
+    // MARK: - Synthetic strips
+
+    private static let cellCount = 4
+
+    /// `cellCount` glyph bodies on a fixed pitch, optionally padded above and
+    /// below by a solid bezel band `bezel` times the glyph height tall. The
+    /// last glyph is faint when `faintLast`. The panel is light and the ink
+    /// dark, matching an LCD display.
+    private static func glyphStrip(
+        bezel: Float, faintLast: Bool = false, fillFrame: Bool = false,
+        pitch: Int = 24, glyphHeight: Int = 40
+    ) -> PumpGrayscale {
+        let pad = Int(bezel * Float(glyphHeight))
+        let height = fillFrame ? glyphHeight : glyphHeight + 2 * pad
+        let width = cellCount * pitch
+        var pixels = [Float](repeating: 0.85, count: width * height)
+        if !fillFrame, pad > 0 {
+            for y in 0..<pad {
+                for x in 0..<width {
+                    pixels[y * width + x] = 0.10
+                    pixels[(height - 1 - y) * width + x] = 0.10
+                }
+            }
+        }
+        let top = fillFrame ? 0 : pad + 3
+        let bottom = fillFrame ? height : pad + glyphHeight - 4
+        for cell in 0..<cellCount {
+            let ink: Float = faintLast && cell == cellCount - 1 ? 0.35 : 0.10
+            for y in top..<bottom {
+                for x in (cell * pitch + 4)..<(cell * pitch + 14) {
+                    pixels[y * width + x] = ink
+                }
+            }
+        }
+        return PumpGrayscale(width: width, height: height, pixels: pixels)
+    }
+}

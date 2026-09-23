@@ -1,0 +1,279 @@
+diff --git a/ios/Sources/TankbookCore/Extraction/PumpReader/PumpGlyphSlicer+Primitives.swift b/ios/Sources/TankbookCore/Extraction/PumpReader/PumpGlyphSlicer+Primitives.swift
+index e88a8b00..a5d33d37 100644
+--- a/ios/Sources/TankbookCore/Extraction/PumpReader/PumpGlyphSlicer+Primitives.swift
++++ b/ios/Sources/TankbookCore/Extraction/PumpReader/PumpGlyphSlicer+Primitives.swift
+@@ -129,6 +129,59 @@ extension PumpGlyphSlicer {
+         return bestThreshold
+     }
+ 
++    // MARK: - The ink-band trim
++
++    /// The plain band with a full-width bezel band cut from its edges.
++    ///
++    /// A bezel row is solid: its ink runs across the strip, through the gaps
++    /// between glyphs. A glyph row is not - its strokes leave the inter-cell
++    /// gaps at the panel's level. So the band is walked inward from each edge
++    /// past the solid rows, then widened by `bandTrimMarginFraction` of the
++    /// plain band, but never back over a solid row. A strip whose band is all
++    /// glyph has no solid edge row and comes out unchanged; a strip with no
++    /// ink at all has no band and is returned as is.
++    ///
++    /// This is what keeps the pitch and the run threshold off the bezel a
++    /// loose detector box brings in: pump-092's litres box band ran 6..95 of
++    /// 96 with the bezel at 86..95, and the pitch and threshold were taken
++    /// over it.
++    ///
++    /// Returns the plain band when the cut core is shorter than
++    /// `bandTrimMinimumHeight` - a strip with no real glyph band has none to
++    /// trim to.
++    static func trimmedToInkBand(
++        ink: [Float], width: Int, plainTop: Int, plainBottom: Int, options: Options
++    ) -> (top: Int, bottom: Int) {
++        guard options.bandTrim, width > 0, ink.count >= width else { return (plainTop, plainBottom) }
++        let height = ink.count / width
++        guard plainTop >= 0, plainBottom < height, plainBottom > plainTop else {
++            return (plainTop, plainBottom)
++        }
++        let minimumSolid = options.bandTrimSolidFraction * Float(width)
++        func solid(_ y: Int) -> Bool {
++            var count = 0
++            for x in 0..<width where ink[y * width + x] > options.pixelInkThreshold {
++                count += 1
++                if Float(count) >= minimumSolid { return true }
++            }
++            return false
++        }
++        var top = plainTop
++        var bottom = plainBottom
++        while top < bottom, solid(top) { top += 1 }
++        while bottom > top, solid(bottom) { bottom -= 1 }
++        guard top != plainTop || bottom != plainBottom else { return (plainTop, plainBottom) }
++        let margin = Int(options.bandTrimMarginFraction * Float(plainBottom - plainTop + 1))
++        var wideTop = max(0, top - margin)
++        var wideBottom = min(height - 1, bottom + margin)
++        while wideTop < top, solid(wideTop) { wideTop += 1 }
++        while wideBottom > bottom, solid(wideBottom) { wideBottom -= 1 }
++        guard wideBottom > wideTop, wideBottom - wideTop + 1 >= options.bandTrimMinimumHeight else {
++            return (plainTop, plainBottom)
++        }
++        return (wideTop, wideBottom)
++    }
++
+     static func percentile(_ values: [Float], _ p: Float) -> Float {
+         guard !values.isEmpty else { return 0 }
+         let sorted = values.sorted()
+diff --git a/ios/Sources/TankbookCore/Extraction/PumpReader/PumpGlyphSlicer.swift b/ios/Sources/TankbookCore/Extraction/PumpReader/PumpGlyphSlicer.swift
+index b02a5be0..709da78c 100644
+--- a/ios/Sources/TankbookCore/Extraction/PumpReader/PumpGlyphSlicer.swift
++++ b/ios/Sources/TankbookCore/Extraction/PumpReader/PumpGlyphSlicer.swift
+@@ -45,6 +45,22 @@ enum PumpGlyphSlicer {
+         var runThresholdFraction: Float = 0.2
+         var mergeGapFraction: Float = 0.10
+         var bandRowThresholdFraction: Float = 0.15
++        /// The mutation seam for the ink-band trim: `false` takes the plain
++        /// row-sum band, which includes a full-width bezel.
++        var bandTrim: Bool = true
++        /// The trim's margin, as a fraction of the plain band height, keeps a
++        /// glyph's anti-aliased edge rows in the band.
++        var bandTrimMarginFraction: Float = 0.03
++        /// A band shorter than this is noise, not a glyph band: the trim is
++        /// refused and the plain band stands.
++        var bandTrimMinimumHeight: Int = 6
++        /// The share of a row's columns that must carry ink for the row to
++        /// read as a solid bezel edge rather than a glyph row. Measured on
++        /// pump-092's litres strip: the bezel rows 88..95 run 0.55-0.85 of
++        /// the width, the glyph rows at most 0.35. Kept above 0.5 because a
++        /// full-width synthetic row (three glyphs of half the width) carries
++        /// exactly 0.5.
++        var bandTrimSolidFraction: Float = 0.55
+         var decimalPointTopRowFraction: Float = 0.55
+         var pixelInkThreshold: Float = 0.12
+         /// The mark-specific second look (PU.34b): a dot or comma never clears
+@@ -190,9 +206,17 @@ enum PumpGlyphSlicer {
+         let rowCentered = rowSum.map { $0 - Self.percentile(rowSum, 0.10) }
+         guard let maxRow = rowCentered.max(), maxRow > 0 else { return nil }
+         let rowThreshold = options.bandRowThresholdFraction * maxRow
+-        guard let bandTop = rowCentered.firstIndex(where: { $0 > rowThreshold }),
+-              let bandBottom = rowCentered.lastIndex(where: { $0 > rowThreshold }),
+-              bandBottom > bandTop else { return nil }
++        guard let plainTop = rowCentered.firstIndex(where: { $0 > rowThreshold }),
++              let plainBottom = rowCentered.lastIndex(where: { $0 > rowThreshold }),
++              plainBottom > plainTop else { return nil }
++
++        // The plain row sum includes a full-width bezel: pump-092's detector
++        // box band runs 6..95 of 96 with the bezel at 86..95, so the pitch and
++        // threshold were taken over the bezel. A bezel row is solid across the
++        // strip while a glyph row leaves the inter-cell gaps at the panel's
++        // level, so the band is trimmed inward past the solid edge rows.
++        let (bandTop, bandBottom) = Self.trimmedToInkBand(
++            ink: ink, width: width, plainTop: plainTop, plainBottom: plainBottom, options: options)
+         let bandHeight = bandBottom - bandTop + 1
+ 
+         var colSum = [Float](repeating: 0, count: width)
+diff --git a/ios/Tests/TankbookCoreTests/PumpReaderHarnessTests.swift b/ios/Tests/TankbookCoreTests/PumpReaderHarnessTests.swift
+index dbe2663e..8c53d8d4 100644
+--- a/ios/Tests/TankbookCoreTests/PumpReaderHarnessTests.swift
++++ b/ios/Tests/TankbookCoreTests/PumpReaderHarnessTests.swift
+@@ -60,6 +60,7 @@ struct PumpReaderHarnessTests {
+         print("PU.4 slicer: count agreement \(score.countAgreementText), dp agreement \(score.dpAgreementText)")
+         print(score.perMakeTable())
+         for line in score.miscounts { print("PU.4 miscount \(line)") }
++        for line in score.dpMiscounts { print("PU.4 dp miscount \(line)") }
+ 
+         #expect(score.countAgreement >= Self.countAgreementFloor,
+                 Comment(stringLiteral: "count agreement \(score.countAgreementText) below "
+@@ -189,6 +190,7 @@ struct PumpReaderHarnessTests {
+         var perMake: [String: (ok: Int, total: Int)] = [:]
+         var skipped: [String] = []
+         var miscounts: [String] = []
++        var dpMiscounts: [String] = []
+         var slices: [String: [SlicesWindow?]] = [:]
+ 
+         var countAgreement: Double { countTotal > 0 ? Double(countOK) / Double(countTotal) : 0 }
+@@ -256,6 +258,9 @@ struct PumpReaderHarnessTests {
+                     score.dpTotal += 1
+                     if result.cells.firstIndex(where: \.hasDecimalPoint) == expectedDP {
+                         score.dpOK += 1
++                    } else {
++                        let got = result.cells.firstIndex(where: \.hasDecimalPoint).map(String.init) ?? "none"
++                        score.dpMiscounts.append("\(name) \(window.field) exp=\(expectedDP.map(String.init) ?? "none") got=\(got)")
+                     }
+                 }
+ 
+diff --git a/ml/pump-reader/REPORT.md b/ml/pump-reader/REPORT.md
+index d3636f24..a65aa73f 100644
+--- a/ml/pump-reader/REPORT.md
++++ b/ml/pump-reader/REPORT.md
+@@ -1979,3 +1979,132 @@ filing.
+ | `swift test --filter PumpReaderPipelineTests/livePath` (shipped) | 0 | committed **43**, correct 43, precision **1.000** |
+ | `swift test --filter PumpReaderPipelineTests/livePath` (PU.48, no guard) | test fails its stale floor | committed **41**, correct 39, precision **0.951**; WRONG `pump-092` liters/total |
+ | `swift build` / `swiftlint lint` | not run | nothing shipped; the tree is `HEAD` |
++
++## PU.58 - trim the strip to its ink band before the pitch is computed (2026-09-22)
++
++PU.55 re-scoped: its clip guard could not see the defect because the defect is the box's
++**vertical** extent, and the read half is a band trim, not a left/right edge invariant. This
++round trims the band the pitch and the run threshold are taken over.
++
++### The reproduction, before anything was built
++
++Under the PU.48 candidate (`ml/pump-reader/.out/det/pu48/DigitRows-pu48.mlmodel`, `d18531eb…`),
++`pump-092`'s litres window, holding one axis to the oracle and the other to the detector:
++
++| quad | horizontal | vertical | litres cells | band | pitch |
++|---|---|---|---|---|---|
++| widened box | detector | detector | **3** | 6..95 | 58 |
++| widened LR + oracle H | detector | oracle | **4** | 0..87 | 68 |
++| oracle LR + raw H | oracle | detector | **3** | 6..95 | 57 |
++| oracle | oracle | oracle | **4** | 7..87 | 68 |
++
++The litres box is `0.4709..0.6717` raw (`0.4629..0.6797` after the widening) against the oracle's
++`0.5035..0.6944`; vertically `0.4407..0.5476` against `0.4406..0.5309`, 21 % taller. The detector
++box reaches the panel bezel below the digits, the plain row-sum band runs to the strip's bottom
++edge, and the pitch and the run threshold are taken over the bezel. PU.55 measured the same four
++slices; the "raw box" row there is the widened box the live path actually slices.
++
++### What was built, and why at the slice
++
++`PumpGlyphSlicer.trimmedToInkBand`: the plain band is walked inward from each edge past the rows
++that are **solid across the strip** - a bezel runs through the gaps between glyphs, a glyph row
++leaves them at the panel's level - then widened by a margin that never re-crosses a solid row. The
++column profile, the run threshold and the pitch are computed on the trimmed band, and the cells are
++laid on it.
++
++At the slice, not at the warp. The trim changes only which rows the pitch is measured over; the
++warped strip and the quad are unchanged, so the cell rects stay in the strip's frame and every
++caller (`PumpRowGeometry`, `cropCell`, the harness) is untouched. Trimming the quad would need a
++second warp and a map from strip rows back to image points, and would move the cell rects with it.
++
++The solid rows are read from the LCN'd ink, not the raw grayscale. A raw read is robust to a tall
++bezel (the LCN flattens a strip that is mostly bezel) but fires on tight oracle strips whose glyph
++rows reach 0.6 of the width: count 227/251. The LCN'd read separates pump-092's bezel from its
++glyphs cleanly and holds the harness.
++
++### Constants, and the measurement each came from
++
++| constant | value | measurement |
++|---|---|---|
++| `bandTrimSolidFraction` | 0.55 | pump-092's litres bezel rows 88..95 run 0.55-0.85 of the width, its glyph rows at most 0.35; kept above 0.5 because `PumpGlyphSlicerTests`' three-glyph synthetic row carries exactly 0.5 |
++| `bandTrimMarginFraction` | 0.03 | a margin of the plain band height, so a glyph's anti-aliased edge rows stay |
++| `bandTrimMinimumHeight` | 6 | below this the cut core is noise, not a glyph band, and the plain band stands |
++| `bandTrim` | true | the mutation seam (see below) |
++
++### Measured
++
++| check | before | after |
++|---|---|---|
++| `PumpReaderHarnessTests` count | 237/251 | **237/251** (held) |
++| `PumpReaderHarnessTests` dp | 133/250 | **134/250** (+1) |
++| shipped live (`b560fef2…`) | 43 / 43 / 1.000 / 14 of 68 | **43 / 43 / 1.000 / 14** (held) |
++| shipped annotated | 104 / 103 / 0.990 / 30 | **105 / 104 / 0.990 / 31** |
++| PU.48 candidate (`d18531eb…`) live | 36 / 34 / 0.944 | **31 / 31 / 1.000** |
++
++`pump-092` became **correct**: the live path now commits litres `30`, unit price `63.85`, total
++`1915.5` for `30.00` / `63.85` / `1915.5`.
++
++The shipped detector's boxes are tight, so the trim fires on few of them and the live floor holds
++exactly; the annotated path, whose quads are the hand ones, gains a committed cell and a photo. The
++candidate's looser boxes are changed more: five cells that committed before now abstain (gilbarco
++−3, tokheim −2) while `pump-092`'s two wrong cells become right, so coverage falls 36 → 31 at
++precision 1.000. The shipped number is what the app reads, and it is unchanged.
++
++**The brief's candidate baseline does not reproduce on this tree.** The brief and PU.55 both quote
++"41 committed / 39 correct / 0.951" for `d18531eb`; on this commit (82398950, the annotator corpus)
++the same model measures **36 / 34 / 0.944**. The final PU.48 export (`f48991f4…`) measures 25 / 24.
++The 41/39 predates the corpus commit and the `reviewed` set it carries.
++
++### Named mutation
++
++Make the trim always take the full strip (`trimmedToInkBand` returns `(0, height - 1)`):
++
++```
++◇ Suite "PU.58 pump band trim" started.
++◇ Test "a solid bezel band above and below the glyphs does not change the count" started.
++✘ Test "a solid bezel band above and below the glyphs does not change the count" recorded an issue at PumpBandTrimTests.swift:30:13: Expectation failed: onCount == plainCount
++↳ a bezel of 0.1 of the glyph height changed the count to 3
++↳ onCount == plainCount → false
++↳   onCount → 3
++↳   plainCount → 4
++PU.58 the untrimmed slicer breaks at a bezel of 0.1 of the glyph height
++✘ Test "a solid bezel band above and below the glyphs does not change the count" failed after 0.140 seconds with 1 issue.
++✘ Suite "PU.58 pump band trim" failed after 0.140 seconds with 1 issue.
++✘ Test run with 1 test in 1 suite failed after 0.140 seconds with 1 issue.
++```
++
++Restored, the same test is `✔ Test run with 3 tests in 1 suite passed` and the untrimmed break is
++still named at a bezel of 0.1 of the glyph height.
++
++### Found and not fixed
++
++- **The trim's synthetic coverage is 0.05-0.10 of the glyph height.** At 0.15 the LCN flattens the
++  padded strip enough that the faint trailing glyph is not recovered even with the band right. The
++  real ratio (pump-092: 10 rows of 96) sits inside the covered range; a trim read before the LCN
++  would widen it, and was measured and rejected for the harness regression above. No row owns the
++  re-scope.
++- **The candidate's five abstentions.** The trim changes the loose boxes' bands enough that five
++  cells stop committing. Whether that is the trim or the boxes is a detector question (PU.57's
++  tight-IoU gate); the shipped detector is unaffected.
++- **The `PU.23` row-assignment accuracy (0.989 against its 0.99 floor)** and the `PumpSegmentsModel`
++  Python-renderer failure are pre-existing on this tree and touch no slicer code.
++
++### Checks
++
++| check | exit | note |
++|---|---|---|
++| `scripts/gate.sh` | 1 at `swift test` | `swift build` 0, `swiftlint` 0, `xcodegen` 0, app Debug build 0; `swift test` fails on the pre-existing corpus/Python-renderer suites (below), not the slicer |
++| app-target unit bundle (`-only-testing:TankbookTests`) | 0 | **Executed 299 tests, 0 failures** |
++| `swift test --filter "PumpBandTrimTests\|PumpReaderHarnessTests\|PumpReaderPipelineTests\|PumpReadingLawTests\|PumpRowGeometryTests"` | 0 | **41 tests in 5 suites**; harness 237/251, dp 134/250; annotated 105/104; live 43/43 |
++| `swiftlint lint` (repo root) | 0 | 0 serious |
++| `scripts/check-screenshot-manifest.sh` | 1 | pre-existing: `PU.29-confirm-pump-alpha` has no capture line; no UI in this row |
++
++Pre-existing `swift test` failures, none touching the slicer: `P4.12 corpus A/B` and `P4.13
++PaddleOCR arms` (the corpus intake's own fixtures), `Pump segments model (Core ML)` (the Python
++renderer exits 1 on a `torch.serialization.load`), `RV.277` (expense fixtures), `PU.23 pump row
++assignment` (annotation-only accuracy 0.989 against 0.99), `PJ.1 extraction assembler` (receipt-011).
++
++The candidate was scored by copying it over `ml/pump-reader/.out/det/DigitRows.mlmodel` and the
++shipped copy restored afterwards: the file was `b560fef2…` before, `d18531eb…` while scoring and
++`b560fef2…` again at the end. The candidate itself lives in the main checkout at
++`.out/det/pu48/DigitRows-pu48.mlmodel`.
