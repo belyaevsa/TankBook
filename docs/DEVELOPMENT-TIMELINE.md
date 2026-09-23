@@ -11,6 +11,15 @@ decisions.
 
 ---
 
+## 2026-09-23 · A release needs the app's sources committed, not the whole tree
+
+| | |
+|---|---|
+| **Commits** | this entry's commit |
+| **Reason** | Product owner: *"make scripts/release.sh ignore docs and non-app files to prepare release"*. The release script refused to archive while ANY tracked or untracked file differed from HEAD, so a doc edit, a corpus annotation in progress or a stray tool file blocked a release whose archived bytes they could not change. |
+| **Evidence** | On 2026-09-23 the working tree held uncommitted corpus files (`corpus.sqlite`, `videos.json`, `video-labels.json`, `pump/windows.json`, `corrections.jsonl`) from annotation work; none is read by the app build (`project.yml` compiles `ios/App/Sources` + `ios/App/Resources` and the `TankbookCore` package), yet each one alone made `scripts/release.sh` exit 2. |
+| **What changed** | `scripts/app-paths` lists the paths an app build reads (`project.yml`, `ios/Package.swift`, `ios/Package.resolved`, `ios/Sources/TankbookCore`, `ios/App` minus its two test bundles). `scripts/release.sh` refuses only when one of THOSE differs from HEAD - untracked files under them included, because xcodegen compiles a new source file in - and reports the count of other uncommitted changes as not part of the build. The build's commit stamp (`project.yml`, "Stamp build commit") reads the same list, so a release built beside a doc edit is stamped with its commit, not `-dirty`. The build number is unchanged: still the commit count. |
+
 ## 2026-09-22 · A brief counts its population before it is written
 
 | | |

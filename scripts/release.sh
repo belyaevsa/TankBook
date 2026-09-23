@@ -133,14 +133,24 @@ esac
 # App Store Connect rejects a reused number. The marketing version stays in project.yml.
 BUILD_NUMBER="$(git rev-list --count HEAD)"
 COMMIT="$(git rev-parse --short HEAD)"
-# `git status --porcelain` skips IGNORED files, and build/ is ignored - otherwise
-# this script's own output (build/release-<n>-<sha>/) would make the tree dirty
-# and refuse the NEXT run, which is what happened after build 463.
-if [ -n "$(git status --porcelain)" ]; then
-  echo "release: the tree is dirty - archive a committed state so the build number means something" >&2
-  git status --short >&2
+# Only the paths the app build reads must match HEAD (scripts/app-paths): a
+# doc, corpus or tooling edit in progress does not change the archived bytes
+# and no longer blocks a release. Untracked files under those paths count - a
+# new Swift file in ios/App/Sources is compiled in by xcodegen. `git status
+# --porcelain` skips IGNORED files, and build/ is ignored - otherwise this
+# script's own output (build/release-<n>-<sha>/) would make the tree dirty and
+# refuse the NEXT run, which is what happened after build 463.
+APP_PATHS=()
+while IFS= read -r line; do
+  case "$line" in ''|'#'*) ;; *) APP_PATHS+=("$line") ;; esac
+done < scripts/app-paths
+if [ -n "$(git status --porcelain -- "${APP_PATHS[@]}")" ]; then
+  echo "release: the app's sources differ from HEAD - archive a committed state so the build number means something" >&2
+  git status --short -- "${APP_PATHS[@]}" >&2
   exit 2
 fi
+other="$(git status --porcelain | wc -l | tr -d ' ')"
+[ "$other" -eq 0 ] || echo "release: ${other} uncommitted change(s) outside the app's paths (scripts/app-paths) - not part of the build"
 
 # Signing credentials for xcodebuild itself. `-allowProvisioningUpdates` can
 # create the distribution certificate and the App Store profile, but only with

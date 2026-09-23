@@ -39,15 +39,19 @@ targets:
         product: TankbookCore
     postBuildScripts:
       # Stamps the built product's Info.plist with the commit it was built from
-      # (short SHA, "-dirty" when the tree had changes) so the diagnostics
-      # header's `build=` line can tell two development builds of one version
-      # apart. Reads git only; nothing is written to the tree.
+      # (short SHA, "-dirty" when a path the app build reads had changes -
+      # scripts/app-paths, the same list scripts/release.sh checks) so the
+      # diagnostics header's `build=` line can tell two development builds of
+      # one version apart. Reads git only; nothing is written to the tree.
       - name: Stamp build commit
         script: |
           PLIST="$TARGET_BUILD_DIR/$INFOPLIST_PATH"
           [ -f "$PLIST" ] || exit 0
           SHA=$(cd "$SRCROOT" && git rev-parse --short HEAD 2>/dev/null || echo unknown)
-          if [ -n "$(cd "$SRCROOT" && git status --porcelain 2>/dev/null | grep -v '^??')" ]; then SHA="$SHA-dirty"; fi
+          PATHS=$(grep -v '^#' "$SRCROOT/scripts/app-paths" 2>/dev/null | grep -v '^$' | tr '\n' ' ')
+          # PATHS is split on purpose: one pathspec per word, none has a space.
+          # shellcheck disable=SC2086
+          if [ -n "$(cd "$SRCROOT" && git status --porcelain -- $PATHS 2>/dev/null)" ]; then SHA="$SHA-dirty"; fi
           /usr/libexec/PlistBuddy -c "Delete :TankbookBuildCommit" "$PLIST" >/dev/null 2>&1 || true
           /usr/libexec/PlistBuddy -c "Add :TankbookBuildCommit string $SHA" "$PLIST"
         basedOnDependencyAnalysis: false

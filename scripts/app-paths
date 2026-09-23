@@ -1,0 +1,12 @@
+# The paths an app build reads - one git pathspec per line, `#` comments allowed.
+# scripts/release.sh refuses to archive while any of these differ from HEAD, and
+# the build's commit stamp (project.yml, "Stamp build commit") marks a build
+# `-dirty` only for them. Everything else - docs, the corpus, tools, the backend,
+# briefs - can be mid-edit without touching the archived bytes.
+project.yml
+ios/Package.swift
+ios/Package.resolved
+ios/Sources/TankbookCore
+ios/App
+:(exclude)ios/App/Tests
+:(exclude)ios/App/UITests
