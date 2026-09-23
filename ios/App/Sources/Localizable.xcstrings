@@ -10645,6 +10645,23 @@
         }
       }
     },
+    "The display shows %1$@ a litre, but these numbers work out to %2$@ – a discount, or a misread? Check the total and the litres.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The display shows %1$@ a litre, but these numbers work out to %2$@ – a discount, or a misread? Check the total and the litres."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На табло %1$@ за литр, а по этим числам выходит %2$@ – скидка или ошибка распознавания? Проверьте сумму и литры."
+          }
+        }
+      }
+    },
     "Recognition is in alpha testing – it can't get every field right yet. Your captures improve it, so keep them coming and bear with mistakes.": {
       "extractionState": "manual",
       "localizations": {

@@ -151,6 +151,31 @@ final class CaptureUITests: XCTestCase {
                       "saving from the pump path must leave capture")
     }
 
+    // MARK: - A pump pair whose shown price differs
+
+    /// A pair whose shown price differs from the one it implies (a discount, or
+    /// a misread) pre-fills total and litres and names both prices. It stays
+    /// savable - the notice qualifies the head start, it never blocks it
+    /// (hard rule 7).
+    func testAPumpPairWhoseShownPriceDiffersCarriesTheCautionNotice() {
+        for seed in ["-seedPumpCautionDiffers"] {
+            let app = launch(args: ["-homeResetDatabase", "-seedVehicleForUITests",
+                                    "-presentScreen", "capture", "-cameraStatus", "authorized", seed])
+            openCapture(app)
+            let typeIt = app.buttons["captureTypeItButton"]
+            XCTAssertTrue(typeIt.waitForExistence(timeout: 10), seed)
+            typeIt.tap()
+            let total = app.textFields["manualFillUpTotalField"]
+            XCTAssertTrue(total.waitForExistence(timeout: 5), seed)
+            XCTAssertFalse((total.value as? String)?.isEmpty ?? true, "\(seed): the pair pre-fills")
+            XCTAssertTrue(app.otherElements["confirmPumpCautionNotice"].waitForExistence(timeout: 5)
+                            || app.staticTexts["confirmPumpCautionNotice"].exists,
+                          "\(seed): the caution must accompany a pair the law could not check")
+            XCTAssertTrue(app.buttons["manualFillUpSaveButton"].isEnabled, "\(seed): never a dead end")
+            app.terminate()
+        }
+    }
+
     // MARK: - RV.12: a save leaves capture
 
     /// The typed door through capture has the same shape as the scan door and

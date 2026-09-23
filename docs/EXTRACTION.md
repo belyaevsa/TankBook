@@ -992,8 +992,11 @@ misread digit shows itself when there is no third number to check against. A pri
 show, or a board cell near the implied price, becomes a **validation**: agreement raises confidence,
 disagreement is meant to surface as the F2 confirm on the form (hard rule 13 - the app suggests,
 the user decides), never as a silent refusal and never as a silent overwrite of the paid price.
-**Not wired yet (journeys walk 2026-09-23, PJ.500)**: the law marks the case (`.priceDisagrees` on
-the price) and nothing in the app reads it - the pair pre-fills like any other. `pump-300`
+**Wired (PJ.500, 2026-09-23)**: the law marks a shown price that differs from the implied one by
+more than 0.5 % as `.shownPriceDiffers(shown:implied:)` on the reading's `caution`, and Confirm shows
+it as an amber notice naming both prices; the price field stays empty so the entry's price is the
+implied one. A shown price within 0.5 % (`PumpReadingLaw.pairAgreementTolerance`) is agreement and
+carries no caution. `pump-300`
 and `pump-266` are why the board may not simply be taken as the price: both are loyalty-discounted
 fills where the paid price is below every board cell.
 
@@ -1033,6 +1036,15 @@ are held to no floor, because the user was told. A single blended number would h
 thing the caution exists to expose. The risk this accepts is F2's residue - a cautioned pre-fill
 the user waves through - and it is accepted knowingly, against the alternative of 12 fills the
 user must retype from a photo the app read correctly.
+
+**Measured before shipping, and held (2026-09-23, product owner).** PU.59 built the ruling and the
+app's own path (`PumpDisplayCapture.classify`, heldout) measured the cautioned tier at **1 correct
+cell out of 10 (0.10)**: `pump-019` pre-filled 2.95 L / 1.19 against 45.22 / 79.32, `pump-032`,
+`pump-104`, `pump-120` and `pump-125` likewise - almost all role misassignments, not digit misreads.
+A cautioned pre-fill that is wrong nine times in ten is harder on the user than the empty form it
+replaces: they must notice the error and correct both fields. So the unvalidated pair **still
+abstains** as `.priceUnvalidated`, and the ruling above waits on role assignment lifting that
+number; PU.59 stays open for it. What shipped is the other half - `.shownPriceDiffers`, PJ.500.
 
 
 **The rules arm behind the reader stays (PU.62, measured 2026-09-22).** `CapturePipeline` fills a field

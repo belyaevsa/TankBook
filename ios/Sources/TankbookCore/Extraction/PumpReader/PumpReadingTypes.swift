@@ -32,16 +32,13 @@ public enum PumpAbstentionReason: String, Sendable, Equatable, Codable {
     /// pair-commit refusal when no band bounds the implied price (decision 11):
     /// a price that is not available and cannot be bounded is not committed.
     case boardFoundNoPrice
-    /// The price is optional (decision 11): the pair's implied price is inside
-    /// the currency band but no price the display showed (a unit-price read or
-    /// a board cell) sits near enough to validate it. With no third number to
-    /// check against, an unvalidated pair is exactly the misread risk the
-    /// three-field arithmetic used to catch, so it abstains.
+    /// A pair no shown price validated: its implied price is in band, but the
+    /// band is too wide to catch a misread pair (decision 11, PU.54 amendment).
     case priceUnvalidated
-    /// The pair committed on its implied price and the shown price that
-    /// validated it differs from that implied price (a loyalty discount). The
-    /// pair stands - the shown price never overwrites the paid one. Diagnosis
-    /// only, never a verdict; the app does not read it yet (docs/TASKS.md PJ.500).
+    /// The price field of a pair whose shown price validated it but differs from
+    /// the price it implies by more than rounding (a loyalty discount). The pair
+    /// stands - the shown price never overwrites the paid one - and the reading
+    /// carries `PumpReadingCaution.shownPriceDiffers` for the form.
     case priceDisagrees
     /// The price row's candidates all fell outside the currency's price band.
     case priceOutOfBand
@@ -54,6 +51,15 @@ public enum PumpAbstentionReason: String, Sendable, Equatable, Codable {
     /// More than one candidate closed the arithmetic and the survivors
     /// disagree: the read is ambiguous, so the field (or the reading) abstains.
     case ambiguous
+}
+
+/// What the form must say about a committed reading the law could not fully
+/// check (decision 11, docs/EXTRACTION.md). Not a refusal - the fields commit - and
+/// never a verdict: the form shows it beside the pre-filled fields.
+public enum PumpReadingCaution: Sendable, Equatable {
+    /// The display shows a price that differs from the one the pair implies -
+    /// a discount, or a misread. Both numbers go to the form.
+    case shownPriceDiffers(shown: Decimal, implied: Decimal)
 }
 
 /// One digit hypothesis for one cell, ranked by the constrained decode.
@@ -156,6 +162,8 @@ public struct PumpDisplayReading: Sendable, Equatable {
     public let unitPrice: PumpFieldReading
     public let total: PumpFieldReading
     public let reason: PumpAbstentionReason?
+    /// Set on a committed reading the form must qualify; nil otherwise.
+    public let caution: PumpReadingCaution?
 
     /// The reason-less default, for construction only; every law verdict that
     /// commits nothing uses `abstained(_:)` and names its branch.
@@ -163,11 +171,12 @@ public struct PumpDisplayReading: Sendable, Equatable {
         liters: .abstained, unitPrice: .abstained, total: .abstained, reason: nil)
 
     public init(liters: PumpFieldReading, unitPrice: PumpFieldReading, total: PumpFieldReading,
-                reason: PumpAbstentionReason? = nil) {
+                reason: PumpAbstentionReason? = nil, caution: PumpReadingCaution? = nil) {
         self.liters = liters
         self.unitPrice = unitPrice
         self.total = total
         self.reason = reason
+        self.caution = caution
     }
 
     /// A reading that committed nothing, with the reason every field shares.

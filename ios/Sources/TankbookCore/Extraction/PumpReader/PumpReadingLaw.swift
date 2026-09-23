@@ -260,14 +260,19 @@ public enum PumpReadingLaw {
     /// the heldout live path (measured: 6 of 8 pair commits land inside the
     /// coarse currency band and are wrong), so this tolerance is load-bearing.
     static let pairValidationTolerance = 0.05
+    /// Within this of the implied price a shown price AGREES - the implied price
+    /// is total over litres, and litres at two decimals move it by a few tenths
+    /// of a percent. Beyond it, inside `pairValidationTolerance`, the shown price
+    /// validates the pair but differs from what was paid (a discount).
+    static let pairAgreementTolerance = 0.005
 
     /// The pair tier: with no usable price, total + volume commit when the
-    /// price they IMPLY (`total / volume`) falls inside the currency's band AND
-    /// a price the display shows sits near that implied price. The band bounds
-    /// the implied price; the shown price is the validation the three-field
-    /// arithmetic used to be, and it is never committed over the paid pair -
-    /// a near disagreement (a loyalty discount) commits and carries the F2
-    /// reason (decision 11, hard rule 13).
+    /// price they IMPLY (`total / volume`) falls inside the currency's band. A
+    /// price the display shows is the validation: within rounding it agrees;
+    /// further off but within `pairValidationTolerance` the pair commits with
+    /// `.shownPriceDiffers` (a loyalty discount - the shown price never
+    /// overwrites the paid one); with none near, the pair abstains as
+    /// `.priceUnvalidated` (decision 11, hard rule 13).
     static func pairOutcome(literWindow: PumpLocatedWindow, totalWindow: PumpLocatedWindow?,
                             shownPrices: [Double], conventions: PumpDisplayConventions,
                             priceBand: FuelPriceBand?) -> PairOutcome {
@@ -289,13 +294,17 @@ public enum PumpReadingLaw {
         guard let shown = nearest, abs(shown - implied) <= pairValidationTolerance * implied else {
             return .refused(.priceUnvalidated)
         }
+        let litersField = PumpFieldReading(value: decimal(liters.value), provenance: .read,
+                                           logPosterior: liters.logPosterior)
+        let totalField = PumpFieldReading(value: decimal(total.value), provenance: .read,
+                                          logPosterior: total.logPosterior)
+        if abs(shown - implied) <= pairAgreementTolerance * implied {
+            return .committed(PumpDisplayReading(liters: litersField, unitPrice: .abstained,
+                                                 total: totalField, reason: nil))
+        }
         return .committed(PumpDisplayReading(
-            liters: PumpFieldReading(value: decimal(liters.value), provenance: .read,
-                                     logPosterior: liters.logPosterior),
-            unitPrice: .abstained(.priceDisagrees),
-            total: PumpFieldReading(value: decimal(total.value), provenance: .read,
-                                    logPosterior: total.logPosterior),
-            reason: nil))
+            liters: litersField, unitPrice: .abstained(.priceDisagrees), total: totalField, reason: nil,
+            caution: .shownPriceDiffers(shown: decimal(shown), implied: decimal(implied))))
     }
 
     /// A display value as an exact decimal: at most three fraction digits,

@@ -76,12 +76,10 @@ enum CapturePipeline {
             }
             (assembly, lines) = await recognize(box: box, source: resolvedSource, bandProvider: bandProvider)
             if let pumpReading {
-                // The reader's committed fields win over the rules arm's; an
-                // abstained field falls through to what the rules read, and
-                // the crops point at the display windows.
-                assembly.extraction.liters = pumpReading.extraction.liters ?? assembly.extraction.liters
-                assembly.extraction.unitPrice = pumpReading.extraction.unitPrice ?? assembly.extraction.unitPrice
-                assembly.extraction.total = pumpReading.extraction.total ?? assembly.extraction.total
+                // The reader's fields over the rules arm's (`composed`), and the
+                // crops point at the display windows.
+                assembly.extraction = composed(rules: assembly.extraction, reader: pumpReading.extraction,
+                                               caution: pumpReading.law.caution)
                 if pumpReading.extraction.crossCheck == .lock { assembly.extraction.crossCheck = .lock }
                 assembly.cropRects.merge(pumpReading.cropRects.mapValues(flippedToVision)) { _, pump in pump }
             }
@@ -97,10 +95,25 @@ enum CapturePipeline {
             pipelineDurationMs: Int(Date().timeIntervalSince(startedAt) * 1000))
         if resolvedSource == .pump {
             prefill.provenance = .pumpPhoto
+            prefill.pumpCaution = pumpReading?.law.caution
             prefill.pumpAlpha = PumpPhotoCapture.outcome(
                 pumpPhotoEnabled: PumpPhotoGate.allowsPumpPhoto, extraction: assembly.extraction).alpha
         }
         return prefill
+    }
+
+    /// The pump reader's committed fields win over the rules arm's; a field the
+    /// reader abstained on falls through to what the rules read
+    /// (docs/EXTRACTION.md -> "The rules arm behind the reader stays") - except
+    /// a cautioned pair's price, which is left for the user: the rules arm
+    /// could supply the very board price the law refused to take as paid.
+    static func composed(rules: FuelExtraction, reader: FuelExtraction,
+                         caution: PumpReadingCaution?) -> FuelExtraction {
+        var out = rules
+        out.liters = reader.liters ?? rules.liters
+        out.unitPrice = reader.unitPrice ?? (caution == nil ? rules.unitPrice : nil)
+        out.total = reader.total ?? rules.total
+        return out
     }
 
     /// The pump reader, off the main actor: the locator, the classifier and

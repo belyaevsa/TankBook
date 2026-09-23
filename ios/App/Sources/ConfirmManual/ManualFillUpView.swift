@@ -165,6 +165,7 @@ struct ManualFillUpView: View {
                     ManualFillUpFuelFullCard(form: $form, fuelKinds: vehicle!.fuelKinds)
                     FuelKindMismatchNotice(scannedKind: prefill?.extraction?.fuelKind, fuelKinds: vehicle!.fuelKinds)
                     PumpDisplayAlphaNotice(shown: prefill?.pumpAlpha ?? false)
+                    PumpReadingCautionNotice(caution: prefill?.pumpCaution)
                     if !form.isFull {
                         TankLevelRow(isFull: form.isFull,
                                      tankLevelAfterPct: form.tankLevelAfterPct,

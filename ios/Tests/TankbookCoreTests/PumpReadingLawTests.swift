@@ -325,7 +325,10 @@ struct PumpReadingLawTests {
         #expect(reading.unitPrice.value == nil)
         #expect(reading.committedCount == 2)
         #expect(reading.reason == nil)
+        // The nearest board cell is 1.784 against 1.764 implied - past rounding,
+        // inside validation: a discount the form names.
         #expect(reading.unitPrice.reason == .priceDisagrees)
+        if case .shownPriceDiffers? = reading.caution {} else { Issue.record("expected shownPriceDiffers") }
     }
 
     @Test("PU.54: the pair abstains with a named reason when the implied price is out of band")
@@ -369,6 +372,21 @@ struct PumpReadingLawTests {
         #expect(reading.total.value == Decimal(string: "20"))
         #expect(reading.unitPrice.value == nil)
         #expect(reading.unitPrice.reason == .priceDisagrees)
+        #expect(reading.caution == .shownPriceDiffers(shown: Decimal(string: "1.98")!, implied: Decimal(2)))
+    }
+
+    @Test("PJ.500: a shown price that agrees with the implied one carries no caution")
+    func pairWithAgreeingShownPriceIsNotCautioned() {
+        // Synthetic: 10.00 L for 20.00 implies 2.000; the board shows 2.008, 0.4 %
+        // off - too far to close the triple, close enough to agree.
+        let reading = PumpReadingLaw.resolve(
+            windows: [Self.window(.total, "20,00"), Self.window(.liters, "10,00"),
+                      Self.window(.board, "2,008")],
+            currency: CurrencyCode(rawValue: "EUR"),
+            priceBand: FuelPriceBand(low: 0.4, high: 3.0))
+        #expect(reading.committedCount == 2)
+        #expect(reading.caution == nil)
+        #expect(reading.unitPrice.reason == nil)
     }
 
     @Test("PU.54: an in-band pair with no validating shown price abstains")

@@ -145,7 +145,8 @@ never by strings; the same classification runs on a first capture, an attach, a 
 replace. A display runs the pump reader (`docs/EXTRACTION.md` → "The pump reader": locate, slice,
 classify, and the law: `volume × price = total` closing uniquely, or - decision 11, since PU.54 - a
 total and volume that commit without a price when a price the display shows sits within 5 % of the
-price they imply) and arrives at Confirm as `.pumpPhoto` with the fields the law committed
+price they imply; when the shown price differs from the implied one by more than rounding, an
+amber notice names both as a discount or a misread - PJ.500) and arrives at Confirm as `.pumpPhoto` with the fields the law committed
 pre-filled; a field the reader refused is filled from the receipt parser where it read one (PU.62
 measured that fallback and kept it) and is otherwise empty. A display sideways in the frame is read
 upright: when the first read commits nothing the reader tries the orientation its row detector

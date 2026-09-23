@@ -45,6 +45,11 @@ struct ConfirmPrefill {
     /// the pump-photo gate - the sheet shows the alpha notice beside the
     /// reading (decision 7, docs/EXTRACTION.md). False on every other path.
     var pumpAlpha: Bool = false
+    /// The pump reader committed a pair it could not fully
+    /// check - no price on the display, or a shown price that differs from the
+    /// one the pair implies. The sheet says so beside the fields; nil on every
+    /// other path.
+    var pumpCaution: PumpReadingCaution?
     /// P2.5: the extraction's currency is uncertain - the sheet must ask, never
     /// silently convert (docs/ERRORS.md -> Confirm). False by default; the real
     /// OCR-confidence signal lands with the Foundation-models work (P2.8).
@@ -238,6 +243,7 @@ enum ConfirmPrefillSeed {
     /// edits. The simulated reading is pump-007's labelled triple
     /// (Spike/ReceiptSpike/fixtures/pump).
     private static func pumpPrefill(from arguments: [String]) -> ConfirmPrefill? {
+        if let cautioned = pumpCautionPrefill(from: arguments) { return cautioned }
         guard arguments.contains("-seedPumpCapture") else { return nil }
         let extraction = FuelExtraction(liters: 60.25, unitPrice: 76.24, total: 4593.46,
                                         currency: .rub, date: "17.08.2026")
@@ -245,6 +251,23 @@ enum ConfirmPrefillSeed {
             pumpPhotoEnabled: PumpPhotoGate.allowsPumpPhoto, extraction: extraction)
         var prefill = ConfirmPrefill(extraction: outcome.extraction, provenance: .pumpPhoto)
         prefill.pumpAlpha = outcome.alpha
+        return prefill
+    }
+
+    /// A pump pair the law committed without checking it -
+    /// `-seedPumpCautionDiffers` (a shown price off the one the pair implies:
+    /// pump-266's loyalty discount, 1.919 shown against 1.839 paid).
+    private static func pumpCautionPrefill(from arguments: [String]) -> ConfirmPrefill? {
+        guard arguments.contains("-seedPumpCautionDiffers") else { return nil }
+        let caution = PumpReadingCaution.shownPriceDiffers(shown: Decimal(string: "1.919")!,
+                                                          implied: Decimal(string: "1.839")!)
+        let extraction = FuelExtraction(liters: 30.21, unitPrice: nil, total: Decimal(string: "55.56"),
+                                        currency: .eur, date: "17.08.2026")
+        let outcome = PumpPhotoCapture.outcome(
+            pumpPhotoEnabled: PumpPhotoGate.allowsPumpPhoto, extraction: extraction)
+        var prefill = ConfirmPrefill(extraction: outcome.extraction, provenance: .pumpPhoto)
+        prefill.pumpAlpha = outcome.alpha
+        prefill.pumpCaution = caution
         return prefill
     }
 
