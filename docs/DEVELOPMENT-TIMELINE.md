@@ -11,6 +11,15 @@ decisions.
 
 ---
 
+## 2026-09-23 · Pump rows apply published methods, and an agent reviews each for completeness
+
+| | |
+|---|---|
+| **Commits** | this entry's commit (the PU.67-PU.77 tranche, `agents/briefs/RESEARCH-TO-CODE.md`, `agents/briefs/REVIEW-PU-COMPLETENESS.md`) |
+| **Reason** | Product owner, after the Qwen whole-pipeline review: *"make an implementation and validation (like journey review agent) plan. The agent reviewer each time validates the completeness of the implementation. Register it. Review the published research to apply it into the code, instead of coming up with our own solution."* |
+| **Evidence** | 66 PU rows were built from in-house heuristics tuned on the corpus; several were measured, refused or reverted after the fact (PU.53 and PU.55 moved nothing, PU.58 lost cells, PU.66's three detector retrains were refused, PU.59's cautioned tier measured 1 in 10 and was held). The Qwen review (`agents/reviews/PUMP-REVIEW-2026-09-23-qwen.md`) mapped the open losses to published methods - oriented text detection, fast Hough skew estimation, a-contrario line fitting, temperature scaling, conformal risk control, focal loss, constrained decoding, CRNN/CTC - none of which the pipeline uses. PU.59 also showed a row can be ticked-ready while a promise inside it is unmeasured: the cautioned tier's real number surfaced only in the orchestrator's final run. |
+| **What changed** | For the PU.67 tranche: (1) a row that cites a paper gets a **research note first** (`RESEARCH-TO-CODE.md` → `agents/research/<row>.md`): citations checked against the source, the method as published, the mapping onto our code, and every departure named and justified; a departure not in the note needs the owner's OK. (2) The orchestrator builds and gates. (3) **A reviewing agent runs `REVIEW-PU-COMPLETENESS.md` on every row before it is committed** - fidelity to the paper, wired into the app path, measured on the named population, no regression, tests that go red under mutation, docs reconciled, every promise in the row - and the orchestrator commits only on a COMPLETE verdict. This is an agent review, unlike the journey and scenario walks the orchestrator runs itself (2026-09-12); those are unchanged, and J4 gets its scenario walk when the tranche closes. |
+
 ## 2026-09-23 · A release needs the app's sources committed, not the whole tree
 
 | | |
