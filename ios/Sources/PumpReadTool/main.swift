@@ -349,6 +349,9 @@ if let windows = request.windows, !windows.isEmpty {
         if let liters = appFields?.liters { appCommitted["liters"] = "\(liters)" }
         if let price = appFields?.unitPrice { appCommitted["unitPrice"] = "\(price)" }
         reply["appCommitted"] = appCommitted
+        // Whether the app would take this frame down the pump path at all: a
+        // reading, even an empty one, routes the capture as a pump photo.
+        reply["appRoutedAsPump"] = app.reading != nil
     }
     reply["timingsMs"] = timings
     if let reads = readsTimed {
