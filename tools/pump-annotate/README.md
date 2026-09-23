@@ -392,8 +392,9 @@ the ml venv runs it); the converted images are cached under
   one image or a set, stage by stage, drawn rather than printed. Debugging keeps
   the library on the left as its only list: a click there opens that image in
   the debugger (a video opens on ~40 of its frames), ←/→ steps through the
-  library as it is filtered now (or the picked image alone, a split, the video's
-  frames), and every traced still carries its verdict on its library row - a
+  library as it is filtered now - its filter, state and quick buttons, which
+  include the splits (`heldout`, `heldout2`, `train`); a filter change moves the
+  set at once - and every traced still carries its verdict on its library row - a
   dot, and the first stage it fails at; the header carries the position and the
   tally. Switching back to Annotation opens the image the debugger had. It runs
   `PumpDisplayCapture.classify` - the call the app's capture makes, with the
@@ -419,10 +420,9 @@ the ml venv runs it); the converted images are cached under
     stage is where the image failed; the library row shows it per image and the tally
     counts them over the set (▶ trace set) - on the library rows and in the header. An unreviewed annotation is said so:
     a mismatch there may be the box.
-  - **Sets**: the picked image, the library list (filter it on the left:
-    `rain`, `neste`, the quick buttons), a split (`heldout`, `heldout2`,
-    `train`), all stills, or ~40 frames of a video. ←/→ steps, the next image is
-    traced ahead. **▦ grid** (`G`) shows the current stage
+  - **Sets**: the library list as filtered on the left (a name filter such as
+    `rain` or `neste`, the state menu, the quick buttons incl. the splits), or
+    ~40 frames of a picked video. ←/→ steps, the next image is traced ahead. **▦ grid** (`G`) shows the current stage
     across every traced image.
   - **Same pipeline as the app, switched only on purpose**: shipped detector
     and classifier, deskew off, the app's 1.5 s budget by default; changing any

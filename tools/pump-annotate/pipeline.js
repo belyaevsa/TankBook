@@ -78,8 +78,6 @@ function build() {
   root.innerHTML = `<div class="pl-panel">
     <div class="pl-top">
       <b>Debugging</b>
-      <span class="muted">set</span>
-      <select id="plSplit" title="what ←/→ steps through: the library list as it is filtered now, the picked image alone, a split, or the picked video's frames"><option value="library" selected>library list</option><option value="selected">picked image</option><option value="heldout">heldout</option><option value="heldout2">heldout2</option><option value="train">train</option><option value="all">all stills</option><option value="video">video frames</option></select>
       <span class="muted">|</span>
       <span class="muted">detector</span><select id="plDet"></select>
       <span class="muted">classifier</span><select id="plCls"></select>
@@ -113,7 +111,6 @@ function build() {
       <div class="pl-info" id="plInfo"></div>
     </div></div>`;
   document.body.appendChild(root);
-  $p('#plSplit').onchange = () => loadSet();
   $p('#plRetrace').onclick = () => traceCurrent(false);
   $p('#plAll').onclick = traceAll;
   $p('#plGrid').onclick = () => { st.grid = !st.grid; render(); };
@@ -147,16 +144,35 @@ async function show(name) {
 }
 function hide() { st.open = false; if (document.getElementById('pipeline')) $p('#pipeline').style.display = 'none'; }
 
-// A library pick: a video opens on its frames; a still opens alone, or at its
-// place in the set when the set is a list it belongs to.
+// A library pick. The set is the library as it is filtered (stills), or the
+// picked video's frames; the pick opens at its place in it.
 async function select(name) {
   if (!st.open) return;
-  const entry = typeof window.libraryEntry === 'function' ? window.libraryEntry(name) : null;
   st.picked = name;
-  if (entry && entry.video) $p('#plSplit').value = 'video';
-  else if ($p('#plSplit').value === 'video') $p('#plSplit').value = 'selected';
-  else if (st.set.includes(name) && !['selected', 'library'].includes($p('#plSplit').value)) { await go(st.set.indexOf(name)); return; }
   await loadSet(name);
+}
+
+// The library's filter changed: the set follows it, staying on the image open
+// when it is still in the list.
+async function refreshSet() {
+  if (!st.open || isVideoPick(st.picked)) return;
+  const names = libraryStills();
+  const here = st.set[st.index];
+  st.set = names;
+  if (names.includes(here)) { st.index = names.indexOf(here); renderList(); return; }
+  st.index = 0; renderList();
+  if (names.length) await go(0); else render();
+}
+
+function libraryStills() {
+  const isStill = n => { const e = window.libraryEntry && window.libraryEntry(n); return !(e && e.video); };
+  return (window.libraryNames ? window.libraryNames() : []).filter(isStill);
+}
+function isVideoPick(name) {
+  if (!name) return false;
+  if (name.startsWith('frame/')) return true;
+  const e = window.libraryEntry && window.libraryEntry(name);
+  return !!(e && e.video);
 }
 
 async function loadModels() {
@@ -195,25 +211,19 @@ function chip() {
 
 // ----------------------------------------------------------------------- sets
 async function loadSet(here) {
-  const mode = $p('#plSplit').value;
   here = here || st.picked || st.set[st.index];
   let names = [];
-  const isStill = n => { const e = window.libraryEntry && window.libraryEntry(n); return !(e && e.video); };
-  if (mode === 'selected') names = here && isStill(here) ? [here] : [];
-  else if (mode === 'library') names = (window.libraryNames ? window.libraryNames() : []).filter(isStill);
-  else if (mode === 'video') {
-    const stem = here && here.startsWith('frame/') ? here.split('/')[1] : here;
-    if (stem) {
-      const recs = await fetch('/api/records/' + encodeURIComponent(stem)).then(r => r.json());
-      const rec = recs[0] || {tracked: []};
-      const every = Math.max(1, Math.round(rec.tracked.length / 40));
-      names = rec.tracked.filter((_, i) => i % every === 0).map(f => `frame/${stem}/${f}`);
-      if (here && here.startsWith('frame/') && !names.includes(here)) names.unshift(here);
-      st.recordCache = {stem, rec};
-    }
+  if (isVideoPick(here)) {
+    const stem = here.startsWith('frame/') ? here.split('/')[1] : here;
+    const recs = await fetch('/api/records/' + encodeURIComponent(stem)).then(r => r.json());
+    const rec = recs[0] || {tracked: []};
+    const every = Math.max(1, Math.round(rec.tracked.length / 40));
+    names = rec.tracked.filter((_, i) => i % every === 0).map(f => `frame/${stem}/${f}`);
+    if (here.startsWith('frame/') && !names.includes(here)) names.unshift(here);
+    st.recordCache = {stem, rec};
   } else {
-    const fx = await fetch('/api/fixtures').then(r => r.json());
-    names = fx.filter(f => !f.video && f.windows && (mode === 'all' || f.split === mode)).map(f => f.name);
+    names = libraryStills();
+    if (here && !names.includes(here)) names.unshift(here);
   }
   st.set = names; st.index = Math.max(0, names.indexOf(here));
   renderList();
@@ -404,7 +414,7 @@ async function render() {
   const keep = {x: view.scrollLeft, y: view.scrollTop};
   $p('#plAllStripsWrap').style.display = st.stage === 5 ? '' : 'none';
   if (st.grid) { await renderGrid(); return; }
-  if (!image) { view.innerHTML = '<p class="muted" style="padding:12px">Pick an image in the library on the left, or choose a set above (the library list as filtered, a split).</p>'; return; }
+  if (!image) { view.innerHTML = '<p class="muted" style="padding:12px">Pick an image in the library on the left; ←/→ steps through the library as it is filtered.</p>'; return; }
   if (!trace) { view.innerHTML = '<p class="muted" style="padding:12px">running…</p>'; return; }
   if (trace.error) { view.innerHTML = `<pre style="color:${BAD};padding:12px;white-space:pre-wrap">${esc(trace.error)}\n${esc(trace.output || '')}</pre>`; return; }
   const a = attemptOf(trace);
@@ -768,5 +778,5 @@ function keys(e) {
   return true;
 }
 
-window.pipelineView = {show, hide, select, keys, statusOf, get isOpen() { return st.open; }};
+window.pipelineView = {show, hide, select, refreshSet, keys, statusOf, get isOpen() { return st.open; }};
 })();

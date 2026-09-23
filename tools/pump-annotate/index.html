@@ -133,8 +133,9 @@
 </nav>
 <aside>
   <div class="row"><input id="filter" placeholder="filter…" style="flex:1">
-    <select id="state"><option value="all">all</option><option value="todo">no windows</option><option value="unreviewed">not processed</option><option value="reviewed">processed</option><option value="live">with Live record</option><option value="liveunchecked">Live, tracking unreviewed</option><option value="video">videos</option><option value="work">to do: unprocessed, Live unchecked, videos</option></select></div>
+    <select id="state"><option value="all">all</option><option value="todo">no windows</option><option value="unreviewed">not processed</option><option value="reviewed">processed</option><option value="live">with Live record</option><option value="liveunchecked">Live, tracking unreviewed</option><option value="video">videos</option><option value="work">to do: unprocessed, Live unchecked, videos</option><option value="heldout">heldout (the frozen draw the marks measure)</option><option value="heldout2">heldout2 (the second frozen draw)</option><option value="train">train</option></select></div>
   <div class="row"><button class="quick" data-q="work">to do</button><button class="quick" data-q="unreviewed">unprocessed</button><button class="quick" data-q="liveunchecked">frames</button><button class="quick" data-q="video">videos</button><button class="quick" data-q="all">all</button></div>
+  <div class="row"><button class="quick" data-q="heldout" title="the frozen heldout draw the model-scored marks measure">heldout</button><button class="quick" data-q="heldout2" title="the second frozen draw: no training, no tuning against it">heldout2</button><button class="quick" data-q="train" title="stills a model may train on">train</button></div>
   <div class="row dim" id="counts"></div>
   <div id="list"></div>
 </aside>
@@ -355,7 +356,7 @@ try { mode = localStorage.getItem('annotator.mode') || 'photos'; } catch (e) {}
 function setMode(m) {
   mode = m; try { localStorage.setItem('annotator.mode', m); } catch (e) {}
   document.querySelectorAll('nav.rail button[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
-  renderList();
+  libraryChanged();
 }
 
 // ---- data ----
@@ -381,6 +382,7 @@ function renderList() {
   $('#counts').textContent = `${rev} processed · ${done} with windows · ${fixtures.length - done} empty · heldout ${held.length} (${held.filter(x => x.reviewed).length} reviewed)`;
   const inMode = x => mode === 'photos' ? !x.video : mode === 'live' ? (x.live && !x.video) : x.video;
   const pass = x => inMode(x) && (st === 'all' || (st === 'todo' && !x.windows) || (st === 'reviewed' && x.reviewed) || (st === 'unreviewed' && !x.reviewed)
+    || (['heldout', 'heldout2', 'train'].includes(st) && !x.video && (x.split || 'train') === st)
     || (st === 'live' && x.live) || (st === 'liveunchecked' && x.live && !x.tracking && !x.video) || (st === 'video' && x.video)
     || (st === 'work' && ((x.video && !x.reviewed) || (!x.video && !x.reviewed) || (x.live && x.tracked && !x.tracking && !x.video))));
   const shown = fixtures.filter(x => x.name.toLowerCase().includes(f) && pass(x));
@@ -1901,8 +1903,10 @@ async function padConventions() {
 $('#vlRead').onclick = () => runReader(false);
 function next() { const names = [...document.querySelectorAll('#list div')].map(d => d.dataset.n); const n = names[names.indexOf(current) + 1]; if (n) openFixture(n); }
 $('#savenext').onclick = async () => { $('#reviewed').checked = true; await save(); next(); };
-$('#filter').oninput = renderList; $('#state').onchange = renderList;
-document.querySelectorAll('.quick').forEach(b => b.onclick = () => { $('#state').value = b.dataset.q; renderList(); });
+// In Debugging the library IS the debugger's set: a filter change moves it too.
+function libraryChanged() { renderList(); if (workspace === 'debug') window.pipelineView.refreshSet(); }
+$('#filter').oninput = libraryChanged; $('#state').onchange = libraryChanged;
+document.querySelectorAll('.quick').forEach(b => b.onclick = () => { $('#state').value = b.dataset.q; libraryChanged(); });
 document.querySelectorAll('nav.rail button[data-mode]').forEach(b => b.onclick = () => setMode(b.dataset.mode));
 // ---- workspace: Annotation or Debugging, remembered per browser ----
 let workspace = 'annotate';
