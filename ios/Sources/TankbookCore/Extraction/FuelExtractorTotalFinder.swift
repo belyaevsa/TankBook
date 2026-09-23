@@ -189,8 +189,13 @@ extension FuelExtractor {
         // - receipt-001's `125,22` four times, receipt-038's `79,32` four times
         // - while the net and the VAT print once or twice. Only a single,
         // strictly-dominant value printed at least twice is trusted; anything
-        // else abstains (hard rule 13).
-        if let redundant = redundantValue(in: lines) {
+        // else abstains (hard rule 13). When labels DID pair values that tied,
+        // the repeated value must not sit below all of them: on a multi-line
+        // invoice the most-printed figure is a line item (a 650.00 part four
+        // times under an `Итого:` and a `Сумма документа:` that disagree), and
+        // a total is never smaller than every labelled figure on its page.
+        if let redundant = redundantValue(in: lines),
+           (primary + payment).allSatisfy({ redundant >= $0 - 0.005 }) {
             return TotalResolution(value: redundant, labelReads: 0)
         }
         return nil
