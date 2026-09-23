@@ -42,8 +42,9 @@ public enum ExpenseCategoryInference {
     /// one string and a UI seed can hand the vocabulary the lines it staged.
     public static func infer(fromText text: String) -> ExpenseCategory? {
         let key = matchingKey(text)
-        for rule in rules where rule.stems.contains(where: { key.contains($0) }) {
-            return rule.category
+        for rule in rules {
+            let scoped = rule.notWhen.reduce(key) { $0.replacingOccurrences(of: $1, with: " ") }
+            if rule.stems.contains(where: { scoped.contains($0) }) { return rule.category }
         }
         return nil
     }
@@ -59,6 +60,9 @@ public enum ExpenseCategoryInference {
     private struct Rule {
         let category: ExpenseCategory
         let stems: [String]
+        /// Phrases that contain a stem but name another kind; they are blanked
+        /// out before this rule's stems are tested.
+        var notWhen: [String] = []
     }
 
     /// Ordered: the first matching rule wins. Parking precedes toll because a
@@ -66,17 +70,23 @@ public enum ExpenseCategoryInference {
     /// the more specific reading. Wash precedes everything for the same reason
     /// on a forecourt receipt that names a car wash beside a fuel line.
     private static let rules: [Rule] = [
+        // A wheel wash is a step of tyre fitting, printed on a tyre-shop
+        // invoice beside the tyres themselves - not a car wash.
         Rule(category: .other("wash"), stems: keys([
             "МОЙК", "МОЕЧН", "АВТОМОЙК", "ХИМЧИСТК", "WASH", "CARWASH", "CAR WASH"
+        ]), notWhen: keys([
+            "МОЙКА КОЛЕС", "МОЙКА КОЛЁС", "МОЙКИ КОЛЕС", "МОЙКИ КОЛЁС", "WHEEL WASH"
         ])),
         Rule(category: .parking, stems: keys([
             "ПАРКОВК", "ПАРКОВОЧН", "СТОЯНК", "PARKING", "PARKHAUS", "PARKPLATZ",
             "PARKIMI", "PARKLA"
         ])),
+        // "Free" (БЕСПЛАТН-) contains the toll stem; warranty boilerplate on a
+        // parts receipt prints it.
         Rule(category: .toll, stems: keys([
             "ПЛАТН", "ТОЛЛ", "ВЗИМАН", "TOLL", "TOLLWAY",
             "ПЛАТНЫЙ УЧАСТОК", "ПУНКТ ВЗИМАНИЯ"
-        ])),
+        ]), notWhen: keys(["БЕСПЛАТН"])),
         Rule(category: .fine, stems: keys([
             "ШТРАФ", "ПОСТАНОВЛЕН", "ГИБДД", "АДМИНИСТРАТИВН",
             "PENALTY", "TRAFFIC FINE", "SPEEDING"

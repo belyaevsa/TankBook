@@ -8,9 +8,9 @@ import Testing
 // fixture's own name plus `expected.csv` - hand-written, never the extractor's
 // output (the oracle rule in Spike/ReceiptSpike/fixtures/README.md).
 //
-// Nine fixtures are hand-authored text (the corpus held no non-fuel receipt
-// photograph when RV.200 was filed); `parking-tallinn-airport-et.txt` is the
-// Vision dump of the one photograph the folder now holds. The oracle is still
+// The hand-authored fixtures date from before the corpus held a non-fuel
+// receipt photograph; the photographed ones carry their Vision dump as `.txt`
+// beside the image (`Spike/ReceiptSpike/fixtures/expenses/README.md`). The oracle is still
 // independent of the code under test: the vocabulary never writes a fixture,
 // and the fixture never runs the vocabulary.
 
@@ -76,12 +76,7 @@ struct RV200ExpenseCategoryInferenceTests {
     /// Fixtures the vocabulary is known to misread, each with the reason. A
     /// declared miss is asserted to STAY a miss so a fix removes its row here
     /// instead of passing unnoticed; the fix is a backlog item, not a test edit.
-    private static let declaredMisses: [String: String] = [
-        "parts-akhmadullin-kumho-tires-invoice-ru.txt":
-            "the wash rule runs first and a zero-priced wheel-wash line outranks four tyres",
-        "parts-avtostart-vologda-28-lines-tovarny-chek-ru.txt":
-            "the toll stem matches inside БЕСПЛАТНЫЙ in the warranty boilerplate under 28 parts lines"
-    ]
+    private static let declaredMisses: [String: String] = [:]
 
     /// The corpus-style sweep: every fixture must infer the category its file
     /// name names. The count is asserted so a fixture silently dropped from the
@@ -126,6 +121,24 @@ struct RV200ExpenseCategoryInferenceTests {
     @Test("a car wash yields .other(\"wash\")")
     func carWashYieldsOtherWash() throws {
         #expect(try Self.infer("wash-ru.txt") == .other("wash"))
+    }
+
+    /// A tyre-shop invoice lists a wheel wash as a fitting step beside the
+    /// tyres; it is a parts purchase, and a car wash printed as one is still a wash.
+    @Test("a wheel wash on a tyre invoice is not a car wash")
+    func wheelWashIsNotACarWash() {
+        let invoice = "Автошина Kumho Ecsta PS71 285/45 R20\nРазборка + Сборка + Балансировка\n"
+            + "Технологическая мойка колеса"
+        #expect(ExpenseCategoryInference.infer(fromText: invoice) == .parts)
+        #expect(ExpenseCategoryInference.infer(fromText: "Мойка кузова, комплекс") == .other("wash"))
+        #expect(ExpenseCategoryInference.infer(fromText: "Автомойка\nМойка колес и кузова") == .other("wash"))
+    }
+
+    /// "Free" contains the toll stem; a toll receipt still reads as a toll.
+    @Test("БЕСПЛАТНЫЙ in warranty text is not a toll")
+    func freeIsNotAToll() {
+        #expect(ExpenseCategoryInference.infer(fromText: "Фильтр масляный\nПраво на бесплатный обмен") == .parts)
+        #expect(ExpenseCategoryInference.infer(fromText: "Платный участок М-11, проезд") == .toll)
     }
 
     /// A fuel receipt names no separable expense kind: the vocabulary must
