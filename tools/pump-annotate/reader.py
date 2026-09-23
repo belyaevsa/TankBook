@@ -24,8 +24,14 @@ import corpus_db  # noqa: E402
 
 
 class ResidentReader:
-    def __init__(self, binary: Path, build: "callable[[], bool] | None" = None, cwd: Path | None = None):
+    """One resident `pump-read` serve loop - `--read-serve` for the video
+    re-read, `--trace-serve` for the pipeline view - fed one JSON line per
+    request, serialised, restarted after a crash."""
+
+    def __init__(self, binary: Path, build: "callable[[], bool] | None" = None, cwd: Path | None = None,
+                 mode: str = "--read-serve"):
         self.binary = binary
+        self.mode = mode
         self.build = build
         self.cwd = cwd
         self.proc: subprocess.Popen | None = None
@@ -33,15 +39,22 @@ class ResidentReader:
         self.last_error: str | None = None
 
     def _ensure(self) -> bool:
-        if self.proc and self.proc.poll() is None:
+        # A rebuilt binary is a changed pipeline: the running process holds the
+        # old code, so it is replaced rather than reused.
+        stamp = self.binary.stat().st_mtime if self.binary.exists() else None
+        if self.proc and self.proc.poll() is None and stamp == getattr(self, "started_stamp", None):
             return True
+        if self.proc and self.proc.poll() is None:
+            self.proc.kill()
+            self.proc = None
         if not self.binary.exists() and self.build and not self.build():
             self.last_error = "pump-read did not build"
             return False
         try:
-            self.proc = subprocess.Popen([str(self.binary), "--read-serve"], cwd=self.cwd,
+            self.proc = subprocess.Popen([str(self.binary), self.mode], cwd=self.cwd,
                                          stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                                          text=True, bufsize=1)
+            self.started_stamp = self.binary.stat().st_mtime
         except OSError as exc:
             self.last_error = str(exc)
             return False

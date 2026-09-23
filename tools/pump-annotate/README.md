@@ -387,6 +387,48 @@ the ml venv runs it); the converted images are cached under
   - **save** writes both replies and a PNG of the two panes to
     `ml/pump-reader/runs/<date>/compare/<still>/` (`a.json`, `b.json`,
     `meta.json`, `panes.png`) so a report can carry the evidence.
+- **⛓ pipeline** (toolbar button): the app's own pump path on one image or a
+  set, stage by stage, drawn rather than printed. It runs
+  `PumpDisplayCapture.classify` - the call the app's capture makes, with the
+  capture's seed 0, the fast / slow decision and its 1.5 s cap, the
+  orientation search and the turned-row retry - with a `PumpTrace` observing
+  it (`pump-read --trace-serve`, resident, models loaded once). The trace is
+  the run itself, never a re-run for display: `PumpTraceParityTests` pins that
+  a traced run returns exactly what an untraced one does and that the attempt
+  marked chosen is the one whose reading was returned.
+  - **Stages** (left rail, `0`-`7` or ↑/↓): 0 display? (fast or slow path,
+    rows, text lines, widest row against the limits, budget), 1 orientation
+    (each rotation's search score, the one read, the annotated one), 2
+    candidates (detector rows with confidence, Vision / classical proposals),
+    3 verify (kept / dropped with the verifier's reasons), 4 assign (role per
+    row, a wrong role red), 5 slice (each row's strip with its cells, blanks
+    dashed, the slicer's decimal mark white; "every candidate's strip" shows
+    the dropped ones too), 6 classify (a tile per cell: the crop, the top digit,
+    the runner-ups and how far behind, the margin, the mark probability, the
+    hand digit), 7 law (committed against the truth row, provenance incl. a
+    repaired cell, the refusal reason, the arithmetic, every attempt).
+  - **Status per stage**: green matches the hand boxes / truth row, red is
+    wrong, amber refused or low-margin, grey nothing to judge. The first red
+    stage is where the image failed; the list shows it per image and the tally
+    counts them over the set (▶ trace set). An unreviewed annotation is said so:
+    a mismatch there may be the box.
+  - **Sets**: this image, all stills, a split (`heldout`, `heldout2`, `train`),
+    a name filter (`rain`, `neste`), or ~40 frames of the open video. ←/→ steps,
+    the next image is traced ahead. **▦ grid** (`G`) shows the current stage
+    across every traced image.
+  - **Same pipeline as the app, switched only on purpose**: shipped detector
+    and classifier, deskew off, the app's 1.5 s budget by default; changing any
+    of them turns the header chip amber and names the change. Before a trace
+    the server rebuilds the optimised `pump-read` whenever a Swift source of
+    the package is newer than it, and the resident tracer restarts on a new
+    binary - a pipeline change is in the view on the next trace, never a stale
+    one. Results are cached by (image, model pair, tool build, currency,
+    deskew, budget) under `ml/pump-reader/.out/trace-cache/`; ⟳ re-run ignores
+    the cache. **save** writes the trace and the stage as a PNG under
+    `ml/pump-reader/runs/<date>/trace/`.
+  - Zoom `+` / `−` / fit / 1:1 (ctrl-wheel too), layer toggles for the hand
+    boxes, dropped candidates and labels, overlay opacity; hovering a box on
+    stages 0-4 lists what the pipeline knew about it. Esc closes.
 - **A pre-fill keeps the display's own form.** The reader commits a number, and
   a number has no trailing zeros - `17.90` came back as `17.9`, `2.250` as
   `2.25`, and the card then failed its own `cells 4` check. The pre-fill is

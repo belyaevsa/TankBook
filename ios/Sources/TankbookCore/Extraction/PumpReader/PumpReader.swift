@@ -198,18 +198,19 @@ struct PumpReader {
 
     /// Classifies every window's cells. Windows the slicer finds nothing in
     /// are dropped, so the law sees only what was read.
-    func read(image: PumpRGBImage, windows: [Window]) throws -> [WindowRead] {
+    func read(image: PumpRGBImage, windows: [Window], trace: PumpTrace? = nil) throws -> [WindowRead] {
         var out: [WindowRead] = []
         for window in windows {
             guard let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: window.quad, stripHeight: Self.stripHeight)
-            else { continue }
+            else { trace?.read(window, skipped: "unwarpable"); continue }
             let stripRGB = PumpQuadWarp.rgbImage(from: strip)
             let cells = PumpGlyphSlicer.slice(stripRGB.grayscale())
-            guard !cells.isEmpty else { continue }
+            guard !cells.isEmpty else { trace?.read(window, strip: stripRGB, skipped: "noCells"); continue }
             // Fewer cells than the field can show is a slicer miscount; the
             // law must not be handed it as a reading.
             guard PumpRowAssignment.plausibleCount(cells.filter { !$0.isBlank }.count, for: window.field)
-                    || window.field == .board else { continue }
+                    || window.field == .board
+            else { trace?.read(window, strip: stripRGB, cells: cells, skipped: "implausibleCount"); continue }
             // The slicer's mark, where it found one, outranks the classifier's
             // bit: the slicer's mark precision measured 1.00 on the running
             // displays where the classifier's bit fired on the wrong cell
@@ -226,7 +227,9 @@ struct PumpReader {
                 }
                 readings.append(PumpCellReading(probabilities: probabilities))
             }
-            out.append(WindowRead(field: window.field, cells: Self.singleDecimalMark(readings), glyphCount: cells.count))
+            let marked = Self.singleDecimalMark(readings)
+            trace?.read(window, strip: stripRGB, cells: cells, readings: marked)
+            out.append(WindowRead(field: window.field, cells: marked, glyphCount: cells.count))
         }
         return out
     }
@@ -350,11 +353,12 @@ struct PumpReader {
     /// `seed` - the capture's own orientation where the app knows it - is the
     /// first candidate, so it wins a tie; without one the order is
     /// `searchedRotations` and 0 wins ties.
-    func bestOrientation(for image: PumpRGBImage, seed: Int? = nil) -> Int {
-        Self.bestRotation(Self.rotationCandidates(seed: seed).map { rotation in
-            let upright = PumpPanelLocator.rotatedRGB(image, rotationCW: rotation)
-            return orientationScore(upright, rotationCW: rotation)
-        })
+    func bestOrientation(for image: PumpRGBImage, seed: Int? = nil, trace: PumpTrace? = nil) -> Int {
+        let scores = Self.rotationCandidates(seed: seed).map { rotation in
+            orientationScore(PumpPanelLocator.rotatedRGB(image, rotationCW: rotation), rotationCW: rotation)
+        }
+        trace?.orientationScores = scores
+        return Self.bestRotation(scores)
     }
 
     /// The rotations to score: the seed first (normalised), then the standard
@@ -424,8 +428,11 @@ struct PumpReader {
     static let duplicateContainment: CGFloat = 0.6
 
     func verify(image: PumpRGBImage, candidates: [PumpPanelLocator.Candidate],
-                deadline: Date? = nil) throws -> [VerifiedWindow] {
-        Self.verified(from: try verdicts(image: image, candidates: candidates, deadline: deadline))
+                deadline: Date? = nil, trace: PumpTrace? = nil) throws -> [VerifiedWindow] {
+        let judged = try verdicts(image: image, candidates: candidates, deadline: deadline, trace: trace)
+        let verified = Self.verified(from: judged)
+        trace?.current?.verified = verified
+        return verified
     }
 
     /// The kept verdicts, one per row: `verify` without the judging, for a
@@ -472,7 +479,7 @@ struct PumpReader {
     /// detector never saw from running the full 48-candidate sweep (PU.38).
     /// The read path passes none and is unchanged.
     func verdicts(image: PumpRGBImage, candidates: [PumpPanelLocator.Candidate],
-                  deadline: Date? = nil) throws -> [Verdict] {
+                  deadline: Date? = nil, trace: PumpTrace? = nil) throws -> [Verdict] {
         let considered = Array(candidates.prefix(Self.maximumCandidates))
         // The detected rows' boxes before the margin, for the keypad test.
         let detectedBoxes: [(index: Int, box: CGRect)] = considered.enumerated().compactMap { index, candidate in
@@ -500,6 +507,7 @@ struct PumpReader {
                     : touchesEdge ? ["atFrameEdge"] : ["unsliceable"]
                 out.append(Verdict(quad: original, heightFraction: heightFraction, cells: 0, meanMargin: 0, kept: false,
                                    detected: candidate.detected, dropReasons: reasons))
+                trace?.judged(out[out.count - 1])
                 continue
             }
             let quad = sliced.quad, strip = sliced.strip, stripRGB = sliced.rgb, cells = sliced.cells
@@ -537,17 +545,19 @@ struct PumpReader {
             let reasons = geometry.reasons.map(\.rawValue) + (shaped ? [] : ["tooWide"]) + (keypad ? ["keypad"] : [])
             out.append(Verdict(quad: quad, heightFraction: heightFraction, cells: cells.count, meanMargin: mean, kept: kept,
                                detected: candidate.detected, dropReasons: reasons))
+            trace?.judged(out[out.count - 1], strip: stripRGB, cells: sliced.fullCells)
         }
         return out
     }
 
     /// The whole answer for one photo.
     func resolve(image: PumpRGBImage, windows: [Window], currency: CurrencyCode?,
-                 priceBand: FuelPriceBand?) throws -> PumpDisplayReading {
-        let reads = try read(image: image, windows: windows)
-        return PumpReadingLaw.resolve(
-            windows: reads.map { PumpLocatedWindow(field: $0.field, cells: $0.cells) },
-            currency: currency, priceBand: priceBand)
+                 priceBand: FuelPriceBand?, trace: PumpTrace? = nil) throws -> PumpDisplayReading {
+        let reads = try read(image: image, windows: windows, trace: trace)
+        let law = PumpReadingLaw.resolve(windows: reads.map { PumpLocatedWindow(field: $0.field, cells: $0.cells) },
+                                         currency: currency, priceBand: priceBand)
+        trace?.current?.law = law
+        return law
     }
 
     // MARK: - Cells

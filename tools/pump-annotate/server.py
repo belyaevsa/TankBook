@@ -71,6 +71,45 @@ SLICER = ResidentSlicer(SLICE_TOOL, build=build_slice_tool, cwd=ROOT)
 # The same optimised binary reads a retrack's moved frames with the model held
 # in memory (`--read-serve`), instead of a `swift test` launch per Save.
 READER = ResidentReader(SLICE_TOOL, build=build_slice_tool, cwd=ROOT)
+# The pipeline view's tracer: the app's `PumpDisplayCapture.classify` with a
+# `PumpTrace` observing it (`--trace-serve`), models loaded once per path.
+TRACER = ResidentReader(SLICE_TOOL, build=build_slice_tool, cwd=ROOT, mode="--trace-serve")
+# The Swift the traced pipeline is compiled from. When any of it is newer than
+# the optimised binary, the binary is rebuilt before the next trace, so the view
+# never shows a pipeline the code no longer has.
+PIPELINE_SOURCES = [ROOT / "ios" / "Sources" / "TankbookCore", ROOT / "ios" / "Sources" / "PumpReadTool",
+                    ROOT / "ios" / "Package.swift"]
+tool_state: dict = {"rebuilt": None, "error": None, "builtFor": 0.0}
+TOOL_LOCK = threading.Lock()
+
+
+def newest_source() -> tuple[float, str]:
+    newest, name = 0.0, ""
+    for root in PIPELINE_SOURCES:
+        for path in ([root] if root.is_file() else root.rglob("*.swift")):
+            m = path.stat().st_mtime
+            if m > newest:
+                newest, name = m, str(path.relative_to(ROOT))
+    return newest, name
+
+
+def ensure_fresh_tool() -> dict:
+    """Rebuild the optimised pump-read when the pipeline's Swift is newer than
+    it. Incremental and in its own scratch path, so it never waits on another
+    build of the package."""
+    with TOOL_LOCK:
+        newest, name = newest_source()
+        built = SLICE_TOOL.stat().st_mtime if SLICE_TOOL.exists() else 0.0
+        # A successful build covers every source up to that moment, even when
+        # SwiftPM found nothing to relink (a file touched but not changed).
+        if newest > max(built, tool_state["builtFor"]):
+            ok = build_slice_tool()
+            tool_state.update(rebuilt=datetime.now().strftime("%H:%M:%S") if ok else None,
+                              error=None if ok else f"pump-read did not build (after {name} changed)",
+                              builtFor=newest if ok else tool_state["builtFor"])
+            built = SLICE_TOOL.stat().st_mtime if SLICE_TOOL.exists() else 0.0
+        return {"fresh": max(built, tool_state["builtFor"]) >= newest, "binary": datetime.fromtimestamp(built).strftime("%Y-%m-%d %H:%M:%S") if built else None,
+                "newestSource": name, "rebuilt": tool_state["rebuilt"], "error": tool_state["error"]}
 CLASSIFIER = ROOT / "ios" / "App" / "Resources" / "PumpSegments.mlpackage"
 DETECTOR = ROOT / "ios" / "App" / "Resources" / "DigitRows.mlmodel"
 # Every row detector on this machine: the one in the bundle, the dev copy the
@@ -298,6 +337,49 @@ def compare_verdict(expected: dict | None, a: dict, b: dict) -> dict:
         out[field] = {"expected": exp, "a": av, "b": bv,
                       "aVerdict": _match(av, exp), "bVerdict": _match(bv, exp)}
     return out
+
+
+TRACE_CACHE = Path(os.environ.get("PUMP_TRACE_CACHE") or (ROOT / "ml" / "pump-reader" / ".out" / "trace-cache"))
+TRACE_BUDGETS = {"app": 0, "none": 3600}
+
+
+def trace_image(image: str, detector: Path, classifier: Path, deskew: str = "off", budget: str = "app",
+                cache: bool = True) -> dict:
+    """The app's classify on one image with every stage recorded, cached by
+    (image content, model pair, tool build, currency, deskew, budget). Strips
+    are PNGs beside the reply, served from `base`."""
+    target = image_target(image)
+    if target is None:
+        return {"error": f"no such image: {image}"}
+    tool = ensure_fresh_tool()
+    if not SLICE_TOOL.exists():
+        return {"error": tool.get("error") or "pump-read did not build", "tool": tool}
+    deskew = deskew if deskew in DESKEW_MODES else "off"
+    budget = budget if budget in TRACE_BUDGETS else "app"
+    currency = image_currency(image)
+    key = model_key(detector, classifier)
+    digest = hashlib.sha256(target.read_bytes()).hexdigest()[:16]
+    tag = f"{digest}-{int(SLICE_TOOL.stat().st_mtime)}-{currency or 'none'}-{deskew}-{budget}"
+    folder = TRACE_CACHE / key / tag
+    saved = folder / "trace.json"
+    if cache and saved.exists():
+        try:
+            reply = json.loads(saved.read_text())
+            reply["tool"], reply["cached"] = tool, True
+            return reply
+        except json.JSONDecodeError:
+            pass
+    folder.mkdir(parents=True, exist_ok=True)
+    reply = TRACER.read({"image": str(target), "classifier": str(classifier), "detector": str(detector),
+                         "deskew": deskew, "currency": currency, "budget": TRACE_BUDGETS[budget],
+                         "outDir": str(folder)})
+    if reply.get("error"):
+        return {**reply, "tool": tool}
+    reply.update(image=image, base=f"/api/trace-file/{key}/{tag}/", budgetMode=budget,
+                 detector=str(detector.relative_to(ROOT)), classifier=str(classifier.relative_to(ROOT)))
+    saved.write_text(json.dumps(reply))
+    reply["tool"], reply["cached"] = tool, False
+    return reply
 
 
 # One disagreement sweep at a time: a background thread reads each still with
@@ -783,6 +865,17 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json({"ok": True})
         if path in ("/", "/index.html"):
             return self.send_bytes((HERE / "index.html").read_bytes(), "text/html; charset=utf-8")
+        if path == "/api/trace/tool":
+            return self.send_json(ensure_fresh_tool())
+        if path.startswith("/api/trace-file/"):
+            rel = unquote(path[len("/api/trace-file/"):])
+            parts = rel.split("/")
+            target = TRACE_CACHE.joinpath(*parts) if len(parts) == 3 and all(p and p not in (".", "..") for p in parts) else None
+            if target is None or not target.exists() or target.suffix != ".png":
+                return self.send_error(HTTPStatus.NOT_FOUND)
+            return self.send_bytes(target.read_bytes(), "image/png")
+        if path == "/pipeline.js":
+            return self.send_bytes((HERE / "pipeline.js").read_bytes(), "text/javascript; charset=utf-8")
         if path == "/api/detectors":
             return self.send_json(detectors())
         if path == "/api/classifiers":
@@ -1153,6 +1246,44 @@ class Handler(SimpleHTTPRequestHandler):
         path = urlparse(self.path).path
         if path.startswith("/api/compare"):
             return self.compare_route(path)
+        if path == "/api/trace/save":
+            # The trace and a PNG of the stage on screen, under
+            # runs/<date>/trace/<image>/, so a report can carry the evidence.
+            length = int(self.headers.get("Content-Length", "0"))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            image = str(body.get("image", ""))
+            name = image.replace("frame/", "").replace("/", "__").rsplit(".", 1)[0]
+            if not name or ".." in name:
+                return self.send_json({"error": "no image"}, HTTPStatus.BAD_REQUEST)
+            outdir = COMPARE_RUNS / datetime.now().strftime("%Y-%m-%d") / "trace" / name
+            outdir.mkdir(parents=True, exist_ok=True)
+            stage = "".join(ch for ch in str(body.get("stage", "stage")) if ch.isalnum())
+            (outdir / "trace.json").write_text(json.dumps(body.get("trace"), indent=1))
+            png = body.get("png", "")
+            if isinstance(png, str) and png.startswith("data:image/png;base64,"):
+                (outdir / f"{stage}.png").write_bytes(base64.b64decode(png.split(",", 1)[1]))
+            return self.send_json({"dir": str(outdir.relative_to(ROOT))})
+        if path == "/api/trace":
+            # The pipeline view: the app's classify on one image, every stage
+            # recorded. Read-only; the models are the shipped pair unless the
+            # page names others from the listings.
+            length = int(self.headers.get("Content-Length", "0"))
+            body = json.loads(self.rfile.read(length) or b"{}")
+            detector, classifier = DETECTOR, CLASSIFIER
+            if body.get("detector"):
+                match = next((d for d in detectors() if d["path"] == body["detector"]), None)
+                if match is None:
+                    return self.send_json({"error": f"unknown detector: {body['detector']}"}, HTTPStatus.BAD_REQUEST)
+                detector = ROOT / match["path"]
+            if body.get("classifier"):
+                match = next((c for c in classifiers() if c["path"] == body["classifier"]), None)
+                if match is None:
+                    return self.send_json({"error": f"unknown classifier: {body['classifier']}"}, HTTPStatus.BAD_REQUEST)
+                classifier = ROOT / match["path"]
+            return self.send_json(trace_image(body.get("image", ""), detector, classifier,
+                                              deskew=str(body.get("deskew") or "off"),
+                                              budget=str(body.get("budget") or "app"),
+                                              cache=body.get("cache", True)))
         if path.startswith("/api/retrack-now/"):
             # /api/retrack-now/<stem>: re-register every non-anchored frame to the
             # reference and the anchors - the owner's call after pinning frames.

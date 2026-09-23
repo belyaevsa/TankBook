@@ -185,32 +185,45 @@ public enum PumpDisplayCapture {
     /// here would run the slow verifier a second time on every receipt, which
     /// decides nothing.
     private static func decide(rgb: PumpRGBImage, reader: PumpReader, budget: TimeInterval,
-                               seed: Int?) -> Decision {
-        decideAt(rgb: rgb, rotationCW: normalizedRotation(seed ?? 0), reader: reader, budget: budget)
+                               seed: Int?, trace: PumpTrace? = nil) -> Decision {
+        decideAt(rgb: rgb, rotationCW: normalizedRotation(seed ?? 0), reader: reader, budget: budget, trace: trace)
     }
 
     private static func decideAt(rgb: PumpRGBImage, rotationCW: Int, reader: PumpReader,
-                                 budget: TimeInterval) -> Decision {
+                                 budget: TimeInterval, trace: PumpTrace? = nil) -> Decision {
         let upright = PumpPanelLocator.rotatedRGB(rgb, rotationCW: rotationCW)
+        trace?.begin("seed", rotationCW: rotationCW, upright: upright)
         let textLines = textLineCount(upright)
         let detected = reader.detectedRows(for: upright)
+        trace?.current?.textLines = textLines
+        trace?.current?.detectedRows = detected
         if fastVerdict(rows: detected, textLines: textLines) {
             let detection = detectorDetection(rows: detected, textLines: textLines)
             let candidates = detected.map { PumpPanelLocator.Candidate(quad: $0.quad, glyphCount: 0, detected: true) }
+            trace?.current?.fastVerdict = true
+            trace?.current?.detection = detection
+            trace?.current?.candidates = candidates
             return Decision(detection: detection, upright: upright, rotationCW: rotationCW,
                             verified: nil, candidates: candidates)
         }
+        trace?.current?.fastVerdict = false
         let deadline = Date().addingTimeInterval(budget)
-        let verified = (try? reader.verify(image: upright, candidates: reader.candidates(for: upright),
-                                           deadline: deadline)) ?? []
+        let candidates = reader.candidates(for: upright)
+        trace?.current?.candidates = candidates
+        let verified = (try? reader.verify(image: upright, candidates: candidates,
+                                           deadline: deadline, trace: trace)) ?? []
         let budgetHit = Date() >= deadline
+        trace?.current?.budgetHit = budgetHit
         let rows = displayRows(verified, imageHeight: upright.height)
         let detection = makeDetection(rows: rows, textLines: textLines, imageWidth: upright.width,
                                       imageHeight: upright.height, path: .slow, isPumpDisplay: nil)
         guard !budgetHit, detection.isPumpDisplay else {
-            return Decision(detection: makeDetection(isDisplay: false, from: detection), upright: upright,
+            let refused = makeDetection(isDisplay: false, from: detection)
+            trace?.current?.detection = refused
+            return Decision(detection: refused, upright: upright,
                             rotationCW: rotationCW, verified: nil, candidates: nil)
         }
+        trace?.current?.detection = detection
         return Decision(detection: detection, upright: upright, rotationCW: rotationCW,
                         verified: verified, candidates: nil)
     }
@@ -303,33 +316,44 @@ public enum PumpDisplayCapture {
     /// detection is always the seed's.
     static func classify(image: CGImage, reader: PumpReaderHandle, currency: CurrencyCode?,
                          priceBand: FuelPriceBand?, budget: TimeInterval,
-                         rotationCW: Int? = nil) -> (detection: Detection, reading: Reading?) {
+                         rotationCW: Int? = nil,
+                         trace: PumpTrace? = nil) -> (detection: Detection, reading: Reading?) {
         let rgb = PumpQuadWarp.rgbImage(from: image)
-        let decision = decide(rgb: rgb, reader: reader.reader, budget: budget, seed: rotationCW)
+        let decision = decide(rgb: rgb, reader: reader.reader, budget: budget, seed: rotationCW, trace: trace)
+        let seedAttempt = trace.map { $0.attempts.count - 1 }
         guard decision.detection.isPumpDisplay else { return (decision.detection, nil) }
-        let seedReading = readDecision(decision, reader: reader.reader, currency: currency, priceBand: priceBand)
+        let seedReading = readDecision(decision, reader: reader.reader, currency: currency, priceBand: priceBand,
+                                       trace: trace)
+        trace?.chosen = seedReading == nil ? nil : seedAttempt
         if commits(seedReading) { return (decision.detection, seedReading) }
         // The seed orientation read nothing: a display sideways in an upright
         // frame is read upright here.
-        let orientation = reader.reader.bestOrientation(for: rgb, seed: rotationCW)
+        let orientation = reader.reader.bestOrientation(for: rgb, seed: rotationCW, trace: trace)
         if orientation != decision.rotationCW {
-            let searched = decideAt(rgb: rgb, rotationCW: orientation, reader: reader.reader, budget: budget)
+            let searched = decideAt(rgb: rgb, rotationCW: orientation, reader: reader.reader, budget: budget,
+                                    trace: trace)
+            trace?.current?.kind = "searched"
             if searched.detection.isPumpDisplay,
                let searchedReading = readDecision(searched, reader: reader.reader, currency: currency,
-                                                  priceBand: priceBand),
+                                                  priceBand: priceBand, trace: trace),
                commits(searchedReading) {
+                trace?.chosen = trace.map { $0.attempts.count - 1 }
                 return (decision.detection, searchedReading)
             }
         }
         // Still nothing: the detector rows turned to their digits' angle, at the
         // seed orientation, when the reader is set to retry that way.
         if reader.reader.deskew == .onRefusal {
+            trace?.begin("turned", rotationCW: decision.rotationCW, upright: decision.upright)
+            trace?.current?.detection = decision.detection
             let candidates = reader.reader.candidates(for: decision.upright, deskewRows: true)
-            if let verified = try? reader.reader.verify(image: decision.upright, candidates: candidates),
+            trace?.current?.candidates = candidates
+            if let verified = try? reader.reader.verify(image: decision.upright, candidates: candidates, trace: trace),
                let turned = reading(from: verified, rgb: decision.upright, detection: decision.detection,
                                     reader: reader.reader, currency: currency, priceBand: priceBand,
-                                    rotationCW: decision.rotationCW),
+                                    rotationCW: decision.rotationCW, trace: trace),
                commits(turned) {
+                trace?.chosen = trace.map { $0.attempts.count - 1 }
                 return (decision.detection, turned)
             }
         }
@@ -346,11 +370,13 @@ public enum PumpDisplayCapture {
     /// The read for an accepted decision: the decision's own verified windows
     /// (slow path) or the detector's rows verified now (fast path).
     private static func readDecision(_ decision: Decision, reader: PumpReader, currency: CurrencyCode?,
-                                     priceBand: FuelPriceBand?) -> Reading? {
+                                     priceBand: FuelPriceBand?, trace: PumpTrace? = nil) -> Reading? {
         let verified = decision.verified
-            ?? ((try? reader.verify(image: decision.upright, candidates: decision.candidates ?? [])) ?? [])
+            ?? ((try? reader.verify(image: decision.upright, candidates: decision.candidates ?? [],
+                                    trace: trace)) ?? [])
         return reading(from: verified, rgb: decision.upright, detection: decision.detection,
-                       reader: reader, currency: currency, priceBand: priceBand, rotationCW: decision.rotationCW)
+                       reader: reader, currency: currency, priceBand: priceBand, rotationCW: decision.rotationCW,
+                       trace: trace)
     }
 
     /// Assigns roles to the verified windows and resolves the law on them. The
@@ -359,10 +385,11 @@ public enum PumpDisplayCapture {
     /// normalised over the turned image, back to the original frame's.
     private static func reading(from verified: [PumpReader.VerifiedWindow], rgb: PumpRGBImage,
                                 detection: Detection, reader: PumpReader, currency: CurrencyCode?,
-                                priceBand: FuelPriceBand?, rotationCW: Int) -> Reading? {
+                                priceBand: FuelPriceBand?, rotationCW: Int, trace: PumpTrace? = nil) -> Reading? {
         let assignment = PumpRowAssignment.assign(
             windows: verified.map { PumpRowAssignment.Window(quad: $0.quad, glyphCount: $0.glyphCount) },
             rotationCW: 0)
+        trace?.current?.roles = assignment.roles
         var windows: [PumpReader.Window] = []
         var rects: [ManualFillUpMath.Field: CGRect] = [:]
         for (window, role) in zip(verified, assignment.roles) {
@@ -380,7 +407,7 @@ public enum PumpDisplayCapture {
             }
         }
         guard let reading = try? reader.resolve(image: rgb, windows: windows, currency: currency,
-                                                priceBand: priceBand) else { return nil }
+                                                priceBand: priceBand, trace: trace) else { return nil }
         var extraction = FuelExtraction(
             liters: reading.liters.value.map { NSDecimalNumber(decimal: $0).doubleValue },
             unitPrice: reading.unitPrice.value,

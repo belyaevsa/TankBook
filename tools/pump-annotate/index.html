@@ -152,6 +152,7 @@
     <button id="undo" title="undo the last box or text change (⌘Z)" disabled>↶ undo</button>
     <button id="reload" title="reload this still/record from the database, discarding unsaved changes">⟲ reload</button>
     <button id="compareBtn" title="two models on this image, side by side: overlays, the funnel and the verdict (⚖)">⚖ compare</button>
+    <button id="pipelineBtn" title="the app's pump path on this image (or a set), stage by stage: decide, orientation, candidates, verify, assign, slice, classify, law">⛓ pipeline</button>
     <span class="sep"></span>
     <button id="zoomOut" title="zoom out (-)">−</button><button id="zoomFit" title="fit (0)">fit</button><button id="zoomIn" title="zoom in (+)">+</button>
     <span id="zoomInfo" class="dim mono"></span>
@@ -2362,6 +2363,7 @@ async function saveCompare() {
   setMsg('compare saved: ' + res.dir);
 }
 $('#compareBtn').onclick = openCompare;
+$('#pipelineBtn').onclick = () => window.pipelineView.open();
 $('#cmpClose').onclick = closeCompare;
 $('#cmpBlink').onclick = blinkCompare;
 $('#cmpZoomIn').onclick = () => setCmpZoom(cmp.zoom * 1.2);
@@ -2376,6 +2378,8 @@ document.addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); saveTarget().run(); return; }
   if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); undo(); return; }
   if ($('#help').style.display !== 'none') { if (e.key === 'Escape' || e.key === '?') { e.preventDefault(); toggleHelp(false); } return; }
+  // The pipeline view owns every key while it is open.
+  if (window.pipelineView && window.pipelineView.isOpen) { window.pipelineView.keys(e); return; }
   // The compare view owns its keys while it is open: blink swaps A and B.
   if ($('#compare').style.display !== 'none') {
     if (e.key === 'Escape') { e.preventDefault(); closeCompare(); return; }
@@ -2462,5 +2466,6 @@ window.onbeforeunload = () => dirty ? 'unsaved' : undefined;
 refreshBanner();
 loadList().then(() => { const h = decodeURIComponent(location.hash.slice(1)); if (h) openFixture(h); });
 </script>
+<script src="/pipeline.js"></script>
 </body>
 </html>

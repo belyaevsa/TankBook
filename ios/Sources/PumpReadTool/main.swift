@@ -4,6 +4,7 @@
 //   pump-read <image> [--classifier <PumpSegments.mlpackage>] [--detector <DigitRows.mlmodel>] < request.json
 //   pump-read --slice-serve            # resident slicer: one request per stdin line, no model
 //   pump-read --read-serve [--classifier p]  # resident video-frame reader, model loaded once
+//   pump-read --trace-serve            # resident pipeline tracer: the app's classify, every stage recorded
 //
 // Request (stdin): {"rotationCW": 0, "currency": "EUR",
 //                   "windows": [{"field": "total", "quad": [[x, y] x 4]}, ...]}
@@ -186,6 +187,11 @@ if arguments.contains("--read-serve") {
         }
     }
     exit(0)
+}
+
+// `--trace-serve`: the annotator's pipeline view (TraceServe.swift).
+if arguments.contains("--trace-serve") {
+    runTraceServe(defaultClassifier: classifierPath, defaultDetector: detectorPath)
 }
 
 // `--request <file>` reads the request from a file: a profiler launch has no stdin.
