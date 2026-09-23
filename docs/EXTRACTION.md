@@ -1068,6 +1068,15 @@ transaction rows, 182 are proposed by some source, 171 by the learned detector, 
 verifier; the verifier's drops are slicer measurements (`cellCount`, `pitch`, `inkBand`), so a row the
 slicer miscounts is not read badly, it disappears. Nothing in this chain is a model training round.
 
+**Row deskew, on a refusal - built, measured on the app's path, held (PU.65, PU.67, 2026-09-23).** A
+detector row turned to its digits' angle - the angle at which its row-by-row brightness profile is
+sharpest, a projection-profile skew estimate (`PumpRowDeskew`) - read only when the upright read and
+the orientation search commit nothing. The live floor with the app's reader in that mode
+(`PumpReaderPipelineTests.livePath`, 68 heldout stills) measured **52 committed, 51 correct (0.981)**:
+`pump-275`'s total reads 103.31 for 103.37, below the 0.99 floor, so the app's reader stays `.off`
+(45/45). PU.65's earlier "54/54" came from an ad-hoc script that scored a cell right within 0.1 rather
+than the corpus scorer's 0.005, and counted that misread as correct.
+
 **The operator's corrections.** Every disagreement between a tool's proposal (the tracker's
 quad, the reader's pre-fill) and the annotator's hand is recorded (`pump-live/corrections.jsonl`)
 with the build it came from; `ml/pump-reader/CORRECTIONS.md` is the standing procedure that reads
