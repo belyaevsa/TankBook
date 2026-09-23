@@ -338,9 +338,17 @@ if let windows = request.windows, !windows.isEmpty {
                                 "limits": ["minimumRows": PumpDisplayCapture.minimumRows,
                                            "maximumTextLines": PumpDisplayCapture.maximumTextLines,
                                            "minimumWidestRow": PumpDisplayCapture.minimumWidestRowFraction]]
-        _ = timed("appClassifyAndRead") {
+        // What the app itself would pre-fill: the display decision, then the read,
+        // at the frame's own orientation - the app's entry point, not readPhoto.
+        let app = timed("appClassifyAndRead") {
             PumpDisplayCapture.classify(image: cg, reader: handle, currency: currency, priceBand: priceBand)
         }
+        let appFields = app.reading?.extraction
+        var appCommitted: [String: Any] = ["total": NSNull(), "liters": NSNull(), "unitPrice": NSNull()]
+        if let total = appFields?.total { appCommitted["total"] = "\(total)" }
+        if let liters = appFields?.liters { appCommitted["liters"] = "\(liters)" }
+        if let price = appFields?.unitPrice { appCommitted["unitPrice"] = "\(price)" }
+        reply["appCommitted"] = appCommitted
     }
     reply["timingsMs"] = timings
     if let reads = readsTimed {

@@ -139,7 +139,8 @@ Same shape as J3, with the deltas: camera pointed at the pump display before han
 
 **The reader, and what the shipped build does with a pump photo (PU.29, decisions 7 and 8,
 2026-09-19).** A frame is a pump display when the reader itself vouches for two or more large rows
-of seven-segment digits and the frame is not a receipt's worth of text lines - by structure,
+of seven-segment digits - the learned detector's own rows, or failing those rows the verifier kept
+in a frame that is not a receipt's worth of text lines (PU.63) - by structure,
 never by strings; the same classification runs on a first capture, an attach, a re-attach and a
 replace. A display runs the pump reader (`docs/EXTRACTION.md` → "The pump reader": locate, slice,
 classify, and the law: `volume × price = total` closing uniquely, or - decision 11, since PU.54 - a

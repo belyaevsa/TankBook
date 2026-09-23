@@ -137,11 +137,26 @@ struct PumpDisplayCaptureTests {
         #expect(!PumpDisplayCapture.fastVerdict(rows: rows, textLines: 8))
     }
 
-    @Test("a frame with 40 Vision text lines is not a display whatever the detector says")
-    func fastTextLineGuard() {
+    @Test("the detector's own stacked rows make a display however much text surrounds them")
+    func fastIgnoresTextLines() {
+        // PU.63: 21 pump faces covered in labels (31-58 Vision lines) were
+        // refused on the line count alone although the detector - trained on
+        // the receipts as negatives - vouched for their rows.
         let rows = [Self.row(x0: 0.1, x1: 0.6, y0: 0.10, y1: 0.15, confidence: 0.9),
                     Self.row(x0: 0.1, x1: 0.6, y0: 0.20, y1: 0.25, confidence: 0.9)]
-        #expect(!PumpDisplayCapture.fastVerdict(rows: rows, textLines: 40))
+        #expect(PumpDisplayCapture.fastVerdict(rows: rows, textLines: 58))
+    }
+
+    @Test("the slow path still refuses a frame over the text-line ceiling")
+    func slowKeepsTheCeiling() {
+        // The slow path's rows come from Vision and the classical proposals,
+        // which a receipt offers as readily as a display.
+        let heavy = PumpDisplayCapture.Detection(displayRows: 3, textLines: PumpDisplayCapture.maximumTextLines + 1,
+                                                 widestRow: 0.5, path: .slow)
+        let light = PumpDisplayCapture.Detection(displayRows: 3, textLines: PumpDisplayCapture.maximumTextLines,
+                                                 widestRow: 0.5, path: .slow)
+        #expect(!heavy.isPumpDisplay)
+        #expect(light.isPumpDisplay)
     }
 
     @Test("two small rows below the size rules abstain")

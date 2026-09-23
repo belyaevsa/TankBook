@@ -87,14 +87,15 @@ struct PumpReaderPipelineTests {
         let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)
         let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
         let pack = try FuelPriceBandStore.bundledPack()
-        // The shipped live arm passes no rotation - the phone never has one -
-        // so the reader searches for the display's orientation. The
-        // annotation's rotation is not read here at all.
+        // The floor is the app's own entry point (PU.63): `classify`, which
+        // decides whether the frame is a display before it reads, at the
+        // frame's own orientation and searching another only on a refusal.
+        // The annotation's rotation is not read here at all.
         let measurement = try measureLive(reader: reader, root: root, expected: expected, pack: pack,
-                                          rotation: { _ in nil })
-        report("PU.53 live path (search)", measurement)
+                                          appPath: true, rotation: { _ in nil })
+        report("PU.63 live path (the app's classify)", measurement)
         #expect(measurement.committed == Self.liveCommittedFloor,
-                "PU.53 search: committed must equal the measured baseline (\(Self.liveCommittedFloor)), got \(measurement.committed)")
+                "the app path: committed must equal the measured baseline (\(Self.liveCommittedFloor)), got \(measurement.committed)")
         #expect(measurement.committedCorrect == measurement.committed,
                 "the live path's committed cells are all correct, got \(measurement.committedCorrect)/\(measurement.committed)")
         #expect(measurement.precision >= Self.livePrecisionFloor)
@@ -490,7 +491,7 @@ extension PumpReaderPipelineTests {
     /// only difference between arms is the rotation `rotation` resolves for
     /// each still; the shipped arm returns nil, which makes the reader search.
     fileprivate func measureLive(reader: PumpReader, root: [String: Any], expected: [String: ExpectedRow],
-                                 pack: FuelPriceBandPack,
+                                 pack: FuelPriceBandPack, appPath: Bool = false,
                                  rotation: ([String: Any]) -> Int?) throws -> LiveMeasurement {
         var m = LiveMeasurement()
         let start = Date()
@@ -500,8 +501,22 @@ extension PumpReaderPipelineTests {
             guard let image = PumpReaderTestSupport.loadRGB(
                 url: PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent(name)) else { continue }
             let band = want.currency.flatMap { pack.currencyBand(currency: $0) }
-            let reading = try reader.readPhoto(image: image, rotationCW: rotation(ann),
+            // The app's path is `classify`: the display decision first, then the
+            // read (PU.63). A frame it refuses as a display reads as nothing.
+            // The no-budget overload keeps a Debug run deterministic: the
+            // Release verifier finishes inside the 1.5 s cap on a phone.
+            let reading: PumpDisplayReading
+            if appPath {
+                guard let cg = PumpQuadWarp.makeImage(image.pixels, width: image.width, height: image.height) else {
+                    continue
+                }
+                reading = PumpDisplayCapture.classify(image: cg, reader: PumpReaderHandle(reader: reader),
+                                                      currency: want.currency, priceBand: band, budget: .infinity,
+                                                      rotationCW: 0).reading?.law ?? .abstained
+            } else {
+                reading = try reader.readPhoto(image: image, rotationCW: rotation(ann),
                                                currency: want.currency, priceBand: band)
+            }
             // A field the annotation marks `csvDisagrees` is unscored: the CSV
             // carries the receipt's value where the display showed another
             // (pump-031's discounted total), and a reader that reads the

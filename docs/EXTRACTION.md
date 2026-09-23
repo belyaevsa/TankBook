@@ -943,6 +943,23 @@ text lines against the 30 ceiling), **0/8 receipts leaked**, and the decision is
 plus a text-line count (~50-80 ms in Release on the 12 MP stills) instead of the verifier's
 0.8-3.5 s. The read floors are untouched.
 
+**Decision 10, amended 2026-09-23 (PU.63): the text-line ceiling guards the slow path only.** The
+ceiling was set when pump fixtures measured 6-27 Vision lines and receipts 31-49. Counted over every
+fixture at the orientation the app decides at: pumps now run 0-58 (faces covered in labels - most of
+them Gilbarco and Circle K heads), receipts with two verified rows 12-67, so the ranges overlap; and
+the widest-row test does not separate them either (receipt-027 reaches 0.65, inside the pumps'
+0.38-0.78). 22 upright pump stills were refused on the line count alone. The discriminator that was
+trained for the job is the learned detector - the receipt, screenshot, expense and fiscal fixtures
+are its negatives - so its own stacked rows now make a display however much text surrounds them,
+and the ceiling stays on the slow path, whose rows come from Vision and the classical proposals as
+readily off a receipt as off a display. Measured: **+21 pump stills classified, 0 non-pump fixtures
+newly passing, 0 lost**; the five non-pump fixtures the old rule already let through (receipt-002,
+076, 090, 095 and an expense invoice, all under 30 lines) are unchanged. The app's own path on the
+heldout stills: **42 -> 45** committed with deskew off, 51 -> 54 on refusal, no wrong reading.
+pump-035 stays out (its rows decide on the slow path, at 31 lines). The live floor now measures that
+path - `PumpDisplayCapture.classify` - instead of `readPhoto`, which the app never calls, so the
+gate's reader constants are the app's number.
+
 **Decision 10, amended 2026-09-22 (PU.57): the detector's gate is tight IoU, not recall@0.5.** A
 detector candidate ships only when **median IoU and recall @ IoU 0.7 both hold or rise** and
 **false rows per photo does not rise by more than 0.05**; recall @ IoU 0.5 is reported but never

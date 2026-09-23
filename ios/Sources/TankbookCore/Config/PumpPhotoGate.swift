@@ -72,25 +72,27 @@ public enum PumpPhotoGate {
     // tranche that meant the gate's binding test did not execute at all on the
     // development machine.
     //
-    // These three are the reader's own numbers over the frozen heldout split.
-    // They are Vision-free - Core ML and the law only - so the test that binds
-    // them (`PumpReaderPipelineTests.livePath`) runs on every runtime, and a
-    // change to the reader has somewhere in the gate to land. They are not a
+    // These three are the reader's own numbers over the frozen heldout split,
+    // measured through the app's entry point (`PumpDisplayCapture.classify`:
+    // the display decision, then the read). The decision's text-line count is
+    // a Vision measurement; everything else is Core ML and the law, so the test
+    // that binds them (`PumpReaderPipelineTests.livePath`) runs on every
+    // runtime, and a change to the reader has somewhere in the gate to land. They are not a
     // second gate: `allowsPumpPhoto` is still decided by the composite above,
     // because the composite is what the user meets.
 
     /// Numeric cells the READER committed over the heldout split, of
     /// `readerNumericTotal`.
-    public static let readerCommitted: Int = 47
+    public static let readerCommitted: Int = 44
 
     /// Of `readerCommitted`, the cells that match the corpus. Equal to
     /// `readerCommitted` today: the reader commits only what the arithmetic
     /// pins uniquely, so its measured precision is 1.000.
-    public static let readerCommittedCorrect: Int = 47
+    public static let readerCommittedCorrect: Int = 44
 
     /// The numeric cells the heldout split asserts (liters, unitPrice, total;
     /// blanks skipped), the reader's coverage denominator.
-    public static let readerNumericTotal: Int = 183
+    public static let readerNumericTotal: Int = 182
 
     /// The reader's committed-value precision over the heldout split.
     public static var readerPrecision: Double {

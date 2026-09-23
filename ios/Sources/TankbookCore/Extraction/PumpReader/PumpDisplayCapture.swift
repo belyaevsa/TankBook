@@ -57,6 +57,10 @@ public enum PumpDisplayCapture {
     public struct Reading: Sendable, Equatable {
         public let detection: Detection
         public let extraction: FuelExtraction
+        /// The law's own answer the extraction was built from: per-field
+        /// provenance and the reasons a field was refused, which the extraction
+        /// drops.
+        public let law: PumpDisplayReading
         /// The windows the fields were read from, normalised over the image,
         /// for the Confirm sheet's tap-to-verify crops.
         public let cropRects: [ManualFillUpMath.Field: CGRect]
@@ -68,10 +72,14 @@ public enum PumpDisplayCapture {
     /// Rows below this fraction are text, not a display, however well the
     /// classifier reads their digits.
     public static let minimumRowHeightFraction: CGFloat = PumpReader.minimumRowHeightFraction
-    /// A receipt's printed digits pass the verifier too (they are digits),
-    /// but a receipt is dozens of text lines where a display is a handful:
-    /// measured 6-27 on pump fixtures, 31-49 on receipts that had two or more
-    /// verified rows.
+    /// The slow path's ceiling on Vision text lines. A receipt's printed
+    /// digits pass the verifier too (they are digits), and a receipt carries
+    /// dozens of lines; but so does a pump face covered in labels, so the two
+    /// ranges overlap (PU.63: pumps 0-58, receipts with two verified rows
+    /// 12-67). The ceiling therefore guards only the slow path, whose rows come
+    /// from Vision and the classical proposals as readily off a receipt as off
+    /// a display; the fast path's rows come from the learned detector, which is
+    /// trained on the receipts as negatives, and are not overruled by it.
     public static let maximumTextLines = 30
     /// A display's number rows span a fifth of the frame or more on every
     /// heldout still (0.20-0.39); a receipt's printed amounts that pass the
@@ -116,13 +124,15 @@ public enum PumpDisplayCapture {
 
     /// The fast path's verdict (PU.38): the detector's rescued rows alone, no
     /// warping, slicing or classifier. Two rows that pass the size rules and
-    /// stack, at the detector's own confidence, under the text-line ceiling.
-    /// The frame is a display; the reading runs afterwards only to fill it.
+    /// stack, at the detector's own confidence, make the frame a display
+    /// however many text lines surround them (`maximumTextLines` explains why
+    /// the ceiling is the slow path's only); `textLines` no longer decides and
+    /// stays in the signature its callers share. The reading runs afterwards
+    /// only to fill the display in.
     ///
     /// Public because the live preview's guidance (PU.40b) must decide "display
     /// in view" with the same rules the capture path uses, never a second copy.
     public static func fastVerdict(rows: [PumpRowDetector.Row], textLines: Int) -> Bool {
-        guard textLines <= maximumTextLines else { return false }
         let sized = rows.filter { passesSize($0) }
         for i in sized.indices {
             for j in sized.indices where j > i {
@@ -377,7 +387,7 @@ public enum PumpDisplayCapture {
             total: reading.total.value,
             currency: currency)
         extraction.crossCheck = reading.committedCount == 3 ? .lock : .notApplicable
-        return Reading(detection: detection, extraction: extraction, cropRects: rects)
+        return Reading(detection: detection, extraction: extraction, law: reading, cropRects: rects)
     }
 }
 
