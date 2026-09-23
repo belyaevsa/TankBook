@@ -13799,5 +13799,200 @@
   ],
   "reviewed": false,
   "note": "arrival IMG_41498.mp4, whole clip - US \"This Sale\" head in gallons, running fill; the price is off-screen, 6.289 USD/gal from total / gallons across the clip"
+ },
+ "video-047-wayne-neste-running-display-1919-rain-ee": {
+  "reference": "096.jpg",
+  "currency": "EUR",
+  "unitPrice": "1.919",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.4196,
+      0.1781
+     ],
+     [
+      0.6146,
+      0.1781
+     ],
+     [
+      0.6146,
+      0.3575
+     ],
+     [
+      0.4196,
+      0.3575
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.45,
+      0.3582
+     ],
+     [
+      0.6151,
+      0.3582
+     ],
+     [
+      0.6151,
+      0.476
+     ],
+     [
+      0.45,
+      0.476
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.5215,
+      0.6262
+     ],
+     [
+      0.6054,
+      0.6262
+     ],
+     [
+      0.6054,
+      0.6794
+     ],
+     [
+      0.5215,
+      0.6794
+     ]
+    ]
+   }
+  ],
+  "reviewed": false,
+  "note": "IMG_6386.MOV, whole clip - Wayne at Neste, Estonia, running fill at 1,919 (Futura 95), rain; the three-grade board below"
+ },
+ "video-048-gilbarco-circlek-pump11-running-display-2094-rain-ee": {
+  "reference": "240.jpg",
+  "currency": "EUR",
+  "unitPrice": "2.094",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.4345,
+      0.1886
+     ],
+     [
+      0.7432,
+      0.1886
+     ],
+     [
+      0.7432,
+      0.365
+     ],
+     [
+      0.4345,
+      0.365
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.44,
+      0.365
+     ],
+     [
+      0.7106,
+      0.365
+     ],
+     [
+      0.7106,
+      0.4681
+     ],
+     [
+      0.44,
+      0.4681
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.5395,
+      0.6815
+     ],
+     [
+      0.6538,
+      0.6815
+     ],
+     [
+      0.6538,
+      0.7734
+     ],
+     [
+      0.5395,
+      0.7734
+     ]
+    ]
+   }
+  ],
+  "reviewed": false,
+  "note": "IMG_6390.MOV, whole clip - Gilbarco Veeder-Root at Circle K, pump 11, Estonia, running fill at 2,094, zero-padded, rain"
+ },
+ "video-049-wayne-neste-running-display-1929-rain-ee": {
+  "reference": "072.jpg",
+  "currency": "EUR",
+  "unitPrice": "1.929",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.4624,
+      0.1751
+     ],
+     [
+      0.6675,
+      0.1751
+     ],
+     [
+      0.6675,
+      0.3319
+     ],
+     [
+      0.4624,
+      0.3319
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.47,
+      0.3288
+     ],
+     [
+      0.6568,
+      0.3288
+     ],
+     [
+      0.6568,
+      0.4368
+     ],
+     [
+      0.47,
+      0.4368
+     ]
+    ]
+   }
+  ],
+  "reviewed": false,
+  "note": "IMG_6394.MOV, whole clip - Wayne at Neste, Estonia, running fill at 1,929 (Futura 95), heavy drops"
  }
 }

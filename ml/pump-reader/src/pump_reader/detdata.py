@@ -149,6 +149,10 @@ def main(argv: list[str] | None = None) -> int:
             "order by e.ord").fetchall()
         for row in stills:
             name = row["fixture"]
+            # A later frozen draw (`heldout2`) is neither trained on nor used to
+            # pick a detector: it stays out of both directories.
+            if row["split"] not in ("train", "heldout", None):
+                continue
             heldout = row["split"] == "heldout"
             rotation = row["rotationCW"] or 0
             im = ImageOps.exif_transpose(Image.open(_image_path(row["path"])))

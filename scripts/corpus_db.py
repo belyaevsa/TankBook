@@ -890,8 +890,12 @@ def split(con: sqlite3.Connection | None = None) -> dict[str, str]:
 
 
 def heldout_names(con: sqlite3.Connection | None = None) -> set[str]:
+    """Every pump still no model may train on: the frozen `heldout` set the
+    ratchets measure and any later frozen draw (`heldout2`, decision 9's second
+    draw) - every split that is not `train`."""
     with transaction(con) as con:
-        return {r["name"] for r in con.execute("select name from fixtures where split = 'heldout'")}
+        return {r["name"] for r in con.execute(
+            "select name from fixtures where kind = 'pump' and split is not null and split != 'train'")}
 
 
 def convention(make: str, con: sqlite3.Connection | None = None) -> dict[str, dict]:

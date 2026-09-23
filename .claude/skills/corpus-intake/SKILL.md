@@ -46,15 +46,28 @@ its dump. A pump row never asserts `fuelKind`; a receipt row does. **The receipt
 guess. Where a pump and a receipt show one fill, name both files `…-pair-…` and register the pair
 in `ios/Tests/TankbookCoreTests/CorpusPairTests.swift`.
 
-## 2b. The split (decision 9, product owner 2026-09-19)
+## 2b. The split (decision 9, product owner 2026-09-19; `heldout2` 2026-09-23)
 
-`pump/split.csv` names the **frozen heldout set** - 64 of the 211 stills, drawn once with a seed
-and never redrawn - and every still added after it is **train**: append `<filename>,train` to
-the file (a still absent from it is read as train anyway; the row keeps the list complete). Never
-add a heldout row: the model-scored ratchets (`PumpReaderHarnessTests`, `PumpReaderPipelineTests`,
-`PumpDisplayCaptureTests`) run on the heldout set only, so a fresh still joining it would move a
-measurement for no reason, and a train still is what the classifier's real glyphs come from.
-`scripts/corpus_db.py sql "select split, count(*) from fixtures where kind='pump' group by 1"`.
+Every still gets a row in `pump/split.csv`. Three values, and which one is the owner's call when
+they name it - otherwise the rule below:
+
+| Split | What it is | A new still joins it when |
+|---|---|---|
+| `train` | the classifier's real glyphs and the detector's boxes | **the default** - everything not named below |
+| `heldout2` | the second frozen draw: no model trains on it and **no constant is tuned against it** - measured only when a change is judged | the capture shows a condition the heldout sets under-represent (rain, night, a new make or country) **and** no model has trained on it yet. Pick **whole fills** - every angle of one transaction together (`pump-322`/`323`) - so no display content is shared with a train still. A few per batch, not all: the rest are train so the classifier sees the condition too |
+| `heldout` | the first frozen draw, 68 stills, what the model-scored ratchets measure | **never** - frozen; a new row would move a mark for no reason |
+
+A Live record follows its still (`paired_records` carries the still's split to its frames).
+**Video frames never go to a heldout one by one**: adjacent frames are near-copies, so a frame
+held out of a train video is measured on what the model saw a few frames away. A video could only
+join whole, and none does yet - `videos` has no split column and `pump_reader.track` writes every
+video frame as `train`. A still that a model has trained on never moves to a heldout set, and a
+heldout still never moves back (`docs/EXTRACTION.md` → decision 9 and its amendments).
+
+Every trainer reads `split = 'train'` (or `isTrain`), `corpus_db.heldout_names` returns every
+non-train still for the exports' disjointness guards, and `detdata` writes a `heldout2` still to
+neither the detector's train nor its validation directory. Count: `scripts/corpus_db.py sql
+"select split, count(*) from fixtures where kind='pump' group by 1"`.
 
 ## 3. Window annotations (pump stills only; orchestrator's own work - agents cannot see)
 

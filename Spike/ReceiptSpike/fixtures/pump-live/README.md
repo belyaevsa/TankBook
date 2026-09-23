@@ -387,6 +387,36 @@ the glass; `034` is the refresh-glitch clip, where a frame's segments are genuin
 Re-place the quads in the annotator's Frames view and `⟳ retrack + read all` before reading
 anything into the reader from these numbers.
 
+## Batch 10 (2026-09-23, product owner): Neste and Circle K in the rain
+
+Ten pump stills (`pump-319`..`328`), every one with its Live record, one 4K held-display movie
+and three 4K running fills - all in rain, drops on the glass over the digits. The HEICs became
+EXIF-stripped JPEGs; the held movie was remuxed without its metadata, the running fills
+re-encoded without audio or metadata, whole clips (the display is in frame throughout, nobody
+is). **Four stills and their records are the second frozen draw** (`heldout2` in
+`pump/split.csv`): `pump-322`/`323` (one fill, two angles), `pump-327` and `pump-328` -
+whole fills, so no display content is shared with a train still.
+
+| live | frames | what | paired still / truth |
+|---|---|---|---|
+| `live-6381` | 89 | Live record of the pump still | `pump-319` |
+| `live-6382` | 84 | Live record of the pump still | `pump-320` |
+| `live-6383` | 65 | Live record of the pump still | `pump-321` |
+| `live-6384` | 56 | Live record of the pump still (heldout2) | `pump-322` |
+| `live-6385` | 66 | Live record of the pump still (heldout2) | `pump-323` |
+| `live-6387` | 41 | 4K movie, held display, 1.7 s | `pump-324` - 0174,01 / 0083,10 at 2,094 |
+| `live-6388` | 89 | Live record of the pump still | `pump-324` |
+| `live-6389` | 89 | Live record of the pump still | `pump-325` |
+| `live-6391` | 42 | Live record of the pump still | `pump-326` |
+| `live-6392` | 29 | Live record of the pump still (heldout2) | `pump-327` |
+| `live-6393` | 52 | Live record of the pump still (heldout2) | `pump-328` |
+
+| video | frames | what | truth |
+|---|---|---|---|
+| `video-047-wayne-neste-running-display-1919-rain-ee` | 359 (3840x2160, 24 fps, 15 s) | Wayne at Neste, **counting up** from 6.71 / 3.51 to 22.09 / 11.51, the three-grade board below | price `1.919` |
+| `video-048-gilbarco-circlek-pump11-running-display-2094-rain-ee` | 995 (3840x2160, 24 fps, 41 s) | Gilbarco Veeder-Root at Circle K, pump 11, **counting up** from 0028,67 / 0013,69 to 0081,54 / 0038,94, zero-padded | price `2.094` |
+| `video-049-wayne-neste-running-display-1929-rain-ee` | 313 (3840x2160, 24 fps, 13 s) | Wayne at Neste, **counting up** from 27.30 / 14.15 to 38.64 / 20.03, heavy drops | price `1.929` |
+
 ## Frames and tracking (2026-09-20)
 
 Two scripts in `ml/pump-reader` turn the records into labelled training frames without a

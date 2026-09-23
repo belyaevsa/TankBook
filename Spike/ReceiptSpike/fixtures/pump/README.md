@@ -1457,3 +1457,35 @@ annotator).
 
 Pump cells 820 → 865 (totals only, macOS 27: hits 53 / committed 56 / committed-correct 53
 stand). Beside them `../pump-live/` batch 9: five running-display clips.
+
+## Added 2026-09-23 (batch 10: Neste and Circle K in the rain - 10 stills)
+
+Every still is wet: drops on the glass over the digits, some large enough to split a segment.
+EXIF-stripped JPEGs from the owner's HEICs, each with its Live record (`pump-live/README.md` →
+Batch 10). Boxes auto-placed through the live path (`scripts/pump-auto-annotate.py`),
+**unreviewed**; six stills keep `pendingWindows` for the owner's hand (`pump-320`/`321`/`322`
+got no rows at all, `pump-324`/`325`/`328` miss a field).
+
+| Still | Head | Display | Note |
+|---|---|---|---|
+| `pump-319` | Wayne, Neste | 118.08 / 56.39 | board head, no transaction price; the implied 2.094 is on no board cell |
+| `pump-320` | Wayne, Neste | 118.08 / 56.39 | the same fill, tilted ~30° |
+| `pump-321` | Wayne, Neste | 38.48 / 20.05 | tilted; Futura 95 at 1.919 |
+| `pump-322` | Wayne, Neste | 65.03 / 33.89 | tilted, dense drops - **heldout2** |
+| `pump-323` | Wayne, Neste | 65.03 / 33.89 | the same fill, level - **heldout2** |
+| `pump-324` | Gilbarco, Circle K | 0174,01 / 0083,10 at 2,094 | zero-padded |
+| `pump-325` | Gilbarco, Circle K | 0174,01 / 0083,10 at 2,094 | the same fill, second angle |
+| `pump-326` | Gilbarco, Circle K | 0021,17 / 0010,11 at 2,094 | |
+| `pump-327` | Gilbarco, Circle K | 0067,72 / 0032,34 at 2,094 | **heldout2** |
+| `pump-328` | Wayne, Neste | 47.36 / 23.81 | tilted; Futura 98 at 1.989 - **heldout2** |
+
+**The second frozen draw** (`docs/EXTRACTION.md` → decision 9, amended 2026-09-23): four stills,
+as whole fills, go to `heldout2` - no model trains on them and no constant is tuned against them.
+
+**What the live path did on them** (auto-annotate, shipped detector and classifier): it
+**committed two wrong readings** - `pump-323` as 39.07 / 33.88 (display 65.03 / 33.89) and
+`pump-325` as 70 / 80.7 (display 174.01 / 83.10) - and read `pump-326` and `pump-327` fully
+right. Rain is the first condition in the corpus to make the live path commit a wrong number on
+an owner capture; the heldout's 45/45 committed-correct never saw one.
+
+Pump cells 865 → 889 (totals only: measured on macOS 27, where the measured suites skip).

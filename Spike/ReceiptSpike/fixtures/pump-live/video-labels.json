@@ -34715,5 +34715,341 @@
    "unitPrice": "99.00"
   }
  },
- "video-046-unknown-this-sale-gallons-running-display-6289-us": {}
+ "video-046-unknown-this-sale-gallons-running-display-6289-us": {},
+ "video-047-wayne-neste-running-display-1919-rain-ee": {
+  "005.jpg": {
+   "liters": "3.33",
+   "source": "arithmetic",
+   "total": "6.39",
+   "unitPrice": "1.919"
+  },
+  "009.jpg": {
+   "liters": "3.45",
+   "source": "arithmetic",
+   "total": "6.62",
+   "unitPrice": "1.919"
+  },
+  "039.jpg": {
+   "liters": "4.17",
+   "source": "arithmetic",
+   "total": "8.00",
+   "unitPrice": "1.919"
+  },
+  "068.jpg": {
+   "liters": "4.90",
+   "source": "arithmetic",
+   "total": "9.40",
+   "unitPrice": "1.919"
+  },
+  "081.jpg": {
+   "liters": "5.19",
+   "source": "arithmetic",
+   "total": "9.96",
+   "unitPrice": "1.919"
+  },
+  "082.jpg": {
+   "liters": "5.19",
+   "source": "arithmetic",
+   "total": "9.96",
+   "unitPrice": "1.919"
+  },
+  "083.jpg": {
+   "liters": "5.26",
+   "source": "arithmetic",
+   "total": "10.09",
+   "unitPrice": "1.919"
+  },
+  "103.jpg": {
+   "liters": "5.73",
+   "source": "arithmetic",
+   "total": "11.00",
+   "unitPrice": "1.919"
+  },
+  "106.jpg": {
+   "liters": "5.79",
+   "source": "arithmetic",
+   "total": "11.11",
+   "unitPrice": "1.919"
+  },
+  "107.jpg": {
+   "liters": "5.79",
+   "source": "arithmetic",
+   "total": "11.11",
+   "unitPrice": "1.919"
+  },
+  "108.jpg": {
+   "liters": "5.85",
+   "source": "arithmetic",
+   "total": "11.23",
+   "unitPrice": "1.919"
+  },
+  "109.jpg": {
+   "liters": "5.85",
+   "source": "arithmetic",
+   "total": "11.23",
+   "unitPrice": "1.919"
+  },
+  "128.jpg": {
+   "liters": "6.34",
+   "source": "arithmetic",
+   "total": "12.17",
+   "unitPrice": "1.919"
+  },
+  "129.jpg": {
+   "liters": "6.34",
+   "source": "arithmetic",
+   "total": "12.17",
+   "unitPrice": "1.919"
+  },
+  "130.jpg": {
+   "liters": "6.40",
+   "source": "arithmetic",
+   "total": "12.28",
+   "unitPrice": "1.919"
+  },
+  "131.jpg": {
+   "liters": "6.40",
+   "source": "arithmetic",
+   "total": "12.28",
+   "unitPrice": "1.919"
+  },
+  "133.jpg": {
+   "liters": "6.46",
+   "source": "arithmetic",
+   "total": "12.40",
+   "unitPrice": "1.919"
+  },
+  "134.jpg": {
+   "liters": "6.46",
+   "source": "arithmetic",
+   "total": "12.40",
+   "unitPrice": "1.919"
+  },
+  "135.jpg": {
+   "liters": "6.52",
+   "source": "arithmetic",
+   "total": "12.51",
+   "unitPrice": "1.919"
+  },
+  "136.jpg": {
+   "liters": "6.52",
+   "source": "arithmetic",
+   "total": "12.51",
+   "unitPrice": "1.919"
+  },
+  "137.jpg": {
+   "liters": "6.58",
+   "source": "arithmetic",
+   "total": "12.63",
+   "unitPrice": "1.919"
+  },
+  "138.jpg": {
+   "liters": "6.58",
+   "source": "arithmetic",
+   "total": "12.63",
+   "unitPrice": "1.919"
+  },
+  "139.jpg": {
+   "liters": "6.58",
+   "source": "arithmetic",
+   "total": "12.63",
+   "unitPrice": "1.919"
+  },
+  "140.jpg": {
+   "liters": "6.64",
+   "source": "arithmetic",
+   "total": "12.74",
+   "unitPrice": "1.919"
+  },
+  "142.jpg": {
+   "liters": "6.70",
+   "source": "arithmetic",
+   "total": "12.86",
+   "unitPrice": "1.919"
+  },
+  "144.jpg": {
+   "liters": "6.70",
+   "source": "arithmetic",
+   "total": "12.86",
+   "unitPrice": "1.919"
+  },
+  "151.jpg": {
+   "liters": "6.88",
+   "source": "arithmetic",
+   "total": "13.20",
+   "unitPrice": "1.919"
+  },
+  "245.jpg": {
+   "liters": "9.16",
+   "source": "arithmetic",
+   "total": "17.58",
+   "unitPrice": "1.919"
+  },
+  "246.jpg": {
+   "liters": "9.22",
+   "source": "arithmetic",
+   "total": "17.69",
+   "unitPrice": "1.919"
+  },
+  "253.jpg": {
+   "liters": "9.39",
+   "source": "arithmetic",
+   "total": "17.98",
+   "unitPrice": "1.919"
+  },
+  "256.jpg": {
+   "liters": "9.46",
+   "source": "arithmetic",
+   "total": "18.15",
+   "unitPrice": "1.919"
+  },
+  "257.jpg": {
+   "liters": "9.46",
+   "source": "arithmetic",
+   "total": "18.15",
+   "unitPrice": "1.919"
+  },
+  "283.jpg": {
+   "liters": "9.78",
+   "source": "arithmetic",
+   "total": "18.77",
+   "unitPrice": "1.919"
+  },
+  "284.jpg": {
+   "liters": "9.78",
+   "source": "arithmetic",
+   "total": "18.77",
+   "unitPrice": "1.919"
+  },
+  "293.jpg": {
+   "liters": "10.06",
+   "source": "arithmetic",
+   "total": "19.31",
+   "unitPrice": "1.919"
+  },
+  "345.jpg": {
+   "liters": "11.45",
+   "source": "arithmetic",
+   "total": "21.97",
+   "unitPrice": "1.919"
+  }
+ },
+ "video-048-gilbarco-circlek-pump11-running-display-2094-rain-ee": {
+  "083.jpg": {
+   "liters": "0015.23",
+   "source": "arithmetic",
+   "total": "0031.89",
+   "unitPrice": "2.094"
+  },
+  "113.jpg": {
+   "liters": "0016.05",
+   "source": "arithmetic",
+   "total": "0033.61",
+   "unitPrice": "2.094"
+  },
+  "124.jpg": {
+   "liters": "0016.32",
+   "source": "arithmetic",
+   "total": "0034.17",
+   "unitPrice": "2.094"
+  },
+  "127.jpg": {
+   "liters": "0016.44",
+   "source": "arithmetic",
+   "total": "0034.43",
+   "unitPrice": "2.094"
+  },
+  "148.jpg": {
+   "liters": "0017.03",
+   "source": "arithmetic",
+   "total": "0035.66",
+   "unitPrice": "2.094"
+  },
+  "252.jpg": {
+   "liters": "0019.77",
+   "source": "arithmetic",
+   "total": "0041.40",
+   "unitPrice": "2.094"
+  },
+  "425.jpg": {
+   "liters": "0024.39",
+   "source": "arithmetic",
+   "total": "0051.07",
+   "unitPrice": "2.094"
+  },
+  "432.jpg": {
+   "liters": "0024.58",
+   "source": "arithmetic",
+   "total": "0051.47",
+   "unitPrice": "2.094"
+  },
+  "433.jpg": {
+   "liters": "0024.58",
+   "source": "arithmetic",
+   "total": "0051.47",
+   "unitPrice": "2.094"
+  },
+  "437.jpg": {
+   "liters": "0024.71",
+   "source": "arithmetic",
+   "total": "0051.74",
+   "unitPrice": "2.094"
+  },
+  "490.jpg": {
+   "liters": "0026.12",
+   "source": "arithmetic",
+   "total": "0054.70",
+   "unitPrice": "2.094"
+  },
+  "491.jpg": {
+   "liters": "0026.12",
+   "source": "arithmetic",
+   "total": "0054.70",
+   "unitPrice": "2.094"
+  },
+  "610.jpg": {
+   "liters": "0029.32",
+   "source": "arithmetic",
+   "total": "0061.40",
+   "unitPrice": "2.094"
+  },
+  "794.jpg": {
+   "liters": "0034.26",
+   "source": "arithmetic",
+   "total": "0071.74",
+   "unitPrice": "2.094"
+  },
+  "795.jpg": {
+   "liters": "0034.26",
+   "source": "arithmetic",
+   "total": "0071.74",
+   "unitPrice": "2.094"
+  },
+  "798.jpg": {
+   "liters": "0034.32",
+   "source": "arithmetic",
+   "total": "0071.87",
+   "unitPrice": "2.094"
+  }
+ },
+ "video-049-wayne-neste-running-display-1929-rain-ee": {
+  "058.jpg": {
+   "liters": "14.32",
+   "source": "arithmetic",
+   "total": "27.62",
+   "unitPrice": "1.929"
+  },
+  "087.jpg": {
+   "liters": "15.07",
+   "source": "arithmetic",
+   "total": "29.07",
+   "unitPrice": "1.929"
+  },
+  "250.jpg": {
+   "liters": "19.54",
+   "source": "arithmetic",
+   "total": "37.69",
+   "unitPrice": "1.929"
+  }
+ }
 }

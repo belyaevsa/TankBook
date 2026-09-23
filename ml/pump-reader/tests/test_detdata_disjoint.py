@@ -64,14 +64,16 @@ def _export(tmp_path: Path, monkeypatch) -> tuple[Path, set[str], set[str]]:
     db = tmp_path / "c.sqlite"
     con = cdb.connect(db)
     con.executescript(cdb.SCHEMA)
-    for name in ("train.png", "held.png", "bad.png"):
+    for name in ("train.png", "held.png", "bad.png", "held2.png"):
         _png(tmp_path / name)
     _add_still(con, "pump-900-train-ee.jpg", "train", tmp_path / "train.png", 0)
     _add_still(con, "pump-901-held-ee.jpg", "heldout", tmp_path / "held.png", 1)
     _add_still(con, "pump-902-bad-ee.jpg", "train", tmp_path / "bad.png", 2, tracking="bad")
+    _add_still(con, "pump-903-held2-ee.jpg", "heldout2", tmp_path / "held2.png", 3)
     _add_record(con, "live-9001", "pump-900-train-ee.jpg", "train", monkeypatch_frames)
     _add_record(con, "live-9002", "pump-901-held-ee.jpg", "heldout", monkeypatch_frames)
     _add_record(con, "live-9003", "pump-902-bad-ee.jpg", "train", monkeypatch_frames)
+    _add_record(con, "live-9004", "pump-903-held2-ee.jpg", "heldout2", monkeypatch_frames)
     con.commit()
     con.close()
 
@@ -89,6 +91,13 @@ def test_no_heldout_still_or_paired_frame_reaches_train(tmp_path: Path, monkeypa
     assert not any((out / "train").glob("live-9002-*"))
     assert "pump-900-train-ee.jpg" in train
     assert any(s.startswith("live-9001") for s in train)
+
+
+def test_a_second_frozen_draw_reaches_neither_directory(tmp_path: Path, monkeypatch) -> None:
+    out, train, held = _export(tmp_path, monkeypatch)
+    assert "pump-903-held2-ee.jpg" not in train | held
+    assert not any(s.startswith("live-9004") for s in train | held), f"heldout2 record exported: {sorted(train | held)}"
+    assert not any(out.rglob("pump-903-*")) and not any(out.rglob("live-9004-*"))
 
 
 def test_a_bad_tracked_record_contributes_no_frame(tmp_path: Path, monkeypatch) -> None:

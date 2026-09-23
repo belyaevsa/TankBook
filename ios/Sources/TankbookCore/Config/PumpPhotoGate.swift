@@ -61,7 +61,7 @@ public enum PumpPhotoGate {
     /// does; the ratchet test asserts they match it. They describe the measured
     /// corpus, not a target - the ship decision is `violation(flagEnabled:)`
     /// against the precision threshold and coverage floor below.
-    public static let measuredNumericTotal: Int = 865
+    public static let measuredNumericTotal: Int = 889
 
     // MARK: - The reader's own measurement (PU.61)
     //
