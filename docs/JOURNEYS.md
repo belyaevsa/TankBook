@@ -142,8 +142,13 @@ Same shape as J3, with the deltas: camera pointed at the pump display before han
 of seven-segment digits and the frame is not a receipt's worth of text lines - by structure,
 never by strings; the same classification runs on a first capture, an attach, a re-attach and a
 replace. A display runs the pump reader (`docs/EXTRACTION.md` → "The pump reader": locate, slice,
-classify, `volume × price = total` as the only judge) and arrives at Confirm as `.pumpPhoto` with
-the fields the law committed pre-filled and the rest empty; **while the build is below the pump
+classify, and the law: `volume × price = total` closing uniquely, or - decision 11, since PU.54 - a
+total and volume that commit without a price when a price the display shows sits within 5 % of the
+price they imply) and arrives at Confirm as `.pumpPhoto` with the fields the law committed
+pre-filled; a field the reader refused is filled from the receipt parser where it read one (PU.62
+measured that fallback and kept it) and is otherwise empty. A display sideways in the frame is read
+upright: when the first read commits nothing the reader tries the orientation its row detector
+prefers (PU.53). **While the build is below the pump
 gate the sheet says so** - *"Read from the pump display – this is in alpha. Check every field
 before saving."* - and typing stays the peer door (hard rule 15). A pump photo never runs the
 receipt parser in silence. The photo's kind is recorded on the attachment (`pipeline:

@@ -40,8 +40,8 @@ public enum PumpAbstentionReason: String, Sendable, Equatable, Codable {
     case priceUnvalidated
     /// The pair committed on its implied price and the shown price that
     /// validated it differs from that implied price (a loyalty discount). The
-    /// pair stands - the shown price never overwrites the paid one - and the
-    /// form raises the F2 confirm. Diagnosis only, never a verdict.
+    /// pair stands - the shown price never overwrites the paid one. Diagnosis
+    /// only, never a verdict; the app does not read it yet (docs/TASKS.md PJ.500).
     case priceDisagrees
     /// The price row's candidates all fell outside the currency's price band.
     case priceOutOfBand

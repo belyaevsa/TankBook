@@ -973,8 +973,10 @@ currency and fuel (`FuelPriceBand`, already threaded through `PumpReadingLaw.res
 this path today); outside it the read still abstains, because an implausible implied price is how a
 misread digit shows itself when there is no third number to check against. A price the display DOES
 show, or a board cell near the implied price, becomes a **validation**: agreement raises confidence,
-disagreement surfaces as the F2 confirm on the form (hard rule 13 - the app suggests, the user
-decides), never as a silent refusal and never as a silent overwrite of the paid price. `pump-300`
+disagreement is meant to surface as the F2 confirm on the form (hard rule 13 - the app suggests,
+the user decides), never as a silent refusal and never as a silent overwrite of the paid price.
+**Not wired yet (journeys walk 2026-09-23, PJ.500)**: the law marks the case (`.priceDisagrees` on
+the price) and nothing in the app reads it - the pair pre-fills like any other. `pump-300`
 and `pump-266` are why the board may not simply be taken as the price: both are loyalty-discounted
 fills where the paid price is below every board cell.
 
