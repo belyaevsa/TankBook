@@ -1301,8 +1301,8 @@
     "text": "7.01",
     "quad": [
      [
-      0.4079,
-      0.4363
+      0.3559,
+      0.4323
      ],
      [
       0.6849,
@@ -1313,12 +1313,13 @@
       0.5524
      ],
      [
-      0.4042,
-      0.5496
+      0.347,
+      0.5499
      ]
     ],
     "legibility": "partial",
-    "placedBy": "hand"
+    "placedBy": "hand",
+    "zoom": 0.7568639999999999
    },
    {
     "field": "liters",
@@ -1436,7 +1437,6 @@
     "placedBy": "hand"
    }
   ],
-  "reviewed": true,
   "tracking": "ok"
  },
  "pump-015-dresser-wayne-ee-diesel.heic": {
