@@ -6,6 +6,7 @@
 #   TANKBOOK_TEAM_ID=ABCDE12345 scripts/release.sh            # archive + export only
 #   TANKBOOK_TEAM_ID=ABCDE12345 scripts/release.sh --debug    # DEBUG build installed on the plugged-in iPhone (no archive)
 #   ... scripts/release.sh --upload --debug                    # DEBUG configuration archived and uploaded to TestFlight (lab build)
+#   ... scripts/release.sh --upload --beta                     # the pre-release app (app.tankbook.Tankbook.beta) to its TestFlight
 #   TANKBOOK_TEAM_ID=... ASC_KEY_ID=... ASC_ISSUER_ID=... ASC_KEY_PATH=~/.private_keys/AuthKey_XXXX.p8 \
 #       scripts/release.sh --upload                            # ...and upload
 #
@@ -20,6 +21,7 @@ cd "$(dirname "$0")/.."
 UPLOAD=0
 REBUILD=0
 DEBUG=0
+BETA=0
 # Every argument is read - a second flag used to be ignored in silence, and
 # `--upload --debug` archived and uploaded a Release build (2026-09-22).
 for arg in "$@"; do
@@ -27,7 +29,8 @@ for arg in "$@"; do
     --upload)  UPLOAD=1 ;;
     --rebuild) REBUILD=1 ;;
     --debug)   DEBUG=1 ;;
-    *) echo "release: unknown argument '${arg}'. The flags are --upload, --rebuild and --debug;" >&2
+    --beta)    BETA=1 ;;
+    *) echo "release: unknown argument '${arg}'. The flags are --upload, --rebuild, --debug and --beta;" >&2
        echo "  -allowProvisioningUpdates is already passed to xcodebuild internally." >&2
        exit 2 ;;
   esac
@@ -39,8 +42,19 @@ done
 # sign-in in that build has the Debug placeholder client id and fails at
 # Google's end (project.yml), so it is a lab build, not a release candidate.
 CONFIGURATION=Release
+BUNDLE_ID=app.tankbook.Tankbook
 if [ "$DEBUG" -eq 1 ] && [ "$UPLOAD" -eq 1 ]; then
   CONFIGURATION=Debug
+fi
+# --beta: the pre-release app, a separate App Store Connect record and bundle id,
+# so its TestFlight build installs BESIDE the store app rather than over it.
+if [ "$BETA" -eq 1 ]; then
+  if [ "$DEBUG" -eq 1 ]; then
+    echo "release: --beta and --debug are different builds; pick one" >&2
+    exit 2
+  fi
+  CONFIGURATION=Beta
+  BUNDLE_ID=app.tankbook.Tankbook.beta
 fi
 
 # --debug: not a release at all. Builds the DEBUG configuration for the iPhone
@@ -156,6 +170,7 @@ fi
 
 OUT="build/release-${BUILD_NUMBER}-${COMMIT}"
 [ "$CONFIGURATION" = "Debug" ] && OUT="${OUT}-debug"   # never reused as a Release archive
+[ "$CONFIGURATION" = "Beta" ] && OUT="${OUT}-beta"     # a different app: never reused either
 mkdir -p "$OUT"
 echo "release: ${CONFIGURATION} build ${BUILD_NUMBER} from ${COMMIT} -> ${OUT}"
 
@@ -221,7 +236,7 @@ if [ "$UPLOAD" -eq 1 ]; then
     if grep -q "Cannot determine the Apple ID from Bundle ID" "$upload_log"; then
       echo "release: there is no App Store Connect APP RECORD for this bundle id yet." >&2
       echo "  Registering the App ID in Certificates, IDs & Profiles is a DIFFERENT step." >&2
-      echo "  App Store Connect -> Apps -> + -> New App, bundle id app.tankbook.Tankbook," >&2
+      echo "  App Store Connect -> Apps -> + -> New App, bundle id ${BUNDLE_ID}," >&2
       echo "  then re-run. The archive at ${IPA} is fine and can be uploaded as-is." >&2
     elif grep -qi "Authentication credentials are missing or invalid\|401" "$upload_log"; then
       echo "release: the API key was rejected. Check ASC_ISSUER_ID (it is the UUID ABOVE the" >&2

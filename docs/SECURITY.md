@@ -126,7 +126,9 @@ replay them here to take over the matching Tankbook account – the confused-dep
 
 The allowlist **fails closed**: an unconfigured audience refuses every token
 (`IdTokenOutcome.AudienceNotConfigured`) rather than accepting any, so the control cannot be
-switched off by forgetting to deploy a setting. `Auth:AppleAudiences` is the app's **bundle id**;
+switched off by forgetting to deploy a setting. `Auth:AppleAudiences` is the app's **bundle id** -
+both of them when the pre-release app runs against this server (`app.tankbook.Tankbook` and
+`app.tankbook.Tankbook.beta`, `docs/STORE.md` §8);
 `Auth:GoogleAudiences` is the Google **OAuth client id**. Neither is `Auth:Audience`, which is a
 different thing entirely – the audience stamped on the access tokens this server mints.
 

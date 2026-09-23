@@ -422,3 +422,24 @@ deadline, not settings.
 **The one that generalises:** RV.70's cause was an entry point shipping ahead of the screen behind
 it. When Pro lands, the same failure is available in reverse - a paywall shipping while a listing
 still says there is nothing to buy. The metadata and the build are one change, not two.
+
+## 8 · The pre-release app: Tankbook β (SH.5, 2026-09-23)
+
+The TestFlight pre-release is a **separate app**, `app.tankbook.Tankbook.beta`, named *Tankbook β*
+with its own icon (the mark with a β band). iOS keeps one install per bundle id, so a TestFlight
+build of the store app would REPLACE the App Store install; the beta installs beside it, each with
+its own data. Signed into the same account, the two are simply two of the account's devices.
+
+| Piece | Where |
+|---|---|
+| the `Beta` build configuration (release-based: no `DEBUG`, store signing) | `project.yml` → `configs`, the target's `beta:` settings |
+| the bundle id, the home-screen name, the icon | `PRODUCT_BUNDLE_IDENTIFIER`, `TANKBOOK_DISPLAY_NAME`, `AppIconBeta` in the `beta:` settings |
+| archive and upload | `scripts/release.sh --upload --beta` (plain `--upload` still ships the store app) |
+| the App ID | developer portal, with Sign in with Apple and Push Notifications like the store app's |
+| the App Store Connect record | *Tankbook β*, TestFlight only, never submitted for review |
+| Sign in with Apple | the backend's `Auth__AppleAudiences` must list **both** bundle ids - the allowlist fails closed, so without it the beta's sign-in is refused (`docs/SECURITY.md`) |
+| Google sign-in | unprovisioned, exactly as the store build (SH.4) - the beta offers Apple alone |
+| push nudges | **not delivered to the beta yet** - the backend sends every push with one configured topic, the store bundle id; a beta device's token is rejected for it (SH.6). The beta still syncs: nudges are hints and the app polls |
+
+The beta talks to the same live API as the store app, so hard rule 16 applies to it unchanged.
+

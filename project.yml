@@ -13,6 +13,15 @@ options:
   bundleIdPrefix: app.tankbook
   createIntermediateGroups: true
 
+# Beta is the TestFlight pre-release as a SEPARATE app (app.tankbook.Tankbook.beta,
+# "Tankbook β", its own icon) so it installs beside the App Store build instead of
+# replacing it - iOS keeps one install per bundle id. Release-based: no DEBUG
+# flag, store signing. `scripts/release.sh --beta` archives and uploads it.
+configs:
+  Debug: debug
+  Release: release
+  Beta: release
+
 packages:
   TankbookCore:
     path: ios
@@ -45,7 +54,7 @@ targets:
     info:
       path: ios/App/Info.plist
       properties:
-        CFBundleDisplayName: Tankbook
+        CFBundleDisplayName: "$(TANKBOOK_DISPLAY_NAME)"
         # Three components on purpose. AppVersion parses dotted numerics with
         # exactly three parts, and P6.18's update requirement FAILS OPEN on
         # anything it cannot parse - so a two-component "1.0" makes every real
@@ -145,6 +154,8 @@ targets:
         # tinted, iOS 18 single-size). Rendered from site/static/icon.svg - the
         # DESIGN.md mark - so the store page and the home screen show one logo.
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # The home-screen name (Info.plist's CFBundleDisplayName); Beta overrides it.
+        TANKBOOK_DISPLAY_NAME: Tankbook
       configs:
         # Google sign-in in a DEBUG build uses a well-formed placeholder client
         # id, so the Sign in screen renders its real two-provider layout for the
@@ -161,6 +172,14 @@ targets:
         # remembering. SH.1 sets the variable when the client is registered.
         debug:
           TANKBOOK_GOOGLE_CLIENT_ID: "000000000000-debugplaceholder.apps.googleusercontent.com"
+        # The pre-release app. Its App ID carries the same capabilities as the
+        # store app's (Sign in with Apple, Push) and the backend must list it in
+        # Auth__AppleAudiences, or Apple sign-in is refused (docs/STORE.md -> Beta).
+        # Google stays unprovisioned here exactly as in Release (SH.4).
+        beta:
+          PRODUCT_BUNDLE_IDENTIFIER: app.tankbook.Tankbook.beta
+          TANKBOOK_DISPLAY_NAME: "Tankbook β"
+          ASSETCATALOG_COMPILER_APPICON_NAME: AppIconBeta
 
   TankbookUITests:
     type: bundle.ui-testing
