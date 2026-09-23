@@ -22,20 +22,20 @@ struct PaddleOCRTests {
         #expect(try Self.scoreClass("screenshots", engine: "paddleocr-a") == ScoredClass(name: "screenshots", hits: 7, total: 24))
     }
 
-    // MARK: - 2. Coverage: no image silently skipped
+    // MARK: - 2. The frozen sweep still names real images
 
-    @Test("every image is either swept by Arm A or a declared post-sweep addition")
-    func armACoversEveryImage() throws {
+    /// PaddleOCR is retired (docs/EXTRACTION.md -> "P4.13 measured"), so a new
+    /// fixture is never swept by it and needs no declaration here. What still
+    /// matters is that the frozen scoring above stays valid: a record whose
+    /// image was renamed or deleted would score against nothing.
+    @Test("every Arm A record still names an image in the corpus")
+    func armARecordsNameImages() throws {
         for cls in Self.classes {
             let folder = PaddleOCRCorpus.fixturesRoot.appendingPathComponent(cls)
             let images = try CorpusScorer.imageFilenames(in: folder)
             let file = try CorpusScorer.loadABResultFile(
                 PaddleOCRCorpus.abRoot.appendingPathComponent("paddleocr-a-\(cls).json")
             )
-            let declared = PostSweepCorpusAdditions.forClass(cls)
-            for image in images where !declared.contains(image) {
-                #expect(file.recordsByFilename[image] != nil, "\(cls)/\(image) has no Arm A record")
-            }
             for recorded in file.recordsByFilename.keys {
                 #expect(images.contains(recorded), "\(cls)/\(recorded) has an Arm A record but no image")
             }

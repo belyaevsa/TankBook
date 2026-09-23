@@ -352,10 +352,11 @@ enum CorpusScorer {
     ///
     /// This does not weaken the "no image silently skipped" guarantee, because
     /// the per-class totals stay pinned as literals (96 / 46 / 3 / 24): a
-    /// record missing from the sweep lowers the total and fails that pin. What
-    /// the callers add on top is the other direction - every live image must be
+    /// record missing from the sweep lowers the total and fails that pin. The
+    /// LLM arm's caller adds the other direction - every live image must be
     /// either swept or listed as a known post-sweep addition, so growth is
-    /// declared rather than absorbed.
+    /// declared rather than absorbed; the retired PaddleOCR arm relies on its
+    /// pinned totals alone.
     static func sweptImages(in folder: URL, coveredBy file: ABResultFile) throws -> [String] {
         try imageFilenames(in: folder).filter { file.recordsByFilename[$0] != nil }
     }

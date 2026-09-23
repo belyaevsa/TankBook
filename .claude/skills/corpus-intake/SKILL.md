@@ -109,6 +109,12 @@ Each class README gets a dated "Added" section saying what the images are, what 
 (glare, rotation, a truncated total, a pair), and the measured numbers before → after (step 6).
 `pump-live/README.md` gets a row per movie with its frame count and the still it pairs with.
 
+Every new image in `receipts/`, `pump/`, `fiscal/` or `screenshots/` is also added to
+`ios/Tests/TankbookCoreTests/PostSweepCorpusAdditions.swift` under its class, with a dated comment:
+the LLM arm's A/B sweep is frozen, and `CorpusABTests` fails on any image that is neither swept nor
+declared - a skipped declaration turned `swift test` red for 57 images across batches 8-10 (PU.80).
+The PaddleOCR arm is retired and needs nothing.
+
 ## 6. Re-measure - the step that is not optional, and the runtime that gates it
 
 Adding a fixture moves the corpus score, and two places assert the live score by constant. **The

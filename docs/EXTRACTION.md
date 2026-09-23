@@ -1275,6 +1275,12 @@ reader that beats the rules parser, and its four problems from P4.12 - silent sw
 shifts, non-determinism, per-call cost - are the cost of that accuracy. PaddleOCR does not displace
 either; on-device Vision stays tier 0, and PaddleOCR does not earn the fallback slot.
 
+**Retired (product owner, 2026-09-23, PU.80):** *"we don't use PaddleOCR. It was too complicated and
+long to wait for it."* New fixtures are never swept by it: `PaddleOCRTests` keeps the frozen
+scoring above and checks only that every Arm A record still names an image. The LLM arm's frozen
+sweep still requires every new image to be declared in `PostSweepCorpusAdditions` (the intake
+skill, step 5).
+
 ## Growing the corpus is the highest-value work
 
 Any path here - better rules, a cloud A/B, a trained reader - is limited by the same 62 images.
