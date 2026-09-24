@@ -898,7 +898,7 @@ processed they are neither measured nor trained on.
 **Amended 2026-09-23 (product owner): a second frozen draw, `heldout2`.** The first set can no
 longer say whether a pipeline constant generalises: several of the slicer's fractions, the law's
 windows and the widening margin were swept against heldout live numbers (PU.35), and 45/45
-committed-correct bounds precision at only ~0.92 (Wilson two-sided 95 %; the one-sided 95 % lower bound is 0.943) - both from the outside
+committed-correct (the app path on 2026-09-23; 47/47 since PU.78) bounds precision at only ~0.92 (Wilson two-sided 95 %; the one-sided 95 % lower bound is 0.943) - both from the outside
 review `agents/reviews/PUMP-REVIEW-2026-09-23-qwen.md` §2.1 and §2.4. `heldout2` is a set no
 model trains on **and no constant is tuned against**: it is measured when a change is judged, never
 while one is being fitted. Its first members are four rain stills of batch 10 - `pump-322` and
@@ -1014,11 +1014,13 @@ misread digit shows itself when there is no third number to check against. A pri
 show, or a board cell near the implied price, becomes a **validation**: agreement raises confidence,
 disagreement is meant to surface as the F2 confirm on the form (hard rule 13 - the app suggests,
 the user decides), never as a silent refusal and never as a silent overwrite of the paid price.
-**Wired (PJ.500, 2026-09-23)**: the law marks a shown price that differs from the implied one by
-more than 0.5 % as `.shownPriceDiffers(shown:implied:)` on the reading's `caution`, and Confirm shows
-it as an amber notice naming both prices; the price field stays empty so the entry's price is the
-implied one. A shown price within 0.5 % (`PumpReadingLaw.pairAgreementTolerance`) is agreement and
-carries no caution. `pump-300`
+**Wired (PJ.500, 2026-09-23)**: the law marks a shown price that differs from the implied one
+by more than rounding as `.shownPriceDiffers(shown:implied:)` on the reading's `caution`, and Confirm
+shows it as an amber notice naming both prices; the price field stays empty so the entry's price is
+the implied one. **Agreement is exact since PU.78 (2026-09-24)**: a shown price agrees only when the
+total is litres x that price rounded or floored to the cent; PJ.500's 0.5 % agreement band admitted a
+hundredths misread (pump-275's 103.31 for 103.37 against a 1.999 board sat 0.056 % off) and is gone.
+Anything short of exact inside the 5 % band commits under the caution. `pump-300`
 and `pump-266` are why the board may not simply be taken as the price: both are loyalty-discounted
 fills where the paid price is below every board cell.
 
@@ -1090,6 +1092,22 @@ transaction rows, 182 are proposed by some source, 171 by the learned detector, 
 verifier; the verifier's drops are slicer measurements (`cellCount`, `pitch`, `inkBand`), so a row the
 slicer miscounts is not read badly, it disappears. Nothing in this chain is a model training round.
 
+**The close is exact (PU.78, 2026-09-24, `agents/research/PU.78.md`).** A triple closes only when the
+shown total IS the product rounded or floored to the cent - the check-digit paradigm: a redundant
+quantity computed from the same digits catches a single-digit error only at zero tolerance, and the
+old one-cent slack admitted exactly the one-cent misread it existed to catch (pump-251: 75.36 read
+for 75.35, miss 0.0100 inside the 0.011 slack). The pair tier's agreement is exact the same way
+(decision 11, "Wired" above). The preset tier keeps its bound of half a volume step times the price,
+a quantity from the display's resolution. Measured on the app path: heldout **45 -> 47**, annotated
+**112 -> 118, all correct** (35 -> 41 photos fully right), train in-sample 124/117 -> **126/120**.
+What stays wrong on train is outside a tolerance's reach, as the note measured: pump-099, -264, -266
+are misreads inside a legitimate discount band (read quality, PU.73), pump-137 is a tenfold GBP
+shrink (PU.74). The note's M3, a selective-classification risk-coverage curve (Geifman & El-Yaniv), was
+not built: it ships no verdict, the note's own margin measurement (§0.2) predicts no threshold passes
+the heldout floor, and PU.81's beam guard removed its only consumer - if the owner wants the price
+list it is its own row. M2's repair step, one confusable cell of a pair repaired against a shown price,
+corrects pump-275 but fabricated on pump-014's four-board display and is held as PU.81.
+
 **The row's angle comes from a fast Hough transform (PU.69, 2026-09-24, `agents/research/PU.69.md`).**
 `PumpRowDeskew` crops the row's upright box once, takes its vertical brightness difference, and runs
 a Brady-Yong fast Hough transform over it and over its mirror (falling and rising rows); every
@@ -1112,7 +1130,7 @@ sharpest, a projection-profile skew estimate (`PumpRowDeskew`) - read only when 
 the orientation search commit nothing. The live floor with the app's reader in that mode
 (`PumpReaderPipelineTests.livePath`, 68 heldout stills) measured **52 committed, 51 correct (0.981)**:
 `pump-275`'s total reads 103.31 for 103.37, below the 0.99 floor, so the app's reader stays `.off`
-(45/45). PU.65's earlier "54/54" came from an ad-hoc script that scored a cell right within 0.1 rather
+(45/45 then; 47/47 since PU.78). PU.65's earlier "54/54" came from an ad-hoc script that scored a cell right within 0.1 rather
 than the corpus scorer's 0.005, and counted that misread as correct.
 
 **The operator's corrections.** Every disagreement between a tool's proposal (the tracker's

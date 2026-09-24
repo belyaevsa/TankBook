@@ -151,10 +151,8 @@ struct PumpReadingLawTests {
     @Test("an operand that only reaches the total inside the truncation slack does not make the exact read abstain")
     func exactOperandBeatsSlackOperand() {
         // 10.00 x 2.009 = 20.09 exactly; the price's `9` has `8` as a beam
-        // neighbour, and 10.00 x 2.008 = 20.08 is one cent off - inside
-        // `closingSlack`, because a head may floor its product. The exact
-        // price must still commit: a slack-only operand close is not evidence
-        // that the display's price is ambiguous.
+        // neighbour, and 10.00 x 2.008 = 20.08 is one cent off - which no
+        // longer closes at all (the close is exact). The exact price commits.
         let reading = PumpReadingLaw.resolve(
             windows: [
                 Self.window(.total, "20,09"),
@@ -198,14 +196,15 @@ struct PumpReadingLawTests {
 
     @Test("PU.51: a partial read names the field that refused")
     func partialReadCarriesFieldReason() {
-        // Oracle: synthetic. 10.00 x 2.000 = 20.00 exactly, so the operands
-        // commit; the total's last cell is ambiguous between `0` (20.00) and
-        // `1` (20.01, which the slack admits), so only the total abstains.
+        // Oracle: synthetic. 7.00 x 2.001 = 14.007, which a rounding head
+        // shows as 14.01 and a flooring head as 14.00 - both exact closes. The
+        // total's last cell is ambiguous between `1` and `0` one nat apart, so
+        // the operands commit and only the total abstains.
         let reading = PumpReadingLaw.resolve(
             windows: [
-                Self.window(.total, "20,00", ranked: [0, 1], at: 3),
-                Self.window(.liters, "10,00"),
-                Self.window(.unitPrice, "2,000"),
+                Self.window(.total, "14,01", ranked: [1, 0], at: 3),
+                Self.window(.liters, "7,00"),
+                Self.window(.unitPrice, "2,001"),
             ], currency: CurrencyCode(rawValue: "EUR"))
         #expect(reading.committedCount == 2)
         #expect(reading.reason == nil)
@@ -375,18 +374,27 @@ struct PumpReadingLawTests {
         #expect(reading.caution == .shownPriceDiffers(shown: Decimal(string: "1.98")!, implied: Decimal(2)))
     }
 
-    @Test("PJ.500: a shown price that agrees with the implied one carries no caution")
-    func pairWithAgreeingShownPriceIsNotCautioned() {
-        // Synthetic: 10.00 L for 20.00 implies 2.000; the board shows 2.008, 0.4 %
-        // off - too far to close the triple, close enough to agree.
-        let reading = PumpReadingLaw.resolve(
-            windows: [Self.window(.total, "20,00"), Self.window(.liters, "10,00"),
-                      Self.window(.board, "2,008")],
-            currency: CurrencyCode(rawValue: "EUR"),
-            priceBand: FuelPriceBand(low: 0.4, high: 3.0))
-        #expect(reading.committedCount == 2)
-        #expect(reading.caution == nil)
-        #expect(reading.unitPrice.reason == nil)
+    @Test("PJ.500: a shown price the pair closes exactly against carries no caution; 0.4 % off does")
+    func pairAgreementIsExact() {
+        // Synthetic: 10.00 L for 20.00. Against 2.000 the pair closes exactly -
+        // agreement, no caution. Against 2.008 (0.4 % off) it does not: that is
+        // a different price, cautioned for the user, where PJ.500's 0.5 % band
+        // called it agreement.
+        let conventions = PumpDisplayConventions.forCurrency(CurrencyCode(rawValue: "EUR"))
+        let band = FuelPriceBand(low: 0.4, high: 3.0)
+        let agreed = PumpReadingLaw.pairOutcome(
+            literWindow: Self.window(.liters, "10,00"), totalWindow: Self.window(.total, "20,00"),
+            shownPrices: [2.000], conventions: conventions, priceBand: band)
+        if case .committed(let reading) = agreed {
+            #expect(reading.committedCount == 2)
+            #expect(reading.caution == nil)
+            #expect(reading.unitPrice.reason == nil)
+        } else { Issue.record("expected an agreed pair") }
+        let differs = PumpReadingLaw.resolve(
+            windows: [Self.window(.total, "20,00"), Self.window(.liters, "10,00"), Self.window(.board, "2,008")],
+            currency: CurrencyCode(rawValue: "EUR"), priceBand: band)
+        #expect(differs.committedCount == 2)
+        if case .shownPriceDiffers? = differs.caution {} else { Issue.record("expected shownPriceDiffers") }
     }
 
     @Test("PU.54: an in-band pair with no validating shown price abstains")
@@ -471,17 +479,23 @@ struct PumpReadingLawTests {
 
     @Test("without the ambiguity window a beam alternative that also closes blocks the read")
     func ambiguityWindowIsLoadBearing() {
-        // Two closing triples exist for pump-015's strings: the true one and a
-        // total beam alternative (30.03) 7 nats down. The window is what
-        // separates "ambiguous" from "the beam's tail".
+        // Two closing triples exist: 7.00 x 2.001 = 14.007 closes 14.01 by
+        // rounding and a total beam alternative 14.00 by flooring, 7 nats
+        // down. The window is what separates "ambiguous" from "the beam's tail".
+        var total = Self.window(.total, "14,01")
+        total = PumpLocatedWindow(field: .total, cells: total.cells.enumerated().map { index, cell in
+            index == 3 ? PumpCellReading(probabilities: [], ranked: [PumpGlyphCandidate(digit: 1, logPosterior: 0),
+                                                                     PumpGlyphCandidate(digit: 0, logPosterior: -7)],
+                                         decimalPoint: cell.decimalPoint) : cell
+        })
         let closed = PumpReadingLaw.closingTriples(
-            liters: PumpReadingLaw.candidates(Self.window(.liters, "15.89"), decimals: [2]),
-            prices: PumpReadingLaw.candidates(Self.window(.unitPrice, "1.889"), decimals: [3]),
-            totals: PumpReadingLaw.candidates(Self.window(.total, "30.02"), decimals: [2]),
+            liters: PumpReadingLaw.candidates(Self.window(.liters, "7.00"), decimals: [2]),
+            prices: PumpReadingLaw.candidates(Self.window(.unitPrice, "2.001"), decimals: [3]),
+            totals: PumpReadingLaw.candidates(total, decimals: [2]),
             truncated: [])
         #expect(closed.count >= 2, "the beam must offer a second closing triple for this test to mean anything")
         let committed = PumpReadingLaw.commit(closed, repair: nil)
-        #expect(committed.total.value == Decimal(string: "30.02"))
+        #expect(committed.total.value == Decimal(string: "14.01"))
         let best = closed.max { $0.logPosterior < $1.logPosterior }!
         let tail = closed.filter { $0 .logPosterior < best.logPosterior }
         #expect(tail.allSatisfy { best.logPosterior - $0.logPosterior > PumpReadingLaw.ambiguityWindow })

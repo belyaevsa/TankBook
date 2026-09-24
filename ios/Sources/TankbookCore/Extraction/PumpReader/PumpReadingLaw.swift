@@ -7,7 +7,11 @@ import Foundation
 /// - A field's digits come from the cells; its decimal placement comes from the
 ///   currency's display conventions, so every field is a small candidate set.
 /// - A triple commits only when EXACTLY one combination closes the arithmetic
-///   within the cross-check tolerance; fields the surviving triples agree on
+///   exactly: the shown total is the product rounded or floored to the cent,
+///   never a value near it - a one-cent misread of a two-decimal total leaves a
+///   one-cent residual, so any tolerance at the resolution admits exactly the
+///   error the check exists to catch (the check-digit paradigm,
+///   agents/research/PU.78.md §2.1). Fields the surviving triples agree on
 ///   commit alone, the rest abstain (`nil`, hard rule 13).
 /// - When nothing closes, one single-cell substitution from the seven-segment
 ///   confusion table, tried in posterior order, may close it (`.repaired`) -
@@ -22,9 +26,6 @@ public enum PumpReadingLaw {
     public static let beamWidth = 3
     /// The strings kept per field after the beam, by joint log-posterior.
     public static let stringsPerField = 12
-    /// One cent plus rounding: a product that the display rounded or truncated
-    /// to two decimals lands within this of the shown total.
-    static let closingSlack = 0.011
     /// Closing triples this far (in nats of joint log-posterior) below the
     /// best are not alternatives, they are the beam's long tail: a certain
     /// cell's runner-up costs about 3.5 nats, so a triple that needs two or
@@ -260,19 +261,17 @@ public enum PumpReadingLaw {
     /// the heldout live path (measured: 6 of 8 pair commits land inside the
     /// coarse currency band and are wrong), so this tolerance is load-bearing.
     static let pairValidationTolerance = 0.05
-    /// Within this of the implied price a shown price AGREES - the implied price
-    /// is total over litres, and litres at two decimals move it by a few tenths
-    /// of a percent. Beyond it, inside `pairValidationTolerance`, the shown price
-    /// validates the pair but differs from what was paid (a discount).
-    static let pairAgreementTolerance = 0.005
 
     /// The pair tier: with no usable price, total + volume commit when the
-    /// price they IMPLY (`total / volume`) falls inside the currency's band. A
-    /// price the display shows is the validation: within rounding it agrees;
-    /// further off but within `pairValidationTolerance` the pair commits with
-    /// `.shownPriceDiffers` (a loyalty discount - the shown price never
-    /// overwrites the paid one); with none near, the pair abstains as
-    /// `.priceUnvalidated` (decision 11, hard rule 13).
+    /// price they IMPLY (`total / volume`) falls inside the currency's band and
+    /// a price the display shows validates them (agents/research/PU.78.md, M2):
+    /// 1. AGREEMENT is exact: the total is litres x a shown price, rounded or
+    ///    floored to the cent. A near miss is a misread, not agreement.
+    /// 2. Otherwise a shown price within `pairValidationTolerance` validates a
+    ///    pair that was paid at a different price (a loyalty discount): it
+    ///    commits with `.shownPriceDiffers`, and the shown price never
+    ///    overwrites the paid one. With none near, `.priceUnvalidated`
+    ///    (decision 11, hard rule 13).
     static func pairOutcome(literWindow: PumpLocatedWindow, totalWindow: PumpLocatedWindow?,
                             shownPrices: [Double], conventions: PumpDisplayConventions,
                             priceBand: FuelPriceBand?) -> PairOutcome {
@@ -290,21 +289,35 @@ public enum PumpReadingLaw {
         }
         let implied = total.value / liters.value
         guard band.contains(implied) else { return .refused(.priceOutOfBand) }
-        let nearest = shownPrices.min { abs($0 - implied) < abs($1 - implied) }
-        guard let shown = nearest, abs(shown - implied) <= pairValidationTolerance * implied else {
-            return .refused(.priceUnvalidated)
-        }
         let litersField = PumpFieldReading(value: decimal(liters.value), provenance: .read,
                                            logPosterior: liters.logPosterior)
         let totalField = PumpFieldReading(value: decimal(total.value), provenance: .read,
                                           logPosterior: total.logPosterior)
-        if abs(shown - implied) <= pairAgreementTolerance * implied {
+        let bandShown = shownPrices.filter { band.contains($0) }
+        if bandShown.contains(where: { closesExactly(liters: liters.value, price: $0, total: total.value) }) {
             return .committed(PumpDisplayReading(liters: litersField, unitPrice: .abstained,
                                                  total: totalField, reason: nil))
+        }
+        let nearest = shownPrices.min { abs($0 - implied) < abs($1 - implied) }
+        guard let shown = nearest, abs(shown - implied) <= pairValidationTolerance * implied else {
+            return .refused(.priceUnvalidated)
         }
         return .committed(PumpDisplayReading(
             liters: litersField, unitPrice: .abstained(.priceDisagrees), total: totalField, reason: nil,
             caution: .shownPriceDiffers(shown: decimal(shown), implied: decimal(implied))))
+    }
+
+    /// A product floored to the cent. The nudge keeps a product that is a whole
+    /// number of cents in binary noise (e.g. 20.999999999) from flooring a cent low.
+    static func cents(floorOf value: Double) -> Double {
+        floor(value * 100 + 1e-7) / 100
+    }
+
+    /// Whether `total` is `liters x price` rounded or floored to the cent - the
+    /// exact agreement a pair needs with a shown price.
+    static func closesExactly(liters: Double, price: Double, total: Double) -> Bool {
+        let rounded = (liters * price * 100).rounded() / 100
+        return abs(rounded - total) < 0.0005 || abs(cents(floorOf: liters * price) - total) < 0.0005
     }
 
     /// A display value as an exact decimal: at most three fraction digits,
@@ -329,10 +342,10 @@ public enum PumpReadingLaw {
         let totalDerived: Bool
         let logPosterior: Double
         let substitutions: Int
-        /// Whether the product reproduces the shown total at the cent, rather
-        /// than only inside `closingSlack`. The slack exists for a head that
-        /// floors its own product; a triple that needs the slack is a cent off
-        /// the shown total and must not block a triple that hits it exactly.
+        /// Whether the product ROUNDS to the shown total, rather than only
+        /// flooring to it. The floor branch exists for a head that floors its
+        /// own product; a triple that closes only by flooring must not block
+        /// one whose product rounds to the shown total.
         let exactClosing: Bool
     }
 
@@ -396,20 +409,24 @@ public enum PumpReadingLaw {
         for l in liters {
             for p in prices {
                 let product = (l.value * p.value * 100).rounded() / 100
-                let slack = presetSlack ? closingSlack + 0.005 * p.value : closingSlack
+                let floored = cents(floorOf: l.value * p.value)
                 for t in totals where t.value > 0 {
-                    // Exact at the display's precision: the pump computed this
-                    // product, so it matches to the cent (one cent of slack for
-                    // the head's rounding mode). The Confirm cross-check's 0.5 %
-                    // tolerance is for receipts and would let a misread digit
-                    // "close"; here it would only manufacture ambiguity.
-                    let miss = abs(product - t.value)
-                    if miss <= slack {
+                    // The pump computed this product, so the shown total is it
+                    // rounded or floored to the cent (the head's rounding mode
+                    // is not known per head). A preset fill's volume is derived
+                    // from the round total, so its product misses by up to half
+                    // a volume step times the price - a bound from the volume
+                    // display's resolution, not a tolerance on the total.
+                    let rounds = abs(product - t.value) < 0.0005
+                    let closes = presetSlack
+                        ? abs(product - t.value) <= 0.005 * p.value
+                        : rounds || abs(floored - t.value) < 0.0005
+                    if closes {
                         out.append(Triple(liters: l.value, price: p.value, total: t.value,
                                           totalDerived: false,
                                           logPosterior: l.logPosterior + p.logPosterior + t.logPosterior,
                                           substitutions: l.substitutions + p.substitutions + t.substitutions,
-                                          exactClosing: miss < 0.0005))
+                                          exactClosing: rounds))
                     }
                 }
                 for t in truncated where t.value > 0 {
@@ -435,12 +452,12 @@ public enum PumpReadingLaw {
         guard let best = all.max(by: { $0.logPosterior < $1.logPosterior }) else {
             return .abstained(.nothingClosed)
         }
-        // The total is the anchor. When the best close reproduces the shown
-        // total exactly, a competing triple that reaches the SAME total inside
-        // the truncation slack is a false close of an operand: its price or
-        // volume is a cent off and the exact operand is the read. A competitor
-        // whose TOTAL differs means the display's total itself is ambiguous, so
-        // it stays and the field abstains.
+        // The total is the anchor. When the best close's product ROUNDS to the
+        // shown total, a competing triple that reaches the SAME total only by
+        // flooring is a false close of an operand (its price or volume sits a
+        // hair off, and the rounding operand is the read). A competitor whose
+        // TOTAL differs means the display's total itself is ambiguous, so it
+        // stays and the field abstains.
         let contenders = best.exactClosing
             ? all.filter { $0.exactClosing || abs($0.total - best.total) >= 0.0005 }
             : all

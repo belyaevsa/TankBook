@@ -83,12 +83,12 @@ public enum PumpPhotoGate {
 
     /// Numeric cells the READER committed over the heldout split, of
     /// `readerNumericTotal`.
-    public static let readerCommitted: Int = 45
+    public static let readerCommitted: Int = 47
 
     /// Of `readerCommitted`, the cells that match the corpus. Equal to
     /// `readerCommitted` today: the reader commits only what the arithmetic
     /// pins uniquely, so its measured precision is 1.000.
-    public static let readerCommittedCorrect: Int = 45
+    public static let readerCommittedCorrect: Int = 47
 
     /// The numeric cells the heldout split asserts (liters, unitPrice, total;
     /// blanks skipped), the reader's coverage denominator.
