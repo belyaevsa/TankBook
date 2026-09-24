@@ -26,7 +26,12 @@ public final class PumpRowDetector: @unchecked Sendable {
         public var bounds: CGRect { PumpRowAssignment.bounds(quad, rotationCW: 0) }
     }
 
-    private let model: VNCoreMLModel
+    private enum Backend {
+        case vision(VNCoreMLModel)
+        case rows(@Sendable (CGImage) -> [Row])
+    }
+
+    private let backend: Backend
     /// The confidence a detected row needs on its own. Measured on the heldout
     /// stills (ml/pump-reader/detector/measure.swift): 0.3 keeps 86 % of the
     /// annotated rows at 0.7 false rows per photo, 0.5 keeps 81 % at 0.3.
@@ -42,11 +47,27 @@ public final class PumpRowDetector: @unchecked Sendable {
         if url.pathExtension == "mlmodel" {
             modelURL = try MLModel.compileModel(at: url)
         }
-        model = try VNCoreMLModel(for: MLModel(contentsOf: modelURL))
+        backend = .vision(try VNCoreMLModel(for: MLModel(contentsOf: modelURL)))
+    }
+
+    /// A row locator from a model file: an `.mlpackage` is the segmenter
+    /// (`PumpRowSegmenter`), anything else the object detector.
+    static func load(contentsOf url: URL) throws -> PumpRowDetector {
+        guard url.pathExtension == "mlpackage" else { return try PumpRowDetector(contentsOf: url) }
+        let segmenter = try PumpRowSegmenter(contentsOf: url)
+        return PumpRowDetector(rows: { segmenter.rows(in: $0) })
+    }
+
+    /// A detector whose rows come from `rows`: the seam a candidate locator
+    /// with a different output shape is measured through, in place of the
+    /// shipped object detector. A pixel buffer finds no rows on this path.
+    init(rows: @escaping @Sendable (CGImage) -> [Row]) {
+        backend = .rows(rows)
     }
 
     public func detect(in image: CGImage) -> [Row] {
-        detect(handler: VNImageRequestHandler(cgImage: image, options: [:]))
+        if case .rows(let rows) = backend { return rows(image).sorted { $0.confidence > $1.confidence } }
+        return detect(handler: VNImageRequestHandler(cgImage: image, options: [:]))
     }
 
     /// The live preview's entry point: the same detector over a video frame's
@@ -58,6 +79,7 @@ public final class PumpRowDetector: @unchecked Sendable {
     }
 
     private func detect(handler: VNImageRequestHandler) -> [Row] {
+        guard case .vision(let model) = backend else { return [] }
         let request = VNCoreMLRequest(model: model)
         request.imageCropAndScaleOption = .scaleFit
         guard (try? handler.perform([request])) != nil else { return [] }

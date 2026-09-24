@@ -37,7 +37,11 @@ enum PumpReaderTestSupport {
     }()
 
     static func makeDetector() -> PumpRowDetector? {
-        detectorURL.flatMap { try? PumpRowDetector(contentsOf: $0) }
+        if let path = ProcessInfo.processInfo.environment["PUMP_SEGMENTER"], !path.isEmpty {
+            precondition(FileManager.default.fileExists(atPath: path), "PUMP_SEGMENTER names no file: \(path)")
+            return try? PumpRowDetector.load(contentsOf: URL(fileURLWithPath: path))
+        }
+        return detectorURL.flatMap { try? PumpRowDetector(contentsOf: $0) }
     }
 
     static var fixturesPresent: Bool {

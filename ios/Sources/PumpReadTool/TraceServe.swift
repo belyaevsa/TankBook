@@ -37,7 +37,7 @@ private final class ModelCache {
     func detector(_ path: String?) -> PumpRowDetector? {
         guard let path, FileManager.default.fileExists(atPath: path) else { return nil }
         if detectors[path] == nil {
-            detectors[path] = try? PumpRowDetector(contentsOf: URL(fileURLWithPath: path))
+            detectors[path] = try? PumpRowDetector.load(contentsOf: URL(fileURLWithPath: path))
         }
         return detectors[path]
     }

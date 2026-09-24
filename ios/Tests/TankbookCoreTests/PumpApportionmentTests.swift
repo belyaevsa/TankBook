@@ -53,10 +53,11 @@ struct PumpApportionmentTests {
         let env = ProcessInfo.processInfo.environment
         let modelURL = env["PUMP_MODEL"].map { URL(fileURLWithPath: $0) }
             ?? PumpReaderTestSupport.repoRoot.appendingPathComponent("ios/App/Resources/PumpSegments.mlpackage")
-        let detector = env["PUMP_DETECTOR"].map { try? PumpRowDetector(contentsOf: URL(fileURLWithPath: $0)) }
-            ?? PumpReaderTestSupport.makeDetector()
+        let detector = env["PUMP_SEGMENTER"] != nil ? PumpReaderTestSupport.makeDetector()
+            : env["PUMP_DETECTOR"].map { try? PumpRowDetector(contentsOf: URL(fileURLWithPath: $0)) }
+                ?? PumpReaderTestSupport.makeDetector()
         print("PU apportionment models: classifier \(modelURL.lastPathComponent) from "
-            + "\(modelURL.deletingLastPathComponent().lastPathComponent), detector \(env["PUMP_DETECTOR"] ?? "shipped")")
+            + "\(modelURL.deletingLastPathComponent().lastPathComponent), detector \(env["PUMP_SEGMENTER"] ?? env["PUMP_DETECTOR"] ?? "shipped")")
         let reader = PumpReader(model: try PumpSegmentsModel(contentsOf: modelURL), detector: detector)
         let handle = PumpReaderHandle(reader: reader)
         let expected = try CorpusScorer.loadExpected(

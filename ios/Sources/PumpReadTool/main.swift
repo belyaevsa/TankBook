@@ -1,7 +1,7 @@
 // The pump reader as a command - what the annotator calls to show the model's
 // reading of a frame or a still (tools/pump-annotate):
 //
-//   pump-read <image> [--classifier <PumpSegments.mlpackage>] [--detector <DigitRows.mlmodel>] < request.json
+//   pump-read <image> [--classifier <PumpSegments.mlpackage>] [--detector <DigitRows.mlmodel or RowSeg.mlpackage>] < request.json
 //   pump-read --slice-serve            # resident slicer: one request per stdin line, no model
 //   pump-read --read-serve [--classifier p]  # resident video-frame reader, model loaded once
 //   pump-read --trace-serve            # resident pipeline tracer: the app's classify, every stage recorded
@@ -204,7 +204,7 @@ guard let oriented = PumpQuadWarp.loadOrientedImage(from: URL(fileURLWithPath: a
 }
 let model = try PumpSegmentsModel(contentsOf: URL(fileURLWithPath: classifierPath))
 let detector = detectorPath.flatMap { path in
-    FileManager.default.fileExists(atPath: path) ? try? PumpRowDetector(contentsOf: URL(fileURLWithPath: path)) : nil
+    FileManager.default.fileExists(atPath: path) ? try? PumpRowDetector.load(contentsOf: URL(fileURLWithPath: path)) : nil
 }
 let reader = PumpReader(model: model, detector: detector,
                         deskew: request.deskew.flatMap(PumpReader.DeskewMode.init(rawValue:)) ?? .off)

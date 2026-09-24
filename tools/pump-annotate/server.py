@@ -117,6 +117,10 @@ DETECTOR = ROOT / "ios" / "App" / "Resources" / "DigitRows.mlmodel"
 # path (⇧R) can be run against any of them, which is the only way to judge a
 # candidate by looking rather than by its committed count.
 DETECTOR_ROOT = ROOT / "ml" / "pump-reader" / ".out" / "det"
+# The oriented row segmenters (PixelLink maps, `segtrain`): each training run's
+# folder holds one `RowSeg.mlpackage`, which `pump-read --detector` loads as a
+# row locator in place of the object detector.
+SEGMENTER_ROOT = ROOT / "ml" / "pump-reader" / ".out"
 
 
 def detector_dirs() -> list[Path]:
@@ -125,7 +129,19 @@ def detector_dirs() -> list[Path]:
     is in the picker the moment it is written."""
     rounds = sorted(p for p in DETECTOR_ROOT.iterdir() if p.is_dir() and any(p.glob("*.mlmodel"))) \
         if DETECTOR_ROOT.exists() else []
-    return [ROOT / "ios" / "App" / "Resources", DETECTOR_ROOT, *rounds]
+    segmenters = sorted(p for p in SEGMENTER_ROOT.glob("seg-*") if p.is_dir() and any(p.glob("*.mlpackage"))) \
+        if SEGMENTER_ROOT.exists() else []
+    return [ROOT / "ios" / "App" / "Resources", DETECTOR_ROOT, *rounds, *segmenters]
+
+
+def model_sha(path: Path) -> str:
+    """A file's sha256, or a package's (`package_sha`) - a segmenter is a package."""
+    return package_sha(path) if path.is_dir() else hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def model_mb(path: Path) -> float:
+    size = sum(f.stat().st_size for f in path.rglob("*") if f.is_file()) if path.is_dir() else path.stat().st_size
+    return round(size / 1e6, 1)
 
 
 def detectors() -> list[dict]:
@@ -148,12 +164,13 @@ def detectors() -> list[dict]:
                 counts = json.loads(counts_file.read_text())
             except json.JSONDecodeError:
                 counts = {}
-        for path in sorted(folder.glob("*.mlmodel")) if folder.exists() else []:
+        found = [*folder.glob("*.mlmodel"), *(folder.glob("RowSeg*.mlpackage") if folder.name.startswith("seg-") else [])]
+        for path in sorted(found) if folder.exists() else []:
             key = str(path.resolve())
             if key in seen:
                 continue
             seen.add(key)
-            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            digest = model_sha(path)
             written = datetime.fromtimestamp(path.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
             stills = counts.get("train_stills")
             out.append({"path": str(path.relative_to(ROOT)),
@@ -164,7 +181,8 @@ def detectors() -> list[dict]:
                         "boxes": counts.get("boxes"),
                         "modified": written,
                         "version": f"{tag} · {written[:10]}" + (f" · {stills} stills" if stills else "") + f" · {digest[:8]}",
-                        "mb": round(path.stat().st_size / 1e6, 1),
+                        "mb": model_mb(path),
+                        "kind": "segmenter" if path.suffix == ".mlpackage" else "detector",
                         "sha": digest[:8],
                         "shipped": digest == shipped})
     return out
@@ -247,7 +265,7 @@ def image_target(image: str) -> Path | None:
 
 
 def model_key(detector: Path, classifier: Path) -> str:
-    det = hashlib.sha256(detector.read_bytes()).hexdigest()[:8] if detector.exists() else "00000000"
+    det = model_sha(detector)[:8] if detector.exists() else "00000000"
     cls = package_sha(classifier)[:8] if classifier.exists() else "00000000"
     return f"{det}-{cls}"
 
