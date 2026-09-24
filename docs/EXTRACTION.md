@@ -1174,6 +1174,19 @@ bound 0.013); twelve fixtures that closed a tenfold-shrunk or -grown triple besi
 only the true one. pump-190's disputed one-decimal KZT total still closes a tenfold-grown price
 beside the truth, so the law abstains on those two fields there.
 
+**A read placement goes with the window's cell count (PU.85, 2026-09-24).** PU.74's table admitted a
+currency's placements and cell counts independently, so a RUB price of four cells could read at one
+decimal - `459,4` - and close a tenfold triple beside the true `45,94`; the RUB band (40-500, widened
+for a real 450 RUB/L) cannot separate them. Measured on the reviewed corpus, the placement follows
+the cell count: a RUB price of 3 cells is always one decimal (`68,3`), of 4 or 5 always two; a RUB
+total of 4 cells one decimal, 5 or 6 either, 7 two; a KZT price of 3 cells none, of 4 one. The table
+carries these as `placementsByCells` for transaction windows (boards keep the price's field-wide set:
+the joint was measured on transaction windows only), and `PumpDisplayConventionsCorpusTests` re-derives them on every run.
+Measured: annotated 123 -> **126 of 126**; live unchanged at 47 of 47; with PU.76's segmenter as the
+locator the app path goes from 61 committed / 58 correct to **62 / 61**, the tenfold pump-165 read
+gone. Its one wrong cell left, pump-063's total, reaches Confirm through the pair tier's shown-price
+band with the `shownPriceDiffers` caution - decision 11 as the owner ruled it.
+
 **The decimal-point bit is framing-bound, not loss- or head-bound (PU.73, 2026-09-24, `agents/research/PU.73.md`).**
 The shipped classifier reads the decimal mark at heldout AUC 0.653. A linear probe bounds what
 transfers linearly from the reader's cell crop near 0.63, and the note puts the ceiling for any loss or

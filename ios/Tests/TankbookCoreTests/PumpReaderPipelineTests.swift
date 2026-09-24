@@ -28,8 +28,9 @@ struct PumpReaderPipelineTests {
     // close exact (no one-cent tolerance) and pair agreement exact: 112 -> 118
     // committed, all correct, 35 -> 41 photos. PU.74 (measured conventions per
     // currency, impossible cell counts refused) with the owner's pump-275
-    // re-frame: 123 committed, all correct, 43 of 68 photos.
-    private static let committedFloor = 123
+    // re-frame: 123 committed, all correct, 43 of 68 photos. PU.85 (read
+    // placements tied to the window's cell count): 126, all correct, 45 of 68.
+    private static let committedFloor = 126
     private static let precisionFloor = 0.96
     // The live path (no annotation): measured on the heldout split on
     // 2026-09-20 after PU.24's verifier round - every candidate verified, a

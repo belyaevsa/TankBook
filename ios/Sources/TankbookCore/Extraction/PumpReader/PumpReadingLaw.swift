@@ -69,9 +69,9 @@ public enum PumpReadingLaw {
         // cause finer than "nothing closed": a field with no candidate at all
         // is unreadable cells, a price whose candidates the band removed is the
         // band. The filtered sets below are what the verdict uses, unchanged.
-        let rawLiters = candidates(literWindow, decimals: conventions.volumeDecimals)
-        let rawPrice = candidates(priceWindow, decimals: conventions.priceDecimals)
-        let rawTotals = (totalWindow.map { candidates($0, decimals: conventions.totalDecimals) } ?? [])
+        let rawLiters = candidates(literWindow, decimals: conventions.decimals(.liters, cells: literWindow.cells.count))
+        let rawPrice = candidates(priceWindow, decimals: conventions.decimals(.unitPrice, cells: priceWindow.cells.count))
+        let rawTotals = (totalWindow.map { candidates($0, decimals: conventions.decimals(.total, cells: $0.cells.count)) } ?? [])
         let rawTruncated = (totalWindow.map {
             candidates($0, decimals: conventions.truncatedTotalDecimals)
         } ?? [])
@@ -136,13 +136,13 @@ public enum PumpReadingLaw {
                     // The substituted cell is the one substitution this tier
                     // allows: every other cell stays at its top read.
                     let lc = (field == .liters
-                        ? candidates(repaired, decimals: conventions.volumeDecimals).filter(plausibleLiters)
+                        ? candidates(repaired, decimals: conventions.decimals(.liters, cells: repaired.cells.count)).filter(plausibleLiters)
                         : literCands).filter { $0.substitutions == 0 }
                     let pc = (field == .unitPrice
-                        ? candidates(repaired, decimals: conventions.priceDecimals).filter(plausiblePrice)
+                        ? candidates(repaired, decimals: conventions.decimals(.unitPrice, cells: repaired.cells.count)).filter(plausiblePrice)
                         : priceCands).filter { $0.substitutions == 0 }
                     let tc = (field == .total
-                        ? candidates(repaired, decimals: conventions.totalDecimals).filter(plausibleTotal)
+                        ? candidates(repaired, decimals: conventions.decimals(.total, cells: repaired.cells.count)).filter(plausibleTotal)
                         : totalCands).filter { $0.substitutions == 0 }
                     let found = closingTriples(liters: lc, prices: pc, totals: tc,
                                                truncated: truncatedCands.filter { $0.substitutions == 0 })
@@ -255,9 +255,9 @@ public enum PumpReadingLaw {
                                 boards: [PumpLocatedWindow], conventions: PumpDisplayConventions,
                                 priceBand: FuelPriceBand?) -> PumpDisplayReading? {
         guard !boards.isEmpty else { return nil }
-        let liters = candidates(literWindow, decimals: conventions.volumeDecimals)
+        let liters = candidates(literWindow, decimals: conventions.decimals(.liters, cells: literWindow.cells.count))
             .filter { $0.value >= minLiters && $0.value < 500 && $0.substitutions == 0 }
-        let totals = candidates(totalWindow, decimals: conventions.totalDecimals)
+        let totals = candidates(totalWindow, decimals: conventions.decimals(.total, cells: totalWindow.cells.count))
             .filter { $0.value >= minTotal && $0.substitutions == 0 }
         var triples: [Triple] = []
         for board in boards {
@@ -300,8 +300,8 @@ public enum PumpReadingLaw {
         // No band: an unbounded implied price is not a guard, so the pair
         // refuses exactly where the missing price did.
         guard let band = priceBand else { return .refused(.boardFoundNoPrice) }
-        guard let liters = topCandidate(literWindow, decimals: conventions.volumeDecimals),
-              let total = topCandidate(totalWindow, decimals: conventions.totalDecimals),
+        guard let liters = topCandidate(literWindow, decimals: conventions.decimals(.liters, cells: literWindow.cells.count)),
+              let total = topCandidate(totalWindow, decimals: conventions.decimals(.total, cells: totalWindow.cells.count)),
               liters.value >= minLiters, liters.value < 500, total.value >= minTotal else {
             return .refused(.cellUnknown)
         }

@@ -222,15 +222,32 @@ public struct PumpDisplayConventions: Sendable, Equatable {
     /// False for a currency with no measured row.
     public let isMeasured: Bool
 
+    /// Read placements tied to the window's cell count, where a currency shows
+    /// more than one placement for a field: the placement a head uses goes with
+    /// how many cells it lights (a three-cell RUB price is `68,3`, a four-cell
+    /// one `45,94`). A cell count absent here falls back to the field's set.
+    public let placementsByCells: [PumpField: [Int: [Int]]]
+
     public init(volumeDecimals: [Int], priceDecimals: [Int], totalDecimals: [Int],
                 truncatedTotalDecimals: [Int], cellCounts: [PumpField: Set<Int>] = [:],
-                isMeasured: Bool = true) {
+                placementsByCells: [PumpField: [Int: [Int]]] = [:], isMeasured: Bool = true) {
         self.volumeDecimals = volumeDecimals
         self.priceDecimals = priceDecimals
         self.totalDecimals = totalDecimals
         self.truncatedTotalDecimals = truncatedTotalDecimals
         self.cellCounts = cellCounts
+        self.placementsByCells = placementsByCells
         self.isMeasured = isMeasured
+    }
+
+    /// The decimal placements a transaction window of `count` cells is read at.
+    public func decimals(_ field: PumpField, cells count: Int) -> [Int] {
+        if let tied = placementsByCells[field]?[count] { return tied }
+        switch field {
+        case .liters: return volumeDecimals
+        case .unitPrice, .board: return priceDecimals
+        default: return totalDecimals
+        }
     }
 
     /// Whether a window of `count` cells is possible for `field` in this currency.
@@ -242,11 +259,13 @@ public struct PumpDisplayConventions: Sendable, Equatable {
                                                    truncatedTotalDecimals: [], isMeasured: false)
 
     private static func row(_ liters: [Int], _ price: [Int], _ total: [Int], truncated: [Int] = [],
-                            cells: (liters: Set<Int>, price: Set<Int>, total: Set<Int>)? = nil)
+                            cells: (liters: Set<Int>, price: Set<Int>, total: Set<Int>)? = nil,
+                            byCells: [PumpField: [Int: [Int]]] = [:])
         -> PumpDisplayConventions {
         PumpDisplayConventions(
             volumeDecimals: liters, priceDecimals: price, totalDecimals: total, truncatedTotalDecimals: truncated,
-            cellCounts: cells.map { [.liters: $0.liters, .unitPrice: $0.price, .total: $0.total] } ?? [:])
+            cellCounts: cells.map { [.liters: $0.liters, .unitPrice: $0.price, .total: $0.total] } ?? [:],
+            placementsByCells: byCells)
     }
 
     // Measured on the reviewed corpus; `PumpDisplayConventionsCorpusTests`
@@ -261,8 +280,10 @@ public struct PumpDisplayConventions: Sendable, Equatable {
         // product to the kopeck, so it closes read only when the product
         // reproduces it exactly; otherwise the truncated placement derives the
         // product.
-        "RUB": row([2], [1, 2], [1, 2], truncated: [1], cells: ([3, 4, 5, 6, 7], [3, 4, 5], [3, 4, 5, 6, 7])),
-        "KZT": row([2], [0, 1], [0], truncated: [1], cells: ([4], [3, 4], [4, 5, 6])),
+        "RUB": row([2], [1, 2], [1, 2], truncated: [1], cells: ([3, 4, 5, 6, 7], [3, 4, 5], [3, 4, 5, 6, 7]),
+                   byCells: [.unitPrice: [3: [1], 4: [2], 5: [2]], .total: [4: [1], 5: [1, 2], 6: [1, 2], 7: [2]]]),
+        "KZT": row([2], [0, 1], [0], truncated: [1], cells: ([4], [3, 4], [4, 5, 6]),
+                   byCells: [.unitPrice: [3: [0], 4: [1]]]),
         "GBP": row([2], [3], [2], cells: ([3, 4], [4], [3, 4, 5])),
         "AUD": row([2], [3], [2], cells: ([4, 5], [4], [4, 5])),
         "BYN": row([2], [2], [2], cells: ([4], [3], [4])),

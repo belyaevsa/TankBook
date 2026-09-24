@@ -20,6 +20,7 @@ struct PumpDisplayConventionsCorpusTests {
         var misses: [String] = []
         var windows = 0
         var derived: [String: Set<Int>] = [:]
+        var byCells: [String: [Int: Set<Int>]] = [:]
         for (name, value) in root.sorted(by: { $0.key < $1.key }) {
             guard name != "_about", let ann = value as? [String: Any], ann["reviewed"] as? Bool == true,
                   let want = expected[name] else { continue }
@@ -42,13 +43,15 @@ struct PumpDisplayConventionsCorpusTests {
                 guard let value = asserted, value != 0, !disputed.contains(fieldName),
                       let integer = Double(digits) else { continue }
                 let reproducing = (0...4).filter { abs(integer / pow(10, Double($0)) - value) < 1e-9 }
-                let read = field == .liters ? conventions.volumeDecimals
-                    : field == .unitPrice ? conventions.priceDecimals : conventions.totalDecimals
+                let read = conventions.decimals(field, cells: digits.count)
                 // A value the digits reproduce exactly is READ at that placement;
                 // the truncated tier is for a total that reproduces at none
                 // (skipped above, the derived-total exemption).
                 let allowed = Set(read)
-                if let code = want.currency?.rawValue { derived["\(code) \(fieldName)", default: []].formUnion(reproducing) }
+                if let code = want.currency?.rawValue {
+                    derived["\(code) \(fieldName)", default: []].formUnion(reproducing)
+                    byCells["\(code) \(fieldName)", default: [:]][digits.count, default: []].formUnion(reproducing)
+                }
                 if !reproducing.isEmpty, allowed.isDisjoint(with: reproducing) {
                     misses.append("\(name) \(fieldName): reproduces at \(reproducing), row allows \(allowed.sorted())")
                 }
@@ -66,6 +69,13 @@ struct PumpDisplayConventionsCorpusTests {
                 let measured = derived["\(code) \(fieldName)"] ?? []
                 if Set(read) != measured {
                     misses.append("\(code) \(fieldName): table reads \(read.sorted()), corpus shows \(measured.sorted())")
+                }
+                // Where the table ties placements to cell counts, it names
+                // exactly the placements each count shows on the corpus.
+                guard let field = PumpField(rawValue: fieldName),
+                      let tied = conventions.placementsByCells[field] else { continue }
+                for (count, shown) in byCells["\(code) \(fieldName)"] ?? [:] where Set(tied[count] ?? []) != shown {
+                    misses.append("\(code) \(fieldName) \(count) cells: table reads \(tied[count] ?? []), corpus shows \(shown.sorted())")
                 }
             }
         }

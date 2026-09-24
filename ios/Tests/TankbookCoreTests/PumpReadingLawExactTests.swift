@@ -113,6 +113,25 @@ struct PumpReadingLawExactTests {
         #expect(reading.total.provenance == .read)
     }
 
+    @Test("a four-cell RUB price is read at two decimals, so a tenfold price cannot close beside it")
+    func rubPricePlacementFollowsCellCount() {
+        // pump-165's shape, no decimal marks seen: 78.41 L x 45.94 = 3602.1554,
+        // shown 3602,16. At one decimal the same digits give 459.4 x 78.41 =
+        // 36021.55, which rounds to the total read at one decimal (36021.6) -
+        // a tenfold triple that closes. A four-cell RUB price is only ever
+        // `45,94`; the three-cell one is `68,3`.
+        let reading = PumpReadingLaw.resolve(
+            windows: [Self.window(.total, "360216"), Self.window(.liters, "7841"), Self.window(.unitPrice, "4594")],
+            currency: CurrencyCode(rawValue: "RUB"))
+        #expect(reading.unitPrice.value == Decimal(string: "45.94"))
+        #expect(reading.liters.value == Decimal(string: "78.41"))
+        #expect(reading.total.value == Decimal(string: "3602.16"))
+        let threeCells = PumpReadingLaw.resolve(
+            windows: [Self.window(.total, "34150"), Self.window(.liters, "5000"), Self.window(.unitPrice, "683")],
+            currency: CurrencyCode(rawValue: "RUB"))
+        #expect(threeCells.unitPrice.value == Decimal(string: "68.3"))
+    }
+
     @Test("a one-decimal total the product only truncates to commits as derived")
     func truncatedTotalStaysDerived() {
         // 36.60 L x 68.3 = 2499.78, shown 2499,8. The display cannot say whether

@@ -137,7 +137,7 @@ struct PumpReadingLawTests {
                 Self.window(.total, "63,75", leadingRanked: [6, 8, 0, 5]),
                 Self.window(.liters, "12,50"),
                 Self.window(.unitPrice, "4,30")
-            ], currency: CurrencyCode(rawValue: "RUB"))
+            ], currency: CurrencyCode(rawValue: "NOK"))
         #expect(reading.total.value == Decimal(string: "53.75"))
         #expect(reading.liters.value == Decimal(string: "12.5"))
         #expect(reading.unitPrice.value == Decimal(string: "4.30"))
