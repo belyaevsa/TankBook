@@ -1,0 +1,183 @@
+{
+ "about": "PU.72: one shared temperature per trained model, fitted by NLL on its own TRAIN real-glyph pool (in-sample), with calibration before/after; heldout = the reviewed heldout split's count-matched cells, the train-fitted T applied (transfer). A comparison unit for candidates, not shipped to the device (docs/TASKS.md PU.72).",
+ "train": {
+  "r6": {
+   "temperature": 0.5682,
+   "cells": 25085,
+   "nll": [
+    0.08081,
+    0.05885
+   ],
+   "eceConfidence15": [
+    0.0346,
+    0.0005
+   ],
+   "ecePerLabel10": [
+    0.0358,
+    0.0102
+   ],
+   "eceML": [
+    0.0822,
+    0.0505
+   ],
+   "digitFlips": 0,
+   "note": "fitted in-sample on the train split; a comparison unit, not shipped (PU.72)"
+  },
+  "r7": {
+   "temperature": 0.5554,
+   "cells": 25349,
+   "nll": [
+    0.08173,
+    0.05859
+   ],
+   "eceConfidence15": [
+    0.0348,
+    0.0019
+   ],
+   "ecePerLabel10": [
+    0.0366,
+    0.0097
+   ],
+   "eceML": [
+    0.0824,
+    0.0503
+   ],
+   "digitFlips": 0,
+   "note": "fitted in-sample on the train split; a comparison unit, not shipped (PU.72)"
+  },
+  "r8": {
+   "temperature": 0.5622,
+   "cells": 28428,
+   "nll": [
+    0.08263,
+    0.0593
+   ],
+   "eceConfidence15": [
+    0.0355,
+    0.0022
+   ],
+   "ecePerLabel10": [
+    0.037,
+    0.0113
+   ],
+   "eceML": [
+    0.0824,
+    0.0503
+   ],
+   "digitFlips": 0,
+   "note": "fitted in-sample on the train split; a comparison unit, not shipped (PU.72)"
+  },
+  "r9": {
+   "temperature": 0.5731,
+   "cells": 30559,
+   "nll": [
+    0.08207,
+    0.06036
+   ],
+   "eceConfidence15": [
+    0.0339,
+    0.0012
+   ],
+   "ecePerLabel10": [
+    0.0356,
+    0.0109
+   ],
+   "eceML": [
+    0.0823,
+    0.0508
+   ],
+   "digitFlips": 0,
+   "note": "fitted in-sample on the train split; a comparison unit, not shipped (PU.72)"
+  },
+  "r10s0": {
+   "temperature": 0.5712,
+   "cells": 40755,
+   "nll": [
+    0.08644,
+    0.06508
+   ],
+   "eceConfidence15": [
+    0.0345,
+    0.0015
+   ],
+   "ecePerLabel10": [
+    0.0353,
+    0.0094
+   ],
+   "eceML": [
+    0.0837,
+    0.0528
+   ],
+   "digitFlips": 0,
+   "note": "fitted in-sample on the train split; a comparison unit, not shipped (PU.72)"
+  },
+  "r11ctrl": {
+   "temperature": 0.7218,
+   "cells": 22003,
+   "nll": [
+    0.15261,
+    0.14122
+   ],
+   "eceConfidence15": [
+    0.031,
+    0.0023
+   ],
+   "ecePerLabel10": [
+    0.0332,
+    0.0113
+   ],
+   "eceML": [
+    0.1345,
+    0.1085
+   ],
+   "digitFlips": 0,
+   "note": "fitted in-sample on the train split; a comparison unit, not shipped (PU.72)"
+  }
+ },
+ "heldout": {
+  "r6": {
+   "cells": 864,
+   "windows": 184,
+   "T_train": 0.5682,
+   "T_heldout_diagnostic": 0.7971,
+   "nll": [
+    0.14737,
+    0.15367
+   ],
+   "eceConfidence15": [
+    0.0214,
+    0.0226
+   ],
+   "ecePerLabel10": [
+    0.0435,
+    0.0335
+   ],
+   "eceML": [
+    0.127,
+    0.0974
+   ]
+  },
+  "r11ctrl": {
+   "cells": 864,
+   "windows": 184,
+   "T_train": 0.7218,
+   "T_heldout_diagnostic": 0.7171,
+   "nll": [
+    0.15587,
+    0.14429
+   ],
+   "eceConfidence15": [
+    0.0321,
+    0.0066
+   ],
+   "ecePerLabel10": [
+    0.0477,
+    0.0307
+   ],
+   "eceML": [
+    0.1404,
+    0.1155
+   ]
+  }
+ }
+}
