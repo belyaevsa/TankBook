@@ -11,6 +11,15 @@ decisions.
 
 ---
 
+## 2026-09-24 · Three models, three tiers of work
+
+| | |
+|---|---|
+| **Commits** | this entry's commit (`agents/briefs/README.md` -> "Which model gets which brief", the routing lines on the open rows in `docs/TASKS.md`) |
+| **Reason** | Product owner: *"Qwen-3.8 max is the most capable and powerful. It should be preserved for the most valuable or vague researches. For simple reviews we can use codex with gpt-6 sol. If it's a simple mechanical work - do it with deepseek-v4.1-flash (review known papers and apply to a code, without diving deeper into divergence)."* |
+| **Evidence** | Every research note and completeness review of the PU.67 tranche ran on Qwen 3.8 max (eight notes, fourteen reviews), including reviews of docs-only closures and one-string fixes - the most capable model spent on the least demanding work. Both other models answered a probe on 2026-09-24 (`gpt-6-sol` via `codex exec`, `deepseek-v4.1-flash` via opencode). |
+| **What changed** | Qwen 3.8 max: the most valuable or vaguest research (PU.76, PU.77) and the reviews of such rows. Codex `gpt-6-sol`: simple reviews. DeepSeek `v4.1-flash`: mechanical work - known papers applied without re-deriving them, pinned fixes, tooling. Every open row names its routing. |
+
 ## 2026-09-24 · A research note only where a row changes a method
 
 | | |

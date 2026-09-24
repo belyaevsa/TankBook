@@ -46,6 +46,17 @@ The pattern these converged on, in order:
 8. **The baseline gate** – build + `swiftlint lint` exit 0, judged by exit code (`CLAUDE.md` rule 14).
 9. **Report back** – exact numbers, and *whether tests were actually run* rather than only written.
 
+## Which model gets which brief (product owner, 2026-09-24)
+
+| Work | Model | Dispatch |
+|---|---|---|
+| The most valuable or vaguest research - a new architecture, a method choice with no settled answer, a spike | **Qwen 3.8 max** - the most capable; preserve it for this | `scripts/dispatch.sh <id> alibaba-token-plan/qwen3.8-max` |
+| Simple reviews - a completeness review of a row whose method is settled, a docs-and-tests pass | **Codex `gpt-6-sol`** | `scripts/dispatch-codex.sh <id> gpt-6-sol` |
+| Simple mechanical work - apply a known paper to the code without re-deriving it, a fix whose cause is pinned, tooling | **DeepSeek `v4.1-flash`** | `scripts/dispatch.sh <id> alibaba-token-plan/deepseek-v4.1-flash` |
+
+A review of a row that WAS a vague research (a spike, a new architecture) stays on Qwen; the review
+takes the tier of the work it checks. Each row in `docs/TASKS.md` names its routing.
+
 ## Conventions
 
 - **Sized to finish in one run.** P0.12 delivered nothing three times as a single task, then went green
