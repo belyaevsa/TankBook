@@ -85,6 +85,8 @@ enum PumpReaderTestSupport {
 
     /// A still the model-scored ratchets measure: in the heldout split AND reviewed.
     static func isHeldout(_ name: String) -> Bool { split[name] == "heldout" && reviewed.contains(name) }
+    /// The split a still is filed under (`heldout2` is the second frozen draw).
+    static func splitOf(_ name: String) -> String? { split[name] }
     /// A still a model may train on: in the train split (absent from the file = train).
     static func isTrain(_ name: String) -> Bool { (split[name] ?? "train") == "train" }
     /// A train still a human has confirmed - the calibration population of the
