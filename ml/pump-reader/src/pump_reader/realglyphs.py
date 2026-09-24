@@ -28,10 +28,12 @@ Sampler levers (`ml/pump-reader/CORRECTIONS.md` section 3):
   this fraction of the cell width from the centre (default off). The slicer
   sometimes cuts a cell half a pitch off phase, so cell *i* carries label *i*
   over its neighbour's pixels; the centroid is the cheap geometric tell.
-* ``--dp-crop`` - ``off`` (the original framing: keep the labelled dp bit),
-  ``gap`` (widen every crop to the right by 0.4 x pitch so a decimal mark in
-  the inter-cell gap is inside the pixels the bit is trained on) or ``none``
-  (clear every dp bit - the slicer owns the mark, PU.34b).
+* ``--dp-crop`` - the framing: ``off`` (the shipped framing, the slicer's cell
+  rect) or ``gap`` (widen every crop to the right by 0.4 x pitch so a decimal
+  mark in the inter-cell gap is inside the pixels the bit is trained on).
+* ``--dp-bits`` - ``keep`` (the labelled dp bit, the default) or ``clear``
+  (zero every dp bit - the slicer owns the mark). ``pump_reader.train`` reads
+  both from the pool's manifest.
 
 Output: ``<out>/cells.npz`` (uint8 ``x`` of shape ``[n, 3, 48, 32]``, uint8
 ``y`` of the 8-bit segment labels) and ``<out>/manifest.json`` (per cell:
@@ -288,9 +290,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--centred", type=float, default=0.0,
                         help="keep a cell only when its column-ink centroid is within this "
                              "fraction of the cell width from the centre (0 = off)")
-    parser.add_argument("--dp-crop", choices=["off", "gap", "none"], default="none",
-                        help="off: original framing, keep the dp label; gap: widen the crop "
-                             "right by 0.4 x pitch; none: clear every dp bit (the slicer owns it)")
+    parser.add_argument("--dp-crop", choices=["off", "gap"], default="off",
+                        help="off: the shipped framing (the slicer's cell rect); gap: widen the "
+                             "crop right by 0.4 x pitch")
+    parser.add_argument("--dp-bits", choices=["keep", "clear"], default="keep",
+                        help="keep the labelled dp bit, or clear every one (the slicer owns it)")
     args = parser.parse_args(argv)
     if not args.export.exists():
         print(f"{args.export} missing - run PUMP_TRAIN_EXPORT=1 swift test --filter PumpTrainSliceExportTests")
@@ -331,7 +335,7 @@ def main(argv: list[str] | None = None) -> int:
             dropped[label.digit or ("dp" if label.dp else "blank")] += 1
             dropped_fixture[c["fixture"]] += 1
             continue
-        bits = c["bits"] & 0x7F if args.dp_crop == "none" else c["bits"]
+        bits = c["bits"] & 0x7F if args.dp_bits == "clear" else c["bits"]
         kept.append(dict(c, pixels=pixels, bits=bits))
 
     before = composition(kept)
@@ -367,6 +371,7 @@ def main(argv: list[str] | None = None) -> int:
         "seed": args.seed,
         "centred": args.centred,
         "dp_crop": args.dp_crop,
+        "dp_bits": args.dp_bits,
         "centred_dropped": dict(sorted(dropped.items())),
         "centred_dropped_total": sum(dropped.values()),
         "centred_dropped_fixtures": dict(sorted(dropped_fixture.items())),

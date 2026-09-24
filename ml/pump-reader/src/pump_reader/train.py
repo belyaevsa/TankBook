@@ -90,7 +90,7 @@ def _metrics(model: nn.Module, loader: DataLoader, device: torch.device, n_bits:
     """Loss and per-segment / per-digit accuracy over a full loader.
 
     ``n_bits`` is 8, or 7 when the dp bit is dropped from training
-    (``--dp-crop none``): the untrained dp output is not scored."""
+    (``--dp-bits 7``): the untrained dp output is not scored."""
     loss_fn = nn.BCEWithLogitsLoss()
     total = 0
     loss_sum = 0.0
@@ -125,6 +125,26 @@ def dp_pos_weight_vector(n_bits: int, dp_weight: float) -> torch.Tensor:
     if n_bits == 8:
         weights[7] = dp_weight
     return weights
+
+
+def pool_framing(folder: Path) -> dict:
+    """The dp framing a realglyphs pool was built with, from its manifest. A
+    manifest from before `--dp-bits` existed carries `dp_crop: none` for a
+    cleared pool."""
+    manifest = json.loads((folder / "manifest.json").read_text())
+    crop = manifest.get("dp_crop", "off")
+    bits = manifest.get("dp_bits", "clear" if crop == "none" else "keep")
+    return {"dp_crop": "off" if crop == "none" else crop, "dp_bits": bits}
+
+
+def resolve_dp_bits(requested: int | None, pool_bits: str | None) -> int:
+    """7 or 8 output bits to train: the request, else the pool's choice, else 8.
+    An 8-bit run on a pool whose dp bits were cleared is refused."""
+    if requested == 8 and pool_bits == "clear":
+        raise SystemExit("--dp-bits 8 on a pool built with --dp-bits clear: the dp bit would train on zeros")
+    if requested is not None:
+        return requested
+    return 7 if pool_bits == "clear" else 8
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -169,11 +189,12 @@ def _make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--framing", type=str, default="slicer", choices=["slicer", "glyph"])
     parser.add_argument("--real", type=Path, default=None, help="pump_reader.realglyphs output folder")
     parser.add_argument("--real-frac", type=float, default=0.3, help="share of each batch drawn from --real")
-    # The dp bit the slicer cannot see is noise (PU.34b owns the mark): "none"
-    # clears the synthetic dp target and drops the dp term from the loss, so the
-    # 8th output is untrained and unscored. "gap" keeps round 10's 8-bit model,
-    # whose cells realglyphs cut with the gap crop.
-    parser.add_argument("--dp-crop", choices=["gap", "none"], default="gap")
+    # 8 trains the decimal-point output; 7 clears the synthetic dp target and
+    # drops the dp term from the loss, so the 8th output is untrained and
+    # unscored. The default follows the --real pool's manifest (a pool built
+    # with `realglyphs --dp-bits clear` trains 7), else 8; asking for 8 on a
+    # cleared pool is refused, since the dp bit would learn from zeros.
+    parser.add_argument("--dp-bits", type=int, choices=[7, 8], default=None)
     # PU.73 Round A (agents/research/PU.73.md §3.1): the dp bit is ~22 % positive.
     # `--dp-pos-weight` is class-balanced cross-entropy on dp alone (Lin et al.
     # 2017 eq. 3, as a positive weight); `--focal-gamma` is the focal loss (eq. 5),
@@ -205,8 +226,9 @@ def main(argv: list[str] | None = None) -> int:
     rng = np.random.default_rng(args.seed)
     torch.manual_seed(args.seed)
 
-    dp_bits = args.dp_crop != "none"
-    n_bits = 8 if dp_bits else 7
+    pool = pool_framing(args.real) if args.real else {"dp_crop": None, "dp_bits": None}
+    n_bits = resolve_dp_bits(args.dp_bits, pool["dp_bits"])
+    dp_bits = n_bits == 8
     priors = _parse_priors(args.priors) if args.priors else None
     recipe = {
         "spill_prob": args.spill_prob,
@@ -289,7 +311,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     metrics = {
         "steps": steps, "spill_prob": args.spill_prob, "contrast_prob": args.contrast_prob,
-        "framing": args.framing, "dp_crop": args.dp_crop,
+        "framing": args.framing, "dp_bits": n_bits,
+        "pool_dp_crop": pool["dp_crop"], "pool_dp_bits": pool["dp_bits"],
         "head": args.head, "dp_pos_weight": args.dp_pos_weight,
         "focal_gamma": args.focal_gamma, "focal_alpha": args.focal_alpha, "loss_reduction": "mean",
         "priors": priors or "default",
