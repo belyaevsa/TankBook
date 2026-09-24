@@ -1,12 +1,82 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-22 (evening; "The plan" immediately below is the newest, then "The corpus week",
-and everything under that is history). 213 commits since 2026-09-19. The tree carries one other session's uncommitted edits (`corpus.sqlite`,
-`pump/windows.json` - the owner's annotator work); commit them by explicit path when that session
-is done, never `git add -A`. Read this, then `CLAUDE.md`, then `docs/DEVELOPMENT-TIMELINE.md`, then
-`docs/TASKS.md`'s index (144 open, 464 closed).*
+*Updated 2026-09-24 ("Where it stands" immediately below is the newest; "The plan (2026-09-22)"
+and "The corpus week" follow and are now mostly history). 51 commits since the 2026-09-22 handover.
+Read this, then `CLAUDE.md`, then `docs/DEVELOPMENT-TIMELINE.md`, then `docs/TASKS.md`'s index.*
 
-## The plan (2026-09-22, after the whole-story review) - read this before picking anything up
+## Where it stands (2026-09-24) - read this before picking anything up
+
+**The tree is not clean, and not all of it is one author's.** At handover time:
+
+- **Uncommitted, orchestrator's, awaiting reviews:** PU.73 and PU.74 (ticked `[x]` in `TASKS.md`
+  but not committed), PU.82/83/84 filed, and PU.72's reporting-only build. Files: `PumpReadingLaw.swift`,
+  `PumpReadingTypes.swift`, `PumpReadingLawExactTests.swift`, `docs/EXTRACTION.md`, `docs/TASKS.md`,
+  `ml/pump-reader/{REPORT.md,src/pump_reader/{export,model,score,train,temperature}.py,tests/*}`,
+  `ml/pump-reader/runs/2026-09-2{3,4}/`, `agents/research/PU.7{2,3,4,5}.md`, the
+  `agents/briefs/{RESEARCH,REVIEW-COMPLETE}-PU.7*.md` briefs and `agents/reviews/PU.7{2,3}-COMPLETENESS*.md`.
+- **Two Codex completeness reviews were running** (`gpt-6-sol`, `scripts/dispatch-codex.sh`):
+  `REVIEW-COMPLETE-PU.74` and `REVIEW-COMPLETE-PU.73-3` (the third pass on PU.73). Logs and verdicts
+  in `/tmp/agentlogs/REVIEW-COMPLETE-PU.7{4,3-3}*`. **Commit each row only on a COMPLETE verdict**,
+  by explicit pathspec, one row per commit; PU.73 and PU.74 share `docs/TASKS.md` and
+  `docs/EXTRACTION.md`, so commit them together or stage hunks carefully.
+- **The owner's annotator work** (`corpus.sqlite`, `pump/windows.json`, `pump-live/{corrections.jsonl,
+  video-labels.json,videos.json}`) - not ours; commit by explicit path only when the owner asks, never
+  `git add -A`. **The owner's pump-275 re-frame was committed at `22559705`** (on the owner's
+  instruction); the floors (`committedFloor`, `readerCommitted`/`readerNumericTotal`) were being
+  re-measured on it with PU.74 in the tree (`/tmp/agentlogs/pu74-on-22559705.log`) - move the
+  constants to that run's numbers in PU.74's commit.
+
+**What changed since 2026-09-22** (pump reader, all on `main` unless noted):
+
+| Row | Outcome |
+|---|---|
+| PU.53 | The reader finds its own orientation; live measurement no longer uses the annotation's `rotationCW` (oracle leak gone), live held 47/47 |
+| PU.60 | Row assignment back over its floor, 0.989 -> 0.995 |
+| PU.61 `[~]` | Ship gate learns the reader exists; its binding test had not run all tranche |
+| PU.62 | Rules arm behind the reader measured harmless, stays |
+| PU.63 | Display check stops refusing label-heavy faces: +21 stills, app path 42 -> 45 |
+| PU.64/65 `[~]` | Annotator shows where a row was lost; row-turn on refusal worth 45 -> 54 (photo levelling adds nothing, not merged) |
+| PU.66 `[~]` | Three detector retrains with rotations all frame looser than the shipped one - **shipped detector stays** |
+| PU.67 `[ ]` | **Held**: the app reader with `.onRefusal` reads 52 committed / 51 correct (pump-275 total 103.31 for 103.37), below 0.99; the app stays `.off`. PU.65's 54/54 was an ad-hoc script at 0.1 tolerance - quote the suite's scorer (memory: score-with-the-corpus-scorer) |
+| PU.58 | Dropped: live 47 -> 44 |
+| PU.59 / PJ.500 | Unvalidated pair built, 1/10 on the app path, held (owner); Confirm names both prices when shown and implied differ |
+| PU.68 | Wilson / Clopper-Pearson / exact UCB beside every pump precision; nothing certifies 1 % yet |
+| PU.69 | Row angle by fast Hough transform: 8.4 -> 3 ms per row, median error 0.73 -> 0.60 deg; PU.70, PU.71 cut |
+| PU.78 | The close is exact (product rounded or floored to the cent); heldout live 47/47, annotated 118/118 |
+| PU.79/80 | Annotated floor restored to 112/112 via the owner's re-frames; PaddleOCR coverage check retired |
+| PU.81 | Closed with no repair (the owner's beam guard did not exclude pump-014) |
+| PU.72 (uncommitted, `[ ]`) | Temperature scaling built reporting-only (`temperature.py`, T ~0.56); **not shipped** - a shared T changes no law decision and worsens heldout NLL. Completeness review 1 INCOMPLETE; waits on the owner's call |
+| PU.73 (uncommitted, `[x]`) | The dp bit is **framing-bound**: shipped AUC 0.653, ceiling ~0.75 for any loss/head; flatten head 0.726 but adds wrong readings on every seed - nothing ships. Follow-ups PU.82/83/84 |
+| PU.74 (uncommitted, `[x]`) | Per-currency measured conventions table; unlisted currency abstains `.currencyUnmeasured`, impossible cell counts `.cellCountImpossible`. Annotated 116 -> **121/121**, live 47/47, train wrong cells 6 -> 4, oracle 774 -> 776 |
+
+Also shipped: RV.303 (from-zero pull wedge), RV.304/305 (expense category and invoice-total fixes),
+SH.5 (TestFlight build is a separate app, Tankbook β), `release.sh` refuses only on app-source
+diffs (`scripts/app-paths`), hard rule 16 (the API is live), the site released with App Store links
+and Yandex.Metrika, and a large annotator rework (Annotation / Debugging workspaces, pipeline view,
+resident reader, re-fit to next pin).
+
+**Process changes (all in `docs/DEVELOPMENT-TIMELINE.md`):** a brief counts its population before it
+is written; the PU.67 tranche cycle - research note (`agents/briefs/RESEARCH-TO-CODE.md`) only for
+rows that change the law, a model or the statistics, build by the orchestrator, a
+`REVIEW-PU-COMPLETENESS` agent review, commit only on COMPLETE; **model routing (owner,
+2026-09-24)**: Qwen 3.8 max for valuable/vague research, Codex `gpt-6-sol` for simple reviews,
+DeepSeek v4.1-flash for mechanical work - every open row names its routing.
+
+**Next, in order:**
+
+1. Read the two running reviews; commit PU.74 and PU.73 on COMPLETE (re-dispatch on INCOMPLETE after fixing what it names).
+2. PU.72: the owner's call on the reporting-only close.
+3. Owner's calls pending: **PU.82** (train on the hand-box pool, a 13x data cut), **PU.84**
+   (inference-time gap framing for the dp bit - the only measured lever left), and whether to run
+   **PU.76's research note (Qwen) and RV.301 (flash) in separate worktrees** (asked 2026-09-24; the
+   owner's global rule is no worktrees unless asked). PU.67 stays held on pump-275's misread - a
+   read-quality problem now (PU.81 closed with no repair), not a corpus one.
+4. PU.83 (the `--dp-crop` vocabularies) - mechanical, flash.
+5. Open research rows: PU.75 (speed, never timed on an iPhone), PU.76 (oriented row detector -
+   quads are the largest measured variable, 89 -> 111), PU.77 (row-level sequence reader spike).
+6. PU.6 (the ship decision) stays blocked until the reader's coverage moves; `PumpPhotoGate` keeps pump mode off.
+
+## The plan (2026-09-22, after the whole-story review) - history; rows 0-3 and 5 are done, see above
 
 `agents/reviews/PUMP-DECIDE-2026-09-22-fable.md` reviewed the whole pump-reader arc, PU.1 to
 PU.60. Its verdict: **the trained reader is the right architecture and the unit of work is
