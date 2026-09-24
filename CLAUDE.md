@@ -131,6 +131,24 @@ Conflict rule: if two docs disagree, the more specific one wins (API.md over SYN
    the account; and **nothing is logged but shape**. It is staging for the ledger, not a second
    ledger: a row leaves it by landing in `llm_calls` or by being dropped. It **licenses nothing
    further** - a fifth place that stores user content needs its own decision, written here.
+   **The debug cases and the admin viewer (amended 2026-09-24, product owner).** The owner debugs
+   the app from what a user actually captured, so three things become readable by **one internal
+   tool, the admin viewer** - never by a public endpoint: (1) **debug cases** - a scan the user
+   chose to send (the photo, the phone's pipeline trace, the LLM exchange as the device saw it, app
+   version and `traceId`), received by `POST /cases` and stored; this is the **fifth** place that
+   stores user content; (2) **the LLM call ledger** - its rows and prompt renditions, which the
+   ledger amendment above made "read by no endpoint": that still holds for every endpoint, and the
+   viewer is the one reader; (3) **an account's synced attachments**, by account id. The bounds are
+   what keep this from becoming a data-mining surface: **a case is sent only by the user's explicit
+   action**, in every build (the beta is the same app); cases are kept **30 days**, require no
+   account, and `DELETE /account` purges them; the viewer runs **off the public API host**, admits
+   the owner alone, looks up **by case id, `traceId` or account id only** - no list of users, no
+   search over content, no bulk export - and **writes an access-log row for every view**; the
+   privacy policy says all of this in both languages before the first case is accepted; and
+   **nothing is logged but shape** (hard rule 12 is unchanged - the viewer displays content, the
+   logs never carry it). No dashboards or telemetry come with it. It licenses nothing further: a
+   second reader of user content, or a reader that searches or aggregates it, needs its own
+   decision written here. (`docs/SECURITY.md` → "The admin viewer")
       **[v2] The second exception (decided 2026-08-29, product owner): the Car Agent's `POST
    /agent/turn`** (`docs/AGENT.md` §2.1). Same shape, three differences: it **stores nothing**
    (the device holds the conversation) except what the LLM call ledger amendment above records,

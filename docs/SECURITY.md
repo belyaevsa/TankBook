@@ -314,7 +314,8 @@ here because they are commitments:
   here rather than implied - the surviving row's `accountId` references an account that no longer
   exists, and that is the point.
 - **No endpoint reads the ledger.** It is written by the gateway and read by no query, search or
-  stats API - the ledger exists for auditing, not for serving. Hard rule 12 still governs the
+  stats API - the ledger exists for auditing, not for serving. The one reader is the internal
+  admin viewer (2026-09-24, below), which is not an endpoint of the API. Hard rule 12 still governs the
   logs: the table stores content by this explicit amendment, but the logs carry only ids, counts,
   durations, model ids and outcome codes - never a prompt, a response body, a station, an amount
   or an image.
@@ -411,6 +412,41 @@ terms stated as plainly as the other three.
   insert AND the queue write both failed, so a paid call's record is lost),
   `llm.call_retry_landed` and `llm.pending_purge` (Information, counts only).
   Never an image, a prompt, a response body or a domain value.
+
+## The admin viewer (added 2026-09-24)
+
+Hard rule 9's 2026-09-24 amendment (product owner): the owner debugs the app from what users
+actually captured. One internal tool reads three kinds of user content; these are its commitments.
+
+**What it reads.**
+- **Debug cases** - a scan the user chose to send: the photo, the phone's pipeline trace (the
+  stage-by-stage JSON the corpus annotator's pipeline view renders), the LLM exchange as the device
+  saw it, app version and `traceId`. Received by `POST /cases` (additive, hard rule 16), photo
+  through the blob store, trace and exchange in the case row.
+- **The LLM call ledger** - rows and prompt renditions, joined to a case by `traceId`.
+- **An account's synced attachments**, by account id.
+
+**Consent and retention.**
+- A case is sent **only by the user's explicit action** - a "Send this scan" action beside the
+  scan's result and in About & feedback - in every build; Tankbook β is the same app. Nothing is
+  sent automatically, and the standing "help improve scanning" consent does not send by itself.
+- Cases are kept **30 days** (the tombstone/undo number), need no account (stored under the device
+  identity like `/import/parse`), and `DELETE /account` purges them with their blobs. The ledger's
+  and attachments' own retention rules are unchanged.
+
+**Access.**
+- The viewer is a **separate process, not a route of the public API**: bound to `127.0.0.1` on the
+  deploy host and reached through an SSH tunnel, so it has no public surface at all.
+- It admits **the owner alone** (an allowlisted identity), on top of the tunnel.
+- Lookup is **by case id, `traceId` or account id only** - no list of users, no search over content,
+  no aggregate or stats view, no bulk export.
+- **Every view writes an access-log row** (who, what id, which kind, when), kept for a year and
+  never purged with the content it points at - the audit of the reader outlives what was read.
+
+**What does not change.** Hard rule 12: the viewer displays content, the logs never carry it -
+case, ledger and attachment reads log ids, kinds and counts only. The privacy policy (site, EN and
+RU) states what the viewer can see and why **before the first case is accepted**. A second reader
+of user content, or one that searches or aggregates it, needs its own decision in hard rule 9.
 
 ## Passphrase-protected exports (added 2026-08-27)
 
