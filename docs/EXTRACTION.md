@@ -1124,6 +1124,16 @@ turns). Each result carries three confidence statistics of the criterion curve, 
 detector (PU.76; PU.70, their first consumer, was cut). Nothing on
 the app path changes until row deskew is enabled (PU.67).
 
+**The decimal-point bit is framing-bound, not loss- or head-bound (PU.73, 2026-09-24, `agents/research/PU.73.md`).**
+The shipped classifier reads the decimal mark at heldout AUC 0.653. A linear probe bounds what
+transfers linearly from the reader's cell crop near 0.63, and the note puts the ceiling for any loss or
+head near 0.75, because the mark usually sits in the gap after the glyph, outside the crop - nothing
+near the 0.9 a hard dp check would need; on gap-framed cells the same probe reaches 0.95. Measured over 3 seeds per arm: a positive weight on the dp bit and focal loss (mean reduction)
+moved it inside the seed spread; a flatten head moved it +0.044 (0.726) and digits up, but every
+flatten seed added wrong readings on the app path (pump-092's tenfold shrink among them) and live
+swung 43-56 across seeds, so nothing ships. PU.78's hard dp check therefore stays unearned; the
+measured lever left is inference-time gap framing (PU.84, the owner's call).
+
 **Row deskew, on a refusal - built, measured on the app's path, held (PU.65, PU.67, 2026-09-23).** A
 detector row turned to its digits' angle - the angle at which its row-by-row brightness profile is
 sharpest, a projection-profile skew estimate (`PumpRowDeskew`) - read only when the upright read and

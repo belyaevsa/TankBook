@@ -334,7 +334,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     state = torch.load(args.model, map_location="cpu")
-    model = SegmentNet()
+    model = SegmentNet(state.get("head", "gap"))
     model.load_state_dict(state["state_dict"])
     model.eval()
 

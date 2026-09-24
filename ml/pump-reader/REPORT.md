@@ -2257,3 +2257,21 @@ Reverted byte-identical; the same test then passes (green run: 4 tests in the su
 | app-target unit bundle (`xcodebuild test -only-testing:TankbookTests`) | 0 | 299 tests, 0 failures |
 | `swift test --filter "PumpReaderOrientationTests\|PumpReaderPipelineTests\|PumpRowGeometryTests\|PumpReaderHarnessTests\|PumpReadingLawTests"` | 0 | 43 tests in 5 suites; live search **43 / 43 / 1.000 / 14-of-68**; annotated **104 / 103 / 0.990 / 30-of-68** |
 | `bash scripts/check-screenshot-manifest.sh` | 1 | pre-existing `PU.29-confirm-pump-alpha` drift, no UI change |
+
+## PU.73 - the dp bit: loss and head rounds (2026-09-24)
+
+r6's steps / pool (`.out/real`) / real-frac on today's renderer, 3 seeds per arm; heldout dp AUC over
+864 cells (5-crop TTA, the app's path); the shipped r6 reads 0.653. Metrics per run in
+`runs/2026-09-24/pu73-metrics/`.
+
+| arm | dp AUC (s0 / s1 / s2) | digits | both tiers (annotated / live, of 181) |
+|---|---|---|---|
+| control (BCE, gap head) | 0.677 / 0.680 / 0.690 | 0.927-0.941 | s0: 111/109, 42/42 |
+| dp pos-weight 3.52 | 0.690 / 0.697 / 0.691 | 0.927-0.943 | not scored (F2) |
+| focal gamma 2 (mean reduction) | 0.679 / 0.681 / 0.681 | 0.931-0.932 | not scored (F2) |
+| flatten head | 0.732 / 0.726 / 0.721 | 0.944-0.949 | 116/114, 44/42; 107/106, 43/40; 123/121, 56/54 |
+| CoordConv | 0.695 / 0.674 / 0.683 | 0.933-0.936 | not scored (F2) |
+
+The shipped r6 on the same tree: 116/116 annotated, 47/47 live. Every flatten seed adds wrong
+readings (pump-092 3.0 L / 191.55 for 30.0 / 1915.5; pump-041, -055, -062 last digits); nothing
+ships. Temperatures (train pool): r6 0.568, control 0.587, flatten 0.534-0.537.

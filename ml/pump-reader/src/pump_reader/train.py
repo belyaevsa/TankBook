@@ -118,7 +118,40 @@ def _metrics(model: nn.Module, loader: DataLoader, device: torch.device, n_bits:
     }
 
 
-def main(argv: list[str] | None = None) -> int:
+def dp_pos_weight_vector(n_bits: int, dp_weight: float) -> torch.Tensor:
+    """Unit positive weights on every segment bit and `dp_weight` on the
+    decimal point (bit 7) alone, when the model has one."""
+    weights = torch.ones(n_bits)
+    if n_bits == 8:
+        weights[7] = dp_weight
+    return weights
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """The training CLI; split out so its defaults can be asserted."""
+    return _PARSER
+
+
+def segment_loss(pos_weight: torch.Tensor, gamma: float, alpha: float | None):
+    """The training loss over the per-segment logits. With `pos_weight` all ones,
+    `gamma` 0 and no `alpha` it is `BCEWithLogitsLoss()` exactly. The focal factor
+    `(1 - p_t) ** gamma` is taken from the HARD target so label smoothing does not
+    soften it; the cross-entropy term keeps the smoothed target."""
+    def loss(logits: torch.Tensor, targets: torch.Tensor, hard: torch.Tensor) -> torch.Tensor:
+        ce = nn.functional.binary_cross_entropy_with_logits(
+            logits, targets, pos_weight=pos_weight, reduction="none")
+        if gamma > 0 or alpha is not None:
+            p = torch.sigmoid(logits)
+            p_t = p * hard + (1 - p) * (1 - hard)
+            weight = (1 - p_t) ** gamma if gamma > 0 else torch.ones_like(p_t)
+            if alpha is not None:
+                weight = weight * (alpha * hard + (1 - alpha) * (1 - hard))
+            ce = ce * weight
+        return ce.mean()
+    return loss
+
+
+def _make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="pump_reader.train")
     parser.add_argument("--steps", type=int, default=6_000)
     parser.add_argument("--seed", type=int, default=0)
@@ -141,8 +174,26 @@ def main(argv: list[str] | None = None) -> int:
     # 8th output is untrained and unscored. "gap" keeps round 10's 8-bit model,
     # whose cells realglyphs cut with the gap crop.
     parser.add_argument("--dp-crop", choices=["gap", "none"], default="gap")
+    # PU.73 Round A (agents/research/PU.73.md §3.1): the dp bit is ~22 % positive.
+    # `--dp-pos-weight` is class-balanced cross-entropy on dp alone (Lin et al.
+    # 2017 eq. 3, as a positive weight); `--focal-gamma` is the focal loss (eq. 5),
+    # its modulating factor from the hard target, with `--focal-alpha` balancing
+    # positives. The defaults (1.0, 0, none) are exactly the unweighted BCE the
+    # shipped model trained with.
+    parser.add_argument("--head", choices=["gap", "flatten", "coord"], default="gap")
+    parser.add_argument("--dp-pos-weight", type=float, default=1.0)
+    parser.add_argument("--focal-gamma", type=float, default=0.0)
+    parser.add_argument("--focal-alpha", type=float, default=None)
     parser.add_argument("--priors", type=str, default=None,
                         help="technology priors as lcd,led,vfd (default: dataset.py's LCD-heavy prior)")
+    return parser
+
+
+_PARSER = _make_parser()
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
     args = parser.parse_args(argv)
 
     smoke = args.smoke
@@ -180,9 +231,10 @@ def main(argv: list[str] | None = None) -> int:
     if real:
         print(f"real glyphs: {len(real)} cells from {args.real}, {real_n} of every {args.batch_size}")
 
-    model = SegmentNet().to(device)
+    model = SegmentNet(args.head).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
-    loss_fn = nn.BCEWithLogitsLoss()
+    pos_weight = dp_pos_weight_vector(n_bits, args.dp_pos_weight).to(device)
+    loss_fn = segment_loss(pos_weight, args.focal_gamma, args.focal_alpha)
 
     def lr_at(step: int) -> float:
         if steps <= 1:
@@ -211,9 +263,10 @@ def main(argv: list[str] | None = None) -> int:
         ys = ys.to(device)
         model.train()
         optimizer.zero_grad()
+        hard = ys[:, :n_bits]
         if args.label_smoothing > 0:
             ys = ys * (1 - args.label_smoothing) + 0.5 * args.label_smoothing
-        loss = loss_fn(model(xs)[:, :n_bits], ys[:, :n_bits])
+        loss = loss_fn(model(xs)[:, :n_bits], ys[:, :n_bits], hard)
         loss.backward()
         optimizer.step()
 
@@ -231,12 +284,14 @@ def main(argv: list[str] | None = None) -> int:
     wall = time.time() - t0
 
     torch.save(
-        {"state_dict": model.state_dict(), "seed": args.seed, "steps": steps},
+        {"state_dict": model.state_dict(), "seed": args.seed, "steps": steps, "head": args.head},
         args.out / "segmentnet.pt",
     )
     metrics = {
         "steps": steps, "spill_prob": args.spill_prob, "contrast_prob": args.contrast_prob,
         "framing": args.framing, "dp_crop": args.dp_crop,
+        "head": args.head, "dp_pos_weight": args.dp_pos_weight,
+        "focal_gamma": args.focal_gamma, "focal_alpha": args.focal_alpha, "loss_reduction": "mean",
         "priors": priors or "default",
         "real": str(args.real) if args.real else None,
         "real_cells": len(real) if real else 0,

@@ -24,25 +24,44 @@ def _block(in_ch: int, out_ch: int) -> nn.Sequential:
     )
 
 
+HEADS = ("gap", "flatten", "coord")
+
+
 class SegmentNet(nn.Module):
-    """3 conv blocks -> global average pool -> 8 logits.
+    """3 conv blocks -> a head -> 8 logits.
 
     Input ``(N, 3, 48, 32)``; output ``(N, 8)`` (logits, sigmoid applied by the
     caller or at export). Weights live in ``self.features`` / ``self.classifier``.
+
+    ``head`` (PU.73 Round B, agents/research/PU.73.md §3.2): ``gap`` averages the
+    last feature map, as the shipped model does; ``flatten`` keeps where on the
+    glyph each feature fired (a flatten + fully connected head); ``coord`` adds
+    two coordinate channels in [-1, 1] before the first convolution (CoordConv,
+    Liu et al. 2018, arXiv:1807.03247) and keeps the average pool.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, head: str = "gap") -> None:
         super().__init__()
+        if head not in HEADS:
+            raise ValueError(f"unknown head {head!r}")
+        self.head = head
+        stem = 5 if head == "coord" else 3
         self.features = nn.Sequential(
-            _block(3, 16),
+            _block(stem, 16),
             _block(16, 32),
             _block(32, 64),
         )
-        self.classifier = nn.Linear(64, 8)
+        self.classifier = nn.Linear(64 * 6 * 4 if head == "flatten" else 64, 8)
+        if head == "coord":
+            rows = torch.linspace(-1, 1, 48).view(1, 1, 48, 1).expand(1, 1, 48, 32)
+            cols = torch.linspace(-1, 1, 32).view(1, 1, 1, 32).expand(1, 1, 48, 32)
+            self.register_buffer("coords", torch.cat([rows, cols], dim=1).clone())
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if self.head == "coord":
+            x = torch.cat([x, self.coords.expand(x.shape[0], -1, -1, -1)], dim=1)
         x = self.features(x)
-        x = x.mean(dim=(2, 3))
+        x = torch.flatten(x, 1) if self.head == "flatten" else x.mean(dim=(2, 3))
         return self.classifier(x)
 
 

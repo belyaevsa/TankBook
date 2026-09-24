@@ -46,7 +46,7 @@ def export(checkpoint: Path, out: Path) -> None:
     import coremltools as ct
 
     state = torch.load(checkpoint, map_location="cpu")
-    net = SegmentNet()
+    net = SegmentNet(state.get("head", "gap"))
     net.load_state_dict(state["state_dict"])
     net.eval()
     wrapped = _SigmoidNet(net).eval()
