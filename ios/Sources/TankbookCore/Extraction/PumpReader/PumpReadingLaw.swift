@@ -49,11 +49,15 @@ public enum PumpReadingLaw {
         priceBand: FuelPriceBand? = nil
     ) -> PumpDisplayReading {
         let conventions = PumpDisplayConventions.forCurrency(currency)
+        guard conventions.isMeasured else { return .abstained(.currencyUnmeasured) }
         let byField = Dictionary(grouping: windows, by: \.field)
         guard let literWindow = byField[.liters]?.first else { return .abstained(.noLitersWindow) }
+
         guard let priceWindow = byField[.unitPrice]?.first else {
             return resolveWithoutPrice(literWindow: literWindow, totalWindow: byField[.total]?.first,
-                                       boards: byField[.board] ?? [], conventions: conventions,
+                                       boards: (byField[.board] ?? []).filter {
+                                           conventions.admits(.unitPrice, cells: $0.cells.count)
+                                       }, conventions: conventions,
                                        priceBand: priceBand)
         }
         let totalWindow = byField[.total]?.first
@@ -83,6 +87,14 @@ public enum PumpReadingLaw {
         // No total on the display: the arithmetic has no judge, so the pair
         // is not committed - a confident wrong pair is worse than nil.
         guard totalWindow != nil else { return .abstained(.noTotalWindow) }
+        // A transaction window whose cell count the currency never shows is a
+        // mis-slice or a misassigned row; the arithmetic must not close on it.
+        // A row too long for the law at all stays `cellUnknown`.
+        let transaction = [(PumpField.liters, literWindow), (.unitPrice, priceWindow), (.total, totalWindow!)]
+        if transaction.allSatisfy({ $0.1.cells.count <= maxCells }),
+           transaction.contains(where: { !conventions.admits($0.0, cells: $0.1.cells.count) }) {
+            return .abstained(.cellCountImpossible)
+        }
 
         let topRead = [literWindow, priceWindow, totalWindow!].reduce(0.0) { sum, window in
             sum + window.cells.reduce(0.0) { $0 + $1.top.logPosterior }
@@ -199,6 +211,12 @@ public enum PumpReadingLaw {
     static func resolveWithoutPrice(literWindow: PumpLocatedWindow, totalWindow: PumpLocatedWindow?,
                                     boards: [PumpLocatedWindow], conventions: PumpDisplayConventions,
                                     priceBand: FuelPriceBand?) -> PumpDisplayReading {
+        let pair = [(PumpField.liters, literWindow)] + (totalWindow.map { [(PumpField.total, $0)] } ?? [])
+        if !literWindow.cells.allSatisfy({ $0.top.digit == 0 }),
+           pair.allSatisfy({ $0.1.cells.count <= maxCells }),
+           pair.contains(where: { !conventions.admits($0.0, cells: $0.1.cells.count) }) {
+            return .abstained(.cellCountImpossible)
+        }
         if let totalWindow,
            let clean = cleanBoardClose(literWindow: literWindow, totalWindow: totalWindow,
                                        boards: boards, conventions: conventions, priceBand: priceBand) {

@@ -51,6 +51,14 @@ public enum PumpAbstentionReason: String, Sendable, Equatable, Codable {
     /// More than one candidate closed the arithmetic and the survivors
     /// disagree: the read is ambiguous, so the field (or the reading) abstains.
     case ambiguous
+    /// The display's currency has no measured conventions row: rather than a
+    /// permissive guess at its decimal placements - which let a tenfold
+    /// shrink close alongside the true reading - the reading abstains.
+    case currencyUnmeasured
+    /// A transaction window has a number of cells never observed for its role
+    /// in its currency: a mis-sliced or misassigned window, refused before the
+    /// arithmetic can close on it.
+    case cellCountImpossible
 }
 
 /// What the form must say about a committed reading the law could not fully
@@ -189,48 +197,91 @@ public struct PumpDisplayReading: Sendable, Equatable {
     }
 }
 
-/// What a display in a currency shows: the decimals each field carries. A
-/// value's digits are read from the cells; the decimal placement is a
-/// convention of the head and the currency, so it is a small candidate set
-/// the arithmetic chooses from, never a guess from a dot the classifier may
-/// not have seen. Measured from the corpus strings (PU.14 §2.1).
+/// What a display in a currency shows: the decimals each field carries, and
+/// how many cells each field's window can have. A value's digits are read from
+/// the cells; the decimal placement is a convention of the head and the
+/// currency, so it is a small candidate set the arithmetic chooses from, never
+/// a guess from a dot the classifier may not have seen. The table is the
+/// measured one: for every reviewed corpus window, the placements that
+/// reproduce the asserted value from the displayed digits, and the displayed
+/// cell counts - a finite-state constraint on the candidate strings (Willard &
+/// Louf 2023) that `PumpDisplayConventionsCorpusTests` re-derives from the corpus.
+/// A currency the corpus has not measured has no row and the reading abstains.
 public struct PumpDisplayConventions: Sendable, Equatable {
     public let volumeDecimals: [Int]
     public let priceDecimals: [Int]
-    /// Decimals a total is READ with; a shorter total (one decimal on RUB
-    /// heads, `3765,7`) is a truncated display value and is only ever derived.
+    /// Decimals a total is READ with; a read total closes against the product
+    /// to the cent. A total at `truncatedTotalDecimals` that only the cut
+    /// product reproduces is a truncated display value and is derived.
     public let totalDecimals: [Int]
     public let truncatedTotalDecimals: [Int]
+    /// The cell counts observed per field; a field absent from the map is not
+    /// audited (a currency measured on fewer than three stills cannot bound a
+    /// new head).
+    public let cellCounts: [PumpField: Set<Int>]
+    /// False for a currency with no measured row.
+    public let isMeasured: Bool
 
     public init(volumeDecimals: [Int], priceDecimals: [Int], totalDecimals: [Int],
-                truncatedTotalDecimals: [Int]) {
+                truncatedTotalDecimals: [Int], cellCounts: [PumpField: Set<Int>] = [:],
+                isMeasured: Bool = true) {
         self.volumeDecimals = volumeDecimals
         self.priceDecimals = priceDecimals
         self.totalDecimals = totalDecimals
         self.truncatedTotalDecimals = truncatedTotalDecimals
+        self.cellCounts = cellCounts
+        self.isMeasured = isMeasured
     }
 
+    /// Whether a window of `count` cells is possible for `field` in this currency.
+    public func admits(_ field: PumpField, cells count: Int) -> Bool {
+        cellCounts[field]?.contains(count) ?? true
+    }
+
+    static let unmeasured = PumpDisplayConventions(volumeDecimals: [], priceDecimals: [], totalDecimals: [],
+                                                   truncatedTotalDecimals: [], isMeasured: false)
+
+    private static func row(_ liters: [Int], _ price: [Int], _ total: [Int], truncated: [Int] = [],
+                            cells: (liters: Set<Int>, price: Set<Int>, total: Set<Int>)? = nil)
+        -> PumpDisplayConventions {
+        PumpDisplayConventions(
+            volumeDecimals: liters, priceDecimals: price, totalDecimals: total, truncatedTotalDecimals: truncated,
+            cellCounts: cells.map { [.liters: $0.liters, .unitPrice: $0.price, .total: $0.total] } ?? [:])
+    }
+
+    // Measured on the reviewed corpus; `PumpDisplayConventionsCorpusTests`
+    // re-derives these sets on every run. Cell counts are audited only where
+    // the currency has three or more stills.
+    private static let table: [String: PumpDisplayConventions] = [
+        "EUR": row([2], [3], [2], cells: ([3, 4, 6], [2, 4], [3, 4, 5, 6])),
+        // Some RN heads show the price to one decimal (`68,3`); the band keeps
+        // `683,0` from passing as a price.
+        // A one-decimal RUB total (`2499,8`) is displayed by some heads, but the
+        // display alone cannot say whether the charge was that figure or the
+        // product to the kopeck, so it closes read only when the product
+        // reproduces it exactly; otherwise the truncated placement derives the
+        // product.
+        "RUB": row([2], [1, 2], [1, 2], truncated: [1], cells: ([3, 4, 5, 6, 7], [3, 4, 5], [3, 4, 5, 6, 7])),
+        "KZT": row([2], [0, 1], [0], truncated: [1], cells: ([4], [3, 4], [4, 5, 6])),
+        "GBP": row([2], [3], [2], cells: ([3, 4], [4], [3, 4, 5])),
+        "AUD": row([2], [3], [2], cells: ([4, 5], [4], [4, 5])),
+        "BYN": row([2], [2], [2], cells: ([4], [3], [4])),
+        // Som prices are two digits to one decimal (`99,9`, video-004).
+        "KGS": row([2], [1, 2], [2], truncated: [1]),
+        // One reviewed still each: placements as measured, no cell audit; a
+        // total the still does not reproduce keeps the two-decimal read and a
+        // one-decimal derived form.
+        "BGN": row([2], [2], [2]),
+        "BRL": row([2], [3], [2], truncated: [1]),
+        "ISK": row([2], [1], [0]),
+        "NOK": row([2], [2], [2]),
+        "PHP": row([3], [2], [2], truncated: [1]),
+        "PLN": row([2], [2], [2]),
+        "SEK": row([2], [2], [2]),
+        "TMT": row([2], [2], [2], truncated: [1])
+    ]
+
     public static func forCurrency(_ currency: CurrencyCode?) -> PumpDisplayConventions {
-        switch currency?.rawValue {
-        case "EUR":
-            return PumpDisplayConventions(volumeDecimals: [2], priceDecimals: [3],
-                                          totalDecimals: [2], truncatedTotalDecimals: [])
-        case "RUB":
-            // Some RN heads show the price to one decimal (`68,3`); the band
-            // keeps `683,0` from passing as a price.
-            return PumpDisplayConventions(volumeDecimals: [2], priceDecimals: [1, 2],
-                                          totalDecimals: [2], truncatedTotalDecimals: [1])
-        case "KZT":
-            return PumpDisplayConventions(volumeDecimals: [2], priceDecimals: [0, 1],
-                                          totalDecimals: [0, 2], truncatedTotalDecimals: [1])
-        case "KGS":
-            // Som prices are two digits to one decimal (`99,9`, video-004); the
-            // default's two or three decimals can never place that mark.
-            return PumpDisplayConventions(volumeDecimals: [2], priceDecimals: [1, 2],
-                                          totalDecimals: [2], truncatedTotalDecimals: [1])
-        default:
-            return PumpDisplayConventions(volumeDecimals: [2, 3], priceDecimals: [2, 3],
-                                          totalDecimals: [2], truncatedTotalDecimals: [1])
-        }
+        currency.flatMap { table[$0.rawValue] } ?? unmeasured
     }
 }

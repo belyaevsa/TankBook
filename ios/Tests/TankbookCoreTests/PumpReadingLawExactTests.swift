@@ -53,4 +53,88 @@ struct PumpReadingLawExactTests {
         #expect(reading.committedCount == 2)
         if case .shownPriceDiffers? = reading.caution {} else { Issue.record("expected shownPriceDiffers") }
     }
+
+    @Test("a currency with no measured conventions abstains instead of guessing placements")
+    func unmeasuredCurrencyAbstains() {
+        let reading = PumpReadingLaw.resolve(
+            windows: [Self.window(.total, "20,00"), Self.window(.liters, "10,00"), Self.window(.unitPrice, "2,000")],
+            currency: CurrencyCode(rawValue: "USD"))
+        #expect(reading.committedCount == 0)
+        #expect(reading.reason == .currencyUnmeasured)
+    }
+
+    @Test("GBP reads its measured placements, so a tenfold shrink no longer closes beside the truth")
+    func gbpTenfoldShrinkDoesNotClose() {
+        // pump-137's display: 52.30 L at 182.8 p (1.828 GBP), total 95.60, and
+        // no decimal mark seen (as on the real still, whose marks sit in the
+        // wrong cells). The old default placements also closed 5.230 x 18.28;
+        // GBP's measured row keeps only the true triple.
+        let reading = PumpReadingLaw.resolve(
+            windows: [Self.window(.total, "9560"), Self.window(.liters, "5230"), Self.window(.unitPrice, "1828")],
+            currency: CurrencyCode(rawValue: "GBP"))
+        #expect(reading.liters.value == Decimal(string: "52.3"))
+        #expect(reading.unitPrice.value == Decimal(string: "1.828"))
+        #expect(reading.total.value == Decimal(string: "95.6"))
+    }
+
+    @Test("a window with a cell count its currency never shows is refused")
+    func impossibleCellCountIsRefused() {
+        // An EUR price is four cells (or an idle two); three is a mis-slice.
+        let reading = PumpReadingLaw.resolve(
+            windows: [Self.window(.total, "20,00"), Self.window(.liters, "10,00"), Self.window(.unitPrice, "200")],
+            currency: CurrencyCode(rawValue: "EUR"))
+        #expect(reading.committedCount == 0)
+        #expect(reading.reason == .cellCountImpossible)
+    }
+
+
+    @Test("KZT reads a whole-tenge total and a whole or one-decimal price")
+    func kztZeroDecimalTotal() {
+        // 40.00 L x 244 = 9760 tenge, printed without decimals (pump-006's shape).
+        // With no marks the digits also read 24.4 x 40.00 = 976,0 truncated; the
+        // tenge price band the app passes (50-1000) is what rules that out.
+        let reading = PumpReadingLaw.resolve(
+            windows: [Self.window(.total, "9760"), Self.window(.liters, "40,00"), Self.window(.unitPrice, "244")],
+            currency: CurrencyCode(rawValue: "KZT"), priceBand: FuelPriceBand(low: 50, high: 1000))
+        #expect(reading.total.value == Decimal(string: "9760"))
+        #expect(reading.unitPrice.value == Decimal(string: "244"))
+    }
+
+    @Test("RUB reads a one-decimal price and a one-decimal total when the product reproduces it")
+    func rubOneDecimalPriceAndTotal() {
+        // 50.00 L x 68.3 = 3415.00, shown 3415,0: the product reproduces the
+        // display exactly, so the total is read.
+        let reading = PumpReadingLaw.resolve(
+            windows: [Self.window(.total, "3415,0"), Self.window(.liters, "50,00"), Self.window(.unitPrice, "68,3")],
+            currency: CurrencyCode(rawValue: "RUB"))
+        #expect(reading.unitPrice.value == Decimal(string: "68.3"))
+        #expect(reading.liters.value == Decimal(string: "50"))
+        #expect(reading.total.value == Decimal(string: "3415"))
+        #expect(reading.total.provenance == .read)
+    }
+
+    @Test("a one-decimal total the product only truncates to commits as derived")
+    func truncatedTotalStaysDerived() {
+        // 36.60 L x 68.3 = 2499.78, shown 2499,8. The display cannot say whether
+        // the charge was 2499.8 or 2499.78 (the corpus holds both kinds), so the
+        // total is the product, marked derived - never the display read as fact.
+        let reading = PumpReadingLaw.resolve(
+            windows: [Self.window(.total, "2499,8"), Self.window(.liters, "36,60"), Self.window(.unitPrice, "68,3")],
+            currency: CurrencyCode(rawValue: "RUB"))
+        #expect(reading.unitPrice.value == Decimal(string: "68.3"))
+        #expect(reading.liters.value == Decimal(string: "36.6"))
+        #expect(reading.total.value == Decimal(string: "2499.78"))
+        #expect(reading.total.provenance == .derived)
+    }
+
+    @Test("the pair tier refuses a window with a cell count its currency never shows")
+    func pairTierAuditsCellCounts() {
+        // No price window; the EUR litres row has 2 cells - never an EUR count.
+        let reading = PumpReadingLaw.resolve(
+            windows: [Self.window(.total, "20,00"), Self.window(.liters, "10"), Self.window(.board, "2,000")],
+            currency: CurrencyCode(rawValue: "EUR"), priceBand: FuelPriceBand(low: 0.4, high: 3.0))
+        #expect(reading.committedCount == 0)
+        #expect(reading.reason == .cellCountImpossible)
+    }
+
 }

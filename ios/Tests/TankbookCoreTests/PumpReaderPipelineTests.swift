@@ -26,8 +26,10 @@ struct PumpReaderPipelineTests {
     // body (PU.4 round of 2026-09-20). PU.54 (decision 11, 2026-09-22) adds the
     // pair path: 104 -> 112 committed at 0.991, 30 -> 34 photos. PU.78 made the
     // close exact (no one-cent tolerance) and pair agreement exact: 112 -> 118
-    // committed, all correct, 35 -> 41 photos.
-    private static let committedFloor = 118
+    // committed, all correct, 35 -> 41 photos. PU.74 (measured conventions per
+    // currency, impossible cell counts refused) with the owner's pump-275
+    // re-frame: 123 committed, all correct, 43 of 68 photos.
+    private static let committedFloor = 123
     private static let precisionFloor = 0.96
     // The live path (no annotation): measured on the heldout split on
     // 2026-09-20 after PU.24's verifier round - every candidate verified, a

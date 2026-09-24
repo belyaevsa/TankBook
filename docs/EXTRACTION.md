@@ -1124,6 +1124,29 @@ turns). Each result carries three confidence statistics of the criterion curve, 
 detector (PU.76; PU.70, their first consumer, was cut). Nothing on
 the app path changes until row deskew is enabled (PU.67).
 
+**Each currency's display conventions are measured, and an unmeasured one abstains (PU.74, 2026-09-24,
+`agents/research/PU.74.md`).** A field's decimal placement comes from a per-currency table of the
+placements that reproduce the corpus's asserted values from the displayed digits, and a transaction
+window's cell count must be one the currency has shown (audited where three or more stills exist) -
+finite-state constrained decoding reduced to a lookup (Willard & Louf 2023). The permissive default
+row it replaces let GBP, AUD and BYN displays close a tenfold-shrunk triple beside the true one
+(pump-137); an unlisted currency now abstains as `.currencyUnmeasured` instead. The cell-count audit
+runs once per window in `PumpReadingLaw.resolve`, after the structural guards and before the
+arithmetic, rather than inside `candidates`: a count is a property of the window, identical for every
+candidate string it yields, so filtering there would empty the set and surface as `cellUnknown`,
+losing the named reason. A one-decimal RUB total (`2499,8`) is read only when the product reproduces
+it exactly; otherwise the truncated placement derives the product, because the display alone cannot
+say which was charged - the corpus asserts the display on pump-018 and pump-106 and the product on
+pump-065, pump-073 and pump-158. Measured over the 68 heldout stills, 183 cells, scored at
+`CorpusScorer.tolerance`: annotated 116 -> **123 of 123** committed correct (one-sided 95% lower
+bound, Clopper-Pearson, 0.976); live unchanged at **47 of 47** (0.938); the train split in-sample
+122 committed / 118 correct, wrong cells 6 -> 4 (Wilson 95% [0.919, 0.987]). On the annotated
+strings, of the 229 reviewed three-value fixtures the CSV does not dispute, 224 close their true
+triple under every placement and **none** loses it under the table (0 of 224, one-sided 95% upper
+bound 0.013); twelve fixtures that closed a tenfold-shrunk or -grown triple beside the true one close
+only the true one. pump-190's disputed one-decimal KZT total still closes a tenfold-grown price
+beside the truth, so the law abstains on those two fields there.
+
 **The decimal-point bit is framing-bound, not loss- or head-bound (PU.73, 2026-09-24, `agents/research/PU.73.md`).**
 The shipped classifier reads the decimal mark at heldout AUC 0.653. A linear probe bounds what
 transfers linearly from the reader's cell crop near 0.63, and the note puts the ceiling for any loss or
