@@ -1,4 +1,4 @@
-#if DEBUG
+#if EXPERIMENTS
 import CoreGraphics
 import Foundation
 import SwiftUI

@@ -429,6 +429,7 @@ jobs:
           AUTH_JWT_SIGNING_KEY: ${{ secrets.AUTH_JWT_SIGNING_KEY }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           APPLE_AUDIENCE: ${{ vars.APPLE_AUDIENCE }}
+          APPLE_AUDIENCE_BETA: ${{ vars.APPLE_AUDIENCE_BETA }}
           GOOGLE_AUDIENCE: ${{ vars.GOOGLE_AUDIENCE }}
           YC_DEPLOY_SA_KEY: ${{ secrets.YC_DEPLOY_SA_KEY }}
         run: |

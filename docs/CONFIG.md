@@ -33,6 +33,56 @@ A layer is used only if it validates. An invalid layer falls back to the one ben
 
 **Never remote-configurable:** anything security-critical (Keychain accessibility classes, TLS policy, the config signing key itself), UI layout, business rules, or consumption math. If a change alters what a number *means*, it ships through the App Store where it can be reviewed and tested.
 
+## Build channels and experiments (SH.7, product owner 2026-09-24)
+
+Remote config switches features that are **already in the store binary**. A feature that has not
+been accepted for the store yet is not switched off in it - it is **not compiled into it**. That is
+the job of the build channel, and the two mechanisms never stand in for each other.
+
+| Channel | Build | `DEBUG` | `EXPERIMENTS` | Who runs it |
+|---|---|---|---|---|
+| Development | `Debug` | yes | yes | the simulator, the test bundles, `release.sh --debug` on a plugged-in iPhone |
+| **Beta** | `Beta` - *Tankbook β*, `app.tankbook.Tankbook.beta` (`docs/STORE.md` §8) | no | **yes** | the owner, day to day on a real phone with real data, through TestFlight |
+| Store | `Release` - *Tankbook*, `app.tankbook.Tankbook` | no | **no** | users |
+
+**The two compile conditions mean different things.** `DEBUG` is for **test seams** only: fixture
+seeding, launch-argument doors, the simulated camera, the placeholder Google client id. None of it
+may reach a phone with real data, so none of it reaches the beta. `EXPERIMENTS` is for **features
+under trial**: they run in the beta exactly as a user would meet them, and are absent from the store
+binary. A feature is never put behind `DEBUG` to keep it out of the store - that also keeps it out of
+the beta, which is how the Capture lab went untested on a real forecourt.
+
+**The registry.** Every experiment is a case of `BetaExperiment` (`ios/App/Sources/Experiments/`),
+and About lists each one under *Experiments*, so the beta always shows what it carries. About's
+version line reads `· beta` in the Beta build and `· debug` in Debug.
+
+**The proof.** `scripts/experiments-check.sh` reads the built binary: each experiment's type names
+must be **absent** from a Release build and **present** in a Beta build (the second half keeps the
+first honest - a check that can no longer see the names would pass every store build).
+`RELEASE=1 scripts/gate.sh` builds Release and Beta and runs both halves; `scripts/release.sh`
+runs the matching half on the archive it is about to upload. A new experiment adds its type names
+to the check's `MARKERS` in the same change that adds its `BetaExperiment` case.
+
+**Leaving the beta is a decision, and only the owner makes it.** An experiment ends in one of two
+ways, each its own task row:
+
+- **Promoted.** The `#if EXPERIMENTS` guard and the `BetaExperiment` case are removed, the markers
+  leave the check, and the feature meets the store bar it was exempt from in the beta: every
+  string EN + RU through the catalog (hard rule 10), every error naming its next step (hard rule 7),
+  logging to `docs/LOGGING.md` (hard rule 12), the EN/RU screenshots, and its journey in
+  `docs/JOURNEYS.md`. After promotion it may take a remote kill switch like any shipped feature.
+- **Removed.** The code is deleted, not left behind a guard nobody reads.
+
+An experiment is held to the hard rules that protect data and privacy **in the beta too** - the
+beta runs on real data and talks to the live API (hard rule 16): nothing lost silently, no domain
+values logged, no secrets in the bundle, location never kept where it is not needed.
+
+**Current experiments:**
+
+| Experiment | Since | What it is | Decision pending |
+|---|---|---|---|
+| `captureLab` - the Capture lab (About → Experiments) | 2026-09-24 (built as PU.39, DEBUG-only until SH.7) | Shoots one scene under seven camera presets and compares latency, bytes, pixel size and what the reader committed; writes `Documents/CaptureLab/<session>/` with the photos (**GPS stripped** before writing) and `run.json` | promote, or remove, after real-world runs |
+
 ## Guardrails on `apiBaseUrl` – the dangerous one
 
 1. **HTTPS only**, and the host must match a **compiled-in allowlist** of domain suffixes. A config naming any other host is rejected outright and the previous value stands.

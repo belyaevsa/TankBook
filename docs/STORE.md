@@ -432,12 +432,13 @@ its own data. Signed into the same account, the two are simply two of the accoun
 
 | Piece | Where |
 |---|---|
-| the `Beta` build configuration (release-based: no `DEBUG`, store signing) | `project.yml` → `configs`, the target's `beta:` settings |
+| the `Beta` build configuration (release-based: no `DEBUG`, store signing; defines `EXPERIMENTS`) | `project.yml` → `configs`, the target's `beta:` settings |
+| what the beta carries that the store does not | the `#if EXPERIMENTS` features, listed under About → Experiments; the channel rules and the promotion decision are `docs/CONFIG.md` → "Build channels and experiments" (SH.7) |
 | the bundle id, the home-screen name, the icon | `PRODUCT_BUNDLE_IDENTIFIER`, `TANKBOOK_DISPLAY_NAME`, `AppIconBeta` in the `beta:` settings |
 | archive and upload | `scripts/release.sh --upload --beta` (plain `--upload` still ships the store app) |
 | the App ID | developer portal, with Sign in with Apple and Push Notifications like the store app's |
 | the App Store Connect record | *Tankbook β*, TestFlight only, never submitted for review |
-| Sign in with Apple | the backend's `Auth__AppleAudiences` must list **both** bundle ids - the allowlist fails closed, so without it the beta's sign-in is refused (`docs/SECURITY.md`) |
+| Sign in with Apple | the backend's `Auth__AppleAudiences` lists **both** bundle ids - `__0` from the `APPLE_AUDIENCE` repository variable, `__1` the beta's id, defaulted in `backend/scripts/deploy-blue-green.sh` (`APPLE_AUDIENCE_BETA` overrides it). The allowlist fails closed, so a deploy without it refuses the beta's sign-in (`docs/SECURITY.md`) |
 | Google sign-in | unprovisioned, exactly as the store build (SH.4) - the beta offers Apple alone |
 | push nudges | **not delivered to the beta yet** - the backend sends every push with one configured topic, the store bundle id; a beta device's token is rejected for it (SH.6). The beta still syncs: nudges are hints and the app polls |
 

@@ -1,7 +1,7 @@
 import XCTest
 
-/// PU.39 - the Capture Lab (DEBUG). The lab is reached from About's DEBUG row,
-/// shows seven presets and a shutter, and one press shoots the same scene under
+/// The Capture Lab, a beta experiment. The lab is reached from About's
+/// Experiments row, shows seven presets and a shutter, and one press shoots the same scene under
 /// every preset and renders a results table with seven rows. The simulator has
 /// no camera, so `-captureCameraTestFrame` supplies the frame the run shoots.
 @MainActor

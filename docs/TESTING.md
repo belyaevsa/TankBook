@@ -619,6 +619,11 @@ Rules that make this stick:
    orchestrator, reached `main`, and was found two rows later by `RV.78` - which would have surfaced
    at `SH.2` or a TestFlight upload instead. **Seeds, test hooks, `-seed*` launch arguments and
    preview helpers are all DEBUG seams**; if a row adds or calls one, build Release before ticking it.
+   **The same holds for `#if EXPERIMENTS`** (SH.7, 2026-09-24): a beta experiment compiles into Debug
+   and Beta and must be absent from Release, so a row that adds, moves or promotes one runs
+   `RELEASE=1 scripts/gate.sh`, which also builds Beta and runs `scripts/experiments-check.sh` -
+   Release must not contain an experiment's type names and Beta must (`docs/CONFIG.md` → "Build
+   channels and experiments").
 8. **`swift build` and `swift test` are not the app build** (added 2026-09-10, `RV.174`). They compile
    the SwiftPM package (`ios/Sources/TankbookCore`) only; every screen lives in the app target
    (`ios/App/Sources`), which only `xcodebuild` compiles. `scripts/gate.sh` therefore runs the
@@ -629,7 +634,7 @@ Rules that make this stick:
    rule exists for. The gate's own teeth are pinned by `scripts/tests/gate.test.sh` (synthetic
    tools, no simulator): each step's failure exits with its code and stops the ones after it, the
    step order is package -> lint -> app -> package-tests -> app-tests, and `RELEASE=1` adds the
-   Release build.
+   Release and Beta builds and the experiments check, each failure stopping the gate.
 9. **`swift test` is not the app-target test suite** (added 2026-09-12, `RV.250`). The package tests
    and the app-target unit bundle (`TankbookTests`, hosted in the app) are two different bundles, and
    `swift test` runs only the first. A test can therefore be orphaned by a change to the app's own

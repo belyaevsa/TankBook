@@ -1,3 +1,5 @@
+import ImageIO
+import UIKit
 import XCTest
 @testable import Tankbook
 
@@ -168,5 +170,65 @@ final class CaptureLabTests: XCTestCase {
     func testSourceMapsToExtractionSource() {
         XCTAssertNil(CaptureLabSource.pump.extractionSource)
         XCTAssertEqual(CaptureLabSource.receipt.extractionSource, .receipt)
+    }
+
+    // MARK: - Location never reaches the lab's folder
+
+    /// A JPEG carrying GPS and EXIF is written without the GPS and with the
+    /// EXIF intact - the lab runs on the owner's phone in the beta, and the
+    /// folder is what goes into the corpus.
+    func testWrittenPhotoHasNoLocationAndKeepsExif() throws {
+        let original = try Self.jpeg(withGPS: true)
+        XCTAssertNotNil(Self.properties(of: original)[kCGImagePropertyGPSDictionary as String],
+                        "the fixture must carry GPS or the test proves nothing")
+
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try CaptureLabLogStore.writePhoto(original, preset: .default, to: directory)
+
+        let written = try Data(contentsOf: directory.appendingPathComponent("\(CaptureLabPreset.default.id).jpg"))
+        let properties = Self.properties(of: written)
+        XCTAssertNil(properties[kCGImagePropertyGPSDictionary as String])
+        let exif = properties[kCGImagePropertyExifDictionary as String] as? [String: Any]
+        XCTAssertEqual(exif?[kCGImagePropertyExifISOSpeedRatings as String] as? [Int], [200])
+    }
+
+    /// Bytes ImageIO cannot read are refused, never written as they came.
+    func testUnreadablePhotoIsNotWritten() {
+        XCTAssertNil(CaptureLabLogStore.withoutLocation(Data("not an image".utf8)))
+        XCTAssertThrowsError(try CaptureLabLogStore.writePhoto(
+            Data("not an image".utf8), preset: .default, to: FileManager.default.temporaryDirectory))
+    }
+
+    private static func jpeg(withGPS: Bool) throws -> Data {
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 8, height: 8)).image { context in
+            UIColor.gray.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 8, height: 8))
+        }
+        let cgImage = try XCTUnwrap(image.cgImage)
+        let output = NSMutableData()
+        let destination = try XCTUnwrap(CGImageDestinationCreateWithData(output, "public.jpeg" as CFString, 1, nil))
+        var properties: [String: Any] = [
+            kCGImagePropertyExifDictionary as String: [kCGImagePropertyExifISOSpeedRatings as String: [200]]
+        ]
+        if withGPS {
+            properties[kCGImagePropertyGPSDictionary as String] = [
+                kCGImagePropertyGPSLatitude as String: 59.437,
+                kCGImagePropertyGPSLatitudeRef as String: "N",
+                kCGImagePropertyGPSLongitude as String: 24.7536,
+                kCGImagePropertyGPSLongitudeRef as String: "E"
+            ]
+        }
+        CGImageDestinationAddImage(destination, cgImage, properties as CFDictionary)
+        XCTAssertTrue(CGImageDestinationFinalize(destination))
+        return output as Data
+    }
+
+    private static func properties(of data: Data) -> [String: Any] {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any] else { return [:] }
+        return properties
     }
 }

@@ -18198,19 +18198,19 @@
         }
       }
     },
-    "Debug": {
+    "Experiments": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Debug"
+            "value": "Experiments"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Отладка"
+            "value": "Эксперименты"
           }
         }
       }

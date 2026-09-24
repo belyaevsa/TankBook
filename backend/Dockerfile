@@ -21,6 +21,7 @@
 #     -e Tankbook__Logging__HashSalt=... -e Config__SigningKey=... \
 #     -e Auth__JwtSigningKeyBase64=... \
 #     -e Auth__AppleAudiences__0=app.tankbook.Tankbook \
+#     -e Auth__AppleAudiences__1=app.tankbook.Tankbook.beta \
 #     tankbook-api:<tag>
 #
 # The double underscore is ASP.NET's nesting separator: Config__SigningKey binds

@@ -1731,6 +1731,12 @@ capture PU.39-capture-lab    en -presentScreen about -presentCaptureLab -capture
 capture PU.39-capture-lab-ru ru -presentScreen about -presentCaptureLab -captureCameraTestFrame "${LAB_FIXTURE}" -captureLabAutoRun
 CAPTURE_SLEEP=6
 
+# SH.7: About in a build that carries experiments (Debug here, the same section
+# as Beta) - the Experiments section listing each BetaExperiment, and the
+# version line's channel token. The store build has neither.
+capture SH.7-about-experiments    en -presentScreen about
+capture SH.7-about-experiments-ru ru -presentScreen about
+
 # Merge this run's frames into the manifest. `frames` is the script's record;
 # `legacy` (frames no line can reproduce) is hand-maintained and preserved.
 if [ "${#CAPTURED[@]}" -gt 0 ]; then

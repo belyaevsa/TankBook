@@ -20,6 +20,9 @@ struct AboutView: View {
         ScrollView {
             VStack(spacing: 12) {
                 identityCard
+                #if EXPERIMENTS
+                experimentsSection
+                #endif
                 if config.requirement == .recommended {
                     UpdateRecommendedRow()
                 }
@@ -31,9 +34,6 @@ struct AboutView: View {
                 if let feedbackModel {
                     FeedbackComposerView(model: feedbackModel)
                 }
-                #if DEBUG
-                debugSection
-                #endif
                 footer
             }
             .padding(.horizontal, Theme.Spacing.screenMargin)
@@ -47,7 +47,7 @@ struct AboutView: View {
             }
         }
         .sheet(isPresented: $showsCaptureLab) {
-            #if DEBUG
+            #if EXPERIMENTS
             CaptureLabView()
             #endif
         }
@@ -75,36 +75,48 @@ struct AboutView: View {
         }
     }
 
-    /// DEBUG-only section: the doors that exist only in a development build.
-    #if DEBUG
-    private var debugSection: some View {
+    /// The beta's experiments, one row per `BetaExperiment` case, directly under
+    /// the identity card so a tester sees what this build carries. Compiled into
+    /// Debug and Beta only; the store build has no such section.
+    #if EXPERIMENTS
+    private var experimentsSection: some View {
         VStack(spacing: 8) {
-            SectionEyebrow("Debug")
-            Button {
-                showsCaptureLab = true
-            } label: {
-                HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    Text("Capture lab")
-                        .font(.subheadline)
-                        .foregroundStyle(Theme.Palette.ink)
-                    Spacer(minLength: 8)
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Theme.Palette.inkSoft)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .contentShape(Rectangle())
-                .formCard()
+            SectionEyebrow("Experiments")
+            ForEach(BetaExperiment.allCases) { experiment in
+                experimentRow(experiment)
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("captureLabRow")
         }
     }
 
-    /// DEBUG/screenshot only: `-presentCaptureLab` opens the lab a beat after
-    /// About appears, so the lab can be screenshotted without a UI test driving
-    /// a tap (`simctl` cannot tap). Production never passes the argument.
+    private func experimentRow(_ experiment: BetaExperiment) -> some View {
+        Button {
+            switch experiment {
+            case .captureLab: showsCaptureLab = true
+            }
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(experiment.title)
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.Palette.ink)
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.inkSoft)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+            .formCard()
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("\(experiment.rawValue)Row")
+    }
+    #endif
+
+    #if DEBUG
+    /// Screenshot seam: `-presentCaptureLab` opens the lab a beat after About
+    /// appears, so the lab can be screenshotted without a UI test driving a tap
+    /// (`simctl` cannot tap).
     private func presentCaptureLabIfRequested() {
         guard ProcessInfo.processInfo.arguments.contains("-presentCaptureLab") else { return }
         Task {
@@ -150,14 +162,17 @@ struct AboutView: View {
         let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
         var line = build.map { "\(short) (\($0))" } ?? short
-        // The commit the binary was built from and the configuration, so a
-        // build installed by hand can be told apart from an archive - the debug
-        // doors below exist only in one of them. Both are machine tokens.
+        // The commit the binary was built from and the channel, so a hand
+        // install, a beta and a store build can be told apart - the
+        // Experiments section exists only in the first two. Both are machine
+        // tokens.
         if let commit = Bundle.main.object(forInfoDictionaryKey: "TankbookBuildCommit") as? String {
             line += " · \(commit)"
         }
         #if DEBUG
         line += " · debug"
+        #elseif EXPERIMENTS
+        line += " · beta"
         #endif
         return line
     }

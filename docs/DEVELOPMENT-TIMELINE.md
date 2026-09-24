@@ -11,6 +11,15 @@ decisions.
 
 ---
 
+## 2026-09-24 · Experiments ship to the beta, and leave it only by the owner's decision
+
+| | |
+|---|---|
+| **Commits** | this entry's commit (SH.7: `project.yml` `EXPERIMENTS`, `scripts/experiments-check.sh`, `scripts/gate.sh`, `scripts/release.sh`, `docs/CONFIG.md` → "Build channels and experiments") |
+| **Reason** | Product owner: *"We have a beta version of the tankbook what we can use the same as for debug on a real life. There was a feature as Camera Lab, that haven't been tested. Let's make a strategy that allows us to deliver to beta experiment feature and not available in release yet. Only by decision - move or not this feature from experiment to release"*; then chose: fix the beta's Apple sign-in in the same change, strip GPS from the lab's photos. |
+| **Evidence** | The Capture lab (PU.39) was built `#if DEBUG` and never run on a real forecourt: the Beta configuration is release-based, so it could not carry it, and the only way onto a phone was `release.sh --upload --debug` - a Debug archive under the store bundle id that replaced the App Store install and carried the test seams (fixture seeding, launch-argument doors, the placeholder Google id). `DEBUG` was doing two jobs, "test seam" and "not for the store yet", and the second one kept features away from the one build meant for real-world trial. |
+| **What changed** | Three channels (Debug, Beta, Release) and two compile conditions with one meaning each: `DEBUG` for test seams only, `EXPERIMENTS` (Debug + Beta, never Release) for features under trial. Every experiment is a `BetaExperiment` case listed under About → Experiments. `scripts/experiments-check.sh` proves on the binary that Release carries no experiment and Beta carries all of them - run by `RELEASE=1 scripts/gate.sh` and by `release.sh` on the archive it uploads. `release.sh --upload --debug` is retired. An experiment leaves the beta only by the owner's decision, as its own row: **promoted** (guard removed, store bar met - EN/RU, errors with next steps, logging, screenshots, journey) or **removed** (code deleted). Remote config stays for features already in the store binary and never stands in for the compile condition. |
+
 ## 2026-09-24 · Three models, three tiers of work
 
 | | |

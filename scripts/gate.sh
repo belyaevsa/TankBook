@@ -13,7 +13,9 @@
 #
 # Usage:
 #   scripts/gate.sh              # Debug app build
-#   RELEASE=1 scripts/gate.sh    # also builds the app in Release
+#   RELEASE=1 scripts/gate.sh    # also builds Release and Beta, and proves no
+#                                # `#if EXPERIMENTS` code reached Release
+#                                # (scripts/experiments-check.sh)
 #
 # Exit status is the first failing step's status, 0 when every step passes.
 set -u
@@ -28,6 +30,8 @@ destination='generic/platform=iOS Simulator'
 # TankbookUITests in one command runs only one of them and exits 0.
 test_destination='platform=iOS Simulator,name=iPhone 17'
 release="${RELEASE:-0}"
+# Overridable so scripts/tests/gate.test.sh can stub it like the toolchain.
+experiments_check="${GATE_EXPERIMENTS_CHECK:-scripts/experiments-check.sh}"
 
 # run <label> <directory> <command...>
 run() {
@@ -44,9 +48,21 @@ run lint    .   swiftlint lint || exit $?
 run app     .   xcodegen generate || exit $?
 run app     .   xcodebuild -project Tankbook.xcodeproj -scheme Tankbook \
   -configuration Debug -destination "$destination" CODE_SIGNING_ALLOWED=NO build || exit $?
+# The built app for a configuration, from the build settings of the same
+# invocation shape the build used.
+app_path() {
+  xcodebuild -project Tankbook.xcodeproj -scheme Tankbook -configuration "$1" \
+    -destination "$destination" CODE_SIGNING_ALLOWED=NO -showBuildSettings 2>/dev/null |
+    awk -F' = ' '$1 ~ /^ +TARGET_BUILD_DIR$/ {dir=$2} $1 ~ /^ +WRAPPER_NAME$/ && $2 == "Tankbook.app" {print dir "/" $2; exit}'
+}
+
 if [ "$release" = "1" ]; then
-  run release . xcodebuild -project Tankbook.xcodeproj -scheme Tankbook \
-    -configuration Release -destination "$destination" CODE_SIGNING_ALLOWED=NO build || exit $?
+  for configuration in Release Beta; do
+    run "$(echo "$configuration" | tr '[:upper:]' '[:lower:]')" . xcodebuild -project Tankbook.xcodeproj -scheme Tankbook \
+      -configuration "$configuration" -destination "$destination" CODE_SIGNING_ALLOWED=NO build || exit $?
+  done
+  run experiments . "$experiments_check" "$(app_path Release)" absent || exit $?
+  run experiments . "$experiments_check" "$(app_path Beta)" present || exit $?
 fi
 run tests   ios swift test || exit $?
 run app-tests . xcodebuild -project Tankbook.xcodeproj -scheme Tankbook \

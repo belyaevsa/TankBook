@@ -1,11 +1,12 @@
-#if DEBUG
+#if EXPERIMENTS
 import SwiftUI
 import TankbookCore
 
-/// PU.39 - the Capture Lab (DEBUG). The owner shoots one scene under every
-/// camera preset back to back and compares capture latency, bytes, pixel size
-/// and what the reader committed, then picks a production setting by
-/// measurement. Reached from About's DEBUG section; never ships.
+/// The Capture Lab, a beta experiment (`BetaExperiment.captureLab`). The owner
+/// shoots one scene under every camera preset back to back and compares capture
+/// latency, bytes, pixel size and what the reader committed, then picks a
+/// production setting by measurement. Reached from About's Experiments section;
+/// compiled into Debug and Beta, absent from Release.
 struct CaptureLabView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var controller = CameraController()
@@ -46,12 +47,14 @@ struct CaptureLabView: View {
                 }
                 .task {
                     controller.start()
+                    #if DEBUG
                     applySourceArgument()
                     if ProcessInfo.processInfo.arguments.contains("-captureLabAutoRun") {
                         try? await Task.sleep(for: .milliseconds(500))
                         await runner.run(controller: controller)
                         scrollToResults(proxy)
                     }
+                    #endif
                 }
             }
         }
@@ -270,9 +273,9 @@ struct CaptureLabView: View {
             .frame(width: width, alignment: .leading)
     }
 
-    /// DEBUG/screenshot only: `-captureLabSource receipt` opens the lab scoring
-    /// the receipt path, so both pipelines can be screenshotted. Production
-    /// never passes the argument.
+    #if DEBUG
+    /// Screenshot seam: `-captureLabSource receipt` opens the lab scoring the
+    /// receipt path, so both pipelines can be screenshotted.
     private func applySourceArgument() {
         let arguments = ProcessInfo.processInfo.arguments
         guard let index = arguments.firstIndex(of: "-captureLabSource"),
@@ -280,5 +283,6 @@ struct CaptureLabView: View {
               let source = CaptureLabSource(rawValue: arguments[index + 1]) else { return }
         runner.source = source
     }
+    #endif
 }
 #endif

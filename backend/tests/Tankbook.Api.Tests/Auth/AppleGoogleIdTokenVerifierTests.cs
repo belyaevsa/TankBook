@@ -29,6 +29,7 @@ public sealed class AppleGoogleIdTokenVerifierTests
 {
     private const string GoogleClient = "1234567890-abcdef.apps.googleusercontent.com";
     private const string AppleBundleId = "app.tankbook.Tankbook";
+    private const string AppleBetaBundleId = "app.tankbook.Tankbook.beta";
 
     private readonly RSA _rsa = RSA.Create(2048);
 
@@ -54,6 +55,26 @@ public sealed class AppleGoogleIdTokenVerifierTests
         var result = await verifier.VerifyAsync("apple", token, CancellationToken.None);
 
         Assert.Equal(IdTokenOutcome.Valid, result.Outcome);
+    }
+
+    /// <summary>
+    /// The store app and the beta app (a separate bundle id, installed beside
+    /// it) sign in against one server: each is accepted with both configured,
+    /// and a token for any other bundle id is still refused.
+    /// </summary>
+    [Fact]
+    public async Task StoreAndBetaBundleIds_AreBothAccepted_WhenBothAreConfigured()
+    {
+        var verifier = CreateVerifier(appleAudiences: [AppleBundleId, AppleBetaBundleId]);
+
+        foreach (var audience in new[] { AppleBundleId, AppleBetaBundleId })
+        {
+            var result = await verifier.VerifyAsync("apple", Mint("apple", audience: audience), CancellationToken.None);
+            Assert.Equal(IdTokenOutcome.Valid, result.Outcome);
+        }
+
+        var other = await verifier.VerifyAsync("apple", Mint("apple", audience: "com.example.other"), CancellationToken.None);
+        Assert.Equal(IdTokenOutcome.WrongAudience, other.Outcome);
     }
 
     /// <summary>

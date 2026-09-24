@@ -3244,6 +3244,16 @@
       "commit": "bbf4899",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
+    },
+    "SH.7-about-experiments": {
+      "commit": "6d409c5a",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "SH.7-about-experiments-ru": {
+      "commit": "6d409c5a",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
     }
   },
   "legacy": {

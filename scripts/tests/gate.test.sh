@@ -11,7 +11,9 @@
 #   * each step's failure exits with that step's code and stops the ones after
 #   * a non-zero xcodebuild is not ignored (the named vacuous trap), for both the
 #     app build and the app-target unit tests
-#   * RELEASE=1 adds the Release app build; without it there is none
+#   * RELEASE=1 adds the Release and Beta app builds and the experiments check
+#     (absent from Release, present in Beta); without it there are none, and a
+#     failing check fails the gate
 #
 # Usage: scripts/tests/gate.test.sh
 # Exit 0 when every case behaves; 1 otherwise.
@@ -53,14 +55,28 @@ SH
 
 cat > "$bindir/xcodebuild" <<'SH'
 #!/usr/bin/env bash
+case "$*" in
+  *"-showBuildSettings"*)
+    config="$(printf '%s\n' "$@" | awk 'prev == "-configuration" {print; exit} {prev = $0}')"
+    echo "    TARGET_BUILD_DIR = /stub/${config}-iphonesimulator"
+    echo "    WRAPPER_NAME = Tankbook.app"
+    exit 0 ;;
+esac
 echo "xcodebuild $*" >> "$GATE_TEST_LOG"
 case "$*" in
   *"-only-testing:TankbookTests"*) exit "${GATE_TEST_APPTESTS_EXIT:-0}" ;;
   *"-configuration Release"*) exit "${GATE_TEST_XCODEBUILD_RELEASE_EXIT:-0}" ;;
+  *"-configuration Beta"*) exit "${GATE_TEST_XCODEBUILD_BETA_EXIT:-0}" ;;
   *) exit "${GATE_TEST_XCODEBUILD_EXIT:-0}" ;;
 esac
 SH
+cat > "$bindir/experiments-check" <<'SH'
+#!/usr/bin/env bash
+echo "experiments-check $*" >> "$GATE_TEST_LOG"
+exit "${GATE_TEST_EXPERIMENTS_EXIT:-0}"
+SH
 chmod +x "$bindir"/*
+export GATE_EXPERIMENTS_CHECK="$bindir/experiments-check"
 
 pass=0
 fail=0
@@ -184,22 +200,41 @@ run_gate GATE_TEST_APPTESTS_EXIT=23
 check "app-target test failure exits with its code" 23 "$code" "$out" "exit 23"
 present "app-target test failure means the package tests had run" "swift test"
 
-# 8. RELEASE=1 adds the Release build, between the Debug build and the tests
+# 8. RELEASE=1 adds the Release and Beta builds and the experiments check,
+# between the Debug build and the tests
 run_gate RELEASE=1
 check "RELEASE=1 exits 0 when all steps pass" 0 "$code" "$out" "all steps passed"
-if [ "$(grep -c '^xcodebuild ' "$log")" = "3" ] && \
-   in_order "swift build" "xcodebuild" "-configuration Release" "swift test" "-only-testing:TankbookTests"; then
-    echo "ok:   RELEASE=1 adds the Release app build after the Debug one"
+if [ "$(grep -c '^xcodebuild ' "$log")" = "4" ] && \
+   in_order "swift build" "xcodebuild" "-configuration Release" "-configuration Beta" \
+     "experiments-check /stub/Release-iphonesimulator/Tankbook.app absent" \
+     "experiments-check /stub/Beta-iphonesimulator/Tankbook.app present" \
+     "swift test" "-only-testing:TankbookTests"; then
+    echo "ok:   RELEASE=1 adds Release, Beta and the experiments check (absent, then present) after the Debug build"
     pass=$((pass + 1))
 else
-    echo "FAIL: RELEASE=1 did not add the Release app build in order"
+    echo "FAIL: RELEASE=1 did not add Release, Beta and the experiments check in order"
     sed 's/^/    /' "$log"
     fail=$((fail + 1))
 fi
 
+# 8b. without RELEASE=1 neither the Beta build nor the check runs
+run_gate
+absent "no Beta build without RELEASE=1" "-configuration Beta"
+absent "no experiments check without RELEASE=1" "experiments-check"
+
 # 9. a failing Release build fails the gate
 run_gate RELEASE=1 GATE_TEST_XCODEBUILD_RELEASE_EXIT=19
 check "Release failure exits with its code" 19 "$code" "$out" "exit 19"
+
+# 10. a failing Beta build fails the gate before the check
+run_gate RELEASE=1 GATE_TEST_XCODEBUILD_BETA_EXIT=29
+check "Beta failure exits with its code" 29 "$code" "$out" "exit 29"
+absent "Beta failure stops before the experiments check" "experiments-check"
+
+# 11. an experiment in the store build fails the gate before the tests
+run_gate RELEASE=1 GATE_TEST_EXPERIMENTS_EXIT=1
+check "experiments-check failure exits with its code" 1 "$code" "$out" "experiments"
+absent "experiments-check failure stops before the tests" "swift test"
 
 echo
 echo "$pass passed, $fail failed"

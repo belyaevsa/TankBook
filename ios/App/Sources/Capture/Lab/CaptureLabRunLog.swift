@@ -1,15 +1,20 @@
-#if DEBUG
+#if EXPERIMENTS
 import Foundation
+import ImageIO
 import TankbookCore
 
-/// PU.39 - the Capture Lab's on-device log. Each run writes one folder under
-/// `Documents/CaptureLab/<yyyy-MM-dd-HHmmss>/` holding every photo exactly as
-/// the camera delivered it (`<preset>.jpg`) and one `run.json`.
+/// The Capture Lab's on-device log. Each run writes one folder under
+/// `Documents/CaptureLab/<yyyy-MM-dd-HHmmss>/` holding every photo as the camera
+/// delivered it minus its location (`<preset>.jpg`) and one `run.json`.
 ///
 /// This is the owner's lab notebook on the owner's device, not telemetry: the
 /// committed values are in the file because comparing them is the point. Hard
 /// rule 12 governs the OSLog, which gets nothing from this screen beyond what
 /// `CapturePipeline` already emits.
+
+enum CaptureLabLogError: Error {
+    case locationNotStripped
+}
 
 /// One preset's outcome. Every field the brief asks the table and the log to
 /// carry: what applied, how long and how big the capture was, the camera's EXIF
@@ -90,12 +95,34 @@ struct CaptureLabLogStore {
         return url
     }
 
-    /// Writes one photo byte-for-byte, exactly as the camera delivered it, so
-    /// the corpus intake can take it unchanged.
+    /// Writes one photo with its location removed and nothing else changed: the
+    /// pixels are copied, not re-encoded, so the corpus intake can take it as
+    /// the camera delivered it. A photo whose GPS cannot be removed is not
+    /// written at all.
     static func writePhoto(_ data: Data, preset: CaptureLabPreset, to directory: URL) throws {
+        guard let stripped = withoutLocation(data) else { throw CaptureLabLogError.locationNotStripped }
         let url = directory.appendingPathComponent("\(preset.id).jpg")
-        try data.write(to: url, options: [.atomic])
+        try stripped.write(to: url, options: [.atomic])
         FileProtection.protect(url)
+    }
+
+    /// `data` re-containered by ImageIO without its GPS metadata
+    /// (`kCGImageMetadataShouldExcludeGPS`); nil when ImageIO cannot read or
+    /// copy it. The source's own metadata is handed back explicitly: without
+    /// `kCGImageDestinationMetadata` the copy drops every EXIF field, not just
+    /// the location (`CaptureLabTests` pins both).
+    static func withoutLocation(_ data: Data) -> Data? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let type = CGImageSourceGetType(source) else { return nil }
+        let output = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(output, type, 1, nil) else { return nil }
+        var options: [CFString: Any] = [kCGImageMetadataShouldExcludeGPS: true]
+        // A photo with no metadata has no location to remove either.
+        if let metadata = CGImageSourceCopyMetadataAtIndex(source, 0, nil) {
+            options[kCGImageDestinationMetadata] = metadata
+        }
+        guard CGImageDestinationCopyImageSource(destination, source, options as CFDictionary, nil) else { return nil }
+        return output as Data
     }
 
     /// The run log's bytes. Split out so a unit test can round-trip the JSON

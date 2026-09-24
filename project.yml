@@ -17,6 +17,12 @@ options:
 # "Tankbook β", its own icon) so it installs beside the App Store build instead of
 # replacing it - iOS keeps one install per bundle id. Release-based: no DEBUG
 # flag, store signing. `scripts/release.sh --beta` archives and uploads it.
+#
+# EXPERIMENTS is the compile condition for features that ship to the beta and
+# not to the store (docs/CONFIG.md -> "Build channels and experiments"). Debug
+# and Beta define it, Release never does, so an experiment's code is absent from
+# the store binary rather than hidden behind a switch; scripts/experiments-check.sh
+# proves it on the built products. DEBUG stays for test seams only.
 configs:
   Debug: debug
   Release: release
@@ -176,6 +182,7 @@ targets:
         # remembering. SH.1 sets the variable when the client is registered.
         debug:
           TANKBOOK_GOOGLE_CLIENT_ID: "000000000000-debugplaceholder.apps.googleusercontent.com"
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) EXPERIMENTS"
         # The pre-release app. Its App ID carries the same capabilities as the
         # store app's (Sign in with Apple, Push) and the backend must list it in
         # Auth__AppleAudiences, or Apple sign-in is refused (docs/STORE.md -> Beta).
@@ -184,6 +191,7 @@ targets:
           PRODUCT_BUNDLE_IDENTIFIER: app.tankbook.Tankbook.beta
           TANKBOOK_DISPLAY_NAME: "Tankbook β"
           ASSETCATALOG_COMPILER_APPICON_NAME: AppIconBeta
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) EXPERIMENTS"
 
   TankbookUITests:
     type: bundle.ui-testing

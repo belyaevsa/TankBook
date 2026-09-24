@@ -129,6 +129,7 @@ Tankbook__Logging__HashSalt=${TANKBOOK_HASH_SALT:-}
 Config__SigningKey=${CONFIG_SIGNING_KEY:-}
 Auth__JwtSigningKeyBase64=${AUTH_JWT_SIGNING_KEY:-}
 Auth__AppleAudiences__0=${APPLE_AUDIENCE:-}
+Auth__AppleAudiences__1=${APPLE_AUDIENCE_BETA:-app.tankbook.Tankbook.beta}
 Auth__GoogleAudiences__0=${GOOGLE_AUDIENCE:-}
 LlmGateway__ApiKey=${LLM_API_KEY:-}
 Database__AutoMigrate=false
@@ -163,6 +164,9 @@ check_len "S3_SECRET_KEY" "${S3_SECRET_KEY:-}" 30 "S3 secret key"
 
 # The same class of mistake, different blast radius: an empty audience makes the
 # identity-token check fail CLOSED, so every sign-in is refused (docs/SECURITY.md).
+# The second Apple audience is the beta app's bundle id (docs/STORE.md §8), a
+# public identifier with a default here, so the beta's sign-in does not depend
+# on a repository variable nobody remembers to set; APPLE_AUDIENCE_BETA overrides it.
 if [ -z "${APPLE_AUDIENCE:-}" ]; then
     log "::warning::APPLE_AUDIENCE is empty - every Apple sign-in will be refused. It is a repository VARIABLE (vars.*), not a secret."
 fi

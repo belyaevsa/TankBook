@@ -22,10 +22,10 @@ final class CameraController: NSObject {
     private let videoOutput = AVCaptureVideoDataOutput()
     private var didConfigure = false
     private var captureContinuation: CheckedContinuation<UIImage?, Never>?
-    /// The video device `start()` attached, retained so the DEBUG Capture Lab
-    /// can configure it per preset. Nil on the simulator.
+    /// The video device `start()` attached, retained so the Capture Lab can
+    /// configure it per preset. Nil on the simulator.
     private var device: AVCaptureDevice?
-    #if DEBUG
+    #if EXPERIMENTS
     /// Retains the lab capture's delegate until its continuation resumes.
     private var labDelegate: LabCaptureDelegate?
     #endif
@@ -245,10 +245,10 @@ extension CameraController: AVCapturePhotoCaptureDelegate {
     }
 }
 
-#if DEBUG
-/// PU.39 - the Capture Lab's camera door. Everything here is DEBUG-only: the
-/// lab never ships, and the Release gate is the proof. The ordinary `capture()`
-/// above is untouched.
+#if EXPERIMENTS
+/// The Capture Lab's camera door, compiled only where the lab is (Debug and
+/// Beta); `scripts/experiments-check.sh` proves Release carries none of it. The
+/// ordinary `capture()` above is untouched.
 extension CameraController {
 
     /// One captured frame exactly as the camera delivered it: the JPEG bytes
@@ -372,6 +372,7 @@ extension CameraController {
     /// whole run without a camera.
     func captureLabFrame(_ plan: CaptureLabPlan) async -> CaptureLabFrame? {
         guard isReady else { return nil }
+        #if DEBUG
         if let testFrame {
             let pixels = CGSize(width: testFrame.size.width * testFrame.scale,
                                 height: testFrame.size.height * testFrame.scale)
@@ -379,6 +380,7 @@ extension CameraController {
             return CaptureLabFrame(data: data, image: testFrame, metadata: [:],
                                    pixelWidth: Int(pixels.width), pixelHeight: Int(pixels.height))
         }
+        #endif
         guard captureContinuation == nil, labDelegate == nil else { return nil }
         let settings = AVCapturePhotoSettings()
         if let quality = plan.qualityPrioritization {
@@ -445,7 +447,9 @@ private final class LabCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate 
         continuation.resume(returning: frame)
     }
 }
+#endif
 
+#if DEBUG
 extension Array where Element == String {
     /// The `-captureCameraTestFrame <path>` override, if present. It makes
     /// `CameraController.start()` succeed with a simulated camera and

@@ -5,8 +5,8 @@
 # Usage:
 #   TANKBOOK_TEAM_ID=ABCDE12345 scripts/release.sh            # archive + export only
 #   TANKBOOK_TEAM_ID=ABCDE12345 scripts/release.sh --debug    # DEBUG build installed on the plugged-in iPhone (no archive)
-#   ... scripts/release.sh --upload --debug                    # DEBUG configuration archived and uploaded to TestFlight (lab build)
-#   ... scripts/release.sh --upload --beta                     # the pre-release app (app.tankbook.Tankbook.beta) to its TestFlight
+#   ... scripts/release.sh --upload --beta                     # the pre-release app (app.tankbook.Tankbook.beta, with the
+#                                                              # `#if EXPERIMENTS` features) to its TestFlight
 #   TANKBOOK_TEAM_ID=... ASC_KEY_ID=... ASC_ISSUER_ID=... ASC_KEY_PATH=~/.private_keys/AuthKey_XXXX.p8 \
 #       scripts/release.sh --upload                            # ...and upload
 #
@@ -36,15 +36,17 @@ for arg in "$@"; do
   esac
 done
 # --debug alone installs the Debug configuration on the plugged-in iPhone.
-# --debug --upload archives the DEBUG configuration and uploads it to TestFlight
-# (product owner, 2026-09-22): the testers get the `#if DEBUG` doors - the
-# Capture lab under About - which a Release archive never carries. Google
-# sign-in in that build has the Debug placeholder client id and fails at
-# Google's end (project.yml), so it is a lab build, not a release candidate.
+# --debug --upload is refused: a Debug archive carries the test seams (fixture
+# seeding, launch-argument doors, the placeholder Google id) under the store
+# bundle id, so it replaced the App Store install. Experiments reach TestFlight
+# through the Beta build instead (docs/CONFIG.md -> "Build channels and
+# experiments").
 CONFIGURATION=Release
 BUNDLE_ID=app.tankbook.Tankbook
 if [ "$DEBUG" -eq 1 ] && [ "$UPLOAD" -eq 1 ]; then
-  CONFIGURATION=Debug
+  echo "release: --upload --debug is retired - a Debug build is never uploaded." >&2
+  echo "  Experiments ship to TestFlight in the beta app: scripts/release.sh --upload --beta" >&2
+  exit 2
 fi
 # --beta: the pre-release app, a separate App Store Connect record and bundle id,
 # so its TestFlight build installs BESIDE the store app rather than over it.
@@ -60,9 +62,8 @@ fi
 # --debug: not a release at all. Builds the DEBUG configuration for the iPhone
 # plugged in (or the first physical device devicectl lists) and installs it
 # straight onto it - no archive, no export, no App Store. The Debug build is
-# the one with the `#if DEBUG` doors (the Capture lab under About, the test
-# seams); an archive is always Release and never has them, which is why a
-# lab shot from `scripts/release.sh` without this flag found no lab.
+# the one with the `#if DEBUG` test seams and the `#if EXPERIMENTS` features
+# (the Capture lab under About > Experiments).
 if [ "$DEBUG" -eq 1 ] && [ "$UPLOAD" -eq 0 ]; then
   DEVICE="${TANKBOOK_DEVICE:-$(xcrun devicectl list devices 2>/dev/null | awk '/\(UDID\)/ && $0 !~ /simulated/ && $0 ~ /connected/ {print $(NF-4)}' | head -1)}"
   if [ -z "$DEVICE" ]; then
@@ -80,7 +81,7 @@ if [ "$DEBUG" -eq 1 ] && [ "$UPLOAD" -eq 0 ]; then
   xcrun devicectl device install app --device "$DEVICE" "$APP" | tail -2
   INSTALL_EXIT=${PIPESTATUS[0]}; echo "DEBUG_INSTALL_EXIT=${INSTALL_EXIT}"; [ "$INSTALL_EXIT" -eq 0 ] || exit 1
   xcrun devicectl device process launch --device "$DEVICE" app.tankbook.Tankbook >/dev/null 2>&1 || true
-  echo "release --debug: Debug build $(git rev-parse --short HEAD) installed on ${DEVICE} (About shows '· debug'; the Capture lab is under About > Debug)"
+  echo "release --debug: Debug build $(git rev-parse --short HEAD) installed on ${DEVICE} (About shows '· debug'; the Capture lab is under About > Experiments)"
   exit 0
 fi
 
@@ -179,7 +180,6 @@ else
 fi
 
 OUT="build/release-${BUILD_NUMBER}-${COMMIT}"
-[ "$CONFIGURATION" = "Debug" ] && OUT="${OUT}-debug"   # never reused as a Release archive
 [ "$CONFIGURATION" = "Beta" ] && OUT="${OUT}-beta"     # a different app: never reused either
 mkdir -p "$OUT"
 echo "release: ${CONFIGURATION} build ${BUILD_NUMBER} from ${COMMIT} -> ${OUT}"
@@ -214,6 +214,14 @@ xcodebuild -project Tankbook.xcodeproj -scheme Tankbook -configuration "${CONFIG
   ARCHIVE_EXIT=${PIPESTATUS[0]}
 fi
 echo "ARCHIVE_EXIT=${ARCHIVE_EXIT}"; [ "${ARCHIVE_EXIT}" -eq 0 ] || exit 1
+
+# The store app must carry no `#if EXPERIMENTS` code, and the beta must carry
+# all of it - checked on the archived binary, the bytes that are uploaded.
+if [ "$CONFIGURATION" = "Release" ]; then
+  scripts/experiments-check.sh "${ARCHIVE}/Products/Applications/Tankbook.app" absent || exit 1
+else
+  scripts/experiments-check.sh "${ARCHIVE}/Products/Applications/Tankbook.app" present || exit 1
+fi
 
 # exportArchive refuses to write into an existing directory, so a retry after a
 # signing failure would fail on the leftover instead of on the real problem.
