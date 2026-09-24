@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import Testing
 @testable import TankbookCore
@@ -72,6 +73,48 @@ struct PumpSegmentsModelTests {
         #expect(agreement >= 0.97)
         let e = try #require(eight)
         #expect(e.probabilities.prefix(7).allSatisfy { $0 >= 0.5 }, "an 8 lights every segment: \(e.probabilities)")
+    }
+
+    /// The five test-time-augmentation crops of one real fixture cell, the
+    /// input `PumpReader.averaged` sees for a glyph.
+    private static func fixtureCrops() throws -> [PumpRGBImage] {
+        let name = "pump-032-gilbarco-circlek-ee-clean.jpg"
+        let url = PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent(name)
+        let image = try #require(PumpReaderTestSupport.loadRGB(url: url))
+        let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)
+        let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+        let annotation = try #require(root[name] as? [String: Any])
+        let windows = PumpReaderTestSupport.annotatedWindows(annotation, image: image)
+        let window = try #require(windows.first)
+        let strip = try #require(PumpQuadWarp.warpToStrip(
+            rgb: image, quad: window.quad, stripHeight: PumpReader.stripHeight))
+        let stripRGB = PumpQuadWarp.rgbImage(from: strip)
+        let cells = PumpGlyphSlicer.slice(stripRGB.grayscale())
+        let cell = try #require(cells.first { !$0.isBlank })
+        return PumpReader.cropCell(stripRGB, rect: cell.rect)
+    }
+
+    /// M2: one batched prediction must equal the per-crop sequence, bitwise,
+    /// and the average must sum in the crops' order. A different order or a
+    /// dropped crop in the batched path fails this.
+    @Test("batched prediction equals the sequential one, bitwise", .pumpFixturesPresent)
+    func batchedEqualsSequential() throws {
+        let model = try PumpSegmentsModel(contentsOf: Self.modelURL)
+        let crops = try Self.fixtureCrops()
+        #expect(crops.count == 5)
+        let sequential = try crops.map { try model.probabilities(cell: $0) }
+        let batched = try model.probabilities(cells: crops)
+        #expect(batched.count == crops.count)
+        for (b, s) in zip(batched, sequential) {
+            #expect(zip(b, s).allSatisfy { $0.bitPattern == $1.bitPattern },
+                    "batched differs from sequential: \(b) vs \(s)")
+        }
+        let averaged = try PumpReader.averaged(model: model, crops: crops)
+        var sum = [Double](repeating: 0, count: 8)
+        for p in sequential { for i in 0..<8 { sum[i] += p[i] } }
+        let reference = sum.map { $0 / Double(crops.count) }
+        #expect(zip(averaged, reference).allSatisfy { $0.bitPattern == $1.bitPattern },
+                "batched average differs from the sequential order: \(averaged) vs \(reference)")
     }
 
     /// Renders labelled slicer-framed cells and the Python model's own read of each.

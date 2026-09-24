@@ -51,6 +51,30 @@ struct PumpSegmentsModel {
         return (0..<8).map { array[[0, $0] as [NSNumber]].doubleValue }
     }
 
+    /// The eight segment probabilities for each cell, from one batched
+    /// prediction. Each crop's feature provider is built exactly as
+    /// `probabilities(cell:)` builds it; batching only removes the per-call
+    /// overhead. Output order follows input order.
+    func probabilities(cells: [PumpRGBImage]) throws -> [[Double]] {
+        guard !cells.isEmpty else { return [] }
+        let providers: [any MLFeatureProvider] = try cells.map { cell in
+            precondition(cell.width == Self.inputWidth && cell.height == Self.inputHeight)
+            let buffer = try Self.pixelBuffer(from: cell)
+            return try MLDictionaryFeatureProvider(dictionary: [
+                "glyph": MLFeatureValue(pixelBuffer: buffer),
+            ])
+        }
+        let batch = MLArrayBatchProvider(array: providers)
+        let outputs = try model.predictions(fromBatch: batch)
+        guard outputs.count == cells.count else { throw PumpSegmentsModelError.missingOutput }
+        return try (0..<outputs.count).map { index in
+            guard let array = outputs.features(at: index).featureValue(for: "segments")?.multiArrayValue else {
+                throw PumpSegmentsModelError.missingOutput
+            }
+            return (0..<8).map { array[[0, $0] as [NSNumber]].doubleValue }
+        }
+    }
+
     func read(cell: PumpRGBImage) throws -> Read {
         Self.decode(try probabilities(cell: cell))
     }

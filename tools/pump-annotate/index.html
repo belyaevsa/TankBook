@@ -2147,7 +2147,9 @@ function decisionHtml(reply, side) {
   const test = (ok, text) => `<span class="${ok ? 'pass' : 'fail'}">${text} ${ok ? '✓' : '✗'}</span>`;
   const checks = [
     test(d.rows >= (L.minimumRows ?? 2), `rows ${d.rows} ≥ ${L.minimumRows ?? 2}`),
-    test(d.textLines <= (L.maximumTextLines ?? 30), `text lines ${d.textLines} ≤ ${L.maximumTextLines ?? 30}`),
+    d.textLines === -1
+      ? '<span style="opacity:.6">text lines not measured – the fast path decided first</span>'
+      : test(d.textLines <= (L.maximumTextLines ?? 30), `text lines ${d.textLines} ≤ ${L.maximumTextLines ?? 30}`),
     test((d.widestRow ?? 0) >= (L.minimumWidestRow ?? 0.18),
          `widest row ${(d.widestRow ?? 0).toFixed(2)} ≥ ${L.minimumWidestRow ?? 0.18}`),
   ].join(' · ');

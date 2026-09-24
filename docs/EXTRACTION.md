@@ -999,6 +999,16 @@ pump-035 stays out (its rows decide on the slow path, at 31 lines). The live flo
 path - `PumpDisplayCapture.classify` - instead of `readPhoto`, which the app never calls, so the
 gate's reader constants are the app's number.
 
+**Decision 10, amended 2026-09-24 (PU.75): the fast path does not count text lines at all.** Since
+PU.63 the fast verdict ignored the count, yet `decideAt` still ran the Vision text-line pass before
+it - 6-25 ms of every fast-decided pump still and 31-36 ms of every receipt. The pass now runs only
+after the fast verdict abstains, so a fast decision is a detector pass alone, and the slow path keeps
+the count and its ceiling. A fast-decided frame's `Detection.textLines` is
+`PumpDisplayCapture.textLinesNotMeasured` (`-1`), carried into `capture.classify`
+(`docs/LOGGING.md`) and shown as "not measured" by the annotator's pipeline and compare views. No
+reading moves (annotated 123/123, live 47/47 before and after); the Mac Release median `appDecide`
+on pump stills falls 78.5 -> 51 ms.
+
 **Decision 10, amended 2026-09-22 (PU.57): the detector's gate is tight IoU, not recall@0.5.** A
 detector candidate ships only when **median IoU and recall @ IoU 0.7 both hold or rise** and
 **false rows per photo does not rise by more than 0.05**; recall @ IoU 0.5 is reported but never

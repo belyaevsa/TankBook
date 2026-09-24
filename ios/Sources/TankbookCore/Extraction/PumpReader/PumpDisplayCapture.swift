@@ -21,7 +21,9 @@ public enum PumpDisplayCapture {
     public struct Detection: Sendable, Equatable {
         /// Rows of digits the deciding path vouched for, large in the frame.
         public let displayRows: Int
-        /// Text lines Vision found in the frame; a receipt is dozens.
+        /// Text lines Vision found in the frame; a receipt is dozens. On the
+        /// fast path this is `textLinesNotMeasured` - the frame was decided
+        /// before the pass ran; the slow path carries the real count.
         public let textLines: Int
         /// The widest vouched row as a fraction of the frame's width, and
         /// the tallest as a fraction of its height - a display's number rows
@@ -67,6 +69,11 @@ public enum PumpDisplayCapture {
     }
 
     public static let minimumRows = 2
+    /// The `Detection.textLines` value on the fast path, which decides on the
+    /// detector's rows alone and never runs the Vision text-line pass: `-1`,
+    /// not `0`, because a pump face can show no text line at all. Diagnostic
+    /// only - no verdict reads it.
+    public static let textLinesNotMeasured = -1
     /// A display's digits are large in the frame - the corpus's windows are
     /// 3-12 % of the image height; a receipt's printed lines are under 2 %.
     /// Rows below this fraction are text, not a display, however well the
@@ -193,13 +200,14 @@ public enum PumpDisplayCapture {
                                  budget: TimeInterval, trace: PumpTrace? = nil) -> Decision {
         let upright = PumpPanelLocator.rotatedRGB(rgb, rotationCW: rotationCW)
         trace?.begin("seed", rotationCW: rotationCW, upright: upright)
-        let textLines = textLineCount(upright)
         let detected = reader.detectedRows(for: upright)
-        trace?.current?.textLines = textLines
         trace?.current?.detectedRows = detected
-        if fastVerdict(rows: detected, textLines: textLines) {
-            let detection = detectorDetection(rows: detected, textLines: textLines)
+        // The text-line pass is measured only when the fast path abstains: the
+        // detector's rows decide the frame and never read the count.
+        if fastVerdict(rows: detected, textLines: textLinesNotMeasured) {
+            let detection = detectorDetection(rows: detected, textLines: textLinesNotMeasured)
             let candidates = detected.map { PumpPanelLocator.Candidate(quad: $0.quad, glyphCount: 0, detected: true) }
+            trace?.current?.textLines = textLinesNotMeasured
             trace?.current?.fastVerdict = true
             trace?.current?.detection = detection
             trace?.current?.candidates = candidates
@@ -207,6 +215,8 @@ public enum PumpDisplayCapture {
                             verified: nil, candidates: candidates)
         }
         trace?.current?.fastVerdict = false
+        let textLines = textLineCount(upright)
+        trace?.current?.textLines = textLines
         let deadline = Date().addingTimeInterval(budget)
         let candidates = reader.candidates(for: upright)
         trace?.current?.candidates = candidates
@@ -233,7 +243,8 @@ public enum PumpDisplayCapture {
     }
 
     /// The fast path's Detection, counted from the detector's rows alone: every
-    /// rescued row that passes the size rules is a display row.
+    /// rescued row that passes the size rules is a display row. `textLines` is
+    /// the `textLinesNotMeasured` sentinel - the pass never ran.
     private static func detectorDetection(rows: [PumpRowDetector.Row], textLines: Int) -> Detection {
         let sized = rows.filter { passesSize($0) }
         var widest: CGFloat = 0, tallest: CGFloat = 0

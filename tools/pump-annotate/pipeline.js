@@ -671,7 +671,7 @@ function renderInfo(trace, truth, a) {
       <tr><td>path</td><td>${fast ? 'fast - two stacked detector rows decided' : 'slow - the verifier decided'}</td></tr>
       <tr><td>detector rows</td><td>${(a.detectedRows || []).length} (${(a.detectedRows || []).filter(r => r.passesSize).length} pass size)</td></tr>
       <tr><td>display rows</td><td>${d.rows ?? '–'} <span class="muted">≥ 2</span></td></tr>
-      <tr><td>text lines</td><td>${d.textLines ?? '–'} <span class="muted">≤ 30 on the slow path</span></td></tr>
+      <tr><td>text lines</td><td>${d.textLines === -1 ? '<span class="muted">not measured – the fast path decided first</span>' : (d.textLines ?? '–')} <span class="muted">≤ 30 on the slow path</span></td></tr>
       <tr><td>widest row</td><td>${d.widestRow != null ? (d.widestRow * 100).toFixed(1) + '%' : '–'} <span class="muted">≥ 18%</span></td></tr>
       <tr><td>budget</td><td>${trace.budget} s${a.budgetHit ? ` <b style="color:${BAD}">hit - refused</b>` : ''}</td></tr></table>`;
   }

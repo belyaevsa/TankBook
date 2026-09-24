@@ -516,13 +516,12 @@ struct PumpReader {
             // Vision proposal alike, so a retrain cannot move it (decision 10).
             var mean = 0.0
             if !cells.isEmpty, cells.count <= PumpReadingLaw.maxCells {
-                var margins: [Double] = []
-                for cell in cells {
-                    let probabilities = try Self.averaged(model: model, crops: [Self.resample(
-                        stripRGB, rect: cell.rect, width: PumpSegmentsModel.inputWidth,
-                        height: PumpSegmentsModel.inputHeight)!])
-                    margins.append(PumpCellReading(probabilities: probabilities).margin)
-                }
+                // One batched prediction for the candidate's cells; each
+                // receives the same single crop it did before.
+                let probabilities = try model.probabilities(cells: cells.map { Self.resample(
+                    stripRGB, rect: $0.rect, width: PumpSegmentsModel.inputWidth,
+                    height: PumpSegmentsModel.inputHeight)! })
+                let margins = probabilities.map { PumpCellReading(probabilities: $0).margin }
                 mean = margins.reduce(0, +) / Double(margins.count)
             }
             let geometry = PumpRowGeometry.verdict(cells: sliced.fullCells, stripWidth: strip.width,
@@ -578,9 +577,11 @@ struct PumpReader {
     }
 
     static func averaged(model: PumpSegmentsModel, crops: [PumpRGBImage]) throws -> [Double] {
+        // One batched prediction for all crops; the sum order is the crops'
+        // own, so the average matches the per-crop loop exactly.
+        let probabilities = try model.probabilities(cells: crops)
         var sum = [Double](repeating: 0, count: 8)
-        for crop in crops {
-            let p = try model.probabilities(cell: crop)
+        for p in probabilities {
             for i in 0..<8 { sum[i] += p[i] }
         }
         return sum.map { $0 / Double(max(crops.count, 1)) }

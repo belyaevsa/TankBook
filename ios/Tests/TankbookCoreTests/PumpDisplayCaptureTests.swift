@@ -166,6 +166,31 @@ struct PumpDisplayCaptureTests {
         #expect(!PumpDisplayCapture.fastVerdict(rows: rows, textLines: 8))
     }
 
+    /// M1: the text-line pass runs only when the fast path abstains, so a
+    /// fast-decided frame reports the sentinel and a slow-decided one a real
+    /// count. pump-032's detector vouches for stacked rows; pump-019's rows do
+    /// not stack, so the verifier decides.
+    @Test("the fast path reports textLines not measured; the slow path a real count",
+          .enabled(if: PumpReaderTestSupport.fixturesPresent && PumpReaderTestSupport.detectorURL != nil,
+                   "pump corpus and detector"))
+    func lazyTextLinePass() throws {
+        let reader = try #require(PumpDisplayCapture.makeReader(
+            modelURL: Self.modelURL, detectorURL: PumpReaderTestSupport.detectorURL))
+        let fastImage = try #require(PumpQuadWarp.loadOrientedImage(
+            from: PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent(Self.heldoutPumps[0])))
+        let fast = PumpDisplayCapture.detect(image: fastImage, reader: reader)
+        #expect(fast.path == .fast)
+        #expect(fast.textLines == PumpDisplayCapture.textLinesNotMeasured)
+
+        let slowImage = try #require(PumpQuadWarp.loadOrientedImage(
+            from: PumpReaderTestSupport.pumpFixturesRoot
+                .appendingPathComponent("pump-019-gilbarco-circlek-sikupilli-pump8-ee.jpg")))
+        let slow = PumpDisplayCapture.detect(image: slowImage, reader: reader)
+        #expect(slow.path == .slow)
+        #expect(slow.textLines >= 0)
+        #expect(slow.textLines != PumpDisplayCapture.textLinesNotMeasured)
+    }
+
     /// The slow path exists for a head the detector never saw (a Tatsuno, a
     /// Topaz). pump-019's detector rows do not stack, so the fast path
     /// abstains; the verifier finds two and classifies. The budgets are
