@@ -566,6 +566,23 @@ explicit-marker tier and resolved to EUR, so the pre-fill's currency was EUR and
 home-currency boundary let it through - the amount was blank because the total was nil, and the
 expense form has no currency field of its own to show.
 
+**A document total outranks a column total (RV.301).** A `Расходная накладная` (delivery note) or
+invoice prints its grand total with a document word the receipt vocabulary lacks: `На сумму :
+11 850.00 руб.` on the Gorunov note, or `Сумма документа: 159 373,00` beside a column-laid
+`Итого: 4 152,00 | 108 173,00` on the VAG page. The label vocabulary gains a third kind,
+`document`, for `СУММА ДОКУМЕНТА` and `НА СУММУ` - the accusative form the nominative `СУММА`
+never matches (a different letter sequence, exactly as the Cyrillic/Latin pair is) - classified
+before `primary` because `СУММА ДОКУМЕНТА` contains the `СУММА` stem. **A document total outranks
+every primary and payment read**: on a multi-column invoice `Итого:` is a *column* sum and pairs
+whichever figure sits nearest it (the discount column), while the document total is the figure
+the document actually charges. `grandTotalRead` therefore resolves the document candidates first,
+and abstains when the document labels themselves disagree rather than falling through to a column
+figure or the most-printed line item. `pairedValue` reads an amount printed on the label's own
+line **before** it looks at the adjacent row: on the Gorunov note the row below `На сумму` is
+`НДС : 0.00 руб.`, so array adjacency would pair the VAT, not the total. The three fixtures
+resolve 11 850.00, 87 600.00 and 159 373.00; the vocabulary appears on no fuel receipt, so no
+fuel total moves.
+
 **The expense folder is a scored corpus class now (RV.277), and it scores the photograph
 (RV.278).** `expenses/expected.csv` gained `total,currency,date` beside `category`, and the
 folder is ratcheted as its own class in `high-water.json` (kind + total + currency + date

@@ -147,15 +147,29 @@ extension FuelExtractor {
     }
 
     func grandTotalRead(_ lines: [OCRLine]) -> TotalResolution? {
+        var document: [Double] = []
         var primary: [Double] = []
         var payment: [Double] = []
         for (index, line) in lines.enumerated() {
             guard let kind = TotalLabel.classify(line.text) else { continue }
             guard let value = pairedValue(forLabelAt: index, in: lines) else { continue }
             switch kind {
+            case .document: document.append(value)
             case .primary: primary.append(value)
             case .payment: payment.append(value)
             }
+        }
+        // THE DOCUMENT-TOTAL RANKING. A document total outranks every primary or
+        // payment read: on a multi-column invoice the column `Итого:` pairs the
+        // figure sitting nearest it, which is not the document's grand total,
+        // and `Сумма документа:` / `На сумму:` is the figure the document
+        // charges. A document label that resolved a value therefore wins here
+        // before the primary/payment mode runs. When the document labels
+        // themselves disagree at all the finder abstains rather than guess
+        // (hard rule 13); a majority among document labels is not a resolution.
+        if let documentTotal = document.first {
+            guard document.allSatisfy({ abs($0 - documentTotal) < 0.005 }) else { return nil }
+            return TotalResolution(value: documentTotal, labelReads: document.count)
         }
         // Both sessions fixed receipt-017's discount on the same day by
         // different mechanisms, and trunk's is the better one: with a discount
@@ -278,20 +292,25 @@ extension FuelExtractor {
             }
         }
         if let best { return best.value }
+        // The label and its value on ONE line (`ИТОГО 250.00`, `TOTAL 12.00 EUR`,
+        // `KOKKU 150,00`, `На сумму : 11 850.00 руб.`). The line is not a
+        // `NumberScanner.isValueLine` - it carries the label's own letters - so
+        // the shared `adjacentValue` cannot read it. Read BEFORE the adjacent-row
+        // fallback: an amount printed on the label's own line is the label's
+        // amount, while the row below can be an unrelated labelled figure
+        // (`НДС : 0.00 руб.` sits under `На сумму` on a delivery note). The date
+        // guards mirror `NumberScanner.isValueLine`, so a date on a label line is
+        // never read as the total.
+        if !NumberScanner.isSubtractionLine(label.text), !NumberScanner.isNegativeAmount(label.text),
+           label.text.firstMatch(of: /\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4}/) == nil,
+           label.text.firstMatch(of: /\d{4}-\d{2}-\d{2}/) == nil,
+           let value = NumberScanner.value(in: label.text) {
+            return value
+        }
         // Adjacent value lines (reading order), for receipts where the value
         // sits on its own row above or below the label.
         if index > 0, let value = adjacentValue(lines[index - 1]) { return value }
         if index + 1 < lines.count, let value = adjacentValue(lines[index + 1]) { return value }
-        // The label and its value on ONE line (`ИТОГО 250.00`, `TOTAL 12.00 EUR`,
-        // `KOKKU 150,00`). The line is not a `NumberScanner.isValueLine` - it
-        // carries the label's own letters - so the shared `adjacentValue` cannot
-        // read it, and the expense corpus's hand-authored fixtures print this
-        // shape. Checked last so a fuel receipt's separate value line (the shape
-        // the geometry and adjacency paths above already resolve) keeps winning.
-        if !NumberScanner.isSubtractionLine(label.text), !NumberScanner.isNegativeAmount(label.text),
-           let value = NumberScanner.value(in: label.text) {
-            return value
-        }
         return nil
     }
 

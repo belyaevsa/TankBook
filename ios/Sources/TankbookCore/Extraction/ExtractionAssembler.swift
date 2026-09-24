@@ -103,16 +103,19 @@ public enum ExtractionAssembler {
         return lines[index].boundingBox
     }
 
-    /// The total label line (a primary `ИТОГ`/`TOTAL` label preferred) - the
-    /// region the receipt's own total came from.
+    /// The total label line - the region the receipt's own total came from. A
+    /// document total (`Сумма документа` / `На сумму`) is preferred over a
+    /// primary one because that is the figure `grandTotalRead` ranks first.
     private static func totalCropRect(_ lines: [OCRLine]) -> CGRect? {
+        var document: CGRect?
         var primary: CGRect?
         var any: CGRect?
         for line in lines {
             guard let kind = TotalLabel.classify(line.text) else { continue }
+            if case .document = kind, document == nil { document = line.boundingBox }
             if case .primary = kind, primary == nil { primary = line.boundingBox }
             if any == nil { any = line.boundingBox }
         }
-        return primary ?? any
+        return document ?? primary ?? any
     }
 }
