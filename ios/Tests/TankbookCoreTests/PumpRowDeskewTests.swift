@@ -97,4 +97,81 @@ struct PumpRowDeskewTests {
         let found = PumpRowDeskew.deskew(Self.uprightBox(degrees: 0), in: Self.row(degrees: 0, italic: 10))
         #expect(abs(found.degrees) <= 0.6, "an italic row was turned by \(found.degrees)")
     }
+
+    @Test("the transform sums along the slope, and the criterion carries the paper's sec^3 weight")
+    func transformAndWeight() {
+        // A 4 x 4 image with a single lit pixel per column on the staircase that
+        // rises one row per column: slope 3 (of n = 4) sums all four at offset 0.
+        var image = [Float](repeating: 0, count: 16)
+        for x in 0..<4 { image[x * 4 + x] = 1 }
+        let hough = PumpFastHough.transform(image, width: 4, height: 4)
+        #expect(hough.n == 4)
+        #expect(hough.sums[3 * hough.rows + 0] == 4)
+        // Equal raw SSG on every slope: the criterion must scale by (1 + s^2)^1.5,
+        // s = t / (n - 1), so slope 3 weighs 2^1.5 against level.
+        var flat = [Float](repeating: 0, count: 4 * 8)
+        for t in 0..<4 { flat[t * 8 + 3] = 1 }
+        let values = PumpRowDeskew.criteria((n: 4, rows: 8, sums: flat)).values
+        #expect(abs(values[3] / values[0] - pow(2.0, 1.5)) < 1e-9)
+    }
+
+
+    @Test("the padded transform drops a pattern's shift off the end instead of wrapping it")
+    func transformDoesNotWrap() {
+        // Width 2, height 1, pixels (1, 2): slope 1 at the last offset reaches
+        // past the padded rows, so it holds only the left pixel's zero padding.
+        let hough = PumpFastHough.transform([1, 2], width: 2, height: 1)
+        #expect(hough.sums[1 * hough.rows + hough.rows - 1] == 0)
+    }
+
+    @Test("a turned row and a level one both carry the curve's confidence")
+    func confidenceIsAlwaysReported() {
+        let turned = PumpRowDeskew.deskew(Self.uprightBox(degrees: 6), in: Self.row(degrees: 6))
+        let confidence = try? #require(turned.confidence)
+        #expect((confidence?.peakRatio ?? 0) >= 1 + PumpRowDeskew.minimumGain)
+        let level = PumpRowDeskew.deskew(Self.uprightBox(degrees: 0), in: Self.row(degrees: 0))
+        #expect(level.confidence != nil)
+    }
+
+
+    @Test("an edge between two transform slopes is found between them")
+    func subSlopeRefinement() {
+        // A 256-wide strip (the transform's own width, one slope step =
+        // atan(1/255) = 0.225 deg) with a bright band whose edges fall 10.5
+        // rows across it: 2.358 deg lies halfway between slopes 10 and 11.
+        // The dyadic patterns' own approximation bias keeps the estimate from
+        // the exact half-step (agents/research/PU.69.md §2.2), so the pin is
+        // the note's F2 - within one slope step; the refinement's gain is
+        // measured on the corpus instead (median 0.63 -> 0.60 deg).
+        let width = 256, height = 96
+        var pixels = [Float](repeating: 0, count: width * height)
+        for x in 0..<width {
+            let top = 30.0 + 10.5 * Double(x) / 255.0
+            for y in 0..<height where Double(y) >= top && Double(y) < top + 30 { pixels[y * width + x] = 1 }
+        }
+        let found = PumpRowDeskew.angle(of: PumpGrayscale(width: width, height: height, pixels: pixels))
+        let truth = atan(10.5 / 255.0) * 180 / .pi
+        #expect(abs((found?.degrees ?? 0) - truth) < 0.225, "found \(found?.degrees ?? .nan), truth \(truth)")
+    }
+
+
+    @Test("slanted strokes alone are not a turn: only horizontal structure is scored")
+    func slantedStrokesAreNotATurn() {
+        // Italic-style strokes slanted 10 deg from vertical, full height, and no
+        // horizontal edge anywhere: the mostly-horizontal band sees nothing to
+        // turn to. Fusing the paper's vertical band would read the slant as a
+        // 10 deg turn.
+        let width = 256, height = 96
+        var pixels = [Float](repeating: 0, count: width * height)
+        let slant = tan(10.0 * .pi / 180)
+        for stroke in stride(from: 20, to: 236, by: 24) {
+            for y in 0..<height {
+                let x = stroke + Int((Double(y) * slant).rounded())
+                for dx in 0..<6 where x + dx < width { pixels[y * width + x + dx] = 1 }
+            }
+        }
+        let found = PumpRowDeskew.angle(of: PumpGrayscale(width: width, height: height, pixels: pixels))
+        #expect(found?.turned != true, "turned to \(found?.degrees ?? .nan)")
+    }
+
 }

@@ -1090,6 +1090,22 @@ transaction rows, 182 are proposed by some source, 171 by the learned detector, 
 verifier; the verifier's drops are slicer measurements (`cellCount`, `pitch`, `inkBand`), so a row the
 slicer miscounts is not read badly, it disappears. Nothing in this chain is a model training round.
 
+**The row's angle comes from a fast Hough transform (PU.69, 2026-09-24, `agents/research/PU.69.md`).**
+`PumpRowDeskew` crops the row's upright box once, takes its vertical brightness difference, and runs
+a Brady-Yong fast Hough transform over it and over its mirror (falling and rising rows); every
+accumulator row is the projection profile at one slope, scored by the SSG criterion (sum of squared
+successive differences) with the paper's sec^3 weight, best slope within +-30 deg refined by a
+quadratic through its neighbours (Bezmaternykh & Nikolaev, arXiv:1912.02504, Algorithm 1; the
+vertical band is dropped so an italic face is not read as a turn). It replaces a 72-trial warp
+sweep. Against the owner's hand quads (188 heldout transaction windows, Release): median error
+0.73 -> **0.60 deg**, p90 1.98 -> 1.97, rows past 6 deg 1.00 -> **0.66**, within 1 deg 0.697 [0.628, 0.758];
+**8.4 -> 2.9-3.1 ms per row** (the logged Release runs of the shipped estimator, some with training
+running).
+The search input is 96 px high (the read path's own height; 48 px left a 0.7 deg bias on synthetic
+turns). Each result carries three confidence statistics of the criterion curve, kept for the oriented
+detector (PU.76; PU.70, their first consumer, was cut). Nothing on
+the app path changes until row deskew is enabled (PU.67).
+
 **Row deskew, on a refusal - built, measured on the app's path, held (PU.65, PU.67, 2026-09-23).** A
 detector row turned to its digits' angle - the angle at which its row-by-row brightness profile is
 sharpest, a projection-profile skew estimate (`PumpRowDeskew`) - read only when the upright read and

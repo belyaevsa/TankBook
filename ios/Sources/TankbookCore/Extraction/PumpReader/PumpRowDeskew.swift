@@ -10,30 +10,34 @@ import Foundation
 /// width, which the slicer then reads as a different pitch and band.
 ///
 /// The angle comes from the row's horizontal structure. Seven-segment digits
-/// share a flat top and bottom (segments a and d), so when the strip is level
-/// its row-by-row brightness changes sharply at those edges; a turned strip
-/// smears them across more rows. The search keeps the angle whose strip has the
-/// sharpest row profile. Vertical strokes are deliberately not used: many
-/// pump fonts are italic, and levelling the strokes would shear every digit.
+/// share a flat top and bottom (segments a and d), so along the row's own angle
+/// its brightness profile changes sharply at those edges; at any other angle
+/// they smear. The angle is the one whose projection profile is sharpest - the
+/// sum of squared successive differences (the SSG criterion) over every slope at
+/// once, from one fast Hough transform of the row's vertical brightness
+/// difference (Bezmaternykh & Nikolaev, arXiv:1912.02504, Algorithm 1;
+/// agents/research/PU.69.md). Only the mostly-horizontal band is used: many pump
+/// fonts are italic, and scoring the vertical strokes would read the slant as
+/// a turn.
 ///
 /// Each row gets its own angle: rows at different heights of one display
 /// photographed at an angle do not share one (perspective).
 enum PumpRowDeskew {
-    /// The angles searched either side of level, in degrees. The corpus has
-    /// rows turned past 15 degrees (a display shot from the side).
+    /// The angles searched either side of level, in degrees. The owner's hand
+    /// quads top out near 10 degrees, but a detector row on a display shot from
+    /// the side can be turned further (PU.65's tilted stills), so the search
+    /// keeps room past the drawn range.
     static let maximumAngle = 30.0
-    /// Above this turn the upright box is resized to the row it bounds (see
-    /// `rowSize`); below it the box keeps its size, which measured safer than
-    /// any refit because the verifier's rules were tuned on the detector's own
-    /// framing.
+    /// Above this turn the turned box is resized to the row its upright bound
+    /// implies (see `rowSize`); below it the box keeps its size, which measured
+    /// safer than any refit because the verifier's rules were tuned on the
+    /// detector's own framing.
     static let largeTurn = 6.0
-    static let coarseStep = 1.0
-    static let fineStep = 0.2
     /// How much taller than the detector's box the search crop is, as a
     /// fraction of its height, so a turned row's corners stay inside it.
     static let searchPadding: CGFloat = 0.3
-    /// The strip height the search warps to: coarse is enough for a profile.
-    static let searchStripHeight: CGFloat = 48
+    /// The height the search crop is resampled to: coarse is enough for a profile.
+    static let searchStripHeight: CGFloat = 96
     /// A turn is kept only when it sharpens the profile by at least this much
     /// over level; below it the difference is noise and the box stays upright.
     static let minimumGain = 0.05
@@ -48,6 +52,21 @@ enum PumpRowDeskew {
         let quad: [CGPoint]
         /// Positive turns the row clockwise in image coordinates (y down).
         let degrees: Double
+        /// How pronounced the chosen angle is on the criterion curve; nil when
+        /// the crop could not be searched.
+        var confidence: Confidence? = nil
+    }
+
+    /// Three published statistics of the SSG curve over the searched angles
+    /// (PU.69 note A6), exposed for a threshold fitted on the train split.
+    struct Confidence: Equatable {
+        /// The peak over the curve's minimum (Leptonica's skew confidence shape).
+        let peakRatio: Double
+        /// One minus the curve's median over its peak: near 1 is one sharp
+        /// orientation, near 0 is no structure (Kunina et al. 2023, eq. 6 shape).
+        let dominance: Double
+        /// The peak criterion itself.
+        let peakMass: Double
     }
 
     /// The row box turned to its digits' angle, or the input unchanged when no
@@ -59,40 +78,19 @@ enum PumpRowDeskew {
         guard box.width > 4, box.height > 4 else { return Result(quad: quad, degrees: 0) }
         let centre = CGPoint(x: box.midX, y: box.midY)
         let searchHeight = box.height * (1 + 2 * searchPadding)
-        // Past `largeTurn` the upright box around the row is nearly square, and
-        // a crop that size warps to a strip a few dozen pixels wide - the digits
-        // alias and a wrong angle can outscore the right one. There each trial
-        // crop is sized to the row that angle implies.
-        func score(_ degrees: Double) -> Double {
-            let row = abs(degrees) > largeTurn
-                ? rowSize(boundingWidth: box.width, boundingHeight: box.height, degrees: degrees)
-                : CGSize(width: box.width, height: box.height)
-            let height = abs(degrees) > largeTurn ? row.height * (1 + 2 * searchPadding) : searchHeight
-            let q = inside(centre: centre, width: row.width, height: height, degrees: degrees, image: image)
-            guard let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: q, stripHeight: searchStripHeight) else {
-                return 0
-            }
-            return profileSharpness(PumpQuadWarp.rgbImage(from: strip).grayscale())
-        }
-        let level = score(0)
-        var best = (degrees: 0.0, score: level)
-        for step in stride(from: -maximumAngle, through: maximumAngle, by: coarseStep) where step != 0 {
-            let s = score(step)
-            if s > best.score { best = (step, s) }
-        }
-        for step in stride(from: best.degrees - coarseStep, through: best.degrees + coarseStep, by: fineStep) {
-            let s = score(step)
-            if s > best.score { best = (step, s) }
-        }
-        guard best.degrees != 0, level > 0, best.score >= level * (1 + minimumGain) else {
+        let crop = inside(centre: centre, width: box.width, height: searchHeight, degrees: 0, image: image)
+        guard let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: crop, stripHeight: searchStripHeight),
+              let search = angle(of: PumpQuadWarp.rgbImage(from: strip).grayscale()) else {
             return Result(quad: quad, degrees: 0)
         }
+        let best = (degrees: search.degrees, confidence: search.confidence)
+        guard search.turned else { return Result(quad: quad, degrees: 0, confidence: best.confidence) }
         if !fitsBand {
             let size = abs(best.degrees) > largeTurn
                 ? rowSize(boundingWidth: box.width, boundingHeight: box.height, degrees: best.degrees)
                 : CGSize(width: box.width, height: box.height)
             return Result(quad: rotatedRect(centre: centre, width: size.width, height: size.height, degrees: best.degrees),
-                          degrees: best.degrees)
+                          degrees: best.degrees, confidence: best.confidence)
         }
         // Fit the height to the ink band at the chosen angle, so the turned box
         // is as tight as the upright one was rather than padded.
@@ -100,7 +98,7 @@ enum PumpRowDeskew {
         guard let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: wide, stripHeight: searchStripHeight),
               let band = inkBand(PumpQuadWarp.rgbImage(from: strip).grayscale()) else {
             return Result(quad: rotatedRect(centre: centre, width: box.width, height: box.height, degrees: best.degrees),
-                          degrees: best.degrees)
+                          degrees: best.degrees, confidence: best.confidence)
         }
         let rows = CGFloat(strip.height)
         let margin = CGFloat(band.upperBound - band.lowerBound + 1) * bandMargin
@@ -113,7 +111,7 @@ enum PumpRowDeskew {
         let shifted = CGPoint(x: centre.x - offset * CGFloat(sin(radians)), y: centre.y + offset * CGFloat(cos(radians)))
         let height = max((bottom - top) * searchHeight, box.height * 0.5)
         return Result(quad: rotatedRect(centre: shifted, width: box.width, height: height, degrees: best.degrees),
-                      degrees: best.degrees)
+                      degrees: best.degrees, confidence: best.confidence)
     }
 
     /// The length and height of a row turned by `degrees` whose upright bounding
@@ -160,20 +158,67 @@ enum PumpRowDeskew {
         }
     }
 
-    /// How sharply the strip's brightness changes from one pixel row to the
-    /// next, summed over the strip and normalised by its size. Polarity-free:
-    /// an LCD's dark digits and an LED's bright ones both score.
-    static func profileSharpness(_ gray: PumpGrayscale) -> Double {
-        guard gray.height > 2, gray.width > 0 else { return 0 }
-        var means = [Double](repeating: 0, count: gray.height)
-        for y in 0..<gray.height {
-            var sum: Float = 0
-            for x in 0..<gray.width { sum += gray[x, y] }
-            means[y] = Double(sum / Float(gray.width))
+    /// The row's angle in an axis-aligned crop: the vertical brightness
+    /// difference (so the segments' flat tops and bottoms are the lines), one
+    /// fast Hough transform per slope direction (the crop and its mirror), the
+    /// SSG criterion weighted by sec^3 of the slope (the paper's `K^3`), the
+    /// best slope within `maximumAngle` refined by a quadratic through its
+    /// neighbours. `turned` is false unless the best angle beats level by
+    /// `minimumGain`; nil when the crop is too small to search.
+    static func angle(of gray: PumpGrayscale) -> (degrees: Double, turned: Bool, confidence: Confidence)? {
+        let width = gray.width, height = gray.height - 1
+        guard width > 2, height > 2 else { return nil }
+        var difference = [Float](repeating: 0, count: width * height)
+        var mirrored = [Float](repeating: 0, count: width * height)
+        for y in 0..<height {
+            for x in 0..<width {
+                let d = gray[x, y + 1] - gray[x, y]
+                difference[y * width + x] = d
+                mirrored[(height - 1 - y) * width + x] = d
+            }
         }
-        var total = 0.0
-        for y in 1..<gray.height { let d = means[y] - means[y - 1]; total += d * d }
-        return total / Double(gray.height)
+        let down = criteria(PumpFastHough.transform(difference, width: width, height: height))
+        let up = criteria(PumpFastHough.transform(mirrored, width: width, height: height))
+        let n = down.n
+        let limit = min(n - 1, Int((tan(maximumAngle * .pi / 180) * Double(n - 1)).rounded(.down)))
+        guard limit > 0 else { return nil }
+        // The signed curve: index s > 0 is a row falling to the right (y grows
+        // with x, a clockwise turn), s < 0 rising.
+        let curve = (-limit...limit).map { s in s >= 0 ? down.values[s] : up.values[-s] }
+        let level = curve[limit]
+        guard let peak = curve.indices.max(by: { curve[$0] < curve[$1] }), curve[peak] > 0 else { return nil }
+        var position = Double(peak - limit)
+        if peak > 0, peak < curve.count - 1 {
+            let a = curve[peak - 1], b = curve[peak], c = curve[peak + 1]
+            let denominator = a - 2 * b + c
+            if denominator < 0 { position += 0.5 * (a - c) / denominator }
+        }
+        let degrees = atan(position / Double(n - 1)) * 180 / .pi
+        let sorted = curve.sorted()
+        let confidence = Confidence(peakRatio: curve[peak] / max(sorted.first ?? 0, .leastNonzeroMagnitude),
+                                    dominance: 1 - sorted[sorted.count / 2] / curve[peak],
+                                    peakMass: curve[peak])
+        let turned = peak != limit && level > 0 && curve[peak] >= level * (1 + minimumGain)
+        return (turned ? degrees : 0, turned, confidence)
+    }
+
+    /// The SSG criterion of every slope of a fast Hough accumulator: the sum of
+    /// squared differences between successive offsets, weighted by sec^3 of
+    /// the slope so a longer oblique pattern is not favoured for its length.
+    static func criteria(_ hough: (n: Int, rows: Int, sums: [Float])) -> (n: Int, values: [Double]) {
+        let (n, rows, sums) = hough
+        var values = [Double](repeating: 0, count: n)
+        for t in 0..<n {
+            var total = 0.0
+            let base = t * rows
+            for y in 1..<rows {
+                let d = Double(sums[base + y] - sums[base + y - 1])
+                total += d * d
+            }
+            let slope = Double(t) / Double(max(n - 1, 1))
+            values[t] = pow(1 + slope * slope, 1.5) * total
+        }
+        return (n, values)
     }
 
     /// The pixel rows holding the digits: the longest run of rows whose
