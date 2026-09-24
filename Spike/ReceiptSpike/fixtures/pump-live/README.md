@@ -417,6 +417,38 @@ whole fills, so no display content is shared with a train still.
 | `video-048-gilbarco-circlek-pump11-running-display-2094-rain-ee` | 995 (3840x2160, 24 fps, 41 s) | Gilbarco Veeder-Root at Circle K, pump 11, **counting up** from 0028,67 / 0013,69 to 0081,54 / 0038,94, zero-padded | price `2.094` |
 | `video-049-wayne-neste-running-display-1929-rain-ee` | 313 (3840x2160, 24 fps, 13 s) | Wayne at Neste, **counting up** from 27.30 / 14.15 to 38.64 / 20.03, heavy drops | price `1.929` |
 
+## Batch 11 (2026-09-24, product owner): Circle K at night
+
+Three Live records beside three night stills of Gilbarco Veeder-Root heads at Circle K, Estonia
+(pumps 2, 3 and 4), each its own fill; 1920x1440 HEVC, audio-free Live records from the owner's
+camera roll. **Two are the second frozen draw** (`heldout2`): `pump-329` (tilted ~15°) and
+`pump-330` (oblique) - night and a turned display, as whole fills, trained on by no model.
+
+| live | frames | what | paired still / truth |
+|---|---|---|---|
+| `live-6397` | 79 | Live record of the pump still (heldout2) | `pump-329` |
+| `live-6398` | 87 | Live record of the pump still (heldout2) | `pump-330` |
+| `live-6399` | 86 | Live record of the pump still | `pump-331` |
+
+## Batch 11b (2026-09-24, product owner): Alexela, black LCDs
+
+An Alexela station in Estonia (the owner's message said Neste; the pumps carry *Maksa Alexela
+äpiga* and the Alexela sign). Four Live records beside four stills: three idle black-LCD heads
+(0.00 / 0.00 beside the 2.079 / 1.979 / 1.919 board; the owner's reflection in the glass on two,
+kept as shot on the owner's decision) and one CNG pump sold per kg with a dead-segment price LCD.
+`pump-335` is **heldout2**, the owner's validation pick for the black LCD.
+
+| live | frames | what | paired still / truth |
+|---|---|---|---|
+| `live-6402` | 88 | Live record of the pump still | `pump-332` |
+| `live-6403` | 75 | Live record of the pump still | `pump-333` |
+| `live-6404` | 63 | Live record of the pump still | `pump-334` |
+| `live-6405` | 87 | Live record of the pump still (heldout2) | `pump-335` |
+
+| video | frames | what | truth |
+|---|---|---|---|
+| `video-050-unknown-alexela-black-lcd-running-display-2079-ee` | 948 (3840x2160, 24 fps, 39.5 s) | black LCD at Alexela, **counting up** from 16.96 / 8.16 to 73.37 / 35.29, the owner's hand and phone reflected; IMG_6406.MOV cut from 2.0 s (a passer-by is reflected in the first second and a half), no audio, no metadata. **Windows not placed yet** - reference quads and tracking are the annotator's (video mode) | price `2.079` |
+
 ## Frames and tracking (2026-09-20)
 
 Two scripts in `ml/pump-reader` turn the records into labelled training frames without a

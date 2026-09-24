@@ -40795,5 +40795,220 @@
   ],
   "reviewed": true,
   "tracking": "ok"
+ },
+ "pump-329-gilbarco-circlek-2020-951l-2124-night-tilted-ee.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "0020,20",
+    "quad": [
+     [
+      0.3373,
+      0.2964
+     ],
+     [
+      0.7265,
+      0.2964
+     ],
+     [
+      0.7265,
+      0.4184
+     ],
+     [
+      0.3373,
+      0.4184
+     ]
+    ],
+    "placedBy": "auto"
+   },
+   {
+    "field": "liters",
+    "text": "0009,51",
+    "quad": [
+     [
+      0.4129,
+      0.3834
+     ],
+     [
+      0.6626,
+      0.3834
+     ],
+     [
+      0.6626,
+      0.4711
+     ],
+     [
+      0.4129,
+      0.4711
+     ]
+    ],
+    "placedBy": "auto"
+   },
+   {
+    "field": "unitPrice",
+    "text": "2,124",
+    "quad": [
+     [
+      0.5267,
+      0.5319
+     ],
+     [
+      0.6791,
+      0.5319
+     ],
+     [
+      0.6791,
+      0.595
+     ],
+     [
+      0.5267,
+      0.595
+     ]
+    ],
+    "placedBy": "auto"
+   }
+  ],
+  "reviewed": false
+ },
+ "pump-330-gilbarco-circlek-7645-3591l-2129-night-oblique-ee.jpg": {
+  "pendingWindows": true,
+  "windows": [
+   {
+    "field": "total",
+    "text": "0076,45",
+    "quad": [
+     [
+      0.427,
+      0.2996
+     ],
+     [
+      0.6146,
+      0.2996
+     ],
+     [
+      0.6146,
+      0.3512
+     ],
+     [
+      0.427,
+      0.3512
+     ]
+    ],
+    "placedBy": "auto"
+   },
+   {
+    "field": "liters",
+    "text": "0035,91",
+    "quad": [
+     [
+      0.4609,
+      0.4047
+     ],
+     [
+      0.5391,
+      0.4047
+     ],
+     [
+      0.5391,
+      0.4405
+     ],
+     [
+      0.4609,
+      0.4405
+     ]
+    ],
+    "placedBy": "auto"
+   }
+  ],
+  "reviewed": false
+ },
+ "pump-331-gilbarco-circlek-3264-1533l-2129-night-ee.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "0032,64",
+    "quad": [
+     [
+      0.4494,
+      0.2432
+     ],
+     [
+      0.7185,
+      0.2432
+     ],
+     [
+      0.7185,
+      0.31
+     ],
+     [
+      0.4494,
+      0.31
+     ]
+    ],
+    "placedBy": "auto"
+   },
+   {
+    "field": "liters",
+    "text": "0015,33",
+    "quad": [
+     [
+      0.4808,
+      0.2961
+     ],
+     [
+      0.6937,
+      0.2961
+     ],
+     [
+      0.6937,
+      0.346
+     ],
+     [
+      0.4808,
+      0.346
+     ]
+    ],
+    "placedBy": "auto"
+   },
+   {
+    "field": "unitPrice",
+    "text": "2,129",
+    "quad": [
+     [
+      0.5374,
+      0.4187
+     ],
+     [
+      0.6488,
+      0.4187
+     ],
+     [
+      0.6488,
+      0.4578
+     ],
+     [
+      0.5374,
+      0.4578
+     ]
+    ],
+    "placedBy": "auto"
+   }
+  ],
+  "reviewed": false
+ },
+ "pump-332-unknown-alexela-black-lcd-idle-board-reflection-ee.jpg": {
+  "pendingWindows": true
+ },
+ "pump-333-unknown-alexela-cng-2106-1109kg-dead-segments-ee.jpg": {
+  "pendingWindows": true,
+  "csvDisagrees": {
+   "unitPrice": "the price LCD has dead top and bottom segments on its last cells and shows 1.844; 11.09 kg x 1.899 = 21.06 closes and 1.844 gives 20.45, so the CSV keeps the arithmetic value and the window carries what the display shows - a reader that commits 1.844 is wrong, one that refuses is right. CNG, sold per kg: the quantity column holds kilograms"
+  }
+ },
+ "pump-334-unknown-alexela-black-lcd-idle-board-self-reflection-ee.jpg": {
+  "pendingWindows": true
+ },
+ "pump-335-unknown-alexela-black-lcd-idle-board-ee.jpg": {
+  "pendingWindows": true
  }
 }

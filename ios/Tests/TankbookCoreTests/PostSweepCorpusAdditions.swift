@@ -541,6 +541,15 @@ enum PostSweepCorpusAdditions {
             "pump-326-gilbarco-circlek-2117-1011l-2094-rain-ee.jpg",
             "pump-327-gilbarco-circlek-6772-3234l-2094-rain-ee.jpg",
             "pump-328-wayne-neste-4736-2381l-board-rain-tilted-ee.jpg",
+            // 2026-09-24, batch 11: Circle K at night, declared not swept.
+            "pump-329-gilbarco-circlek-2020-951l-2124-night-tilted-ee.jpg",
+            "pump-330-gilbarco-circlek-7645-3591l-2129-night-oblique-ee.jpg",
+            "pump-331-gilbarco-circlek-3264-1533l-2129-night-ee.jpg",
+            // 2026-09-24, batch 11b: Alexela, black LCDs and a CNG dead-segment price.
+            "pump-332-unknown-alexela-black-lcd-idle-board-reflection-ee.jpg",
+            "pump-333-unknown-alexela-cng-2106-1109kg-dead-segments-ee.jpg",
+            "pump-334-unknown-alexela-black-lcd-idle-board-self-reflection-ee.jpg",
+            "pump-335-unknown-alexela-black-lcd-idle-board-ee.jpg",
         ],
         "screenshots": [
             // 2026-09-14: an OFD-rendered Lukoil AI-100 e-receipt. Declared,

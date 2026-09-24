@@ -1489,3 +1489,51 @@ right. Rain is the first condition in the corpus to make the live path commit a 
 an owner capture; the heldout's 45/45 committed-correct never saw one.
 
 Pump cells 865 → 889 (totals only: measured on macOS 27, where the measured suites skip).
+
+## Added 2026-09-24 (batch 11: Circle K at night - 3 stills)
+
+Three Gilbarco Veeder-Root heads at Circle K, Estonia, **at night** (pumps 2, 3 and 4 - three
+different fills), each with its Live record (`pump-live/README.md` → Batch 11). EXIF-stripped
+JPEGs from the owner's HEICs, orientation baked in. Zero-padded transaction faces beside the
+five-grade miles board (1,959 / 2,009 / 2,019 / 2,129 / 2,229); every triple closes exactly.
+Boxes auto-placed through the live path (`scripts/pump-auto-annotate.py`), **unreviewed**; the
+board cells are not drawn.
+
+| Still | Display | Note |
+|---|---|---|
+| `pump-329` | 0020,20 / 0009,51 at 2,124 | tilted ~15°; the only 2,124 price in the corpus - **heldout2** |
+| `pump-330` | 0076,45 / 0035,91 at 2,129 | oblique, the price window small and far - **heldout2**; keeps `pendingWindows` (no row for the price) |
+| `pump-331` | 0032,64 / 0015,33 at 2,129 | face-on, train |
+
+**heldout2** (decision 9, amended 2026-09-23): `pump-329` and `pump-330`, whole fills, night and
+a turned display - the conditions the heldout sets have least of; `pump-331` stays train so the
+classifier sees the night face too.
+
+**What the live path did on them** (auto-annotate, shipped detector and classifier): rows on all
+three, all three fields assigned on `329` and `331`, total and litres on `330` - and **committed
+nothing** on any of them.
+
+Pump cells 889 → 898 (totals only: measured on macOS 27, where the measured suites skip).
+
+## Added 2026-09-24 (batch 11b: Alexela, black LCDs - 4 stills)
+
+An Alexela station in Estonia (the owner's message said Neste; the pumps carry *Maksa Alexela
+äpiga* and the Alexela sign), each still with its Live record (`pump-live/README.md` → Batch 11b),
+EXIF-stripped. Make not identified - `unknown`.
+
+| Still | Display | Note |
+|---|---|---|
+| `pump-332` | 0.00 / 0.00, board 2.079 / 1.979 / 1.919 | **black LCD** (white segments on a dark panel), idle; the owner's reflection behind the digits, kept as shot on the owner's decision |
+| `pump-333` | 21.06 € / 11.09 kg at 1.899 | **CNG, sold per kg**; the price LCD has dead top and bottom segments and shows `1.844` - the CSV asserts the arithmetic 1.899 with a `csvDisagrees` note: a reader that commits 1.844 is wrong, one that refuses is right. The quantity column holds kilograms (`docs/SCHEMA.md` → the CNG unit gap) |
+| `pump-334` | 0.00 / 0.00, board as above | black LCD, idle, strong self-reflection beside the digits (kept as shot) |
+| `pump-335` | 0.00 / 0.00, board as above | black LCD, idle, face-on - **heldout2**, the owner's validation pick for the black LCD |
+
+**What the live path did on them**: it committed nothing, and **it could not find the rows on a
+black LCD** - the auto-placed boxes landed on the `EUR` label, the `EUR/1L` label, the NB!
+sticker and the App Store badge, and one straddled both rows. Those boxes were discarded rather
+than kept as unreviewed windows; all four stills keep `pendingWindows` for the owner's hand
+(`pump-333` got no row at all). Beside them `video-050`, the same black LCD counting up at 2.079
+(windows not placed yet).
+
+Pump cells 898 → 907 (totals only: measured on macOS 27, where the measured suites skip).
+
