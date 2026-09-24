@@ -14,17 +14,44 @@ Read this, then `CLAUDE.md`, then `docs/DEVELOPMENT-TIMELINE.md`, then `docs/TAS
   `ml/pump-reader/{REPORT.md,src/pump_reader/{export,model,score,train,temperature}.py,tests/*}`,
   `ml/pump-reader/runs/2026-09-2{3,4}/`, `agents/research/PU.7{2,3,4,5}.md`, the
   `agents/briefs/{RESEARCH,REVIEW-COMPLETE}-PU.7*.md` briefs and `agents/reviews/PU.7{2,3}-COMPLETENESS*.md`.
-- **Two Codex completeness reviews were running** (`gpt-6-sol`, `scripts/dispatch-codex.sh`):
-  `REVIEW-COMPLETE-PU.74` and `REVIEW-COMPLETE-PU.73-3` (the third pass on PU.73). Logs and verdicts
-  in `/tmp/agentlogs/REVIEW-COMPLETE-PU.7{4,3-3}*`. **Commit each row only on a COMPLETE verdict**,
-  by explicit pathspec, one row per commit; PU.73 and PU.74 share `docs/TASKS.md` and
-  `docs/EXTRACTION.md`, so commit them together or stage hunks carefully.
+- **Completeness review verdicts** (Codex `gpt-6-sol`, `scripts/dispatch-codex.sh`):
+  - `agents/reviews/PU.73-COMPLETENESS-3.md` - **COMPLETE**: PU.73's scoped artifacts may be committed.
+  - `agents/reviews/PU.74-COMPLETENESS.md` - **INCOMPLETE**: the independent recount finds RUB
+    totals need read placements `{1,2}` while the table permits only `[2]`, and the live test fails
+    on its denominator (`PumpPhotoGate` still records 183, the corpus now gives 181). Fix both,
+    re-dispatch the review, commit only on COMPLETE.
+  Commit by explicit pathspec, one row per commit. PU.73 and PU.74 share `docs/TASKS.md` and
+  `docs/EXTRACTION.md` - stage hunks, or keep PU.74 un-ticked until it passes.
 - **The owner's annotator work** (`corpus.sqlite`, `pump/windows.json`, `pump-live/{corrections.jsonl,
   video-labels.json,videos.json}`) - not ours; commit by explicit path only when the owner asks, never
   `git add -A`. **The owner's pump-275 re-frame was committed at `22559705`** (on the owner's
   instruction); the floors (`committedFloor`, `readerCommitted`/`readerNumericTotal`) were being
   re-measured on it with PU.74 in the tree (`/tmp/agentlogs/pu74-on-22559705.log`) - move the
   constants to that run's numbers in PU.74's commit.
+
+**Paused 2026-09-24 ~09:00 (owner: "don't dispatch any new tasks").** State at the pause:
+- **PU.74** (uncommitted, main checkout): completeness review 2 INCOMPLETE. Fixed since: RUB total read
+  {1,2}; `PumpDisplayConventionsCorpusTests` now checks table EQUALITY for the six n>=3 currencies (932
+  windows, 0 misses); provenance asserted in the edge tests; the `(PU.74)` task id out of a code
+  comment. **Open, found by the new provenance assertion:** a one-decimal RUB total (`2499,8` over a
+  product of 2499.78) does not close as a READ value - the exact close compares at cents, so a total
+  read at one decimal needs its product rounded to the total's own decimals (`closingTriples`). Fix
+  that, then rerun `PumpReadingLaw|PumpDisplayConventionsCorpus` (log `/tmp/agentlogs/pu74-law-pass2.log`),
+  the tiers, update the row / EXTRACTION to 183 cells with intervals, note that PU.59's cautioned tier
+  no longer exists (unvalidated pairs abstain), record the count audit's placement as the note's §3.4
+  window-level audit, and revise the pump-106 promise to an audit catch (note §5.3); then review 3
+  (Codex `gpt-6-sol`).
+- **RV.301** (worktree `../fuel-counter-ios-wt-rv301`, branch `wt/rv301`): the flash agent FINISHED,
+  report at the end of `/tmp/agentlogs/RV.301.log` - verify its diff and checks, then review (Codex
+  `gpt-6-sol`) before merging.
+- **PU.77 research note** FINISHED: `agents/research/PU.77.md`.
+- **Still running at the pause:** PU.75 (flash, worktree `../fuel-counter-ios-wt-pu75`) and the PU.76
+  research note (Qwen). Both were launched with setsid; if the connection break kills them, relaunch
+  per memory `launch-agents-in-their-own-session`. PU.76 also has two finished second opinions:
+  `agents/reviews/PU.76-OPINION-astra.md` and `-sol.md`.
+- Owner decisions this session: PU.72 closed reporting-only; PU.84 approved as a dp-only crop, low
+  priority; PU.82 after PU.76; model routing (Qwen / Codex `gpt-6-sol` / DeepSeek `v4.1-flash`);
+  `gpt-6-astra` not used.
 
 **What changed since 2026-09-22** (pump reader, all on `main` unless noted):
 
@@ -64,7 +91,7 @@ DeepSeek v4.1-flash for mechanical work - every open row names its routing.
 
 **Next, in order:**
 
-1. Read the two running reviews; commit PU.74 and PU.73 on COMPLETE (re-dispatch on INCOMPLETE after fixing what it names).
+1. Commit PU.73 (COMPLETE). Fix PU.74's two findings (RUB total placements, the 181/183 denominator), re-review, then commit.
 2. PU.72: the owner's call on the reporting-only close.
 3. Owner's calls pending: **PU.82** (train on the hand-box pool, a 13x data cut), **PU.84**
    (inference-time gap framing for the dp bit - the only measured lever left), and whether to run
@@ -164,7 +191,7 @@ the grid-placed reference quads are the first suspect - re-place in the annotato
 
 **Other things the successor should know**: flash answers again since 2026-09-22 (three PU briefs
 ran on it; `scripts/dispatch.sh <id> deepseek/deepseek-v4-flash`, the default is still pro).
-`release.sh` reads every flag now - `--upload --debug` archives and uploads the DEBUG configuration
+*(Superseded 2026-09-24 by SH.7: `--upload --debug` is retired; experiments reach TestFlight in the beta, `docs/CONFIG.md` → "Build channels and experiments".)* `release.sh` reads every flag now - `--upload --debug` archives and uploads the DEBUG configuration
 (a lab build with the Capture lab; Google sign-in has the placeholder id) - build 1617 on TestFlight
 is a plain Release build uploaded when the second flag was silently dropped. **The owner reports the
 debug build on the phone freezing after a second, no touch or scroll**: nothing in the code runs
