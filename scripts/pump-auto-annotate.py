@@ -36,11 +36,19 @@ def pad_to_convention(text: str, digits: int, separator: str) -> str:
     return integer + ((separator or m.group(2)) if frac else "") + frac
 FIX = ROOT / "Spike" / "ReceiptSpike" / "fixtures"
 TOOL = ROOT / "ios" / ".build" / "opt" / "debug" / "pump-read"
-if not TOOL.exists():
-    TOOL = ROOT / "ios" / ".build" / "debug" / "pump-read"
+
+
+def build_tool() -> None:
+    """Rebuilds `pump-read` from the tree before any still is read. The binary
+    is a build product nothing else refreshes, so a run could place boxes with
+    code hours older than the shipped reader; an up-to-date build costs seconds.
+    The same optimised build the annotator's live slicer uses."""
+    subprocess.run(["swift", "build", "--product", "pump-read", "-Xswiftc", "-O", "--scratch-path", ".build/opt"],
+                   cwd=ROOT / "ios", check=True, stdout=subprocess.DEVNULL)
 
 
 def main() -> int:
+    build_tool()
     path = FIX / "pump" / "windows.json"
     ann = json.loads(path.read_text(), object_pairs_hook=collections.OrderedDict)
     rows = {r["filename"]: r for r in csv.DictReader(open(FIX / "pump" / "expected.csv"))}

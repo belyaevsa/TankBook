@@ -449,6 +449,27 @@ kept as shot on the owner's decision) and one CNG pump sold per kg with a dead-s
 |---|---|---|---|
 | `video-050-unknown-alexela-black-lcd-running-display-2079-ee` | 948 (3840x2160, 24 fps, 39.5 s) | black LCD at Alexela, **counting up** from 16.96 / 8.16 to 73.37 / 35.29, the owner's hand and phone reflected; IMG_6406.MOV cut from 2.0 s (a passer-by is reflected in the first second and a half), no audio, no metadata. **Windows not placed yet** - reference quads and tracking are the annotator's (video mode) | price `2.079` |
 
+## Batch 12 (2026-09-25, product owner): a Terminal screen, Neste boards, a Voltera LCD
+
+Five Live records beside five stills, and one 4K clip. **Terminal** (Estonia): a Tokheim pump whose
+numbers are drawn on a **TFT screen** - rendered digits in a proportional font beside advertising,
+not segments - `pump-337`, and `video-051`, the same held display for 5.5 s while the screen's ad
+changes behind it (the person in one ad is artwork, not a bystander). **Neste**: a Dresser Wayne
+board head at Vesse (`pump-338`) and two black-LCD board heads (`pump-339`, `pump-340`, pumps 3 and 4).
+**Voltera**: a yellow-backlit LCD, idle at its price (`pump-341`). All train.
+
+| live | frames | what | paired still / truth |
+|---|---|---|---|
+| `live-6420` | 62 | Live record of the pump still | `pump-337` |
+| `live-6423` | 69 | Live record of the pump still | `pump-338` |
+| `live-6424` | 56 | Live record of the pump still | `pump-339` |
+| `live-6425` | 64 | Live record of the pump still | `pump-340` |
+| `live-6426` | 37 | Live record of the pump still | `pump-341` |
+
+| video | frames | what | truth |
+|---|---|---|---|
+| `video-051-tokheim-terminal-tft-static-display-2080-ee` | 133 (3840x2160, 24 fps, 5.5 s) | Tokheim at Terminal, a **TFT screen** held at 72,80 / 35,00 with the ad cycling behind it; IMG_6421.MOV whole, no audio, no metadata | price `2.080` |
+
 ## Frames and tracking (2026-09-20)
 
 Two scripts in `ml/pump-reader` turn the records into labelled training frames without a

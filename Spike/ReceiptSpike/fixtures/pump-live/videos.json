@@ -14962,5 +14962,77 @@
   ],
   "reviewed": false,
   "note": "IMG_6406.MOV cut from 2.0 s - black LCD at Alexela, Estonia, running fill at 2,079; reference quads placed by the orchestrator on frame 480 (46.24 / 22.24), unreviewed"
+ },
+ "video-051-tokheim-terminal-tft-static-display-2080-ee": {
+  "reference": "066.jpg",
+  "currency": "EUR",
+  "unitPrice": "2.080",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.616,
+      0.25
+     ],
+     [
+      0.806,
+      0.25
+     ],
+     [
+      0.806,
+      0.372
+     ],
+     [
+      0.616,
+      0.372
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.616,
+      0.394
+     ],
+     [
+      0.806,
+      0.394
+     ],
+     [
+      0.806,
+      0.517
+     ],
+     [
+      0.616,
+      0.517
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.1425,
+      0.467
+     ],
+     [
+      0.233,
+      0.467
+     ],
+     [
+      0.233,
+      0.531
+     ],
+     [
+      0.1425,
+      0.531
+     ]
+    ]
+   }
+  ],
+  "reviewed": false,
+  "note": "IMG_6421.MOV whole - Tokheim at Terminal, Estonia, a TFT screen held at 72,80 / 35,00, 2,080; reference quads placed by the orchestrator on frame 066, unreviewed"
  }
 }

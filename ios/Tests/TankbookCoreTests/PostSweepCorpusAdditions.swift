@@ -555,6 +555,12 @@ enum PostSweepCorpusAdditions {
             "pump-335-unknown-alexela-black-lcd-idle-board-ee.jpg",
             // 2026-09-25: the Capture lab's first run, high1080 preset (a pair).
             "pump-336-gilbarco-circlek-sikupilli-pump8-3002-1400l-2144-high1080-pair-ee.jpg",
+            // 2026-09-25, batch 12: a Terminal TFT screen, Neste boards, a Voltera LCD.
+            "pump-337-tokheim-terminal-tft-screen-7280-3500l-2080-ee.jpg",
+            "pump-338-wayne-neste-vesse-10339-5121l-board-ee.jpg",
+            "pump-339-unknown-neste-black-lcd-pump3-2999-1531l-board-ee.jpg",
+            "pump-340-unknown-neste-black-lcd-pump4-1961-1001l-board-ee.jpg",
+            "pump-341-unknown-voltera-yellow-lcd-idle-1219-ee.jpg",
         ],
         "screenshots": [
             // 2026-09-14: an OFD-rendered Lukoil AI-100 e-receipt. Declared,

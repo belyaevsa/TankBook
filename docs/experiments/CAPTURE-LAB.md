@@ -47,6 +47,46 @@ passes the locale's; without one PU.74's table abstains as `currencyUnmeasured` 
 - **The lab itself:** the shutter sat below the preset list, a scroll away from the preview - the
   owner could not see what was being shot while pressing it. Moved under the preview (SH.8).
 
-**Decisions taken:** none yet on the preset. **Next runs** (the owner, with the next beta and its
+**Decisions taken:** none yet on the preset (see Runs 2-3: the latency finding did not hold). **Next runs** (the owner, with the next beta and its
 shipped model): a night pump, a display in glare, a long or faded receipt. Production's preset moves
 to `speed` only if those read the same (SH.9).
+
+## Runs 2-3 – 2026-09-25, two displays the reader has never read (daylight)
+
+Two more pump runs on the iPhone 12, same seven presets. **Run 2** (`capture-lab/2026-09-25-151248-pump-tft.json`):
+the Tokheim at Terminal whose numbers are drawn on a **TFT screen** - rendered digits beside a
+cycling advert, the fill in the corpus as `pump-337` (72,80 / 35,00 at 2,080). **Run 3**
+(`capture-lab/2026-09-25-165315-pump-black-lcd.json`): the Neste **black-LCD board head**, pump 3,
+the fill in the corpus as `pump-339` (29,99 / 15,31, no transaction price), through reflections.
+
+| Preset | Run 2 capture ms | Run 2 - phone build | Run 3 capture ms | Run 3 - phone build | Both runs - `HEAD`, RowSeg | Both runs - `HEAD`, the previous object detector |
+|---|---|---|---|---|---|---|
+| default | 555 | **wrong**: 2.08 L at 35 €/L (litres and price swapped, 72.80 closes) | 628 | nothing | nothing | nothing |
+| quality | 953 | right 72.80 / 35 / 2.08 | 1476 | **wrong**: 1 L | nothing | nothing |
+| speed | 958 | total and price right, no litres | 1364 | **wrong**: 1 L | nothing | nothing |
+| metered | 671 | nothing | 1290 | **wrong**: 1 L | nothing | nothing |
+| locked | 469 | nothing | 600 | **wrong**: 1 L | nothing | nothing |
+| zoom2x | 517 | nothing | 643 | nothing | nothing | nothing |
+| high1080 | 786 | total only | 975 | nothing | nothing | nothing |
+
+`HEAD` = 670d71e9 (RowSeg shipped, PU.86/PU.88 in), `pump-read` from the tree, currency `EUR`.
+
+**What they showed.**
+- **The phone's build committed wrong readings on both displays** - a swapped litres/price pair the
+  arithmetic cannot catch (F2's residue, a second shape of it after Run 1's tenfold price), and a
+  one-litre reading four times. **`HEAD` commits nothing on all 14 shots**: no wrong number, and no
+  right one either.
+- **The gap is locating the rows, not the law.** On the TFT screen both locators frame the advert's
+  text and fields that are not the numbers (`t:113`, `u:02.489`); on the black LCD they take board
+  cells and reflections for the transaction rows (`l:2.068`, `b:1.999`). The shipped RowSeg and the
+  object detector it replaced fail the same way - neither has seen a TFT screen, and the black LCD
+  is two stills in the corpus. This is data the locator needs (`pump-337`/`video-051` and
+  `pump-332`..`335`/`339`/`340` are now in the corpus), not a preset.
+- **The preset is not the lever here**: every preset fails alike at `HEAD`.
+- **Run 1's latency finding did not hold.** `speed` captured faster than `default` in Run 1
+  (410 / 369 against 540 / 947 ms) and slower in both new runs (958 against 555, 1364 against
+  628 ms). Across the four scenes `speed` is faster twice and slower twice; the capture time per
+  preset is dominated by the scene and the order the lab shoots in, not the preset. **There is no
+  evidence yet for moving production off `default`** (SH.9).
+- GPS absent from every photo, as in Run 1.
+

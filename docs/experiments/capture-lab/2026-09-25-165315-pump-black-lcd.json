@@ -1,0 +1,216 @@
+{
+  "device" : "iPhone13,1",
+  "results" : [
+    {
+      "applied" : {
+        "flashOff" : false,
+        "locked" : false,
+        "sessionPreset" : "photo",
+        "unsupported" : [
+
+        ]
+      },
+      "bytes" : 2848107,
+      "captureMs" : 628,
+      "classifyPath" : "slow",
+      "committed" : {
+
+      },
+      "exif" : {
+        "exposureTime" : 0.008264462809917356,
+        "focalLength" : 4.2,
+        "iso" : 80
+      },
+      "height" : 3024,
+      "isDisplay" : false,
+      "pipelineMs" : 4653,
+      "preset" : "default",
+      "rows" : 2,
+      "textLines" : 6,
+      "width" : 4032
+    },
+    {
+      "applied" : {
+        "flashOff" : false,
+        "locked" : false,
+        "qualityPrioritization" : "quality",
+        "sessionPreset" : "photo",
+        "unsupported" : [
+
+        ]
+      },
+      "bytes" : 3071030,
+      "captureMs" : 1476,
+      "classifyPath" : "slow",
+      "committed" : {
+        "liters" : 1
+      },
+      "exif" : {
+        "exposureTime" : 0.008264462809917356,
+        "focalLength" : 4.2,
+        "iso" : 80
+      },
+      "height" : 3024,
+      "isDisplay" : false,
+      "pipelineMs" : 5096,
+      "preset" : "quality",
+      "rows" : 1,
+      "textLines" : 7,
+      "width" : 4032
+    },
+    {
+      "applied" : {
+        "flashOff" : false,
+        "locked" : false,
+        "qualityPrioritization" : "speed",
+        "sessionPreset" : "photo",
+        "unsupported" : [
+
+        ]
+      },
+      "bytes" : 1878424,
+      "captureMs" : 1364,
+      "classifyPath" : "slow",
+      "committed" : {
+        "liters" : 1
+      },
+      "exif" : {
+        "exposureTime" : 0.008264462809917356,
+        "focalLength" : 4.2,
+        "iso" : 80
+      },
+      "height" : 3024,
+      "isDisplay" : false,
+      "pipelineMs" : 4729,
+      "preset" : "speed",
+      "rows" : 0,
+      "textLines" : 5,
+      "width" : 4032
+    },
+    {
+      "applied" : {
+        "exposureBias" : -0.5,
+        "exposureMode" : "continuousAutoExposure",
+        "flashOff" : false,
+        "focusMode" : "continuousAutoFocus",
+        "locked" : false,
+        "sessionPreset" : "photo",
+        "unsupported" : [
+
+        ]
+      },
+      "bytes" : 3066800,
+      "captureMs" : 1290,
+      "classifyPath" : "slow",
+      "committed" : {
+        "liters" : 1
+      },
+      "exif" : {
+        "exposureTime" : 0.008264462809917356,
+        "focalLength" : 4.2,
+        "iso" : 80
+      },
+      "height" : 3024,
+      "isDisplay" : false,
+      "pipelineMs" : 2836,
+      "preset" : "metered",
+      "rows" : 1,
+      "textLines" : 5,
+      "width" : 4032
+    },
+    {
+      "applied" : {
+        "exposureBias" : -0.5,
+        "exposureMode" : "locked",
+        "flashOff" : true,
+        "focusMode" : "locked",
+        "locked" : true,
+        "sessionPreset" : "photo",
+        "unsupported" : [
+
+        ]
+      },
+      "bytes" : 2476597,
+      "captureMs" : 600,
+      "classifyPath" : "slow",
+      "committed" : {
+        "liters" : 1
+      },
+      "exif" : {
+        "exposureTime" : 0.008264462809917356,
+        "focalLength" : 4.2,
+        "iso" : 50
+      },
+      "height" : 3024,
+      "isDisplay" : false,
+      "pipelineMs" : 3754,
+      "preset" : "locked",
+      "rows" : 0,
+      "textLines" : 7,
+      "width" : 4032
+    },
+    {
+      "applied" : {
+        "exposureBias" : -0.5,
+        "exposureMode" : "continuousAutoExposure",
+        "flashOff" : false,
+        "focusMode" : "continuousAutoFocus",
+        "locked" : false,
+        "sessionPreset" : "photo",
+        "unsupported" : [
+
+        ],
+        "zoomFactor" : 2
+      },
+      "bytes" : 1794229,
+      "captureMs" : 643,
+      "classifyPath" : "slow",
+      "committed" : {
+
+      },
+      "exif" : {
+        "exposureTime" : 0.008264462809917356,
+        "focalLength" : 4.2,
+        "iso" : 50
+      },
+      "height" : 3024,
+      "isDisplay" : false,
+      "pipelineMs" : 4386,
+      "preset" : "zoom2x",
+      "rows" : 1,
+      "textLines" : 5,
+      "width" : 4032
+    },
+    {
+      "applied" : {
+        "flashOff" : false,
+        "locked" : false,
+        "qualityPrioritization" : "speed",
+        "sessionPreset" : "high",
+        "unsupported" : [
+
+        ]
+      },
+      "bytes" : 394953,
+      "captureMs" : 975,
+      "classifyPath" : "slow",
+      "committed" : {
+
+      },
+      "exif" : {
+        "exposureTime" : 0.008695652173913044,
+        "focalLength" : 4.2,
+        "iso" : 32
+      },
+      "height" : 1080,
+      "isDisplay" : false,
+      "pipelineMs" : 1146,
+      "preset" : "high1080",
+      "rows" : 1,
+      "textLines" : 3,
+      "width" : 1920
+    }
+  ],
+  "source" : "pump",
+  "startedAt" : "2026-09-25-165408"
+}

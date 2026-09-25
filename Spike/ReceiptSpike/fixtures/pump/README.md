@@ -1549,3 +1549,26 @@ price's decimal misplaced, the total derived from it); `HEAD` with PU.74/PU.85 r
 Boxes auto-placed, unreviewed.
 
 Pump cells 907 → 910 (totals only, macOS 27).
+
+## Added 2026-09-25 (batch 12: a Terminal TFT screen, Neste boards, a Voltera LCD - 5 stills)
+
+EXIF-stripped JPEGs from the owner's HEICs, each with its Live record (`pump-live/README.md` →
+Batch 12); all train.
+
+| Still | Head | Display | Note |
+|---|---|---|---|
+| `pump-337` | Tokheim, Terminal | 72,80 / 35,00 at 2,080 | **a TFT screen**: the numbers are rendered text in a proportional font on white fields beside a cycling advert - no segments at all; `video-051` holds the same display |
+| `pump-338` | Dresser Wayne, Neste Vesse | 103.39 / 51.21 | board head (Futura D 2.119, 98 2.019, 95 1.959; the fill is 98 at 2.019), no transaction price |
+| `pump-339` | Neste, pump 3 | 29.99 / 15.31 | black LCD, four-grade board (1.959 / 2.019 / 2.399 / 2.119), reflections |
+| `pump-340` | Neste, pump 4 | 19.61 / 10.01 | black LCD, the same board, angled |
+| `pump-341` | Voltera | 0.00 / 0.00 at 1.219 | yellow-backlit LCD, idle at its price, rows labelled SUMMA € / KOGUS L / HIND €/L |
+
+**What the live path did** (`scripts/pump-auto-annotate.py`, the shipped RowSeg + classifier,
+current code): it committed nothing. Its rows were right on `pump-338` (litres and the three board
+cells) and `pump-341` (all three, roles right since PU.88), and wrong elsewhere - on the TFT screen
+it framed the advert's words and put "price" on the total; on `pump-339` it took a board cell for
+the total and a grade label for the litres; on `pump-340` its total box clipped the last digit.
+Those were discarded, not kept unreviewed; `pump-337`, `338`, `339` and `340` keep
+`pendingWindows` for the owner's hand.
+
+Pump cells 910 → 922 (totals only, macOS 27).
