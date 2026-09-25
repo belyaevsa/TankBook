@@ -34,6 +34,8 @@ Sampler levers (`ml/pump-reader/CORRECTIONS.md` section 3):
 * ``--dp-bits`` - ``keep`` (the labelled dp bit, the default) or ``clear``
   (zero every dp bit - the slicer owns the mark). ``pump_reader.train`` reads
   both from the pool's manifest.
+* ``--hand-only`` - frame windows only from frames whose boxes the owner placed
+  by hand (``frames.verified = 1``); still windows are unchanged.
 
 Output: ``<out>/cells.npz`` (uint8 ``x`` of shape ``[n, 3, 48, 32]``, uint8
 ``y`` of the 8-bit segment labels) and ``<out>/manifest.json`` (per cell:
@@ -68,12 +70,20 @@ def token(name: str) -> str:
     return parts[0] + "-" + parts[1] if len(parts) > 1 else name
 
 
-def db_windows(con) -> dict[tuple, str]:
+def db_windows(con, *, hand_only: bool = False) -> dict[tuple, str]:
     """(fixture, frame, field) -> text for every TRAIN, labelled window.
 
     ``frame`` is None for a still, ``<record>/<frame>`` for a tracked frame and
     ``<video>/<frame>`` for a video frame. The still/record keys use the stable
-    fixture token so a rename does not lose the windows."""
+    fixture token so a rename does not lose the windows.
+
+    ``hand_only`` keeps only frame windows whose boxes the owner placed by hand
+    (``frames.verified = 1``); still windows are unchanged (a still's windows
+    are always hand-placed)."""
+    verified: set[tuple[str, str]] = set()
+    if hand_only:
+        verified = {(r["record"], r["frame"]) for r in
+                    con.execute("select record, frame from frames where frame != '' and verified = 1")}
     out: dict[tuple, str] = {}
     for r in con.execute(
             "select e.fixture, w.field, w.text from entries e join fixtures f on f.name = e.fixture "
@@ -86,10 +96,14 @@ def db_windows(con) -> dict[tuple, str]:
             "join entries e on e.fixture = fr.still "
             "where fr.frame != '' and fr.split = 'train' and (e.tracking is null or e.tracking != 'bad') "
             "and coalesce(json_extract(fr.extra, '$.skipped'), 0) = 0"):
+        if hand_only and (r["record"], r["frame"]) not in verified:
+            continue
         out[(token(r["still"]), f"{r['record']}/{r['frame']}", r["field"])] = r["text"]
     skip = {(r["video"], r["frame"]) for r in
             con.execute("select video, frame from labels where field = 'total' and text = 'skip'")}
     for r in con.execute("select video, frame, field, text from labels where frame != ''"):
+        if hand_only and (r["video"], r["frame"]) not in verified:
+            continue
         if (r["video"], r["frame"]) in skip or r["text"] is None:
             continue
         out[(r["video"], f"{r['video']}/{r['frame']}", r["field"])] = r["text"]
@@ -290,6 +304,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--centred", type=float, default=0.0,
                         help="keep a cell only when its column-ink centroid is within this "
                              "fraction of the cell width from the centre (0 = off)")
+    parser.add_argument("--hand-only", action="store_true",
+                        help="frame windows only from frames whose boxes the owner placed "
+                             "(verified); still windows are unchanged")
     parser.add_argument("--dp-crop", choices=["off", "gap"], default="off",
                         help="off: the shipped framing (the slicer's cell rect); gap: widen the "
                              "crop right by 0.4 x pitch")
@@ -308,7 +325,7 @@ def main(argv: list[str] | None = None) -> int:
         for window in export["windows"]:
             if window["fixture"] in heldout:
                 raise SystemExit(f"heldout fixture in the train export: {window['fixture']}")
-        text = db_windows(con)
+        text = db_windows(con, hand_only=args.hand_only)
         hard = hard_keys(con)
         glitches = glitch_frames(con)
     finally:
@@ -372,6 +389,7 @@ def main(argv: list[str] | None = None) -> int:
         "centred": args.centred,
         "dp_crop": args.dp_crop,
         "dp_bits": args.dp_bits,
+        "hand_only": args.hand_only,
         "centred_dropped": dict(sorted(dropped.items())),
         "centred_dropped_total": sum(dropped.values()),
         "centred_dropped_fixtures": dict(sorted(dropped_fixture.items())),
