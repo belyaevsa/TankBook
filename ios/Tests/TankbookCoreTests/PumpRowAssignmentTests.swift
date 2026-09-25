@@ -37,6 +37,10 @@ struct PumpRowAssignmentTests {
             // WITH digits under an absent role is a contradiction in the
             // annotation: it is scored as usual and reported, never hidden.
             let absent = Set((ann["notOnDisplay"] as? [String]) ?? [])
+            // The photo's own size: a uniform square would change every
+            // window's angle, and the assigner undoes the display's tilt.
+            let size = try #require(PumpReaderTestSupport.orientedSize(
+                url: PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent(name)), "\(name) has no image size")
             var windows: [PumpRowAssignment.Window] = []
             var truth: [PumpField] = []
             for raw in ann["windows"] as? [[String: Any]] ?? [] {
@@ -47,9 +51,8 @@ struct PumpRowAssignmentTests {
                     guard text.contains(where: \.isNumber) else { continue }
                     contradictions.append("\(name.prefix(8)) \(fieldName) '\(text)' is listed notOnDisplay")
                 }
-                // The image size only scales the quads; 1000 x 1000 keeps the geometry.
                 windows.append(PumpRowAssignment.Window(
-                    quad: PumpReaderTestSupport.quadPixels(quad, width: 1000, height: 1000),
+                    quad: PumpReaderTestSupport.quadPixels(quad, width: size.width, height: size.height),
                     glyphCount: text.filter(\.isNumber).count))
                 truth.append(field)
             }
@@ -74,6 +77,42 @@ struct PumpRowAssignmentTests {
         for c in contradictions { print("  ANNOTATION \(c)") }
         #expect(total > 400)
         #expect(accuracy >= Self.accuracyFloor)
+    }
+
+    @Test("a tightly stacked price column beside the display is a column, not a row that takes the total")
+    func stackedColumnIsNotARow() {
+        // An upright Alexela black LCD (pump-334's layout): total and volume at
+        // the left, three grade prices stacked at the right, each within a
+        // height of the next. Read as a row board, the total sat on its
+        // baseline and was taken as a fourth grade cell.
+        func box(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat) -> [CGPoint] {
+            [CGPoint(x: x, y: y), CGPoint(x: x + w, y: y), CGPoint(x: x + w, y: y + h), CGPoint(x: x, y: y + h)]
+        }
+        let windows = [
+            PumpRowAssignment.Window(quad: box(127, 183, 200, 125), glyphCount: 3),  // total
+            PumpRowAssignment.Window(quad: box(93, 282, 231, 100), glyphCount: 3),   // liters
+            PumpRowAssignment.Window(quad: box(337, 212, 139, 63), glyphCount: 4),   // grade column
+            PumpRowAssignment.Window(quad: box(337, 260, 127, 55), glyphCount: 4),
+            PumpRowAssignment.Window(quad: box(337, 301, 120, 56), glyphCount: 4),
+        ]
+        let roles = PumpRowAssignment.assign(windows: windows, rotationCW: 0).roles
+        #expect(roles == [.total, .liters, .board, .board, .board])
+    }
+
+    @Test("a display photographed at an angle reads as the same column once its tilt is undone")
+    func tiltedHeadReadsLikeAnUprightOne() {
+        // pump-320's layout turned 35 degrees: upright, the transaction column
+        // is total over volume and three price cells make a row below it.
+        func box(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat) -> [CGPoint] {
+            [CGPoint(x: x, y: y), CGPoint(x: x + w, y: y), CGPoint(x: x + w, y: y + h), CGPoint(x: x, y: y + h)]
+        }
+        let upright = [box(610, -275, 370, 122), box(790, -155, 207, 85),
+                       box(635, 29, 117, 59), box(776, 29, 121, 62), box(921, 30, 124, 67)]
+        let windows = upright.map {
+            PumpRowAssignment.Window(quad: PumpRowAssignment.rotated($0, by: 35 * .pi / 180), glyphCount: 4)
+        }
+        let roles = PumpRowAssignment.assign(windows: windows, rotationCW: 0).roles
+        #expect(roles == [.total, .liters, .board, .board, .board])
     }
 
     @Test("a UK pence head's grade column is as wide as the transaction rows and still reads as a board")

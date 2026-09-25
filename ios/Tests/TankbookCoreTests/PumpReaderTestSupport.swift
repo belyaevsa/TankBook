@@ -1,4 +1,5 @@
 import Foundation
+import ImageIO
 import Testing
 @testable import TankbookCore
 
@@ -112,6 +113,18 @@ enum PumpReaderTestSupport {
     static func loadRGB(url: URL) -> PumpRGBImage? {
         guard let cg = PumpQuadWarp.loadOrientedImage(from: url) else { return nil }
         return PumpQuadWarp.rgbImage(from: cg)
+    }
+
+    /// The EXIF-oriented image's pixel size, read from the file's header
+    /// without decoding it; nil when the file has no readable size.
+    static func orientedSize(url: URL) -> (width: Int, height: Int)? {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = (props[kCGImagePropertyPixelWidth] as? NSNumber)?.intValue,
+              let height = (props[kCGImagePropertyPixelHeight] as? NSNumber)?.intValue else { return nil }
+        // EXIF orientations 5-8 are a quarter turn: the upright image swaps sides.
+        let orientation = (props[kCGImagePropertyOrientation] as? NSNumber)?.intValue ?? 1
+        return orientation >= 5 ? (height, width) : (width, height)
     }
 
     /// The quad as pixel coordinates in the EXIF-oriented image.

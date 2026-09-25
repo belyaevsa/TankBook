@@ -27,6 +27,12 @@ enum PumpRowAssignment {
     static let boardBaselineTolerance: CGFloat = 0.9
     static let boardWidthTolerance: CGFloat = 0.45
     static let boardMinimumWindows = 3
+    /// Two cells of one board are at least this many of their widths apart
+    /// along the board (heights, for a column).
+    static let boardSeparation: CGFloat = 0.5
+    /// A tilt beyond this is not a display photographed at an angle but a
+    /// quad whose reading order the rotation got wrong; it is not undone.
+    static let maximumTilt: CGFloat = .pi / 4
     /// A grade-price ladder is a column of SMALL cells beside the display
     /// (the Gilbarco Veeder-Root keypad head): a window at least this fraction
     /// of the widest window's width is a transaction row, never a ladder cell -
@@ -47,8 +53,13 @@ enum PumpRowAssignment {
 
     static func assign(windows: [Window], rotationCW: Int) -> Assignment {
         guard !windows.isEmpty else { return Assignment(roles: []) }
-        let boxes = windows.map { Self.bounds(PumpQuadWarp.readingOrder($0.quad, rotationCW: rotationCW),
-                                              rotationCW: rotationCW) }
+        let upright = windows.map { Self.turned(PumpQuadWarp.readingOrder($0.quad, rotationCW: rotationCW),
+                                                rotationCW: rotationCW) }
+        // A display photographed at an angle tilts every window by the same
+        // amount; boxing the tilted quads inflates them and slants a column
+        // apart, so the boxes are taken in the frame the tilt is undone in.
+        let tilt = Self.medianTilt(upright)
+        let boxes = upright.map { Self.box(Self.rotated($0, by: -tilt)) }
         var roles = [PumpField?](repeating: nil, count: windows.count)
 
         // Rows first: a horizontal board is the common case, and a vertical
@@ -135,10 +146,18 @@ enum PumpRowAssignment {
             abs(a.width - b.width) <= boardWidthTolerance * max(a.width, b.width)
                 && abs(a.height - b.height) <= boardWidthTolerance * max(a.height, b.height)
         }
+        // Cells of one row sit beside each other and cells of one column above
+        // each other: a tightly stacked column shares a baseline within
+        // `boardBaselineTolerance` too, and without the separation it was
+        // taken for a row.
         func aligned(_ a: CGRect, _ b: CGRect) -> Bool {
             switch axis {
-            case .row: return abs(a.midY - b.midY) <= boardBaselineTolerance * min(a.height, b.height)
-            case .column: return abs(a.midX - b.midX) <= boardBaselineTolerance * min(a.width, b.width)
+            case .row:
+                return abs(a.midY - b.midY) <= boardBaselineTolerance * min(a.height, b.height)
+                    && abs(a.midX - b.midX) >= boardSeparation * min(a.width, b.width)
+            case .column:
+                return abs(a.midX - b.midX) <= boardBaselineTolerance * min(a.width, b.width)
+                    && abs(a.midY - b.midY) >= boardSeparation * min(a.height, b.height)
             }
         }
         var groups: [[Int]] = []
@@ -157,15 +176,41 @@ enum PumpRowAssignment {
     /// The axis-aligned box of a quad, in the frame where the display reads
     /// upright (the rotation applied to the points, not the image).
     static func bounds(_ quad: [CGPoint], rotationCW: Int) -> CGRect {
-        let rotated: [CGPoint]
+        box(turned(quad, rotationCW: rotationCW))
+    }
+
+    /// The quad's points in the frame where the display reads upright.
+    static func turned(_ quad: [CGPoint], rotationCW: Int) -> [CGPoint] {
         switch ((rotationCW % 360) + 360) % 360 {
-        case 90: rotated = quad.map { CGPoint(x: -$0.y, y: $0.x) }
-        case 180: rotated = quad.map { CGPoint(x: -$0.x, y: -$0.y) }
-        case 270: rotated = quad.map { CGPoint(x: $0.y, y: -$0.x) }
-        default: rotated = quad
+        case 90: return quad.map { CGPoint(x: -$0.y, y: $0.x) }
+        case 180: return quad.map { CGPoint(x: -$0.x, y: -$0.y) }
+        case 270: return quad.map { CGPoint(x: $0.y, y: -$0.x) }
+        default: return quad
         }
-        let xs = rotated.map(\.x), ys = rotated.map(\.y)
+    }
+
+    static func box(_ points: [CGPoint]) -> CGRect {
+        let xs = points.map(\.x), ys = points.map(\.y)
         return CGRect(x: xs.min()!, y: ys.min()!, width: xs.max()! - xs.min()!, height: ys.max()! - ys.min()!)
+    }
+
+    /// The median angle of the reading-ordered quads' top edges (TL to TR),
+    /// in radians; zero when no quad has a usable edge or the median exceeds
+    /// `maximumTilt`.
+    static func medianTilt(_ quads: [[CGPoint]]) -> CGFloat {
+        let angles = quads.compactMap { q -> CGFloat? in
+            guard q.count == 4, q[1] != q[0] else { return nil }
+            return atan2(q[1].y - q[0].y, q[1].x - q[0].x)
+        }.sorted()
+        guard !angles.isEmpty else { return 0 }
+        let median = angles[angles.count / 2]
+        return abs(median) <= maximumTilt ? median : 0
+    }
+
+    static func rotated(_ points: [CGPoint], by angle: CGFloat) -> [CGPoint] {
+        guard angle != 0 else { return points }
+        let c = cos(angle), s = sin(angle)
+        return points.map { CGPoint(x: $0.x * c - $0.y * s, y: $0.x * s + $0.y * c) }
     }
 
     /// A window whose cell count is below what its field can show is a slicer

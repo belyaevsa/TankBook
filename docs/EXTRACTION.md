@@ -849,7 +849,9 @@ on the structure OCR ignores:
    *candidate* with a known posterior, not a confident wrong digit, and P2.13's fixed confusion
    table becomes an ordering by posterior.
 4. **Row assignment and decimal recovery** - rows go to total / volume / price by layout and
-   `ExtractionCrossCheck`; the decimal point is recovered as the one placement that satisfies
+   `ExtractionCrossCheck` (`PumpRowAssignment`: the display's tilt - the median top-edge angle of
+   the windows, up to 45 degrees - is undone before boxing, and a board's cells must sit beside
+   each other, so a tightly stacked price column is never read as a row); the decimal point is recovered as the one placement that satisfies
    `volume × price = total` over the candidate set. Not unique → `nil`, never a guess.
 5. **Output** - suggestions with per-field posteriors into the `.pump` source. Hard rules 13 and
    15 unchanged; a confident wrong value is worse than a `nil`.
