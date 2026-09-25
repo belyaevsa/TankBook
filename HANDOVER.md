@@ -1,10 +1,86 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-24 ("Where it stands" immediately below is the newest; "The plan (2026-09-22)"
-and "The corpus week" follow and are now mostly history). 51 commits since the 2026-09-22 handover.
-Read this, then `CLAUDE.md`, then `docs/DEVELOPMENT-TIMELINE.md`, then `docs/TASKS.md`'s index.*
+*Updated 2026-09-25 ("Where it stands (2026-09-25)" immediately below is the newest; the 2026-09-24
+section after it is now history). 20 commits since the 2026-09-24 handover. Read this, then `CLAUDE.md`, then
+`docs/DEVELOPMENT-TIMELINE.md`, then `docs/TASKS.md`'s index.*
 
-## Where it stands (2026-09-24) - read this before picking anything up
+## Where it stands (2026-09-25) - read this before picking anything up
+
+**The pump reader ships the segmenter locator (PU.87, `4f836a6a`).** `RowSeg.mlpackage` (the
+PU.76 PixelLink segmenter, 1.8 MB) replaces `DigitRows` as the app's row locator; `DigitRows.mlmodel`
+moved to `ml/pump-reader/detector/`. Scorer numbers: live `classify` **47 -> 62 committed / 61
+correct** (the one wrong cell, pump-063, is cautioned; the live test now asserts
+`wrongUncautioned == 0`), annotated gate-mirror **126/126**, leak battery 6/116 routed, 0
+committing. `PumpPhotoGate` carries 62/61. Timing on the simulator: 26.5-29.8 ms per locate against
+9.1-9.5 ms for DigitRows (`PumpLocatorTimingTests`, opt-in `PUMP_LOCATOR_TIMING=1`); **never timed
+on an iPhone** - do it through the Capture Lab. Two known gaps, both filed: **PU.86** (the law's
+repair tier overrides a confident read) and quad framing. The owner said ship it: the store build
+has no pump reading at all today.
+
+**Committed 2026-09-25 (owner: "commit the changes"):** `e2e08e7e` RV.306 (the `e5rt` retry,
+`TestOCR`, test-only) · `4f836a6a` PU.87 (RowSeg ships; the model registry in `docs/EXTRACTION.md`;
+PU.88 filed) · `dc13b16f` the model mirror (`ml/pump-reader/models.json`, `corpus-sync.py push
+--models` / `pull --models <id>|all`; the bucket's `models/<id>/meta.json` names `6d44c22c`) ·
+`6d44c22c` the owner's 2026-09-25 corpus (batch 11 annotations, the Capture lab's first pair
+pump-336 + receipt-098). **PU.87 went in without its third completeness review**, on the owner's
+instruction; review 2's open items (comments, the two input tests green) were fixed first.
+
+**The gate on `6d44c22c` is not green, and the reason is known:** build, lint and app build exit 0;
+`swift test` has one deterministic red - `PumpRowAssignmentTests` at **0.988 against 0.99** on the
+new annotations (16 windows, mostly pump-313..335) - filed as **PU.88**. `SyncWriteTriggerTests`
+(3) went red once under full-suite load and passes alone (the RV.300 shape). **A new model gets a
+registry row, a `models.json` entry and `push --models` in the same change** - weights are not in
+git except the two the app bundles (`corpus-sync.py` needs the ml venv's python for `boto3`).
+
+**Worktree:** none. `../fuel-counter-ios-wt-pu77` and `wt/pu77` were deleted 2026-09-25 (owner);
+PU.77's checkpoints live in `ml/pump-reader/.out/pu77-s{0,1,2}/` and in the bucket.
+
+**Model routing now (supersedes the 2026-09-24 line):** DeepSeek is **dropped** (owner). The
+Alibaba plan (Qwen 3.8 max / flash) is **out of quota until 2026-10-05 16:00 UTC**. Reviews go to
+Codex `gpt-6-sol` (`scripts/dispatch-codex.sh`, whose health check no longer calls a fast finish
+dead - `976bc82e`). Spikes and builds are the orchestrator's own.
+
+**What changed since 2026-09-24:**
+
+| Row | Outcome |
+|---|---|
+| PU.74 | Per-currency display conventions measured; an unmeasured currency abstains (`71e35d3e`) |
+| PU.85 | A read placement follows the window's cell count - a four-cell RUB price is 45,94 (`7afc1b71`) |
+| PU.83 | One dp vocabulary; `--dp-crop` is framing, default off (`821d6155`) |
+| PU.75 `[~]` | Vision text-line pass only when the fast path abstains; one batched prediction per cell (`fa930a6d`) |
+| PU.76 `[~]` -> PU.87 | PixelLink segmenter spike (`cfe5aa41`), then shipped as the app locator (PU.87, `4f836a6a`) |
+| PU.77 `[~]` | CRNN + CTC row reader reads far better than cells, but the law over it misses 0.99 on one repair - no-go for this run (`d2346bb6`); that repair is PU.86 |
+| PU.82 | Classifier on the owner-verified hand-box pool: measured, no candidate ships (`1d4c0ffd`) |
+| Cut | Nine stale PU rows: PU.4, 5, 34, 48, 54, 55, 65, 66, 67 (`1732472d`) |
+| RV.301 | Russian invoice totals (`195cd9d8`) |
+| SH.7 | Experiments ship to the beta only (`9e717c9e`) |
+| AD.1 | Debug cases + admin viewer decided; hard rule 9 amended; AD.2-AD.7 filed (`021f7c81`) |
+
+**Next, in order:**
+
+1. **PU.88**: row assignment back over 0.99 - look at the misassigned stills first (a mislabelled
+   board is the annotation's fix).
+2. **PU.86** (orchestrator): the repair tier never overrides a confident read. Then rerun PU.77's
+   B2 on its saved checkpoints - PU.86 is the one repair that failed it.
+3. Optionally, PU.87's third completeness review (Codex `gpt-6-sol`) after the fact.
+4. Time RowSeg on an iPhone via the Capture Lab (beta, SH.7).
+5. PU.6 (the ship verdict) stays open; `PumpPhotoGate` decides.
+
+**Traps this session paid for:**
+
+- **The simulator GPU returns all-zero maps for a float16 mlprogram.** The segmenter runs
+  `.cpuAndNeuralEngine`; found only by an app-target probe, the package tests were green. Read an
+  `MLMultiArray` by its strides, never assume contiguity.
+- **`e5rtError` is Vision's runtime, not our code** - intermittent under full-suite load; retry
+  in tests only (`TestOCR`), never in the app.
+- **Reading orientation by geometry alone picked 270 degrees on a 180-degree still**; the 180 tie
+  is broken by the classifier's read margin.
+- **A corpus test that asserts "the display value" was wrong for some photos** (PU.74's RUB
+  premise) - the corpus asserts the display for some stills and the product for others.
+- **PU.77's report swapped seed 2's raw and scaled numbers**; the review caught it. Check every
+  table against the run's JSON.
+
+## Where it stands (2026-09-24) - history, superseded by the section above
 
 **The tree is not clean, and not all of it is one author's.** At handover time:
 
