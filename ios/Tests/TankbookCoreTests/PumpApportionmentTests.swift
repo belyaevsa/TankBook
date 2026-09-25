@@ -49,15 +49,13 @@ struct PumpApportionmentTests {
     @Test("the cells each live stage costs, oracle to app")
     func apportion() throws {
         // A candidate model runs in place of the shipped one: PUMP_MODEL (a
-        // classifier .mlpackage) and PUMP_DETECTOR (a DigitRows .mlmodel).
+        // classifier .mlpackage) and PUMP_DETECTOR (a row locator: segmenter package or detector model).
         let env = ProcessInfo.processInfo.environment
         let modelURL = env["PUMP_MODEL"].map { URL(fileURLWithPath: $0) }
             ?? PumpReaderTestSupport.repoRoot.appendingPathComponent("ios/App/Resources/PumpSegments.mlpackage")
-        let detector = env["PUMP_SEGMENTER"] != nil ? PumpReaderTestSupport.makeDetector()
-            : env["PUMP_DETECTOR"].map { try? PumpRowDetector(contentsOf: URL(fileURLWithPath: $0)) }
-                ?? PumpReaderTestSupport.makeDetector()
+        let detector = PumpReaderTestSupport.makeDetector()
         print("PU apportionment models: classifier \(modelURL.lastPathComponent) from "
-            + "\(modelURL.deletingLastPathComponent().lastPathComponent), detector \(env["PUMP_SEGMENTER"] ?? env["PUMP_DETECTOR"] ?? "shipped")")
+            + "\(modelURL.deletingLastPathComponent().lastPathComponent), detector \(env["PUMP_DETECTOR"] ?? "shipped")")
         let reader = PumpReader(model: try PumpSegmentsModel(contentsOf: modelURL), detector: detector)
         let handle = PumpReaderHandle(reader: reader)
         let expected = try CorpusScorer.loadExpected(

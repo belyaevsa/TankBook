@@ -61,7 +61,7 @@ public enum PumpPhotoGate {
     /// does; the ratchet test asserts they match it. They describe the measured
     /// corpus, not a target - the ship decision is `violation(flagEnabled:)`
     /// against the precision threshold and coverage floor below.
-    public static let measuredNumericTotal: Int = 907
+    public static let measuredNumericTotal: Int = 910
 
     // MARK: - The reader's own measurement (PU.61)
     //
@@ -83,12 +83,13 @@ public enum PumpPhotoGate {
 
     /// Numeric cells the READER committed over the heldout split, of
     /// `readerNumericTotal`.
-    public static let readerCommitted: Int = 47
+    public static let readerCommitted: Int = 62
 
-    /// Of `readerCommitted`, the cells that match the corpus. Equal to
-    /// `readerCommitted` today: the reader commits only what the arithmetic
-    /// pins uniquely, so its measured precision is 1.000.
-    public static let readerCommittedCorrect: Int = 47
+    /// Of `readerCommitted`, the cells that match the corpus. The one cell
+    /// short of `readerCommitted` is a pair-tier total committed with the
+    /// shown-price caution (`PumpReadingCaution.shownPriceDiffers`), which
+    /// reaches Confirm flagged; no wrong cell is committed without a caution.
+    public static let readerCommittedCorrect: Int = 61
 
     /// The numeric cells the heldout split asserts (liters, unitPrice, total;
     /// blanks skipped), the reader's coverage denominator.

@@ -3,14 +3,13 @@ import Foundation
 import Testing
 @testable import TankbookCore
 
-/// PU.53 - the reader finds its own orientation. The phone never knows a
-/// display's rotation (a display can be sideways in an upright frame), so the
-/// live path runs the detector at 0/90/270 and keeps the orientation whose
-/// rows best pass `PumpRowGeometry`, 0 winning ties. These tests pin the
-/// choice on a rotated still and an upright one, and the tie rule itself.
-///
-/// Named mutation (run by hand, red-then-green in the report): making
-/// `bestRotation` always return 0 turns `searchPicksTheDisplaysRotation` red.
+/// The reader finds its own orientation. The phone never knows a display's
+/// rotation (a display can be sideways in an upright frame), so the live path
+/// runs the locator at 0/90/270 and keeps the orientation whose rows best pass
+/// `PumpRowGeometry`, 0 winning ties; when that pick and its 180-degree opposite
+/// both keep rows, the classifier's read margin decides - the segmenter finds
+/// an upside-down display's rows too. These tests pin the choice on a rotated
+/// still and an upright one, and the tie rule itself.
 @Suite("PU.53 pump reader orientation search", .pumpFixturesPresent)
 struct PumpReaderOrientationTests {
 

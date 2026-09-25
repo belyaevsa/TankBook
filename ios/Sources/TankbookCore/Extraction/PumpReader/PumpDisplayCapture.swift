@@ -112,7 +112,7 @@ public enum PumpDisplayCapture {
     /// runs as before.
     public static func makeReader(modelURL: URL?, detectorURL: URL? = nil) -> PumpReaderHandle? {
         guard let modelURL, let model = try? PumpSegmentsModel(contentsOf: modelURL) else { return nil }
-        let detector = detectorURL.flatMap { try? PumpRowDetector(contentsOf: $0) }
+        let detector = detectorURL.flatMap { try? PumpRowDetector.load(contentsOf: $0) }
         return PumpReaderHandle(reader: PumpReader(model: model, detector: detector))
     }
 

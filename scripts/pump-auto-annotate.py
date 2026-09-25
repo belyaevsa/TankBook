@@ -54,7 +54,7 @@ def main() -> int:
             continue
         request = {"rotationCW": entry.get("rotationCW", 0), "currency": row.get("currency") or None, "windows": None}
         r = subprocess.run([str(TOOL), str(FIX / "pump" / name), "--classifier", str(ROOT / "ios/App/Resources/PumpSegments.mlpackage"),
-                            "--detector", str(ROOT / "ios/App/Resources/DigitRows.mlmodel")],
+                            "--detector", str(ROOT / "ios/App/Resources/RowSeg.mlpackage")],
                            input=json.dumps(request), capture_output=True, text=True, timeout=300)
         if r.returncode or not r.stdout.strip():
             pending.append((name, "read failed"))

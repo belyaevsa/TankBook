@@ -39,7 +39,7 @@ guard arguments.count >= 2 else {
     exit(2)
 }
 var classifierPath = "ios/App/Resources/PumpSegments.mlpackage"
-var detectorPath: String? = "ios/App/Resources/DigitRows.mlmodel"
+var detectorPath: String? = "ios/App/Resources/RowSeg.mlpackage"
 var dumpDirectory: String?
 var index = 2
 while index < arguments.count {

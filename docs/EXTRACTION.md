@@ -1009,6 +1009,29 @@ the count and its ceiling. A fast-decided frame's `Detection.textLines` is
 reading moves (annotated 123/123, live 47/47 before and after); the Mac Release median `appDecide`
 on pump stills falls 78.5 -> 51 ms.
 
+**Decision 10, amended 2026-09-25 (PU.87, product owner: ship the segmenter): the row locator is an
+oriented segmenter.** PU.76's spike trained PixelLink's pixel + link formulation (Deng et al., AAAI
+2018) on the hand quads; its rows are quads that follow a turned display, where Create ML's object
+detector emits upright boxes. On the 68 heldout stills, scored in one rotated metric against the
+hand quads: median IoU 0.771 -> 0.861, recall @ IoU 0.7 0.667 -> 0.885, false rows per photo
+0.647 -> 0.088, photos with every row 52 -> 65 - at 1.8 MB against 31.75 MB. The app path reads
+**62 committed / 61 correct** against 47 / 47: the one wrong cell is pump-063's total, a pair-tier
+commit carrying the `shownPriceDiffers` caution (decision 11), so it reaches Confirm flagged. The
+owner shipped it knowing that cell; the live floor is therefore precision 0.98 with **no wrong cell
+committed without a caution**, asserted on its own (`PumpReaderPipelineTests.livePath`), and
+`PumpPhotoGate`'s reader constants are 62 / 61. The same locator serves the preview guidance: a
+camera frame is decoded to an image (`VTCreateCGImageFromCVPixelBuffer`) and read the same way. The
+non-pump leak battery is unchanged (6 of 116 routed, none commits a field). The locator costs
+26.5-29.8 ms a still against the object detector's 9.1-9.5 ms (Mac, Release, median of 12 heldout stills over two runs,
+`PumpLocatorTimingTests`); the phone's number is the Capture Lab's. It runs on the CPU and the Neural Engine, never the GPU: the
+simulator's GPU path returned all-zero maps for this float16 program. Because it also finds the rows
+of an upside-down display, the orientation search (`PumpReader.bestOrientation`) no longer lets the
+geometry alone choose between a rotation and its 180-degree opposite: when both keep rows, the
+classifier's mean read margin over their cells decides. The
+spike's two open gaps stay filed: reading from the segmenter's quads still loses cells against the
+hand quads at the same positions (PU.76's report), and the law's repair tier can override a
+confident read (PU.86).
+
 **Decision 10, amended 2026-09-22 (PU.57): the detector's gate is tight IoU, not recall@0.5.** A
 detector candidate ships only when **median IoU and recall @ IoU 0.7 both hold or rise** and
 **false rows per photo does not rise by more than 0.05**; recall @ IoU 0.5 is reported but never
@@ -1214,12 +1237,37 @@ number a change is judged by.
 
 **Where it lives.** Training, rendering, export and scoring are Python under `ml/pump-reader/`
 (PyTorch → coremltools), outside every gate except their own `pytest`; the exported `.mlpackage` is
-an app resource (`PumpSegments.mlpackage`, the cell classifier; `DigitRows.mlmodel`, the row
-detector) and the locator, detector wrapper, slicer, decoder and Core ML wrappers are Swift in
-`TankbookCore/Extraction/PumpReader/`, on the ordinary iOS gate. The detector's data, trainer and
-heldout measurement are `ml/pump-reader/src/pump_reader/detdata.py` and `ml/pump-reader/detector/`. A trained reader is the second
+an app resource (`PumpSegments.mlpackage`, the cell classifier; `RowSeg.mlpackage`, the oriented
+row segmenter) and the locator, segmenter decode, slicer, decoder and Core ML wrappers are Swift in
+`TankbookCore/Extraction/PumpReader/`, on the ordinary iOS gate. The segmenter's data, trainer,
+export and rotated gate are `ml/pump-reader/src/pump_reader/{segdata,segtrain,segexport,segeval,rotgate}.py`;
+the object detector it replaced (`DigitRows.mlmodel`) lives with its trainer in
+`ml/pump-reader/detector/` and stays selectable in the annotator and `pump-read`. A trained reader is the second
 non-rule producer of a field after the cloud model, and the same sentence governs both: it
 suggests, it never trusts.
+
+### Model registry
+
+Every on-device model the pump reader has trained, what it is for, whether it ships, and what it
+measured. **A row that ships, retires or refuses a model updates this table in the same change.**
+Numbers are the heldout split's (68 stills, 183 numeric cells, 252 hand quads) unless marked;
+"annotated" is `gateMirror` (hand quads), "live" is the app's `classify` path, both scored at
+`CorpusScorer.tolerance`. Candidates live under `ml/pump-reader/.out/` (gitignored, not committed);
+only shipped and tool models are in the tree. Every model below - its files, checkpoint, metrics and
+a `meta.json` - is mirrored to the corpus bucket beside the media (`tankbook-corpus`, `models/<id>/`)
+by `scripts/corpus-sync.py push --models`, from the machine-readable twin of this table,
+`ml/pump-reader/models.json`; `pull --models <id>|all` restores them in place.
+
+| Model | Role | Status | File | Size | Trained on | Heldout benchmark | Row |
+|---|---|---|---|---|---|---|---|
+| `PumpSegments` (round 6) | cell classifier: 7 segments + dp, 32 x 48 crop | **shipped** | `ios/App/Resources/PumpSegments.mlpackage` | 64 KB, 24 328 params | synthetic renders + 30 % real glyphs (25 085 cells) | annotated **126 / 126**; live **62 / 61** with `RowSeg` (47 / 47 with `DigitRows`); dp AUC 0.653 | PU.31 (`ml/pump-reader/REPORT.md` round 6, 2026-09-20) |
+| `RowSeg` (seg-r1) | row locator: PixelLink pixel + link segmenter, oriented quads | **shipped** (2026-09-25) | `ios/App/Resources/RowSeg.mlpackage` | 1.8 MB, 0.91 M params | 256 train stills + 275 owner-verified frames + 116 negatives, hand quads | rotated gate: median IoU **0.861**, recall@0.7 **0.885**, false rows/photo **0.088**, 65 / 68 photos every row; 26.5-29.8 ms (Mac Release) | PU.76, PU.87 |
+| `DigitRows` | row locator: Create ML object detector, upright boxes | retired from the app; tools only | `ml/pump-reader/detector/DigitRows.mlmodel` | 31.75 MB | 692 train stills / frames (2026-09-20 export) | rotated gate: median IoU 0.771, recall@0.7 0.667, false rows/photo 0.647; live 47 / 47; 9.1-9.5 ms | PU.33 |
+| `DigitRows-pu48` | detector retrain on a week's records | refused | `.out/det/pu48/` | 31.75 MB | + batches 6-9 (tracked frames) | live 41 / 39 (0.951): pump-092 clipped | PU.48 (cut) |
+| `DigitRows-pu66`, `-pu66b`, `-pu66c` | detector retrains with rotated photos | refused | `.out/det/pu66*/` | 31.75 MB each | + rotations; round 3 hand boxes only | round 3 median IoU 0.790 (upright metric); every retrain read wrong on heldout | PU.66 (cut) |
+| PU.73 heads (`flatten`, `coord`) | classifier head variants | refused | `.out/pu73-*/` | 88 KB (36 104 params), 24 616 params | the round 6 pool | flatten lifts dp AUC 0.682 -> 0.726 and adds wrong live readings on every seed | PU.73 |
+| PU.82 classifiers (full, hand, flatten x 3 seeds) | classifier on a fresh pool / the owner-verified hand-box pool | refused | `.out/pu82-*/` | 64-88 KB | full 172 318 cells, hand-only 6 236 | means (correct) annotated 116.3 / 112.3 / 117.3, live 45.0 / 41.0 / 41.3 against 126 / 47 | PU.82 |
+| PU.77 row reader (CRNN + CTC, 3 seeds) | reads a whole row as a sequence, no slicing | spike, a no-go for this run | the PU.77 worktree's `.out/pu77-s*/` | 1 010 668 params (~2 MB fp16) | 50 287 real strips (2 % cap per source) + corpus-calibrated synthetic | exact string **0.887-0.903** against 0.564; law over it 152-163 correct at 0.987-0.993 (bar 0.99; PU.86) | PU.77 |
 
 ### The constraint no model changes
 

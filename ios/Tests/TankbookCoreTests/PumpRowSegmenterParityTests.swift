@@ -1,4 +1,6 @@
 import CoreGraphics
+import CoreML
+import CoreVideo
 import ImageIO
 import Foundation
 @testable import TankbookCore
@@ -38,5 +40,51 @@ struct PumpRowSegmenterParityTests {
               + "count mismatches \(countMismatch.count): \(countMismatch.prefix(8))")
         #expect(rows > 200)
         #expect(Double(matched) >= 0.97 * Double(rows))
+    }
+}
+
+/// The segmenter's two inputs agree and its map read survives any storage layout.
+@Suite("Row segmenter: camera frames and map storage")
+struct PumpRowSegmenterInputTests {
+    private static let model = PumpReaderTestSupport.repoRoot.appendingPathComponent("ios/App/Resources/RowSeg.mlpackage")
+
+    @Test("a camera frame yields the rows the same frame decoded to an image does", .pumpFixturesPresent)
+    func pixelBufferMatchesImage() throws {
+        let segmenter = try PumpRowSegmenter(contentsOf: Self.model)
+        let image = try #require(PumpQuadWarp.loadOrientedImage(from: PumpReaderTestSupport.pumpFixturesRoot
+            .appendingPathComponent("pump-032-gilbarco-circlek-ee-clean.jpg")))
+        var buffer: CVPixelBuffer?
+        let attrs = [kCVPixelBufferCGImageCompatibilityKey: true, kCVPixelBufferCGBitmapContextCompatibilityKey: true]
+        CVPixelBufferCreate(nil, image.width, image.height, kCVPixelFormatType_32BGRA, attrs as CFDictionary, &buffer)
+        let pixels = try #require(buffer)
+        CVPixelBufferLockBaseAddress(pixels, [])
+        let context = try #require(CGContext(
+            data: CVPixelBufferGetBaseAddress(pixels), width: image.width, height: image.height, bitsPerComponent: 8,
+            bytesPerRow: CVPixelBufferGetBytesPerRow(pixels), space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue))
+        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        CVPixelBufferUnlockBaseAddress(pixels, [])
+        let fromImage = segmenter.rows(in: image)
+        let fromBuffer = segmenter.rows(in: pixels)
+        #expect(fromImage.count == 3)
+        #expect(fromBuffer.count == fromImage.count)
+        for row in fromImage {
+            let best = fromBuffer.map { other in zip(row.quad, other.quad).map { hypot($0.x - $1.x, $0.y - $1.y) }.max() ?? 1 }.min() ?? 1
+            #expect(best < 0.01)
+        }
+    }
+
+    @Test("the map read follows the array's strides, contiguous or not")
+    func floatsFollowStrides() throws {
+        // A 2 x 3 float32 array laid out column-major: strides [1, 2], not the row-major [3, 1].
+        var storage: [Float] = [1, 4, 2, 5, 3, 6]
+        let strided = try storage.withUnsafeMutableBytes { raw in
+            try MLMultiArray(dataPointer: raw.baseAddress!, shape: [2, 3], dataType: .float32,
+                             strides: [1, 2], deallocator: nil)
+        }
+        #expect(PumpRowSegmenter.floats(strided) == [1, 2, 3, 4, 5, 6])
+        let contiguous = try MLMultiArray(shape: [2, 3], dataType: .float32)
+        for i in 0..<6 { contiguous[i] = NSNumber(value: Float(i + 1)) }
+        #expect(PumpRowSegmenter.floats(contiguous) == [1, 2, 3, 4, 5, 6])
     }
 }

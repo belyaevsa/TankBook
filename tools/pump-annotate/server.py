@@ -111,9 +111,10 @@ def ensure_fresh_tool() -> dict:
         return {"fresh": max(built, tool_state["builtFor"]) >= newest, "binary": datetime.fromtimestamp(built).strftime("%Y-%m-%d %H:%M:%S") if built else None,
                 "newestSource": name, "rebuilt": tool_state["rebuilt"], "error": tool_state["error"]}
 CLASSIFIER = ROOT / "ios" / "App" / "Resources" / "PumpSegments.mlpackage"
-DETECTOR = ROOT / "ios" / "App" / "Resources" / "DigitRows.mlmodel"
-# Every row detector on this machine: the one in the bundle, the dev copy the
-# Swift tests read, and the candidates a training round left behind. The live
+DETECTOR = ROOT / "ios" / "App" / "Resources" / "RowSeg.mlpackage"
+# Every row locator on this machine: the one the app bundles (the oriented
+# segmenter), the object detector it replaced (ml/pump-reader/detector), the dev
+# copies, and the candidates a training round left behind. The live
 # path (⇧R) can be run against any of them, which is the only way to judge a
 # candidate by looking rather than by its committed count.
 DETECTOR_ROOT = ROOT / "ml" / "pump-reader" / ".out" / "det"
@@ -131,7 +132,8 @@ def detector_dirs() -> list[Path]:
         if DETECTOR_ROOT.exists() else []
     segmenters = sorted(p for p in SEGMENTER_ROOT.glob("seg-*") if p.is_dir() and any(p.glob("*.mlpackage"))) \
         if SEGMENTER_ROOT.exists() else []
-    return [ROOT / "ios" / "App" / "Resources", DETECTOR_ROOT, *rounds, *segmenters]
+    return [ROOT / "ios" / "App" / "Resources", ROOT / "ml" / "pump-reader" / "detector", DETECTOR_ROOT, *rounds,
+            *segmenters]
 
 
 def model_sha(path: Path) -> str:
@@ -151,8 +153,8 @@ def detectors() -> list[dict]:
     what actually changes between rounds), the date it was written, and the
     first eight of its sha256. `DigitRows` appears three times on this machine
     and only the version tells them apart."""
-    shipped = hashlib.sha256(DETECTOR.read_bytes()).hexdigest() if DETECTOR.exists() else None
-    tags = {"ios/App/Resources": "bundle", "ml/pump-reader/.out/det": "dev"}
+    shipped = model_sha(DETECTOR) if DETECTOR.exists() else None
+    tags = {"ios/App/Resources": "bundle", "ml/pump-reader/detector": "object detector", "ml/pump-reader/.out/det": "dev"}
     out, seen = [], set()
     for folder in detector_dirs():
         where = str(folder.relative_to(ROOT))
@@ -164,7 +166,7 @@ def detectors() -> list[dict]:
                 counts = json.loads(counts_file.read_text())
             except json.JSONDecodeError:
                 counts = {}
-        found = [*folder.glob("*.mlmodel"), *(folder.glob("RowSeg*.mlpackage") if folder.name.startswith("seg-") else [])]
+        found = [*folder.glob("*.mlmodel"), *folder.glob("RowSeg*.mlpackage")]
         for path in sorted(found) if folder.exists() else []:
             key = str(path.resolve())
             if key in seen:

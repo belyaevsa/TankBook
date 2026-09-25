@@ -1,6 +1,8 @@
 import CoreGraphics
 import CoreML
+import Accelerate
 import Foundation
+import VideoToolbox
 
 /// An oriented digit-row locator: a Core ML segmenter emitting PixelLink's
 /// pixel and link maps (Deng et al., AAAI 2018; trained by
@@ -10,7 +12,8 @@ import Foundation
 /// minimum-area rectangle per component, a size floor, and the component's mean
 /// pixel probability as its confidence. Its rows are quads that follow a turned
 /// display, where the object detector's are upright boxes. Reached through
-/// `PumpRowDetector.load(contentsOf:)`; the app does not load it.
+/// `PumpRowDetector.load(contentsOf:)`; the app bundles it as its row locator
+/// (`RowSeg.mlpackage`).
 struct PumpRowSegmenter: @unchecked Sendable {
     static let inputSize = 512
     static let gridSize = 256
@@ -27,7 +30,13 @@ struct PumpRowSegmenter: @unchecked Sendable {
     init(contentsOf url: URL, pixelThreshold: Float = 0.9, linkThreshold: Float = 0.8,
          minimumShortSide: Double = 4.94, minimumArea: Double = 57.0) throws {
         let compiled = url.pathExtension == "mlmodelc" ? url : try MLModel.compileModel(at: url)
-        model = try MLModel(contentsOf: compiled)
+        // CPU and Neural Engine, not the GPU: on the iOS simulator the GPU path
+        // returns all-zero maps for this float16 program while the CPU path
+        // reads the same frame correctly, and the Neural Engine is the phone's
+        // fast path anyway.
+        let configuration = MLModelConfiguration()
+        configuration.computeUnits = .cpuAndNeuralEngine
+        model = try MLModel(contentsOf: compiled, configuration: configuration)
         self.pixelThreshold = pixelThreshold
         self.linkThreshold = linkThreshold
         self.minimumShortSide = minimumShortSide
@@ -41,13 +50,48 @@ struct PumpRowSegmenter: @unchecked Sendable {
               let input = try? MLDictionaryFeatureProvider(dictionary: ["image": MLFeatureValue(pixelBuffer: buffer)]),
               let output = try? model.prediction(from: input),
               let maps = output.featureValue(for: "maps")?.multiArrayValue else { return [] }
-        let n = Self.gridSize
-        var values = [Float](repeating: 0, count: 9 * n * n)
-        for i in 0..<values.count { values[i] = maps[i].floatValue }
-        return decode(values).map { quad, confidence in
+        return decode(Self.floats(maps)).map { quad, confidence in
             PumpRowDetector.Row(
                 quad: quad.map { CGPoint(x: $0.x * 2 / scale / Double(w), y: $0.y * 2 / scale / Double(h)) },
                 confidence: confidence)
+        }
+    }
+
+    /// The same rows from a camera frame: the preview hands the locator pixel
+    /// buffers, and the segmenter reads a decoded image.
+    func rows(in pixelBuffer: CVPixelBuffer) -> [PumpRowDetector.Row] {
+        var image: CGImage?
+        VTCreateCGImageFromCVPixelBuffer(pixelBuffer, options: nil, imageOut: &image)
+        return image.map { rows(in: $0) } ?? []
+    }
+
+    /// The maps as floats, read straight from the array's storage when it is
+    /// laid out contiguously: element subscripting boxes every one of the
+    /// 589 824 values. Any other layout is read element by element.
+    static func floats(_ maps: MLMultiArray) -> [Float] {
+        let count = maps.count
+        var expected = 1
+        var contiguous = true
+        for (dimension, stride) in zip(maps.shape.reversed(), maps.strides.reversed()) {
+            if stride.intValue != expected { contiguous = false; break }
+            expected *= dimension.intValue
+        }
+        guard contiguous else { return (0..<count).map { maps[$0].floatValue } }
+        switch maps.dataType {
+        case .float16:
+            var out = [Float](repeating: 0, count: count)
+            out.withUnsafeMutableBufferPointer { dst in
+                var src = vImage_Buffer(data: maps.dataPointer, height: 1, width: vImagePixelCount(count),
+                                        rowBytes: count * 2)
+                var dest = vImage_Buffer(data: dst.baseAddress, height: 1, width: vImagePixelCount(count),
+                                         rowBytes: count * 4)
+                vImageConvert_Planar16FtoPlanarF(&src, &dest, vImage_Flags(kvImageNoFlags))
+            }
+            return out
+        case .float32:
+            return Array(UnsafeBufferPointer(start: maps.dataPointer.assumingMemoryBound(to: Float.self), count: count))
+        default:
+            return (0..<count).map { maps[$0].floatValue }
         }
     }
 

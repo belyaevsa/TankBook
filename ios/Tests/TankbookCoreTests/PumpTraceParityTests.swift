@@ -13,7 +13,7 @@ struct PumpTraceParityTests {
     private static let modelURL = PumpReaderTestSupport.repoRoot
         .appendingPathComponent("ios/App/Resources/PumpSegments.mlpackage")
     private static let detectorURL = PumpReaderTestSupport.repoRoot
-        .appendingPathComponent("ios/App/Resources/DigitRows.mlmodel")
+        .appendingPathComponent("ml/pump-reader/detector/DigitRows.mlmodel")
     private static let fixtures = PumpReaderTestSupport.repoRoot.appendingPathComponent("Spike/ReceiptSpike/fixtures")
 
     /// One of each path: a fast-path read, a slow-path read that commits a

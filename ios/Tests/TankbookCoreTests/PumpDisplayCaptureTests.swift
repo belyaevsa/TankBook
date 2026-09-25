@@ -191,8 +191,8 @@ struct PumpDisplayCaptureTests {
         #expect(slow.textLines != PumpDisplayCapture.textLinesNotMeasured)
     }
 
-    /// The slow path exists for a head the detector never saw (a Tatsuno, a
-    /// Topaz). pump-019's detector rows do not stack, so the fast path
+    /// The slow path exists for a frame the locator's rows alone do not decide.
+    /// pump-015's located rows do not pass the fast verdict, so the fast path
     /// abstains; the verifier finds two and classifies. The budgets are
     /// injected so the test never asserts wall clock: one that outlasts the
     /// verifier accepts the frame, an expired one refuses it before the
@@ -201,7 +201,7 @@ struct PumpDisplayCaptureTests {
     @Test("the slow-path budget refuses a frame when it expires", .pumpFixturesPresent)
     func slowPathBudgetRefuses() throws {
         let reader = try #require(PumpDisplayCapture.makeReader(modelURL: Self.modelURL, detectorURL: PumpReaderTestSupport.detectorURL))
-        let name = "pump-019-gilbarco-circlek-sikupilli-pump8-ee.jpg"
+        let name = "pump-015-dresser-wayne-ee-diesel.heic"
         let image = try #require(PumpQuadWarp.loadOrientedImage(
             from: PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent(name)))
         let rgb = PumpQuadWarp.rgbImage(from: image)

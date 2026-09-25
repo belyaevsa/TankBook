@@ -21,27 +21,23 @@ enum PumpReaderTestSupport {
     static let outRoot = repoRoot
         .appendingPathComponent("ios/.build/pump-reader-out")
 
-    /// The row detector trained by ml/pump-reader/detector/train.swift (PU.33),
-    /// when a training has produced it; the live path runs without it otherwise.
-    /// `PUMP_DETECTOR=<path>` scores a candidate instead, so a candidate is never
-    /// measured by overwriting the dev copy the shipped model is exported from.
-    /// A `PUMP_DETECTOR` that names no file stops the run: silently falling back
-    /// to no detector would score the candidate as the Vision-only locator.
+    /// The row locator the app bundles - the oriented segmenter
+    /// (`ios/App/Resources/RowSeg.mlpackage`) - so the live floor measures what
+    /// the phone runs. `PUMP_DETECTOR=<path>` scores a candidate instead (a
+    /// segmenter package or an object-detector model; `PumpRowDetector.load`
+    /// tells them apart). A `PUMP_DETECTOR` that names no file stops the run:
+    /// silently falling back would score the candidate as a different locator.
     static let detectorURL: URL? = {
         if let path = ProcessInfo.processInfo.environment["PUMP_DETECTOR"], !path.isEmpty {
             precondition(FileManager.default.fileExists(atPath: path), "PUMP_DETECTOR names no file: \(path)")
             return URL(fileURLWithPath: path)
         }
-        let url = repoRoot.appendingPathComponent("ml/pump-reader/.out/det/DigitRows.mlmodel")
+        let url = repoRoot.appendingPathComponent("ios/App/Resources/RowSeg.mlpackage")
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
     }()
 
     static func makeDetector() -> PumpRowDetector? {
-        if let path = ProcessInfo.processInfo.environment["PUMP_SEGMENTER"], !path.isEmpty {
-            precondition(FileManager.default.fileExists(atPath: path), "PUMP_SEGMENTER names no file: \(path)")
-            return try? PumpRowDetector.load(contentsOf: URL(fileURLWithPath: path))
-        }
-        return detectorURL.flatMap { try? PumpRowDetector(contentsOf: $0) }
+        detectorURL.flatMap { try? PumpRowDetector.load(contentsOf: $0) }
     }
 
     static var fixturesPresent: Bool {
