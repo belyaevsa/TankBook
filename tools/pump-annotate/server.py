@@ -202,12 +202,16 @@ def package_sha(package: Path) -> str:
 
 def classifier_packages() -> list[Path]:
     """Every segment classifier on this machine: the bundle's, and each training
-    round's candidate under `.out/<round>/`."""
+    round's candidate under `.out/<round>/`. Matched by the classifier's own
+    package name - `.out/` also holds other models (the row segmenter's
+    `RowSeg.mlpackage`), and one of those passed as `--classifier` crashes
+    `pump-read` on its missing `image` input."""
+    name = CLASSIFIER.name
     found: list[Path] = []
     for folder in CLASSIFIER_DIRS:
         if not folder.exists():
             continue
-        found += sorted(folder.glob("*.mlpackage")) + sorted(folder.glob("*/*.mlpackage"))
+        found += sorted(folder.glob(name)) + sorted(folder.glob(f"*/{name}"))
     return found
 
 
