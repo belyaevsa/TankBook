@@ -1033,6 +1033,29 @@ the count and its ceiling. A fast-decided frame's `Detection.textLines` is
 reading moves (annotated 123/123, live 47/47 before and after); the Mac Release median `appDecide`
 on pump stills falls 78.5 -> 51 ms.
 
+**Decision 10, amended 2026-09-25 (PU.89, product owner: "Do it by yourself"): the rows are read
+whole, not sliced into cells.** The PU.77 row reader (a CRNN trained with CTC, Shi, Bai, Yao,
+TPAMI 2017; Graves et al., ICML 2006) reads each located window's strip as one sequence, so no
+slicer decides how many cells a row has - the slicer's cell count was the largest single loss in
+the read. `PumpRowReader` resizes the strip exactly as the training pipeline's Pillow does (height
+32, aspect kept, 100-160 px, 22-bit fixed-point bilinear), runs `RowRead.mlpackage` (float32,
+flexible width, 1.01 M parameters) and decodes it as the Python reference does: prefix beam search
+for the string, and per digit the substitution marginal - the decoded string's likelihood with that
+digit replaced by each of the ten, normalised - as the cell's ranking, with the separator's
+likelihood as its decimal mark. Those cells go to `PumpReadingLaw` unchanged, with PU.86's repair
+budget; the locator, verifier, assignment and orientation search still use the slicer and the
+cell classifier. Seed 1 of PU.77's three was chosen on its train-side validation string accuracy
+(0.875), never on heldout. Swift and the Python reference agree on 252 of 252 heldout strips.
+On the heldout split, scored by the corpus scorer: **live path 62 / 61 -> 117 committed / 116
+correct** (precision 0.991; the one wrong cell is still pump-063's cautioned pair-tier total),
+**photos with every field right 21 -> 40 of 68**; annotated tier **126 / 126 -> 154 / 153** (the
+one wrong cell pump-055's total, cautioned). The non-pump leak battery holds at 6 of 117 routed and
+none committing. The read step costs **2.6 ms per window against 5.5 ms** for the slicer and
+classifier (Mac Release, `PumpRowReaderTests.timing`); the phone's number is the Capture Lab's.
+Not done and named: the law's windows were not re-derived for this reader under temperature
+(PU.77's departure), and heldout2 was spent at PU.77, so the live path and new photos are the check
+from here.
+
 **Decision 10, amended 2026-09-25 (PU.87, product owner: ship the segmenter): the row locator is an
 oriented segmenter.** PU.76's spike trained PixelLink's pixel + link formulation (Deng et al., AAAI
 2018) on the hand quads; its rows are quads that follow a turned display, where Create ML's object
@@ -1262,7 +1285,7 @@ number a change is judged by.
 **Where it lives.** Training, rendering, export and scoring are Python under `ml/pump-reader/`
 (PyTorch → coremltools), outside every gate except their own `pytest`; the exported `.mlpackage` is
 an app resource (`PumpSegments.mlpackage`, the cell classifier; `RowSeg.mlpackage`, the oriented
-row segmenter) and the locator, segmenter decode, slicer, decoder and Core ML wrappers are Swift in
+row segmenter; `RowRead.mlpackage`, the row reader) and the locator, segmenter decode, slicer, decoder and Core ML wrappers are Swift in
 `TankbookCore/Extraction/PumpReader/`, on the ordinary iOS gate. The segmenter's data, trainer,
 export and rotated gate are `ml/pump-reader/src/pump_reader/{segdata,segtrain,segexport,segeval,rotgate}.py`;
 the object detector it replaced (`DigitRows.mlmodel`) lives with its trainer in
@@ -1284,14 +1307,15 @@ by `scripts/corpus-sync.py push --models`, from the machine-readable twin of thi
 
 | Model | Role | Status | File | Size | Trained on | Heldout benchmark | Row |
 |---|---|---|---|---|---|---|---|
-| `PumpSegments` (round 6) | cell classifier: 7 segments + dp, 32 x 48 crop | **shipped** | `ios/App/Resources/PumpSegments.mlpackage` | 64 KB, 24 328 params | synthetic renders + 30 % real glyphs (25 085 cells) | annotated **126 / 126**; live **62 / 61** with `RowSeg` (47 / 47 with `DigitRows`); dp AUC 0.653 | PU.31 (`ml/pump-reader/REPORT.md` round 6, 2026-09-20) |
+| `PumpSegments` (round 6) | cell classifier: 7 segments + dp, 32 x 48 crop; since PU.89 the verifier's and the orientation search's reader, no longer the transaction read | **shipped** | `ios/App/Resources/PumpSegments.mlpackage` | 64 KB, 24 328 params | synthetic renders + 30 % real glyphs (25 085 cells) | annotated **126 / 126**; live **62 / 61** with `RowSeg` (47 / 47 with `DigitRows`); dp AUC 0.653 | PU.31 (`ml/pump-reader/REPORT.md` round 6, 2026-09-20) |
 | `RowSeg` (seg-r1) | row locator: PixelLink pixel + link segmenter, oriented quads | **shipped** (2026-09-25) | `ios/App/Resources/RowSeg.mlpackage` | 1.8 MB, 0.91 M params | 256 train stills + 275 owner-verified frames + 116 negatives, hand quads | rotated gate: median IoU **0.861**, recall@0.7 **0.885**, false rows/photo **0.088**, 65 / 68 photos every row; 26.5-29.8 ms (Mac Release) | PU.76, PU.87 |
 | `DigitRows` | row locator: Create ML object detector, upright boxes | retired from the app; tools only | `ml/pump-reader/detector/DigitRows.mlmodel` | 31.75 MB | 692 train stills / frames (2026-09-20 export) | rotated gate: median IoU 0.771, recall@0.7 0.667, false rows/photo 0.647; live 47 / 47; 9.1-9.5 ms | PU.33 |
 | `DigitRows-pu48` | detector retrain on a week's records | refused | `.out/det/pu48/` | 31.75 MB | + batches 6-9 (tracked frames) | live 41 / 39 (0.951): pump-092 clipped | PU.48 (cut) |
 | `DigitRows-pu66`, `-pu66b`, `-pu66c` | detector retrains with rotated photos | refused | `.out/det/pu66*/` | 31.75 MB each | + rotations; round 3 hand boxes only | round 3 median IoU 0.790 (upright metric); every retrain read wrong on heldout | PU.66 (cut) |
 | PU.73 heads (`flatten`, `coord`) | classifier head variants | refused | `.out/pu73-*/` | 88 KB (36 104 params), 24 616 params | the round 6 pool | flatten lifts dp AUC 0.682 -> 0.726 and adds wrong live readings on every seed | PU.73 |
 | PU.82 classifiers (full, hand, flatten x 3 seeds) | classifier on a fresh pool / the owner-verified hand-box pool | refused | `.out/pu82-*/` | 64-88 KB | full 172 318 cells, hand-only 6 236 | means (correct) annotated 116.3 / 112.3 / 117.3, live 45.0 / 41.0 / 41.3 against 126 / 47 | PU.82 |
-| PU.77 row reader (CRNN + CTC, 3 seeds) | reads a whole row as a sequence, no slicing | spike, a no-go for this run | the PU.77 worktree's `.out/pu77-s*/` | 1 010 668 params (~2 MB fp16) | 50 287 real strips (2 % cap per source) + corpus-calibrated synthetic | exact string **0.887-0.903** against 0.564; law over it 152-163 correct at 0.987-0.993 (bar 0.99; PU.86) | PU.77 |
+| `RowRead` (PU.77 seed 1) | row reader: CRNN + CTC over a 32 px strip, a whole row as a sequence | **shipped** (2026-09-25) | `ios/App/Resources/RowRead.mlpackage` (`pump_reader.rowexport`) | 3.9 MB fp32, 1 010 668 params | 50 287 real strips (2 % cap per source) + corpus-calibrated synthetic | live **117 / 116**, annotated **154 / 153** (both wrong cells cautioned); 40 / 68 photos every field; 2.6 ms per window (Mac Release) | PU.77, PU.86, PU.89 |
+| PU.77 row reader (CRNN + CTC, 3 seeds) | reads a whole row as a sequence, no slicing | spike; seed 1 shipped as `RowRead` | `.out/pu77-s*/` | 1 010 668 params (~2 MB fp16) | 50 287 real strips (2 % cap per source) + corpus-calibrated synthetic | exact string **0.887-0.903** against 0.564; law over it 152-163 correct at 0.987-0.993 (bar 0.99; PU.86) | PU.77 |
 
 ### The constraint no model changes
 

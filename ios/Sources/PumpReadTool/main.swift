@@ -1,7 +1,8 @@
 // The pump reader as a command - what the annotator calls to show the model's
 // reading of a frame or a still (tools/pump-annotate):
 //
-//   pump-read <image> [--classifier <PumpSegments.mlpackage>] [--detector <DigitRows.mlmodel or RowSeg.mlpackage>] < request.json
+//   pump-read <image> [--classifier <PumpSegments.mlpackage>] [--detector <DigitRows.mlmodel or RowSeg.mlpackage>]
+//             [--row-reader <RowRead.mlpackage> | none] < request.json
 //   pump-read --slice-serve            # resident slicer: one request per stdin line, no model
 //   pump-read --read-serve [--classifier p]  # resident video-frame reader, model loaded once
 //   pump-read --trace-serve            # resident pipeline tracer: the app's classify, every stage recorded
@@ -35,11 +36,12 @@ struct Request: Decodable {
 
 let arguments = CommandLine.arguments
 guard arguments.count >= 2 else {
-    FileHandle.standardError.write(Data("usage: pump-read <image> [--classifier p] [--detector p]\n".utf8))
+    FileHandle.standardError.write(Data("usage: pump-read <image> [--classifier p] [--detector p] [--row-reader p|none]\n".utf8))
     exit(2)
 }
 var classifierPath = "ios/App/Resources/PumpSegments.mlpackage"
 var detectorPath: String? = "ios/App/Resources/RowSeg.mlpackage"
+var rowReaderPath: String? = "ios/App/Resources/RowRead.mlpackage"
 var dumpDirectory: String?
 var index = 2
 while index < arguments.count {
@@ -53,6 +55,9 @@ while index < arguments.count {
         index += 2
     } else if arguments[index] == "--detector", index + 1 < arguments.count {
         detectorPath = arguments[index + 1]
+        index += 2
+    } else if arguments[index] == "--row-reader", index + 1 < arguments.count {
+        rowReaderPath = arguments[index + 1] == "none" ? nil : arguments[index + 1]
         index += 2
     } else {
         index += 1
@@ -191,7 +196,7 @@ if arguments.contains("--read-serve") {
 
 // `--trace-serve`: the annotator's pipeline view (TraceServe.swift).
 if arguments.contains("--trace-serve") {
-    runTraceServe(defaultClassifier: classifierPath, defaultDetector: detectorPath)
+    runTraceServe(defaultClassifier: classifierPath, defaultDetector: detectorPath, defaultRowReader: rowReaderPath)
 }
 
 // `--request <file>` reads the request from a file: a profiler launch has no stdin.
@@ -206,8 +211,12 @@ let model = try PumpSegmentsModel(contentsOf: URL(fileURLWithPath: classifierPat
 let detector = detectorPath.flatMap { path in
     FileManager.default.fileExists(atPath: path) ? try? PumpRowDetector.load(contentsOf: URL(fileURLWithPath: path)) : nil
 }
+let rowReader = rowReaderPath.flatMap { path in
+    FileManager.default.fileExists(atPath: path) ? try? PumpRowReader(contentsOf: URL(fileURLWithPath: path)) : nil
+}
 let reader = PumpReader(model: model, detector: detector,
-                        deskew: request.deskew.flatMap(PumpReader.DeskewMode.init(rawValue:)) ?? .off)
+                        deskew: request.deskew.flatMap(PumpReader.DeskewMode.init(rawValue:)) ?? .off,
+                        rowReader: rowReader)
 let photo = PumpQuadWarp.rgbImage(from: oriented)
 let image = request.level.map { PumpRowDeskew.levelled(photo, degrees: $0) } ?? photo
 let currency = request.currency.flatMap { CurrencyCode(rawValue: $0) }

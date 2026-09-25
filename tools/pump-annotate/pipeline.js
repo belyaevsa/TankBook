@@ -14,8 +14,8 @@ const STAGES = [
   {key: 'cands', name: 'Candidates', hint: 'detector rows (with confidence) and the Vision + classical proposals'},
   {key: 'verify', name: 'Verify', hint: 'kept and dropped candidates with the verifier\'s reasons'},
   {key: 'assign', name: 'Assign', hint: 'the role each verified row was given'},
-  {key: 'slice', name: 'Slice', hint: 'each assigned row warped to a strip and cut into cells'},
-  {key: 'classify', name: 'Classify', hint: 'every cell: the classifier\'s top digits, margin and decimal mark'},
+  {key: 'slice', name: 'Slice', hint: 'each assigned row warped to a strip; the row reader reads it whole, or the slicer cuts it into cells'},
+  {key: 'classify', name: 'Classify', hint: 'every digit: the reader\'s top digits, margin and decimal mark'},
   {key: 'law', name: 'Law', hint: 'what the law committed or refused, against the truth row'},
 ];
 const FIELDS = ['total', 'liters', 'unitPrice'];
@@ -570,13 +570,14 @@ function renderStrips(view, trace, truth, a) {
   for (const r of reads) {
     const hand = truth.windows.find(w => w.field === r.field);
     const want = digits(hand && hand.text);
-    const n = (r.cellRects || []).filter(c => !c.blank).length;
+    const row = r.reader === 'row';
+    const n = row ? r.readings.length : (r.cellRects || []).filter(c => !c.blank).length;
     const got = r.readings.map(c => c.top[0].d).join('');
     const box = document.createElement('div'); box.className = 'strip';
     const sliceOk = !want || n === want.length, readOk = !want || got === want;
     const col = r.skipped || !sliceOk ? BAD : st.stage === 6 && !readOk ? BAD : OK;
     box.style.borderColor = col;
-    box.innerHTML = `<h4 style="color:${COLORS[r.field] || '#fff'}">${r.field} <span class="muted">·</span> <span style="color:${col}">${r.skipped ? 'skipped: ' + r.skipped : `${n} cell(s)${want ? ` · hand "${esc(hand.text)}" has ${want.length}` : ''}`}</span></h4>`;
+    box.innerHTML = `<h4 style="color:${COLORS[r.field] || '#fff'}">${r.field} <span class="muted">·</span> <span style="color:${col}">${r.skipped ? 'skipped: ' + r.skipped : `${n} ${row ? 'digit(s), read whole' : 'cell(s)'}${want ? ` · hand "${esc(hand.text)}" has ${want.length}` : ''}`}</span></h4>`;
     if (r.strip) {
       box.appendChild(stripCanvas(trace.base + r.strip.file, r.strip, r.cellRects, r.readings, r.field, z, img => {
         if (st.stage === 6) box.appendChild(cellTiles(img, r, want));
@@ -598,7 +599,9 @@ function renderStrips(view, trace, truth, a) {
 
 function cellTiles(img, r, want) {
   const wrap = document.createElement('div'); wrap.className = 'cells';
-  const cells = (r.cellRects || []).filter(c => !c.blank);
+  // A row read whole has no slicer cells: its digits are drawn without a crop.
+  const row = r.reader === 'row';
+  const cells = row ? r.readings.map(() => null) : (r.cellRects || []).filter(c => !c.blank);
   cells.forEach((c, i) => {
     const rd = r.readings[i]; if (!rd) return;
     const truthDigit = want && want.length === cells.length ? want[i] : null;
@@ -606,10 +609,12 @@ function cellTiles(img, r, want) {
     const low = rd.margin < st.verifyMargin;
     const tile = document.createElement('div'); tile.className = 'cell';
     tile.style.borderColor = wrong ? BAD : low ? WARN : truthDigit != null ? OK : 'var(--line)';
-    const cv = document.createElement('canvas'); const k = 96 / c.h;
-    cv.width = Math.max(32, c.w * k); cv.height = 96;
-    cv.getContext('2d').drawImage(img, c.x, c.y, c.w, c.h, 0, 0, cv.width, cv.height);
-    tile.appendChild(cv);
+    if (c) {
+      const cv = document.createElement('canvas'); const k = 96 / c.h;
+      cv.width = Math.max(32, c.w * k); cv.height = 96;
+      cv.getContext('2d').drawImage(img, c.x, c.y, c.w, c.h, 0, 0, cv.width, cv.height);
+      tile.appendChild(cv);
+    }
     const alts = rd.top.slice(1).map(t => `<b>${t.d}</b> <span class="muted">−${(rd.top[0].lp - t.lp).toFixed(1)}</span>`).join(' &nbsp; ');
     const m = Math.max(0, Math.min(1, rd.margin / 6));
     tile.insertAdjacentHTML('beforeend', `<div class="big" style="color:${wrong ? BAD : '#fff'}">${rd.top[0].d}${rd.dp ? '.' : ''}</div>
@@ -736,7 +741,8 @@ async function renderGrid() {
       if (!reads.length) tile.insertAdjacentHTML('beforeend', `<div class="muted">${(trace.final || {}).detection && !trace.final.detection.display ? 'not a display - nothing read' : 'no row got a role - nothing read'}</div>`);
       for (const r of reads) {
         const hand = truth.windows.find(w => w.field === r.field), want = digits(hand && hand.text);
-        const got = r.readings.map(c => c.top[0].d).join(''), n = (r.cellRects || []).filter(c => !c.blank).length;
+        const got = r.readings.map(c => c.top[0].d).join('');
+        const n = r.reader === 'row' ? r.readings.length : (r.cellRects || []).filter(c => !c.blank).length;
         const bad = r.skipped || (want && (st.stage === 5 ? n !== want.length : got !== want));
         const row = document.createElement('div'); row.style.margin = '4px 0';
         row.innerHTML = `<div class="mono" style="color:${bad ? BAD : OK}"><span style="color:${COLORS[r.field] || '#fff'}">${r.field}</span> ${r.skipped ? esc(r.skipped) : st.stage === 5 ? `${n} cells${want ? ' / hand ' + want.length : ''}` : `${got || '–'}${want ? ' / hand ' + want : ''}`}</div>`;

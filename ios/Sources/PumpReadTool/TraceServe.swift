@@ -16,6 +16,8 @@ private struct TraceRequest: Decodable {
     var image: String?
     var classifier: String?
     var detector: String?
+    /// A row reader's path, or `none` for the slicer and cell classifier.
+    var rowReader: String?
     var deskew: String?
     var currency: String?
     var budget: Double?
@@ -26,6 +28,7 @@ private struct TraceRequest: Decodable {
 private final class ModelCache {
     var classifiers: [String: PumpSegmentsModel] = [:]
     var detectors: [String: PumpRowDetector] = [:]
+    var rowReaders: [String: PumpRowReader] = [:]
 
     func classifier(_ path: String) -> PumpSegmentsModel? {
         if classifiers[path] == nil {
@@ -41,15 +44,23 @@ private final class ModelCache {
         }
         return detectors[path]
     }
+
+    func rowReader(_ path: String?) -> PumpRowReader? {
+        guard let path, path != "none", FileManager.default.fileExists(atPath: path) else { return nil }
+        if rowReaders[path] == nil {
+            rowReaders[path] = try? PumpRowReader(contentsOf: URL(fileURLWithPath: path))
+        }
+        return rowReaders[path]
+    }
 }
 
-func runTraceServe(defaultClassifier: String, defaultDetector: String?) -> Never {
+func runTraceServe(defaultClassifier: String, defaultDetector: String?, defaultRowReader: String?) -> Never {
     let cache = ModelCache()
     setvbuf(stdout, nil, _IOLBF, 0)
     while let line = readLine(strippingNewline: true) {
         let started = Date()
         var reply = traceReply(line: line, cache: cache, defaultClassifier: defaultClassifier,
-                               defaultDetector: defaultDetector)
+                               defaultDetector: defaultDetector, defaultRowReader: defaultRowReader)
         reply["ms"] = Int(Date().timeIntervalSince(started) * 1000)
         if let data = try? JSONSerialization.data(withJSONObject: reply),
            let text = String(data: data, encoding: .utf8) {
@@ -60,7 +71,7 @@ func runTraceServe(defaultClassifier: String, defaultDetector: String?) -> Never
 }
 
 private func traceReply(line: String, cache: ModelCache, defaultClassifier: String,
-                        defaultDetector: String?) -> [String: Any] {
+                        defaultDetector: String?, defaultRowReader: String?) -> [String: Any] {
     guard let data = line.data(using: .utf8), let request = try? JSONDecoder().decode(TraceRequest.self, from: data),
           let path = request.image, let outDir = request.outDir else { return ["error": "bad request"] }
     guard let image = PumpQuadWarp.loadOrientedImage(from: URL(fileURLWithPath: path)) else {
@@ -70,7 +81,8 @@ private func traceReply(line: String, cache: ModelCache, defaultClassifier: Stri
         return ["error": "cannot load classifier"]
     }
     let deskew = request.deskew.flatMap(PumpReader.DeskewMode.init(rawValue:)) ?? .off
-    let reader = PumpReader(model: model, detector: cache.detector(request.detector ?? defaultDetector), deskew: deskew)
+    let reader = PumpReader(model: model, detector: cache.detector(request.detector ?? defaultDetector), deskew: deskew,
+                            rowReader: cache.rowReader(request.rowReader ?? defaultRowReader))
     let currency = request.currency.flatMap { CurrencyCode(rawValue: $0) }
     let band = currency.flatMap { code in (try? FuelPriceBandStore.bundledPack())?.currencyBand(currency: code) }
     let budget = (request.budget ?? 0) > 0 ? request.budget! : PumpDisplayCapture.slowPathBudget
@@ -124,6 +136,8 @@ private func attemptJSON(_ attempt: PumpTrace.Attempt, index: Int, folder: URL) 
     out["reads"] = attempt.reads.enumerated().map { number, record -> [String: Any] in
         ["field": record.field.rawValue, "quad": quad(record.quad, normalised: false),
          "skipped": record.skipped ?? NSNull(), "cellRects": cellsJSON(record.cells),
+         // A row read has digits and no slicer cells: the strip was read whole.
+         "reader": record.cells.isEmpty && !record.readings.isEmpty ? "row" : "cells",
          "readings": record.readings.map(readingJSON),
          "strip": writeStrip(record.strip, named: "a\(index)-r\(number).png", in: folder)]
     }

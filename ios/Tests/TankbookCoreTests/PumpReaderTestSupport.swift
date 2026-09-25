@@ -41,6 +41,23 @@ enum PumpReaderTestSupport {
         detectorURL.flatMap { try? PumpRowDetector.load(contentsOf: $0) }
     }
 
+    /// The row reader the app bundles (`ios/App/Resources/RowRead.mlpackage`)
+    /// when it is there; `PUMP_ROWREADER_MODEL=<path>` scores a candidate and
+    /// `PUMP_ROWREADER_MODEL=none` scores the slicer and cell classifier alone.
+    static let rowReaderURL: URL? = {
+        if let path = ProcessInfo.processInfo.environment["PUMP_ROWREADER_MODEL"], !path.isEmpty {
+            if path == "none" { return nil }
+            precondition(FileManager.default.fileExists(atPath: path), "PUMP_ROWREADER_MODEL names no file: \(path)")
+            return URL(fileURLWithPath: path)
+        }
+        let url = repoRoot.appendingPathComponent("ios/App/Resources/RowRead.mlpackage")
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }()
+
+    static func makeRowReader() -> PumpRowReader? {
+        rowReaderURL.flatMap { try? PumpRowReader(contentsOf: $0) }
+    }
+
     static var fixturesPresent: Bool {
         FileManager.default.fileExists(atPath: windowsURL.path)
     }

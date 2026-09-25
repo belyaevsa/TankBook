@@ -31,11 +31,17 @@ struct PumpReader {
     /// When to turn each detector row to its digits' angle (`PumpRowDeskew`).
     /// Off by default while it is measured.
     var deskew: DeskewMode = .off
+    /// The row-level sequence reader: when present it reads each located
+    /// window's strip whole, in place of the slicer and the cell classifier.
+    /// Verification and orientation still use the slicer and the classifier.
+    var rowReader: PumpRowReader?
 
-    init(model: PumpSegmentsModel, detector: PumpRowDetector? = nil, deskew: DeskewMode = .off) {
+    init(model: PumpSegmentsModel, detector: PumpRowDetector? = nil, deskew: DeskewMode = .off,
+         rowReader: PumpRowReader? = nil) {
         self.model = model
         self.detector = detector
         self.deskew = deskew
+        self.rowReader = rowReader
     }
 
     /// Fewer detector rows than this and the frame falls back to the Vision +
@@ -204,6 +210,16 @@ struct PumpReader {
             guard let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: window.quad, stripHeight: Self.stripHeight)
             else { trace?.read(window, skipped: "unwarpable"); continue }
             let stripRGB = PumpQuadWarp.rgbImage(from: strip)
+            if let rowReader {
+                guard let readings = try rowReader.read(strip: stripRGB) else {
+                    trace?.read(window, strip: stripRGB, skipped: "noCells"); continue
+                }
+                guard PumpRowAssignment.plausibleCount(readings.count, for: window.field) || window.field == .board
+                else { trace?.read(window, strip: stripRGB, readings: readings, skipped: "implausibleCount"); continue }
+                trace?.read(window, strip: stripRGB, readings: readings)
+                out.append(WindowRead(field: window.field, cells: readings, glyphCount: readings.count))
+                continue
+            }
             let cells = PumpGlyphSlicer.slice(stripRGB.grayscale())
             guard !cells.isEmpty else { trace?.read(window, strip: stripRGB, skipped: "noCells"); continue }
             // Fewer cells than the field can show is a slicer miscount; the

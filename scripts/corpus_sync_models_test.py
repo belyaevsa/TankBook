@@ -26,10 +26,12 @@ def test_meta_expands_packages_and_hashes_every_file(tmp_path: Path, monkeypatch
     assert meta["totalBytes"] == 7 and meta["status"] == "shipped" and meta["pushedFromCommit"] == "deadbeef"
 
 
-def test_manifest_lists_only_existing_files_for_shipped_models() -> None:
+def test_shipped_models_are_exactly_the_models_the_app_bundles() -> None:
     import json
 
-    manifest = json.loads((Path(__file__).resolve().parent.parent / "ml/pump-reader/models.json").read_text())
-    shipped = [m for m in manifest["models"] if m["status"] == "shipped"]
-    assert {m["id"] for m in shipped} == {"pumpsegments-r6", "rowseg-seg-r1"}
-    assert all(m["files"][0].startswith("ios/App/Resources/") for m in shipped)
+    root = Path(__file__).resolve().parent.parent
+    manifest = json.loads((root / "ml/pump-reader/models.json").read_text())
+    shipped = {m["files"][0] for m in manifest["models"] if m["status"] == "shipped"}
+    bundled = {f"ios/App/Resources/{p.name}" for p in (root / "ios/App/Resources").iterdir()
+               if p.suffix in (".mlpackage", ".mlmodel")}
+    assert shipped == bundled

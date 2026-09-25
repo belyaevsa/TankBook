@@ -110,10 +110,11 @@ public enum PumpDisplayCapture {
     /// `PumpSegments.mlmodelc`) once; nil when the resource is missing, in
     /// which case every frame classifies as not-a-display and the receipt path
     /// runs as before.
-    public static func makeReader(modelURL: URL?, detectorURL: URL? = nil) -> PumpReaderHandle? {
+    public static func makeReader(modelURL: URL?, detectorURL: URL? = nil, rowReaderURL: URL? = nil) -> PumpReaderHandle? {
         guard let modelURL, let model = try? PumpSegmentsModel(contentsOf: modelURL) else { return nil }
         let detector = detectorURL.flatMap { try? PumpRowDetector.load(contentsOf: $0) }
-        return PumpReaderHandle(reader: PumpReader(model: model, detector: detector))
+        let rowReader = rowReaderURL.flatMap { try? PumpRowReader(contentsOf: $0) }
+        return PumpReaderHandle(reader: PumpReader(model: model, detector: detector, rowReader: rowReader))
     }
 
     /// The classification verdict, read or not: the fast path when the detector

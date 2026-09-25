@@ -16,21 +16,11 @@ struct PumpReaderPipelineTests {
         let want: Double?
     }
 
-    // Measured on the heldout split (decision 9; 64 stills, 175 cells) on
-    // 2026-09-20 with the round-6 classifier (synthetic + real glyphs from the
-    // train split): committed 44 at 0.955, 12/64 photos every field right;
-    // the shipped synthetic-only model read 18 at 0.944, 4/64. The constants
-    // move only upward.
-    // 52 at 0.962, 14/64 photos, once the slicer preferred the fundamental
-    // pitch; 66 at 0.970, 18/64, once it checked the pitch against the glyph
-    // body (PU.4 round of 2026-09-20). PU.54 (decision 11, 2026-09-22) adds the
-    // pair path: 104 -> 112 committed at 0.991, 30 -> 34 photos. PU.78 made the
-    // close exact (no one-cent tolerance) and pair agreement exact: 112 -> 118
-    // committed, all correct, 35 -> 41 photos. PU.74 (measured conventions per
-    // currency, impossible cell counts refused) with the owner's pump-275
-    // re-frame: 123 committed, all correct, 43 of 68 photos. PU.85 (read
-    // placements tied to the window's cell count): 126, all correct, 45 of 68.
-    private static let committedFloor = 126
+    // The annotated tier's committed floor: the heldout split's hand quads read
+    // by the reader the app bundles (the row reader when
+    // `PumpReaderTestSupport.rowReaderURL` finds one), scored by the corpus
+    // scorer. It moves only upward; `docs/TASKS.md` records each step.
+    private static let committedFloor = 154
     private static let precisionFloor = 0.96
     // The live path (no annotation): measured on the heldout split on
     // 2026-09-20 after PU.24's verifier round - every candidate verified, a
@@ -89,7 +79,8 @@ struct PumpReaderPipelineTests {
     @Test("the live path: locate, verify, assign, read, resolve - no annotation used", .pumpFixturesPresent)
     func livePath() throws {
         let model = try PumpSegmentsModel(contentsOf: Self.modelURL)
-        let reader = PumpReader(model: model, detector: PumpReaderTestSupport.makeDetector())
+        let reader = PumpReader(model: model, detector: PumpReaderTestSupport.makeDetector(),
+                                rowReader: PumpReaderTestSupport.makeRowReader())
         let expected = try CorpusScorer.loadExpected(
             PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent("expected.csv"))
         let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)
@@ -134,7 +125,8 @@ struct PumpReaderPipelineTests {
           .enabled(if: ProcessInfo.processInfo.environment["PUMP_CERTIFY"] == "1", "PUMP_CERTIFY=1"))
     func trainSplitRiskBound() throws {
         let reader = try #require(PumpDisplayCapture.makeReader(
-            modelURL: Self.modelURL, detectorURL: PumpReaderTestSupport.detectorURL)).reader
+            modelURL: Self.modelURL, detectorURL: PumpReaderTestSupport.detectorURL,
+            rowReaderURL: PumpReaderTestSupport.rowReaderURL)).reader
         let expected = try CorpusScorer.loadExpected(
             PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent("expected.csv"))
         let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)
@@ -171,7 +163,8 @@ struct PumpReaderPipelineTests {
           .enabled(if: ProcessInfo.processInfo.environment["PUMP_ORIENT"] == "1", "PUMP_ORIENT=1"))
     func orientationArms() throws {
         let model = try PumpSegmentsModel(contentsOf: Self.modelURL)
-        let reader = PumpReader(model: model, detector: PumpReaderTestSupport.makeDetector())
+        let reader = PumpReader(model: model, detector: PumpReaderTestSupport.makeDetector(),
+                                rowReader: PumpReaderTestSupport.makeRowReader())
         let expected = try CorpusScorer.loadExpected(
             PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent("expected.csv"))
         let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)
@@ -194,7 +187,8 @@ struct PumpReaderPipelineTests {
     @Test("the reader over the annotated windows: committed cells, precision, coverage", .pumpFixturesPresent)
     func gateMirror() throws {
         let model = try PumpSegmentsModel(contentsOf: Self.modelURL)
-        let reader = PumpReader(model: model, detector: PumpReaderTestSupport.makeDetector())
+        let reader = PumpReader(model: model, detector: PumpReaderTestSupport.makeDetector(),
+                                rowReader: PumpReaderTestSupport.makeRowReader())
         let expected = try CorpusScorer.loadExpected(
             PumpReaderTestSupport.pumpFixturesRoot.appendingPathComponent("expected.csv"))
         let data = try Data(contentsOf: PumpReaderTestSupport.windowsURL)
@@ -262,7 +256,8 @@ struct PumpReaderPipelineTests {
                     fixtureRight += 1
                     perField[field]!.ok += 1
                 } else {
-                    wrong.append("\(name.prefix(8)) \(field.rawValue) got \(got) want \(wantValue)")
+                    wrong.append("\(name.prefix(8)) \(field.rawValue) got \(got) want \(wantValue)"
+                                 + (reading.caution == nil ? "" : " (cautioned)"))
                 }
             }
             if fixtureTotal > 0 {
@@ -465,7 +460,8 @@ struct PumpReaderPipelineTests {
         let pack = try FuelPriceBandStore.bundledPack()
 
         func run(_ model: PumpSegmentsModel) throws -> DecoupledLive {
-            let reader = PumpReader(model: model, detector: PumpReaderTestSupport.makeDetector())
+            let reader = PumpReader(model: model, detector: PumpReaderTestSupport.makeDetector(),
+                                rowReader: PumpReaderTestSupport.makeRowReader())
             var live = DecoupledLive()
             for (name, value) in root.sorted(by: { $0.key < $1.key }) {
                 guard name != "_about", let ann = value as? [String: Any], let want = expected[name],

@@ -26,10 +26,12 @@ enum CapturePipeline {
     /// display (docs/EXTRACTION.md, decision 10); loaded once from the
     /// bundle's compiled models. A missing classifier means every frame
     /// classifies as a receipt; a missing locator leaves the Vision + classical
-    /// locator alone.
+    /// locator alone; a missing row reader leaves the slicer and the cell
+    /// classifier to read the rows.
     nonisolated(unsafe) static var pumpReader: PumpReaderHandle? = PumpDisplayCapture.makeReader(
         modelURL: Bundle.main.url(forResource: "PumpSegments", withExtension: "mlmodelc"),
-        detectorURL: Bundle.main.url(forResource: "RowSeg", withExtension: "mlmodelc"))
+        detectorURL: Bundle.main.url(forResource: "RowSeg", withExtension: "mlmodelc"),
+        rowReaderURL: Bundle.main.url(forResource: "RowRead", withExtension: "mlmodelc"))
 
     /// The whole path: image in, a `ConfirmPrefill` out. With `source` nil the
     /// frame is CLASSIFIED first - a pump display (the reader vouches for rows

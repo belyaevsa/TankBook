@@ -83,13 +83,13 @@ public enum PumpPhotoGate {
 
     /// Numeric cells the READER committed over the heldout split, of
     /// `readerNumericTotal`.
-    public static let readerCommitted: Int = 62
+    public static let readerCommitted: Int = 117
 
     /// Of `readerCommitted`, the cells that match the corpus. The one cell
     /// short of `readerCommitted` is a pair-tier total committed with the
     /// shown-price caution (`PumpReadingCaution.shownPriceDiffers`), which
     /// reaches Confirm flagged; no wrong cell is committed without a caution.
-    public static let readerCommittedCorrect: Int = 61
+    public static let readerCommittedCorrect: Int = 116
 
     /// The numeric cells the heldout split asserts (liters, unitPrice, total;
     /// blanks skipped), the reader's coverage denominator.

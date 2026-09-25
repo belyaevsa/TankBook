@@ -28,7 +28,8 @@ struct PumpLeakConsequenceTests {
           .enabled(if: ProcessInfo.processInfo.environment["PUMP_LEAK"] == "1", "PUMP_LEAK=1"))
     func routedNonPumpPhotosCommitNothing() throws {
         let reader = try #require(PumpDisplayCapture.makeReader(
-            modelURL: Self.modelURL, detectorURL: PumpReaderTestSupport.detectorURL))
+            modelURL: Self.modelURL, detectorURL: PumpReaderTestSupport.detectorURL,
+            rowReaderURL: PumpReaderTestSupport.rowReaderURL))
         let pack = try FuelPriceBandStore.bundledPack()
         let root = PumpReaderTestSupport.repoRoot.appendingPathComponent("Spike/ReceiptSpike/fixtures")
         var total = 0
