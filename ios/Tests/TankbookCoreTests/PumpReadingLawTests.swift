@@ -112,11 +112,14 @@ struct PumpReadingLawTests {
     @Test("a single misread cell is repaired when exactly one substitution closes the arithmetic")
     func oneCellRepairs() {
         // pump-015: 15.89 x 1.889 = 30.02; the price read as 1.884 under glare.
+        // Glare dims the segments a 9 has and a 4 lacks, so the reader is
+        // unsure of that cell: the 9 ranks fifth, outside the beam, within
+        // the repair budget.
         let reading = PumpReadingLaw.resolve(
             windows: [
                 Self.window(.total, "30.02"),
                 Self.window(.liters, "15.89"),
-                Self.window(.unitPrice, "1.884"),
+                Self.window(.unitPrice, "1.884", ranked: [4, 1, 7, 0, 9], at: 3),
             ], currency: CurrencyCode(rawValue: "EUR"))
         #expect(reading.unitPrice.value == Decimal(string: "1.889"))
         if case .repaired(let index, let from, let to)? = reading.unitPrice.provenance {

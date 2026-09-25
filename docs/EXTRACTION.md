@@ -728,6 +728,28 @@ enough to lock a repaired digit. The `preset-amount` case (`pump-010`) is protec
 exactly-one rule: its rounded volume makes several single-digit substitutions *almost* reproduce
 the total but none exact, so the engine abstains and the honest `13.17 / 1000.00` stands.
 
+### The repair budget
+
+**A repair pays what the reader gave the substituted digit, and at most `repairWindow` (4 nats)**
+(PU.86, product owner 2026-09-25). `PumpReadingLaw`'s repair tier used to substitute a
+`certainDigit` partner, so rewriting a cell cost nothing whatever the reader had said about it. On
+pump-041 the row reader (PU.77) reads the price 1.784 with its 8 at -0.005 nats, the total 54.63 is
+read 54.93 under glare, and 30.62 x 1.794 closes to 54.93: the certain 8 became a 9 in all six
+PU.77 arms. The shipped reader does the same on the train split (pump-159: a 9 read at -0.80 nats
+rewritten to a 4 it gave -10.9, committing 46.64 for 96.64). Now the substituted cell keeps the
+reader's own posterior for the partner, and a substitution costing more than 4 nats against the
+reader's first choice is not tried.
+
+The budget is measured, not chosen: every repair that came out right on the train split and the
+live path cost **2.4-2.9 nats** (pump-165, pump-143, both on cells the reader was unsure of), every
+one that came out wrong **5.6 nats or more** (pump-159 at 10.1; pump-041 at 5.6-15.7 across the
+PU.77 arms, raw and T-scaled). A one-segment confusion on a 0.97-per-segment reader costs 3.5 and
+stays repairable; a **two-segment** substitution on a cell the reader was sure of (a certain 4 for
+a 9) does not - glare that hides two segments leaves the reader unsure, and an unsure cell's
+partner is cheap. The price is in the oracle fragility pass, whose injected misreads are certain:
+997 committed / 30 wrong / 46 repaired becomes 866 / 23 / 7 - fewer repairs, a lower wrong rate
+(3.0 -> 2.7 %). A field the budget refuses stays `nil` and the user types it (hard rule 15).
+
 The same reasoning does **not** transfer to receipts. Thermal print has no segment topology, so
 its confusions are different (and `0`/`О`, `3`/`З`, `6`/`б` are language confusions, not optical
 ones).
@@ -1031,8 +1053,8 @@ of an upside-down display, the orientation search (`PumpReader.bestOrientation`)
 geometry alone choose between a rotation and its 180-degree opposite: when both keep rows, the
 classifier's mean read margin over their cells decides. The
 spike's two open gaps stay filed: reading from the segmenter's quads still loses cells against the
-hand quads at the same positions (PU.76's report), and the law's repair tier can override a
-confident read (PU.86).
+hand quads at the same positions (PU.76's report), and the law's repair tier overriding a
+confident read is closed by the repair budget (PU.86, "The repair budget").
 
 **Decision 10, amended 2026-09-22 (PU.57): the detector's gate is tight IoU, not recall@0.5.** A
 detector candidate ships only when **median IoU and recall @ IoU 0.7 both hold or rise** and

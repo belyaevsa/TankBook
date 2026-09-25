@@ -15,7 +15,8 @@ import Foundation
 ///   commit alone, the rest abstain (`nil`, hard rule 13).
 /// - When nothing closes, one single-cell substitution from the seven-segment
 ///   confusion table, tried in posterior order, may close it (`.repaired`) -
-///   and only if exactly one does.
+///   and only if exactly one does, and only a digit the reader itself gave
+///   a posterior within `repairWindow` of its first choice.
 /// - A total the display truncates (RUB heads show `3765,7`) is never read; it
 ///   is derived from volume x price, which reproduces the receipt.
 /// - Liters, price and total never swap roles to close the arithmetic; an idle
@@ -37,6 +38,12 @@ public enum PumpReadingLaw {
     /// beam's tails; a single misread cell costs about 3.5 nats, so one
     /// substitution passes and two do not.
     static let readWindow = 6.0
+    /// The most a repair's substituted digit may cost against the digit the
+    /// reader put first, in nats. Measured on the train split and the live
+    /// path (docs/EXTRACTION.md -> "The repair budget"): every repair that
+    /// came out right cost under 3, every one that came out wrong 5.6 or more;
+    /// a one-segment confusion on a 0.97-per-segment reader costs 3.5.
+    static let repairWindow = 4.0
     /// What a decimal placement pays for contradicting the mark the
     /// classifier saw - more than the ambiguity window, so a seen mark decides
     /// between two placements that both close, less than the read window, so
@@ -130,8 +137,16 @@ public enum PumpReadingLaw {
             for (index, cell) in window.cells.enumerated() {
                 let read = cell.top.digit
                 for partner in DigitRepair.confusablePartners(of: read) {
+                    // The substitution pays what the reader itself gave the
+                    // partner digit, and no more than `repairWindow`: a cell
+                    // the reader was sure of is not rewritten to fit a
+                    // neighbour the arithmetic disputes. A cell whose ranking
+                    // does not carry the partner offers no evidence for it.
+                    guard let substitute = cell.ranked.first(where: { $0.digit == partner }),
+                          cell.top.logPosterior - substitute.logPosterior <= repairWindow else { continue }
                     var cells = window.cells
-                    cells[index] = PumpCellReading(certainDigit: partner, decimalPoint: cell.decimalPoint)
+                    cells[index] = PumpCellReading(probabilities: cell.probabilities, ranked: [substitute],
+                                                   decimalPoint: cell.decimalPoint)
                     let repaired = PumpLocatedWindow(field: field, cells: cells)
                     // The substituted cell is the one substitution this tier
                     // allows: every other cell stays at its top read.
