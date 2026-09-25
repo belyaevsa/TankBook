@@ -1,0 +1,50 @@
+:root {
+  --bg: #101216;
+  --panel: #181b21;
+  --ink: #e6e8eb;
+  --muted: #8a919c;
+  --line: #2a2f38;
+  --accent: #f0533a;
+  --error: #ff8a7a;
+  color-scheme: dark;
+  font: 14px/1.45 -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f7f7f8;
+    --panel: #ffffff;
+    --ink: #16181c;
+    --muted: #5d6470;
+    --line: #dde0e5;
+    --error: #b3261e;
+    color-scheme: light;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+.pad { padding: 16px 24px; }
+.muted { color: var(--muted); }
+.error { color: var(--error); }
+.mono { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; }
+button, input { font: inherit; }
+input { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+button.link { background: none; border: none; color: var(--muted); text-decoration: underline; padding: 6px 0; }
+button:disabled { opacity: 0.5; cursor: default; }
+.signin { max-width: 360px; margin: 12vh auto; display: flex; flex-direction: column; gap: 12px; padding: 0 16px; }
+.signin form { display: flex; flex-direction: column; gap: 12px; }
+.signin label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); }
+.shell header { display: flex; align-items: center; gap: 16px; padding: 10px 24px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+.shell nav a { color: var(--ink); }
+.shell nav a.active { color: var(--accent); }
+.lookup { display: flex; gap: 8px; flex: 1; min-width: 280px; }
+.lookup input { flex: 1; }
+table { border-collapse: collapse; width: 100%; margin: 8px 0 16px; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 500; }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; }

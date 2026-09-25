@@ -1,0 +1,4 @@
+# Build output - the React app is built into the service's static files at deploy time.
+api/src/Tankbook.Admin/wwwroot/
+web/node_modules/
+web/dist/

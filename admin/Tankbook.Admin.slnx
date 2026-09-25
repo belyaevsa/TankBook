@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/api/" />
+  <Folder Name="/api/src/">
+    <Project Path="api/src/Tankbook.Admin/Tankbook.Admin.csproj" />
+  </Folder>
+  <Folder Name="/api/tests/">
+    <Project Path="api/tests/Tankbook.Admin.Tests/Tankbook.Admin.Tests.csproj" />
+  </Folder>
+</Solution>

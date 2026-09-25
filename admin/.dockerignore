@@ -1,0 +1,7 @@
+# Build context for admin/Dockerfile: the sources only, never build output or local config.
+**/bin/
+**/obj/
+web/node_modules/
+web/dist/
+api/src/Tankbook.Admin/wwwroot/
+api/tests/
