@@ -14,6 +14,7 @@ describe('lookup', () => {
   it('routes an account hit to its page', () => {
     const id = '3f2a8c1e-0000-4000-8000-000000000001'
     expect(routeForHit({ kind: 'account', id })).toBe(`/accounts/${id}`)
+    expect(routeForHit({ kind: 'llm-call', id })).toBe(`/llm-calls/${id}`)
   })
 
   // Oracle: docs/SECURITY.md -> "The admin viewer" - the lookup box resolves an exact id

@@ -20,7 +20,7 @@ public sealed partial class AdminDatabase : IAsyncLifetime
     public const string ReadOnlyPassword = "ro-test";
     public const string WritePassword = "rw-test";
 
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder().WithImage("postgres:16-alpine").Build();
+    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:16-alpine").Build();
 
     public string Superuser => _container.GetConnectionString();
     public string ApiRead => Role("tankbook_admin_ro", ReadOnlyPassword);

@@ -17,6 +17,7 @@ var admin = builder.Configuration.GetSection("Admin").Get<AdminOptions>() ?? new
 builder.Services.AddSingleton<Db>();
 builder.Services.AddSingleton<PasskeyStore>();
 builder.Services.AddSingleton<BootstrapTokens>();
+builder.Services.AddSingleton<IBlobReader, S3BlobReader>();
 builder.Services.AddMemoryCache();
 
 var fido = builder.Configuration.GetSection("Fido2");
@@ -96,6 +97,8 @@ AuthEndpoints.Map(app);
 var api = app.MapGroup("/api").RequireAuthorization();
 api.MapGet("/me", (HttpContext http) => Results.Ok(new { label = AuthEndpoints.Actor(http.User) }));
 AccountEndpoints.Map(api);
+LlmCallEndpoints.Map(api);
+AttachmentEndpoints.Map(api);
 AccessLogEndpoints.Map(api);
 // An unknown /api route is a 404, never the app's index page.
 api.MapFallback(() => Results.NotFound());

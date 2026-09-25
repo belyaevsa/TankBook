@@ -35,7 +35,7 @@ export type Account = {
   email: string
   devices: Device[]
 }
-export type LookupHit = { kind: 'account'; id: string }
+export type LookupHit = { kind: 'account' | 'llm-call'; id: string }
 export type AccessEntry = {
   id: number
   at: string
@@ -51,5 +51,62 @@ export function routeForHit(hit: LookupHit): string {
   switch (hit.kind) {
     case 'account':
       return `/accounts/${hit.id}`
+    case 'llm-call':
+      return `/llm-calls/${hit.id}`
+  }
+}
+
+export type LlmCallSummary = {
+  id: string
+  createdAt: string
+  kind: string
+  modelId: string
+  vendor: string
+  outcome: string
+  category: string
+  promptTokens: number
+  completionTokens: number
+  cost: number
+  currency: string
+  durationMs: number
+  pages: number
+}
+export type LlmCall = LlmCallSummary & {
+  accountId: string
+  deviceId: string | null
+  thinkingEnabled: boolean
+  promptPurged: boolean
+  promptBody: string | null
+  responseBody: string | null
+  thinkingBody: string | null
+}
+export type AttachmentSummary = {
+  id: string
+  kind: 'photo' | 'pdf'
+  createdAt: string | null
+  sha256: string | null
+  sizeBytes: number | null
+  thumbnailBase64: string | null
+  hasOcrText: boolean
+}
+export type Attachment = {
+  id: string
+  kind: 'photo' | 'pdf'
+  createdAt: string | null
+  sha256: string | null
+  sizeBytes: number | null
+  fileStored: boolean
+  extractedTimestamp: string | null
+  ocrText: string | null
+  extractionMeta: unknown
+}
+
+/** A response body as the model wrote it: pretty JSON when it parses, the text otherwise. */
+export function pretty(body: string | null): string {
+  if (!body) return ''
+  try {
+    return JSON.stringify(JSON.parse(body), null, 2)
+  } catch {
+    return body
   }
 }

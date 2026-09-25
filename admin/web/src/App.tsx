@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Route, Routes } from 'react-router'
 import { getJson } from './api'
 import SignIn from './pages/SignIn'
@@ -6,11 +6,15 @@ import Shell from './pages/Shell'
 import AccountPage from './pages/AccountPage'
 import AccessLogPage from './pages/AccessLogPage'
 import Home from './pages/Home'
+import LlmCallPage from './pages/LlmCallPage'
+import AttachmentPage from './pages/AttachmentPage'
 
 // Signed out, the whole app is the sign-in page; nothing else is reachable without a
 // session (the service enforces it too - this only avoids rendering empty pages).
 export default function App() {
   const [label, setLabel] = useState<string | null | undefined>(undefined)
+  // Stable, so a page's loading effect does not re-run on every render.
+  const signedOut = useCallback(() => setLabel(null), [])
 
   useEffect(() => {
     getJson<{ label: string }>('/api/me')
@@ -25,8 +29,10 @@ export default function App() {
     <Routes>
       <Route element={<Shell label={label} onSignedOut={() => setLabel(null)} />}>
         <Route index element={<Home />} />
-        <Route path="accounts/:id" element={<AccountPage onUnauthorized={() => setLabel(null)} />} />
-        <Route path="access-log" element={<AccessLogPage onUnauthorized={() => setLabel(null)} />} />
+        <Route path="accounts/:id" element={<AccountPage onUnauthorized={signedOut} />} />
+        <Route path="accounts/:id/attachments/:attachmentId" element={<AttachmentPage onUnauthorized={signedOut} />} />
+        <Route path="llm-calls/:id" element={<LlmCallPage onUnauthorized={signedOut} />} />
+        <Route path="access-log" element={<AccessLogPage onUnauthorized={signedOut} />} />
       </Route>
     </Routes>
   )

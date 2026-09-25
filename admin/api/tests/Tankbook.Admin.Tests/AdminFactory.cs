@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Tankbook.Admin.Auth;
+using Tankbook.Admin.Data;
 
 namespace Tankbook.Admin.Tests;
 
@@ -18,6 +19,9 @@ namespace Tankbook.Admin.Tests;
 /// </summary>
 public sealed class AdminFactory(AdminDatabase database) : WebApplicationFactory<Program>
 {
+    /// <summary>The bucket, in memory: key -> bytes.</summary>
+    public Dictionary<string, byte[]> Blobs { get; } = new();
+
     public const string BootstrapToken = "test-bootstrap-token";
     public const string TestHeader = "X-Test-Passkey";
 
@@ -33,6 +37,7 @@ public sealed class AdminFactory(AdminDatabase database) : WebApplicationFactory
         }));
         builder.ConfigureServices(services =>
         {
+            services.AddSingleton<IBlobReader>(new MemoryBlobs(Blobs));
             services.AddAuthentication().AddScheme<AuthenticationSchemeOptions, TestAuthHandler>("Test", _ => { });
             services.PostConfigure<AuthenticationOptions>(options =>
             {
@@ -40,6 +45,12 @@ public sealed class AdminFactory(AdminDatabase database) : WebApplicationFactory
                 options.DefaultChallengeScheme = "Test";
             });
         });
+    }
+
+    private sealed class MemoryBlobs(Dictionary<string, byte[]> blobs) : IBlobReader
+    {
+        public Task<byte[]?> ReadAsync(string key, CancellationToken ct) =>
+            Task.FromResult(blobs.TryGetValue(key, out var bytes) ? bytes : null);
     }
 
     private sealed class TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger,

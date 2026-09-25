@@ -56,6 +56,10 @@ public static class AccountEndpoints
             {
                 return Results.Ok(new LookupHit("account", id.ToString()));
             }
+            if (await c.ExecuteScalarAsync<bool>("SELECT EXISTS (SELECT 1 FROM llm_calls WHERE id = @id)", new { id }))
+            {
+                return Results.Ok(new LookupHit("llm-call", id.ToString()));
+            }
         }
         return Results.NotFound();
     }

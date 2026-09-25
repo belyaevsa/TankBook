@@ -5,7 +5,7 @@ The owner's debugging tool: a separate ASP.NET Core service (`api/`) and its Rea
 `docs/SECURITY.md` -> "The admin viewer" is the authority for what it may read, how you sign
 in, and what every view records. It shares no project, port or credential with `backend/`.
 
-## What is here (AD.4)
+## What is here (AD.4, AD.5, AD.6)
 
 - **Passkey sign-in** (WebAuthn - Face ID / Touch ID). No password exists. The first passkey
   is registered with a one-time bootstrap token; later ones only from a signed-in session.
@@ -14,8 +14,15 @@ in, and what every view records. It shares no project, port or credential with `
 - **The access log**: every content request writes a row (`admin.access_log`) - who (the
   passkey's label), what kind, which id, the status - including a look that found nothing.
 
-Pages still to come: the LLM ledger (AD.5), an account's attachments (AD.6), debug cases
-(after AD.3). Deployment is AD.8.
+- **The LLM ledger** (AD.5): an account's calls (`/api/accounts/{id}/llm-calls`), one call whole
+  (`/api/llm-calls/{id}` - model, tokens, cost, the response and thinking), its prompt image page
+  by page from the bucket (`.../pages/{n}`); a purged body or image shows as purged. The lookup box
+  resolves a call id too.
+- **An account's attachments** (AD.6): the list with thumbnails, one attachment's OCR text and
+  what the scan assigned, and its file from the bucket - by that account's id only.
+
+Still to come: debug cases (after AD.3), joining a case to its ledger rows by `traceId` (AD.9 -
+the ledger has no `trace_id` column yet). Deployment is AD.8.
 
 ## Database
 
@@ -26,6 +33,10 @@ Two roles, created once by a database owner with `api/src/Tankbook.Admin/Migrati
 |---|---|---|
 | `ConnectionStrings:ApiRead` | `tankbook_admin_ro` | `SELECT` on accounts, devices, records, blobs, llm_calls - nothing else |
 | `ConnectionStrings:AdminWrite` | `tankbook_admin_rw` | own schema `admin` (passkeys, bootstrap tokens, access log) - nothing outside it |
+
+The bucket is read with a **read-only key** (`S3:Endpoint`, `S3:Bucket`, `S3:AccessKey`,
+`S3:SecretKey`) - synced files at `{account}/{sha256}` (`blobs.storage_ref`), LLM prompt images
+at `{account}/llm/{sha256}`.
 
 Apply the viewer's schema as its own step: `dotnet run --project api/src/Tankbook.Admin -- --migrate`.
 
