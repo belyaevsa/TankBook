@@ -81,7 +81,7 @@ values logged, no secrets in the bundle, location never kept where it is not nee
 
 | Experiment | Since | What it is | Decision pending |
 |---|---|---|---|
-| `captureLab` - the Capture lab (About → Experiments) | 2026-09-24 (built as PU.39, DEBUG-only until SH.7) | Shoots one scene under seven camera presets and compares latency, bytes, pixel size and what the reader committed; writes `Documents/CaptureLab/<session>/` with the photos (**GPS stripped** before writing) and `run.json` | promote, or remove, after real-world runs |
+| `captureLab` - the Capture lab (About → Experiments) | 2026-09-24 (built as PU.39, DEBUG-only until SH.7) | Shoots one scene under seven camera presets and compares latency, bytes, pixel size and what the reader committed; writes `Documents/CaptureLab/<session>/` with the photos (**GPS stripped** before writing) and `run.json` | promote, or remove, after real-world runs - results so far: `docs/experiments/CAPTURE-LAB.md` |
 
 ## Guardrails on `apiBaseUrl` – the dangerous one
 

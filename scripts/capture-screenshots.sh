@@ -1737,6 +1737,12 @@ CAPTURE_SLEEP=6
 capture SH.7-about-experiments    en -presentScreen about
 capture SH.7-about-experiments-ru ru -presentScreen about
 
+# SH.8: the Capture lab before a run - the shutter directly under the preview,
+# both on screen without a scroll (the settings follow below). The simulated
+# camera shows the lab fixture as the preview's frame.
+capture SH.8-capture-lab-shutter    en -presentScreen about -presentCaptureLab -captureCameraTestFrame "${LAB_FIXTURE}"
+capture SH.8-capture-lab-shutter-ru ru -presentScreen about -presentCaptureLab -captureCameraTestFrame "${LAB_FIXTURE}"
+
 # Merge this run's frames into the manifest. `frames` is the script's record;
 # `legacy` (frames no line can reproduce) is hand-maintained and preserved.
 if [ "${#CAPTURED[@]}" -gt 0 ]; then

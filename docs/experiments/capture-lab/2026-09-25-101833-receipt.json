@@ -1,0 +1,237 @@
+{
+  "device" : "iPhone13,1",
+  "results" : [
+    {
+      "applied" : {
+        "flashOff" : false,
+        "locked" : false,
+        "sessionPreset" : "photo",
+        "unsupported" : [
+
+        ]
+      },
+      "bytes" : 2976797,
+      "captureMs" : 947,
+      "committed" : {
+        "liters" : 14,
+        "total" : 30.02,
+        "unitPrice" : 2.144
+      },
+      "crossCheck" : "lock",
+      "exif" : {
+        "exposureTime" : 0.0023148148148148147,
+        "focalLength" : 4.2,
+        "iso" : 50
+      },
+      "height" : 3024,
+      "isDisplay" : false,
+      "pipelineMs" : 591,
+      "preset" : "default",
+      "resolvedFields" : 6,
+      "rows" : 0,
+      "textLines" : 0,
+      "width" : 4032
+    },
+    {
+      "applied" : {
+        "flashOff" : false,
+        "locked" : false,
+        "qualityPrioritization" : "quality",
+        "sessionPreset" : "photo",
+        "unsupported" : [
+
+        ]
+      },
+      "bytes" : 3012323,
+      "captureMs" : 627,
+      "committed" : {
+        "liters" : 14,
+        "total" : 30.02,
+        "unitPrice" : 2.144
+      },
+      "crossCheck" : "lock",
+      "exif" : {
+        "exposureTime" : 0.0022123893805309734,
+        "focalLength" : 4.2,
+        "iso" : 50
+      },
+      "height" : 3024,
+      "isDisplay" : false,
+      "pipelineMs" : 493,
+      "preset" : "quality",
+      "resolvedFields" : 5,
+      "rows" : 0,
+      "textLines" : 0,
+      "width" : 4032
+    },
+    {
+      "applied" : {
+        "flashOff" : false,
+        "locked" : false,
+        "qualityPrioritization" : "speed",
+        "sessionPreset" : "photo",
+        "unsupported" : [
+
+        ]
+      },
+      "bytes" : 2182894,
+      "captureMs" : 369,
+      "committed" : {
+        "liters" : 14,
+        "total" : 30.02,
+        "unitPrice" : 2.144
+      },
+      "crossCheck" : "lock",
+      "exif" : {
+        "exposureTime" : 0.0030864197530864196,
+        "focalLength" : 4.2,
+        "iso" : 32
+      },
+      "height" : 3024,
+      "isDisplay" : false,
+      "pipelineMs" : 459,
+      "preset" : "speed",
+      "resolvedFields" : 5,
+      "rows" : 0,
+      "textLines" : 0,
+      "width" : 4032
+    },
+    {
+      "applied" : {
+        "exposureBias" : -0.5,
+        "exposureMode" : "continuousAutoExposure",
+        "flashOff" : false,
+        "focusMode" : "continuousAutoFocus",
+        "locked" : false,
+        "sessionPreset" : "photo",
+        "unsupported" : [
+
+        ]
+      },
+      "bytes" : 3096109,
+      "captureMs" : 606,
+      "committed" : {
+        "liters" : 14,
+        "total" : 30.02,
+        "unitPrice" : 2.144
+      },
+      "crossCheck" : "lock",
+      "exif" : {
+        "exposureTime" : 0.002079002079002079,
+        "focalLength" : 4.2,
+        "iso" : 50
+      },
+      "height" : 3024,
+      "isDisplay" : false,
+      "pipelineMs" : 542,
+      "preset" : "metered",
+      "resolvedFields" : 6,
+      "rows" : 0,
+      "textLines" : 0,
+      "width" : 4032
+    },
+    {
+      "applied" : {
+        "exposureBias" : -0.5,
+        "exposureMode" : "locked",
+        "flashOff" : true,
+        "focusMode" : "locked",
+        "locked" : true,
+        "sessionPreset" : "photo",
+        "unsupported" : [
+
+        ]
+      },
+      "bytes" : 2403227,
+      "captureMs" : 470,
+      "committed" : {
+        "liters" : 14,
+        "total" : 30.02,
+        "unitPrice" : 2.144
+      },
+      "crossCheck" : "lock",
+      "exif" : {
+        "exposureTime" : 0.002288329519450801,
+        "focalLength" : 4.2,
+        "iso" : 32
+      },
+      "height" : 3024,
+      "isDisplay" : false,
+      "pipelineMs" : 598,
+      "preset" : "locked",
+      "resolvedFields" : 5,
+      "rows" : 0,
+      "textLines" : 0,
+      "width" : 4032
+    },
+    {
+      "applied" : {
+        "exposureBias" : -0.5,
+        "exposureMode" : "continuousAutoExposure",
+        "flashOff" : false,
+        "focusMode" : "continuousAutoFocus",
+        "locked" : false,
+        "sessionPreset" : "photo",
+        "unsupported" : [
+
+        ],
+        "zoomFactor" : 2
+      },
+      "bytes" : 2526126,
+      "captureMs" : 455,
+      "committed" : {
+        "liters" : 14,
+        "total" : 30.02,
+        "unitPrice" : 2.144
+      },
+      "crossCheck" : "lock",
+      "exif" : {
+        "exposureTime" : 0.0016155088852988692,
+        "focalLength" : 4.2,
+        "iso" : 50
+      },
+      "height" : 3024,
+      "isDisplay" : false,
+      "pipelineMs" : 587,
+      "preset" : "zoom2x",
+      "resolvedFields" : 6,
+      "rows" : 0,
+      "textLines" : 0,
+      "width" : 4032
+    },
+    {
+      "applied" : {
+        "flashOff" : false,
+        "locked" : false,
+        "qualityPrioritization" : "speed",
+        "sessionPreset" : "high",
+        "unsupported" : [
+
+        ]
+      },
+      "bytes" : 451479,
+      "captureMs" : 749,
+      "committed" : {
+        "liters" : 14,
+        "total" : 30.02,
+        "unitPrice" : 2.144
+      },
+      "crossCheck" : "lock",
+      "exif" : {
+        "exposureTime" : 0.0021929824561403508,
+        "focalLength" : 4.2,
+        "iso" : 32
+      },
+      "height" : 1080,
+      "isDisplay" : false,
+      "pipelineMs" : 457,
+      "preset" : "high1080",
+      "resolvedFields" : 5,
+      "rows" : 0,
+      "textLines" : 0,
+      "width" : 1920
+    }
+  ],
+  "source" : "receipt",
+  "startedAt" : "2026-09-25-101841"
+}

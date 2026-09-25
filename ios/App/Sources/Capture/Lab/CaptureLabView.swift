@@ -16,10 +16,11 @@ struct CaptureLabView: View {
         NavigationStack {
             ScrollViewReader { proxy in
                 ScrollView {
+                    // The shutter sits directly under the preview: shooting means
+                    // watching the scene, so both must be on screen at once without
+                    // scrolling. The run's settings follow below.
                     VStack(spacing: 12) {
                         preview
-                        controls
-                        presetList
                         shutter(proxy)
                         if let message = runner.message {
                             Text(message)
@@ -27,6 +28,8 @@ struct CaptureLabView: View {
                                 .foregroundStyle(Theme.Palette.warn)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
+                        controls
+                        presetList
                         if !runner.results.isEmpty {
                             resultsSection
                                 .id(Self.resultsAnchor)

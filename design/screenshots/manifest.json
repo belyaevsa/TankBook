@@ -3254,6 +3254,16 @@
       "commit": "6d409c5a",
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
+    },
+    "SH.8-capture-lab-shutter": {
+      "commit": "976bc82e",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "SH.8-capture-lab-shutter-ru": {
+      "commit": "976bc82e",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
     }
   },
   "legacy": {

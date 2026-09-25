@@ -1,0 +1,228 @@
+{
+  "device" : "iPhone13,1",
+  "results" : [
+    {
+      "applied" : {
+        "flashOff" : false,
+        "locked" : false,
+        "sessionPreset" : "photo",
+        "unsupported" : [
+
+        ]
+      },
+      "bytes" : 3298563,
+      "captureMs" : 540,
+      "classifyPath" : "fast",
+      "committed" : {
+        "liters" : 14,
+        "total" : 300.16,
+        "unitPrice" : 21.44
+      },
+      "exif" : {
+        "exposureTime" : 0.0015455950540958269,
+        "focalLength" : 4.2,
+        "iso" : 32
+      },
+      "height" : 3024,
+      "isDisplay" : true,
+      "pipelineMs" : 2295,
+      "preset" : "default",
+      "rows" : 2,
+      "textLines" : -1,
+      "width" : 4032
+    },
+    {
+      "applied" : {
+        "flashOff" : false,
+        "locked" : false,
+        "qualityPrioritization" : "quality",
+        "sessionPreset" : "photo",
+        "unsupported" : [
+
+        ]
+      },
+      "bytes" : 3473633,
+      "captureMs" : 729,
+      "classifyPath" : "fast",
+      "committed" : {
+        "liters" : 14,
+        "total" : 300.16,
+        "unitPrice" : 21.44
+      },
+      "exif" : {
+        "exposureTime" : 0.0011261261261261261,
+        "focalLength" : 4.2,
+        "iso" : 50
+      },
+      "height" : 3024,
+      "isDisplay" : true,
+      "pipelineMs" : 896,
+      "preset" : "quality",
+      "rows" : 2,
+      "textLines" : -1,
+      "width" : 4032
+    },
+    {
+      "applied" : {
+        "flashOff" : false,
+        "locked" : false,
+        "qualityPrioritization" : "speed",
+        "sessionPreset" : "photo",
+        "unsupported" : [
+
+        ]
+      },
+      "bytes" : 2523046,
+      "captureMs" : 410,
+      "classifyPath" : "fast",
+      "committed" : {
+        "liters" : 14,
+        "total" : 300.16,
+        "unitPrice" : 21.44
+      },
+      "exif" : {
+        "exposureTime" : 0.001607717041800643,
+        "focalLength" : 4.2,
+        "iso" : 32
+      },
+      "height" : 3024,
+      "isDisplay" : true,
+      "pipelineMs" : 716,
+      "preset" : "speed",
+      "rows" : 2,
+      "textLines" : -1,
+      "width" : 4032
+    },
+    {
+      "applied" : {
+        "exposureBias" : -0.5,
+        "exposureMode" : "continuousAutoExposure",
+        "flashOff" : false,
+        "focusMode" : "continuousAutoFocus",
+        "locked" : false,
+        "sessionPreset" : "photo",
+        "unsupported" : [
+
+        ]
+      },
+      "bytes" : 3424945,
+      "captureMs" : 610,
+      "classifyPath" : "fast",
+      "committed" : {
+        "liters" : 14,
+        "total" : 300.16,
+        "unitPrice" : 21.44
+      },
+      "exif" : {
+        "exposureTime" : 0.0010559662090813093,
+        "focalLength" : 4.2,
+        "iso" : 50
+      },
+      "height" : 3024,
+      "isDisplay" : true,
+      "pipelineMs" : 759,
+      "preset" : "metered",
+      "rows" : 2,
+      "textLines" : -1,
+      "width" : 4032
+    },
+    {
+      "applied" : {
+        "exposureBias" : -0.5,
+        "exposureMode" : "locked",
+        "flashOff" : true,
+        "focusMode" : "locked",
+        "locked" : true,
+        "sessionPreset" : "photo",
+        "unsupported" : [
+
+        ]
+      },
+      "bytes" : 3105727,
+      "captureMs" : 479,
+      "classifyPath" : "fast",
+      "committed" : {
+
+      },
+      "exif" : {
+        "exposureTime" : 0.0011961722488038277,
+        "focalLength" : 4.2,
+        "iso" : 32
+      },
+      "height" : 3024,
+      "isDisplay" : true,
+      "pipelineMs" : 1466,
+      "preset" : "locked",
+      "rows" : 3,
+      "textLines" : -1,
+      "width" : 4032
+    },
+    {
+      "applied" : {
+        "exposureBias" : -0.5,
+        "exposureMode" : "continuousAutoExposure",
+        "flashOff" : false,
+        "focusMode" : "continuousAutoFocus",
+        "locked" : false,
+        "sessionPreset" : "photo",
+        "unsupported" : [
+
+        ],
+        "zoomFactor" : 2
+      },
+      "bytes" : 1697032,
+      "captureMs" : 481,
+      "classifyPath" : "fast",
+      "committed" : {
+        "liters" : 14,
+        "total" : 300.16,
+        "unitPrice" : 21.44
+      },
+      "exif" : {
+        "exposureTime" : 0.001177856301531213,
+        "focalLength" : 4.2,
+        "iso" : 32
+      },
+      "height" : 3024,
+      "isDisplay" : true,
+      "pipelineMs" : 866,
+      "preset" : "zoom2x",
+      "rows" : 3,
+      "textLines" : -1,
+      "width" : 4032
+    },
+    {
+      "applied" : {
+        "flashOff" : false,
+        "locked" : false,
+        "qualityPrioritization" : "speed",
+        "sessionPreset" : "high",
+        "unsupported" : [
+
+        ]
+      },
+      "bytes" : 553795,
+      "captureMs" : 994,
+      "classifyPath" : "fast",
+      "committed" : {
+        "liters" : 14,
+        "total" : 300.16,
+        "unitPrice" : 21.44
+      },
+      "exif" : {
+        "exposureTime" : 0.0012836970474967907,
+        "focalLength" : 4.2,
+        "iso" : 32
+      },
+      "height" : 1080,
+      "isDisplay" : true,
+      "pipelineMs" : 335,
+      "preset" : "high1080",
+      "rows" : 2,
+      "textLines" : -1,
+      "width" : 1920
+    }
+  ],
+  "source" : "pump",
+  "startedAt" : "2026-09-25-101721"
+}
