@@ -1537,3 +1537,15 @@ than kept as unreviewed windows; all four stills keep `pendingWindows` for the o
 
 Pump cells 898 → 907 (totals only: measured on macOS 27, where the measured suites skip).
 
+
+
+## Added 2026-09-25 (the Capture lab's first run - a pair, the smallest frame)
+
+`pump-336` is the Capture lab's `high1080` shot (`docs/experiments/CAPTURE-LAB.md`, Run 1): the
+lab's smallest frame, 1080x1920, EXIF-stripped with the orientation baked in. Circle K Sikupilli,
+Gilbarco Veeder-Root pump 8, 0030,02 / 0014,00 at 2,144 - **heldout2** (the owner's pick), paired
+with `receipt-098`. The beta build on the phone committed 300.16 / 14 / 21.44 on this preset (the
+price's decimal misplaced, the total derived from it); `HEAD` with PU.74/PU.85 reads it right.
+Boxes auto-placed, unreviewed.
+
+Pump cells 907 → 910 (totals only, macOS 27).

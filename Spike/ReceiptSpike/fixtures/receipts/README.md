@@ -1137,3 +1137,13 @@ brand pack's spelling), the corpus's first French-language tickets. All **EUR**.
 
 Receipt cells 424 → 463 (39 asserted: `096` has no total), stations 75 → 82. Measured on
 macOS 27, so the hit marks stand (`high-water.json`).
+
+
+## Added 2026-09-25 (the Capture lab's first run - the paper half of pump-336)
+
+`receipt-098` is the Capture lab's `high1080` shot of the receipt (`docs/experiments/CAPTURE-LAB.md`,
+Run 1): Circle K Sikupilli, `D BO miles` pump 8, 14,00 L x 2,144 EUR/L = 30,02 EUR, held **sideways**
+in the hand, 1080x1920, EXIF-stripped. An `EXTRA SOODUS -0,21 EUR` line is informational - the paid
+`KOKKU` is 30,02, the display's total. The phone read every preset right. Paired with `pump-336`.
+
+Receipt cells 463 → 468, stations 82 → 83 (totals only, macOS 27).

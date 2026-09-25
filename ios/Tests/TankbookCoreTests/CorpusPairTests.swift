@@ -59,7 +59,11 @@ private let matchedPairs: [MatchedPair] = [
     // The display is a Wayne board head, so the pump side asserts no unitPrice;
     // the paper carries a 0,36 loyalty discount line and its printed total is
     // the paid one.
-    MatchedPair(pump: "pump-290", receipt: "receipt-089")
+    MatchedPair(pump: "pump-290", receipt: "receipt-089"),
+    // The Capture lab's first run (2026-09-25), its high1080 preset: 1080x1920,
+    // the smallest frame the lab captures. The paper's EXTRA SOODUS line is
+    // informational; the paid total is the display's.
+    MatchedPair(pump: "pump-336", receipt: "receipt-098")
 ]
 
 @Suite("Matched pump/receipt pairs (RV.114)")
@@ -119,10 +123,10 @@ struct CorpusPairTests {
             let pumpImage = try Self.fixture(pair.pump, in: pumpFolder)
             let receiptImage = try Self.fixture(pair.receipt, in: receiptFolder)
             let pumpRead = extractor.extract(
-                lines: try await VisionTextRecognizer.recognizeText(in: pumpImage, languages: Self.languages),
+                lines: try await TestOCR.recognizeText(in: pumpImage, languages: Self.languages),
                 source: .pump, qrAnchor: nil)
             let receiptRead = extractor.extract(
-                lines: try await VisionTextRecognizer.recognizeText(in: receiptImage, languages: Self.languages),
+                lines: try await TestOCR.recognizeText(in: receiptImage, languages: Self.languages),
                 source: .receipt,
                 qrAnchor: CorpusScorer.qrAnchor(forImage: receiptImage.lastPathComponent, in: receiptFolder))
             func check(_ cell: String, _ display: Double?, _ paper: Double?) {

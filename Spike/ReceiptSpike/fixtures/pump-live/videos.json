@@ -14308,20 +14308,20 @@
     "field": "total",
     "quad": [
      [
-      0.355,
-      0.15
+      0.356,
+      0.1607
      ],
      [
-      0.875,
-      0.083
+      0.8299,
+      0.0634
      ],
      [
-      0.875,
-      0.196
+      0.8411,
+      0.173
      ],
      [
-      0.355,
-      0.262
+      0.3344,
+      0.2661
      ]
     ]
    },
@@ -14329,26 +14329,75 @@
     "field": "liters",
     "quad": [
      [
-      0.28,
-      0.262
+      0.3743,
+      0.2694
      ],
      [
-      0.8,
-      0.218
+      0.775,
+      0.1938
      ],
      [
-      0.8,
-      0.292
+      0.7789,
+      0.2673
      ],
      [
-      0.28,
-      0.334
+      0.3783,
+      0.3289
      ]
     ]
    }
   ],
   "reviewed": false,
-  "note": "arrival IMG_41498.mp4, whole clip - US \"This Sale\" head in gallons, running fill; the price is off-screen, 6.289 USD/gal from total / gallons across the clip"
+  "note": "arrival IMG_41498.mp4, whole clip - US \"This Sale\" head in gallons, running fill; the price is off-screen, 6.289 USD/gal from total / gallons across the clip",
+  "anchors": [
+   {
+    "frame": "001.jpg",
+    "windows": [
+     {
+      "field": "total",
+      "quad": [
+       [
+        0.35,
+        0.1713
+       ],
+       [
+        0.8336,
+        0.0793
+       ],
+       [
+        0.8416,
+        0.1883
+       ],
+       [
+        0.3365,
+        0.2762
+       ]
+      ]
+     },
+     {
+      "field": "liters",
+      "quad": [
+       [
+        0.3546,
+        0.2762
+       ],
+       [
+        0.7886,
+        0.1983
+       ],
+       [
+        0.7876,
+        0.2788
+       ],
+       [
+        0.35,
+        0.3423
+       ]
+      ]
+     }
+    ]
+   }
+  ]
  },
  "video-047-wayne-neste-running-display-1919-rain-ee": {
   "reference": "096.jpg",
@@ -14841,5 +14890,77 @@
     ]
    }
   ]
+ },
+ "video-050-unknown-alexela-black-lcd-running-display-2079-ee": {
+  "reference": "480.jpg",
+  "currency": "EUR",
+  "unitPrice": "2.079",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.353,
+      0.122
+     ],
+     [
+      0.538,
+      0.122
+     ],
+     [
+      0.538,
+      0.289
+     ],
+     [
+      0.353,
+      0.289
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.3625,
+      0.306
+     ],
+     [
+      0.538,
+      0.306
+     ],
+     [
+      0.538,
+      0.433
+     ],
+     [
+      0.3625,
+      0.433
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.558,
+      0.128
+     ],
+     [
+      0.641,
+      0.128
+     ],
+     [
+      0.641,
+      0.2
+     ],
+     [
+      0.558,
+      0.2
+     ]
+    ]
+   }
+  ],
+  "reviewed": false,
+  "note": "IMG_6406.MOV cut from 2.0 s - black LCD at Alexela, Estonia, running fill at 2,079; reference quads placed by the orchestrator on frame 480 (46.24 / 22.24), unreviewed"
  }
 }

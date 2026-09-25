@@ -143,6 +143,9 @@ enum PostSweepCorpusAdditions {
             "receipt-095-leclerc-chambly-gazole-5210l-1689-pen-marks-fr.jpg",
             "receipt-096-unknown-gazole-3463l-1843-no-total-cropped-fr.jpg",
             "receipt-097-totalenergies-cotesaintandre-dieselexc-3843l-2250-avantage-highlighter-fr.jpg",
+            // 2026-09-25: the Capture lab's first run, high1080 preset, the
+            // paper half of pump-336, held sideways.
+            "receipt-098-circlek-sikupilli-db0-pump8-1400l-2144-extra-soodus-sideways-high1080-pair-ee.jpg",
         ],
         "pump": [
             // 2026-09-09: the owner's own fills, three of them the matched
@@ -550,6 +553,8 @@ enum PostSweepCorpusAdditions {
             "pump-333-unknown-alexela-cng-2106-1109kg-dead-segments-ee.jpg",
             "pump-334-unknown-alexela-black-lcd-idle-board-self-reflection-ee.jpg",
             "pump-335-unknown-alexela-black-lcd-idle-board-ee.jpg",
+            // 2026-09-25: the Capture lab's first run, high1080 preset (a pair).
+            "pump-336-gilbarco-circlek-sikupilli-pump8-3002-1400l-2144-high1080-pair-ee.jpg",
         ],
         "screenshots": [
             // 2026-09-14: an OFD-rendered Lukoil AI-100 e-receipt. Declared,
