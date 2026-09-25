@@ -141,8 +141,9 @@ Conflict rule: if two docs disagree, the more specific one wins (API.md over SYN
    viewer is the one reader; (3) **an account's synced attachments**, by account id. The bounds are
    what keep this from becoming a data-mining surface: **a case is sent only by the user's explicit
    action**, in every build (the beta is the same app); cases are kept **30 days**, require no
-   account, and `DELETE /account` purges them; the viewer runs **off the public API host**, admits
-   the owner alone, looks up **by case id, `traceId` or account id only** - no list of users, no
+   account, and `DELETE /account` purges them; the viewer is a **separate .NET service and React app, not a route of
+   the public API** - reachable at its own URL (`admin.tankbook.live`, TLS, product owner
+   2026-09-25) and admitting the owner alone by **passkey** (no password exists) - looks up **by case id, `traceId` or account id only** - no list of users, no
    search over content, no bulk export - and **writes an access-log row for every view**; the
    privacy policy says all of this in both languages before the first case is accepted; and
    **nothing is logged but shape** (hard rule 12 is unchanged - the viewer displays content, the

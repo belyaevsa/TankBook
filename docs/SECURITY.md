@@ -434,10 +434,22 @@ actually captured. One internal tool reads three kinds of user content; these ar
   identity like `/import/parse`), and `DELETE /account` purges them with their blobs. The ledger's
   and attachments' own retention rules are unchanged.
 
-**Access.**
-- The viewer is a **separate process, not a route of the public API**: bound to `127.0.0.1` on the
-  deploy host and reached through an SSH tunnel, so it has no public surface at all.
-- It admits **the owner alone** (an allowlisted identity), on top of the tunnel.
+**Access (amended 2026-09-25, product owner: a public URL, passkey sign-in).**
+- The viewer is a **separate service, not a route of the public API**: its own ASP.NET Core
+  process (`admin/api`) serving its own React app (`admin/web`), its own container, reached at
+  `admin.tankbook.live` through nginx with TLS. It shares no code path, no port and no credentials
+  with `api.tankbook.live`.
+- It reads the API's database through a **read-only Postgres role** (`tankbook_admin_ro`: `SELECT`
+  on the tables it shows, nothing else) and the blob bucket through a **read-only key**; the only
+  things it writes are its own tables (the access log, its passkeys) in its own schema, through a
+  second role that can touch nothing else.
+- It admits **the owner alone, by passkey** (WebAuthn - Face ID / Touch ID on the owner's devices).
+  **No password exists** to phish or leak. The first passkey is registered with a one-time
+  bootstrap token held in the server's secret store and consumed on use; a later passkey is added
+  only from a signed-in session. Sign-in is rate-limited, sessions are short (hours) and bound to a
+  secure, HTTP-only, same-site cookie.
+- The public URL is a surface the tunnel design did not have; what bounds it is the passkey, the
+  rate limit, and that nothing on it answers without a session except the sign-in ceremony itself.
 - Lookup is **by case id, `traceId` or account id only** - no list of users, no search over content,
   no aggregate or stats view, no bulk export.
 - **Every view writes an access-log row** (who, what id, which kind, when), kept for a year and
