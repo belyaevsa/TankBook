@@ -9,6 +9,8 @@ way, by content: an object is skipped when its size and MD5 already match.
     scripts/corpus-sync.py pull            # bucket -> working tree (what a fresh machine runs)
     scripts/corpus-sync.py push            # working tree -> bucket (after new captures land)
     scripts/corpus-sync.py list
+    scripts/corpus-sync.py push --models   # the trained models of ml/pump-reader/models.json
+    scripts/corpus-sync.py pull --models <id>|all
 
 `push` also rebuilds `corpus.sqlite` (`scripts/corpus_db.py`) and uploads it
 with the annotation files under `index/`, so the bucket carries the whole
@@ -20,6 +22,13 @@ row) to `pump-live/frames/<record>/` and records each one's key on
 gets them. `pull` fetches a record's frames only on request:
 `pull --frames <record>` or `pull --frames all`. Set `DRY_RUN=1` to report what
 a push would send without touching the bucket.
+
+`push --models` mirrors every model the pump reader has trained (the manifest
+`ml/pump-reader/models.json`, the table in docs/EXTRACTION.md -> "Model registry")
+to `models/<id>/`: each file under its repository-relative path, plus
+`models/<id>/meta.json` - the manifest entry with every file's size and sha256 and
+the commit it was pushed from. Candidate models live in gitignored `.out/`
+folders, so the bucket is their only copy off the training machine.
 
 Credentials: a static access key for the `tankbook-corpus-rw` service account,
 read from `~/.config/tankbook/corpus-s3.env` (AWS_ACCESS_KEY_ID /
@@ -64,6 +73,8 @@ INDEX = [
 FRAMES_DIR = ROOT / "Spike/ReceiptSpike/fixtures/pump-live/frames"
 FRAMES_PREFIX = "pump-live/frames/"
 DRY_RUN = os.environ.get("DRY_RUN") == "1"
+MODELS_FILE = ROOT / "ml/pump-reader/models.json"
+MODELS_PREFIX = "models/"
 
 
 def credentials() -> None:
@@ -253,6 +264,85 @@ def pull(s3) -> None:
         print(f"{prefix}: {got} downloaded, {skipped} already local")
 
 
+def model_files(entry: dict) -> list[Path]:
+    """Every file of a manifest entry; a package directory contributes each file inside it."""
+    out: list[Path] = []
+    for rel in entry["files"]:
+        path = ROOT / rel
+        out += sorted(p for p in path.rglob("*") if p.is_file()) if path.is_dir() else [path]
+    return out
+
+
+def model_meta(entry: dict, commit: str, pushed_at: str) -> dict:
+    """`meta.json` for one model: the manifest entry, and each file's size and sha256."""
+    files = []
+    for path in model_files(entry):
+        h = hashlib.sha256()
+        with path.open("rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                h.update(chunk)
+        files.append({"path": str(path.relative_to(ROOT)), "size": path.stat().st_size, "sha256": h.hexdigest()})
+    return dict(entry, files=files, totalBytes=sum(f["size"] for f in files), pushedFromCommit=commit,
+                pushedAt=pushed_at)
+
+
+def push_models(s3, dry: bool = False) -> None:
+    import json
+    import subprocess
+    from datetime import datetime, timezone
+
+    manifest = json.loads(MODELS_FILE.read_text())
+    commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    pushed_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    remote = remote_index(s3, MODELS_PREFIX)
+    sent = skipped = 0
+    sent_bytes = 0
+    for entry in manifest["models"]:
+        missing = [rel for rel in entry["files"] if not (ROOT / rel).exists()]
+        if missing:
+            print(f"  skip {entry['id']}: missing {missing}")
+            continue
+        for path in model_files(entry):
+            key = f"{MODELS_PREFIX}{entry['id']}/{path.relative_to(ROOT)}"
+            size = path.stat().st_size
+            if key in remote and remote[key][0] == size and ("-" in remote[key][1] or md5(path) == remote[key][1]):
+                skipped += 1
+                continue
+            sent += 1
+            sent_bytes += size
+            if not dry:
+                s3.upload_file(str(path), BUCKET, key)
+        meta = json.dumps(model_meta(entry, commit, pushed_at), indent=1).encode()
+        if not dry:
+            s3.put_object(Bucket=BUCKET, Key=f"{MODELS_PREFIX}{entry['id']}/meta.json", Body=meta,
+                          ContentType="application/json")
+        print(f"  {entry['id']}: {entry['status']}")
+    print(f"models/: {sent} files uploaded ({sent_bytes // (1 << 20)} MB), {skipped} already there"
+          + (" (dry run)" if dry else ""))
+
+
+def pull_models(s3, selector: str) -> None:
+    import json
+
+    manifest = json.loads(MODELS_FILE.read_text())
+    ids = [m["id"] for m in manifest["models"]] if selector == "all" else [selector]
+    got = skipped = 0
+    for model in ids:
+        prefix = f"{MODELS_PREFIX}{model}/"
+        for key, (size, etag) in sorted(remote_index(s3, prefix).items()):
+            rel = key[len(prefix):]
+            if rel == "meta.json":
+                continue
+            path = ROOT / rel
+            if path.exists() and path.stat().st_size == size and ("-" in etag or md5(path) == etag):
+                skipped += 1
+                continue
+            path.parent.mkdir(parents=True, exist_ok=True)
+            s3.download_file(BUCKET, key, str(path))
+            got += 1
+    print(f"models/: {got} downloaded, {skipped} already local")
+
+
 def main() -> int:
     args = sys.argv[1:]
     if not args or args[0] not in ("push", "pull", "list"):
@@ -261,9 +351,19 @@ def main() -> int:
     credentials()
     s3 = client()
     if args[0] == "list":
-        for prefix in [p for p, _, _ in SETS] + [FRAMES_PREFIX, "index/"]:
+        for prefix in [p for p, _, _ in SETS] + [FRAMES_PREFIX, "index/", MODELS_PREFIX]:
             index = remote_index(s3, prefix)
             print(f"{prefix}: {len(index)} objects, {sum(s for s, _ in index.values()) // (1 << 20)} MB")
+        return 0
+    if args[0] == "push" and "--models" in args:
+        push_models(s3, dry=DRY_RUN)
+        return 0
+    if args[0] == "pull" and "--models" in args:
+        i = args.index("--models")
+        if i + 1 >= len(args):
+            print("usage: corpus-sync.py pull --models <id>|all")
+            return 2
+        pull_models(s3, args[i + 1])
         return 0
     if args[0] == "push":
         if DRY_RUN:

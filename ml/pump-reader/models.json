@@ -1,0 +1,465 @@
+{
+ "_about": "Every on-device model the pump reader has trained, mirrored to the corpus bucket under models/<id>/ by scripts/corpus-sync.py (push --models, pull --models <id>|all). docs/EXTRACTION.md -> 'Model registry' is the human-readable table; this file is its machine-readable twin - a row that ships, retires or refuses a model updates both. Paths are repository-relative; .out/ paths are gitignored and live only in the bucket and on the machine that trained them.",
+ "models": [
+  {
+   "id": "pumpsegments-r6",
+   "role": "cell classifier: 7 segments + dp over a 32x48 crop",
+   "status": "shipped",
+   "row": "PU.31",
+   "files": [
+    "ios/App/Resources/PumpSegments.mlpackage",
+    "ml/pump-reader/.out/train-r6-real/segmentnet.pt",
+    "ml/pump-reader/.out/train-r6-real/metrics.json",
+    "ml/pump-reader/.out/train-r6-real/temperature.json"
+   ],
+   "trainedOn": "synthetic renders + 30 % real glyphs (25 085 cells), 15 000 steps",
+   "benchmark": "heldout annotated 126/126; live 62/61 with rowseg-seg-r1 (47/47 with digitrows-pu33); dp AUC 0.653; 24 328 params, 64 KB"
+  },
+  {
+   "id": "rowseg-seg-r1",
+   "role": "row locator: PixelLink pixel + link segmenter, oriented quads",
+   "status": "shipped",
+   "row": "PU.76, PU.87",
+   "files": [
+    "ios/App/Resources/RowSeg.mlpackage",
+    "ml/pump-reader/.out/seg-r1/segnet.pt",
+    "ml/pump-reader/.out/seg-r1/split.json",
+    "ml/pump-reader/.out/seg-r1/heldout-quads.json",
+    "ml/pump-reader/.out/seg-r1-eval.log",
+    "ml/pump-reader/.out/seg-r1.log"
+   ],
+   "trainedOn": "256 train stills + 275 owner-verified frames + 116 negatives, hand quads; 30 000 steps",
+   "benchmark": "rotated gate median IoU 0.861, recall@0.7 0.885, false rows/photo 0.088, 65/68 photos every row; 26.5-29.8 ms Mac Release; 0.91 M params, 1.8 MB"
+  },
+  {
+   "id": "digitrows-pu33",
+   "role": "row locator: Create ML object detector, upright boxes",
+   "status": "retired from the app; tools only",
+   "row": "PU.33",
+   "files": [
+    "ml/pump-reader/detector/DigitRows.mlmodel"
+   ],
+   "trainedOn": "692 train stills / frames (2026-09-20 export)",
+   "benchmark": "rotated gate median IoU 0.771, recall@0.7 0.667, false rows/photo 0.647; live 47/47; 9.1-9.5 ms; 31.75 MB"
+  },
+  {
+   "id": "digitrows-pu48",
+   "role": "row locator: detector retrain on a week's records",
+   "status": "refused",
+   "row": "PU.48 (cut)",
+   "files": [
+    "ml/pump-reader/.out/det/pu48/DigitRows-pu48.mlmodel",
+    "ml/pump-reader/.out/det/pu48/counts.json",
+    "ml/pump-reader/.out/det/pu48/train.log",
+    "ml/pump-reader/.out/det/pu48/measure-new.txt",
+    "ml/pump-reader/.out/det/pu48/measure-old.txt"
+   ],
+   "trainedOn": "the 2026-09-20 pool + batches 6-9 tracked frames",
+   "benchmark": "live 41/39 (0.951); pump-092 clipped"
+  },
+  {
+   "id": "digitrows-pu66",
+   "role": "row locator: detector retrain with rotated photos",
+   "status": "refused",
+   "row": "PU.66 (cut)",
+   "files": [
+    "ml/pump-reader/.out/det/pu66/DigitRows-pu66.mlmodel",
+    "ml/pump-reader/.out/det/pu66/counts.json",
+    "ml/pump-reader/.out/det/pu66/train.log"
+   ],
+   "trainedOn": "rotation-augmented pools (round 3: hand boxes only)",
+   "benchmark": "see docs/TASKS.md PU.66: round 3 median IoU 0.790 (upright metric); retrains read wrong on heldout"
+  },
+  {
+   "id": "digitrows-pu66b",
+   "role": "row locator: detector retrain with rotated photos",
+   "status": "refused",
+   "row": "PU.66 (cut)",
+   "files": [
+    "ml/pump-reader/.out/det/pu66b/DigitRows-pu66b.mlmodel",
+    "ml/pump-reader/.out/det/pu66b/counts.json",
+    "ml/pump-reader/.out/det/pu66b/train.log"
+   ],
+   "trainedOn": "rotation-augmented pools (round 3: hand boxes only)",
+   "benchmark": "see docs/TASKS.md PU.66: round 3 median IoU 0.790 (upright metric); retrains read wrong on heldout"
+  },
+  {
+   "id": "digitrows-pu66c",
+   "role": "row locator: detector retrain with rotated photos",
+   "status": "refused",
+   "row": "PU.66 (cut)",
+   "files": [
+    "ml/pump-reader/.out/det/pu66c/DigitRows-pu66c.mlmodel",
+    "ml/pump-reader/.out/det/pu66c/counts.json",
+    "ml/pump-reader/.out/det/pu66c/train.log"
+   ],
+   "trainedOn": "rotation-augmented pools (round 3: hand boxes only)",
+   "benchmark": "see docs/TASKS.md PU.66: round 3 median IoU 0.790 (upright metric); retrains read wrong on heldout"
+  },
+  {
+   "id": "pu73-control-s0",
+   "role": "cell classifier candidate: PU.73 arm 'control'",
+   "status": "refused",
+   "row": "PU.73",
+   "files": [
+    "ml/pump-reader/.out/pu73-control-s0/PumpSegments.mlpackage",
+    "ml/pump-reader/.out/pu73-control-s0/segmentnet.pt",
+    "ml/pump-reader/.out/pu73-control-s0/metrics.json",
+    "ml/pump-reader/.out/pu73-control-s0/temperature.json"
+   ],
+   "trainedOn": "the round 6 pool (.out/real)",
+   "benchmark": "see agents/research/PU.73.md; nothing shipped"
+  },
+  {
+   "id": "pu73-control-s1",
+   "role": "cell classifier candidate: PU.73 arm 'control'",
+   "status": "refused",
+   "row": "PU.73",
+   "files": [
+    "ml/pump-reader/.out/pu73-control-s1/segmentnet.pt",
+    "ml/pump-reader/.out/pu73-control-s1/metrics.json"
+   ],
+   "trainedOn": "the round 6 pool (.out/real)",
+   "benchmark": "see agents/research/PU.73.md; nothing shipped"
+  },
+  {
+   "id": "pu73-control-s2",
+   "role": "cell classifier candidate: PU.73 arm 'control'",
+   "status": "refused",
+   "row": "PU.73",
+   "files": [
+    "ml/pump-reader/.out/pu73-control-s2/segmentnet.pt",
+    "ml/pump-reader/.out/pu73-control-s2/metrics.json"
+   ],
+   "trainedOn": "the round 6 pool (.out/real)",
+   "benchmark": "see agents/research/PU.73.md; nothing shipped"
+  },
+  {
+   "id": "pu73-coord-s0",
+   "role": "cell classifier candidate: PU.73 arm 'coord'",
+   "status": "refused",
+   "row": "PU.73",
+   "files": [
+    "ml/pump-reader/.out/pu73-coord-s0/segmentnet.pt",
+    "ml/pump-reader/.out/pu73-coord-s0/metrics.json"
+   ],
+   "trainedOn": "the round 6 pool (.out/real)",
+   "benchmark": "see agents/research/PU.73.md; nothing shipped"
+  },
+  {
+   "id": "pu73-coord-s1",
+   "role": "cell classifier candidate: PU.73 arm 'coord'",
+   "status": "refused",
+   "row": "PU.73",
+   "files": [
+    "ml/pump-reader/.out/pu73-coord-s1/segmentnet.pt",
+    "ml/pump-reader/.out/pu73-coord-s1/metrics.json"
+   ],
+   "trainedOn": "the round 6 pool (.out/real)",
+   "benchmark": "see agents/research/PU.73.md; nothing shipped"
+  },
+  {
+   "id": "pu73-coord-s2",
+   "role": "cell classifier candidate: PU.73 arm 'coord'",
+   "status": "refused",
+   "row": "PU.73",
+   "files": [
+    "ml/pump-reader/.out/pu73-coord-s2/segmentnet.pt",
+    "ml/pump-reader/.out/pu73-coord-s2/metrics.json"
+   ],
+   "trainedOn": "the round 6 pool (.out/real)",
+   "benchmark": "see agents/research/PU.73.md; nothing shipped"
+  },
+  {
+   "id": "pu73-flatten-s0",
+   "role": "cell classifier candidate: PU.73 arm 'flatten'",
+   "status": "refused",
+   "row": "PU.73",
+   "files": [
+    "ml/pump-reader/.out/pu73-flatten-s0/PumpSegments.mlpackage",
+    "ml/pump-reader/.out/pu73-flatten-s0/segmentnet.pt",
+    "ml/pump-reader/.out/pu73-flatten-s0/metrics.json",
+    "ml/pump-reader/.out/pu73-flatten-s0/temperature.json"
+   ],
+   "trainedOn": "the round 6 pool (.out/real)",
+   "benchmark": "see agents/research/PU.73.md; nothing shipped"
+  },
+  {
+   "id": "pu73-flatten-s1",
+   "role": "cell classifier candidate: PU.73 arm 'flatten'",
+   "status": "refused",
+   "row": "PU.73",
+   "files": [
+    "ml/pump-reader/.out/pu73-flatten-s1/PumpSegments.mlpackage",
+    "ml/pump-reader/.out/pu73-flatten-s1/segmentnet.pt",
+    "ml/pump-reader/.out/pu73-flatten-s1/metrics.json",
+    "ml/pump-reader/.out/pu73-flatten-s1/temperature.json"
+   ],
+   "trainedOn": "the round 6 pool (.out/real)",
+   "benchmark": "see agents/research/PU.73.md; nothing shipped"
+  },
+  {
+   "id": "pu73-flatten-s2",
+   "role": "cell classifier candidate: PU.73 arm 'flatten'",
+   "status": "refused",
+   "row": "PU.73",
+   "files": [
+    "ml/pump-reader/.out/pu73-flatten-s2/PumpSegments.mlpackage",
+    "ml/pump-reader/.out/pu73-flatten-s2/segmentnet.pt",
+    "ml/pump-reader/.out/pu73-flatten-s2/metrics.json",
+    "ml/pump-reader/.out/pu73-flatten-s2/temperature.json"
+   ],
+   "trainedOn": "the round 6 pool (.out/real)",
+   "benchmark": "see agents/research/PU.73.md; nothing shipped"
+  },
+  {
+   "id": "pu73-focal-s0",
+   "role": "cell classifier candidate: PU.73 arm 'focal'",
+   "status": "refused",
+   "row": "PU.73",
+   "files": [
+    "ml/pump-reader/.out/pu73-focal-s0/segmentnet.pt",
+    "ml/pump-reader/.out/pu73-focal-s0/metrics.json"
+   ],
+   "trainedOn": "the round 6 pool (.out/real)",
+   "benchmark": "see agents/research/PU.73.md; nothing shipped"
+  },
+  {
+   "id": "pu73-focal-s1",
+   "role": "cell classifier candidate: PU.73 arm 'focal'",
+   "status": "refused",
+   "row": "PU.73",
+   "files": [
+    "ml/pump-reader/.out/pu73-focal-s1/segmentnet.pt",
+    "ml/pump-reader/.out/pu73-focal-s1/metrics.json"
+   ],
+   "trainedOn": "the round 6 pool (.out/real)",
+   "benchmark": "see agents/research/PU.73.md; nothing shipped"
+  },
+  {
+   "id": "pu73-focal-s2",
+   "role": "cell classifier candidate: PU.73 arm 'focal'",
+   "status": "refused",
+   "row": "PU.73",
+   "files": [
+    "ml/pump-reader/.out/pu73-focal-s2/segmentnet.pt",
+    "ml/pump-reader/.out/pu73-focal-s2/metrics.json"
+   ],
+   "trainedOn": "the round 6 pool (.out/real)",
+   "benchmark": "see agents/research/PU.73.md; nothing shipped"
+  },
+  {
+   "id": "pu73-posw-s0",
+   "role": "cell classifier candidate: PU.73 arm 'posw'",
+   "status": "refused",
+   "row": "PU.73",
+   "files": [
+    "ml/pump-reader/.out/pu73-posw-s0/segmentnet.pt",
+    "ml/pump-reader/.out/pu73-posw-s0/metrics.json"
+   ],
+   "trainedOn": "the round 6 pool (.out/real)",
+   "benchmark": "see agents/research/PU.73.md; nothing shipped"
+  },
+  {
+   "id": "pu73-posw-s1",
+   "role": "cell classifier candidate: PU.73 arm 'posw'",
+   "status": "refused",
+   "row": "PU.73",
+   "files": [
+    "ml/pump-reader/.out/pu73-posw-s1/segmentnet.pt",
+    "ml/pump-reader/.out/pu73-posw-s1/metrics.json"
+   ],
+   "trainedOn": "the round 6 pool (.out/real)",
+   "benchmark": "see agents/research/PU.73.md; nothing shipped"
+  },
+  {
+   "id": "pu73-posw-s2",
+   "role": "cell classifier candidate: PU.73 arm 'posw'",
+   "status": "refused",
+   "row": "PU.73",
+   "files": [
+    "ml/pump-reader/.out/pu73-posw-s2/segmentnet.pt",
+    "ml/pump-reader/.out/pu73-posw-s2/metrics.json"
+   ],
+   "trainedOn": "the round 6 pool (.out/real)",
+   "benchmark": "see agents/research/PU.73.md; nothing shipped"
+  },
+  {
+   "id": "pu82-full-s0",
+   "role": "cell classifier candidate: PU.82 arm 'full'",
+   "status": "refused",
+   "row": "PU.82",
+   "files": [
+    "ml/pump-reader/.out/pu82-full-s0/PumpSegments.mlpackage",
+    "ml/pump-reader/.out/pu82-full-s0/segmentnet.pt",
+    "ml/pump-reader/.out/pu82-full-s0/metrics.json",
+    "ml/pump-reader/.out/pu82-full-s0/temperature.json",
+    "ml/pump-reader/.out/pu82-full-s0-score.log"
+   ],
+   "trainedOn": "full pool 172 318 cells",
+   "benchmark": "annotated 119/117, live 47/47"
+  },
+  {
+   "id": "pu82-full-s1",
+   "role": "cell classifier candidate: PU.82 arm 'full'",
+   "status": "refused",
+   "row": "PU.82",
+   "files": [
+    "ml/pump-reader/.out/pu82-full-s1/PumpSegments.mlpackage",
+    "ml/pump-reader/.out/pu82-full-s1/segmentnet.pt",
+    "ml/pump-reader/.out/pu82-full-s1/metrics.json",
+    "ml/pump-reader/.out/pu82-full-s1/temperature.json",
+    "ml/pump-reader/.out/pu82-full-s1-score.log"
+   ],
+   "trainedOn": "full pool 172 318 cells",
+   "benchmark": "annotated 117/116, live 47/47"
+  },
+  {
+   "id": "pu82-full-s2",
+   "role": "cell classifier candidate: PU.82 arm 'full'",
+   "status": "refused",
+   "row": "PU.82",
+   "files": [
+    "ml/pump-reader/.out/pu82-full-s2/PumpSegments.mlpackage",
+    "ml/pump-reader/.out/pu82-full-s2/segmentnet.pt",
+    "ml/pump-reader/.out/pu82-full-s2/metrics.json",
+    "ml/pump-reader/.out/pu82-full-s2/temperature.json",
+    "ml/pump-reader/.out/pu82-full-s2-score.log"
+   ],
+   "trainedOn": "full pool 172 318 cells",
+   "benchmark": "annotated 117/116, live 41/41"
+  },
+  {
+   "id": "pu82-hand-s0",
+   "role": "cell classifier candidate: PU.82 arm 'hand'",
+   "status": "refused",
+   "row": "PU.82",
+   "files": [
+    "ml/pump-reader/.out/pu82-hand-s0/PumpSegments.mlpackage",
+    "ml/pump-reader/.out/pu82-hand-s0/segmentnet.pt",
+    "ml/pump-reader/.out/pu82-hand-s0/metrics.json",
+    "ml/pump-reader/.out/pu82-hand-s0/temperature.json",
+    "ml/pump-reader/.out/pu82-hand-s0-score.log"
+   ],
+   "trainedOn": "hand-only pool 6 236 cells",
+   "benchmark": "annotated 114/114, live 43/42"
+  },
+  {
+   "id": "pu82-hand-s1",
+   "role": "cell classifier candidate: PU.82 arm 'hand'",
+   "status": "refused",
+   "row": "PU.82",
+   "files": [
+    "ml/pump-reader/.out/pu82-hand-s1/PumpSegments.mlpackage",
+    "ml/pump-reader/.out/pu82-hand-s1/segmentnet.pt",
+    "ml/pump-reader/.out/pu82-hand-s1/metrics.json",
+    "ml/pump-reader/.out/pu82-hand-s1/temperature.json",
+    "ml/pump-reader/.out/pu82-hand-s1-score.log"
+   ],
+   "trainedOn": "hand-only pool 6 236 cells",
+   "benchmark": "annotated 109/109, live 40/39"
+  },
+  {
+   "id": "pu82-hand-s2",
+   "role": "cell classifier candidate: PU.82 arm 'hand'",
+   "status": "refused",
+   "row": "PU.82",
+   "files": [
+    "ml/pump-reader/.out/pu82-hand-s2/PumpSegments.mlpackage",
+    "ml/pump-reader/.out/pu82-hand-s2/segmentnet.pt",
+    "ml/pump-reader/.out/pu82-hand-s2/metrics.json",
+    "ml/pump-reader/.out/pu82-hand-s2/temperature.json",
+    "ml/pump-reader/.out/pu82-hand-s2-score.log"
+   ],
+   "trainedOn": "hand-only pool 6 236 cells",
+   "benchmark": "annotated 116/114, live 43/42"
+  },
+  {
+   "id": "pu82-flatten-s0",
+   "role": "cell classifier candidate: PU.82 arm 'flatten'",
+   "status": "refused",
+   "row": "PU.82",
+   "files": [
+    "ml/pump-reader/.out/pu82-flatten-s0/PumpSegments.mlpackage",
+    "ml/pump-reader/.out/pu82-flatten-s0/segmentnet.pt",
+    "ml/pump-reader/.out/pu82-flatten-s0/metrics.json",
+    "ml/pump-reader/.out/pu82-flatten-s0/temperature.json",
+    "ml/pump-reader/.out/pu82-flatten-s0-score.log"
+   ],
+   "trainedOn": "hand-only pool 6 236 cells",
+   "benchmark": "annotated 116/116, live 43/42"
+  },
+  {
+   "id": "pu82-flatten-s1",
+   "role": "cell classifier candidate: PU.82 arm 'flatten'",
+   "status": "refused",
+   "row": "PU.82",
+   "files": [
+    "ml/pump-reader/.out/pu82-flatten-s1/PumpSegments.mlpackage",
+    "ml/pump-reader/.out/pu82-flatten-s1/segmentnet.pt",
+    "ml/pump-reader/.out/pu82-flatten-s1/metrics.json",
+    "ml/pump-reader/.out/pu82-flatten-s1/temperature.json",
+    "ml/pump-reader/.out/pu82-flatten-s1-score.log"
+   ],
+   "trainedOn": "hand-only pool 6 236 cells",
+   "benchmark": "annotated 113/113, live 35/34"
+  },
+  {
+   "id": "pu82-flatten-s2",
+   "role": "cell classifier candidate: PU.82 arm 'flatten'",
+   "status": "refused",
+   "row": "PU.82",
+   "files": [
+    "ml/pump-reader/.out/pu82-flatten-s2/PumpSegments.mlpackage",
+    "ml/pump-reader/.out/pu82-flatten-s2/segmentnet.pt",
+    "ml/pump-reader/.out/pu82-flatten-s2/metrics.json",
+    "ml/pump-reader/.out/pu82-flatten-s2/temperature.json",
+    "ml/pump-reader/.out/pu82-flatten-s2-score.log"
+   ],
+   "trainedOn": "hand-only pool 6 236 cells",
+   "benchmark": "annotated 124/123, live 52/48"
+  },
+  {
+   "id": "pu77-crnn-s0",
+   "role": "row reader spike: CRNN + CTC over a whole row (PyTorch checkpoint, no Core ML export)",
+   "status": "spike, a no-go for this run",
+   "row": "PU.77",
+   "files": [
+    "ml/pump-reader/.out/pu77-s0/crnn.pt",
+    "ml/pump-reader/.out/pu77-s0/metrics.json",
+    "ml/pump-reader/.out/pu77-s0/heldout-b1.json",
+    "ml/pump-reader/.out/pu77-s0/heldout2-b1.json"
+   ],
+   "trainedOn": "50 287 real strips (2 % cap per source) + corpus-calibrated synthetic; 20 000 steps",
+   "benchmark": "B1 exact 0.887, Levenshtein 0.976; B2 raw 165/163 (0.988); 1 010 668 params"
+  },
+  {
+   "id": "pu77-crnn-s1",
+   "role": "row reader spike: CRNN + CTC over a whole row (PyTorch checkpoint, no Core ML export)",
+   "status": "spike, a no-go for this run",
+   "row": "PU.77",
+   "files": [
+    "ml/pump-reader/.out/pu77-s1/crnn.pt",
+    "ml/pump-reader/.out/pu77-s1/metrics.json",
+    "ml/pump-reader/.out/pu77-s1/heldout-b1.json",
+    "ml/pump-reader/.out/pu77-s1/heldout2-b1.json"
+   ],
+   "trainedOn": "50 287 real strips (2 % cap per source) + corpus-calibrated synthetic; 20 000 steps",
+   "benchmark": "B1 exact 0.897, Levenshtein 0.966; B2 raw 156/154 (0.987); 1 010 668 params"
+  },
+  {
+   "id": "pu77-crnn-s2",
+   "role": "row reader spike: CRNN + CTC over a whole row (PyTorch checkpoint, no Core ML export)",
+   "status": "spike, a no-go for this run",
+   "row": "PU.77",
+   "files": [
+    "ml/pump-reader/.out/pu77-s2/crnn.pt",
+    "ml/pump-reader/.out/pu77-s2/metrics.json",
+    "ml/pump-reader/.out/pu77-s2/heldout-b1.json",
+    "ml/pump-reader/.out/pu77-s2/heldout2-b1.json"
+   ],
+   "trainedOn": "50 287 real strips (2 % cap per source) + corpus-calibrated synthetic; 20 000 steps",
+   "benchmark": "B1 exact 0.903, Levenshtein 0.965; B2 raw 153/152 (0.993), scaled 158/156 (0.987); 1 010 668 params"
+  }
+ ]
+}
