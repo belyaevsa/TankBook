@@ -44,7 +44,7 @@ struct PumpFieldDiagnosticsTests {
         var committed = 0, correct = 0, scored = 0
         for image in images {
             guard let want = expected[image] else { continue }
-            let ocrLines = try await VisionTextRecognizer.recognizeText(
+            let ocrLines = try await TestOCR.recognizeText(
                 in: folder.appendingPathComponent(image), languages: Self.languages)
             let got = extractor.extract(lines: ocrLines, source: .pump)
 

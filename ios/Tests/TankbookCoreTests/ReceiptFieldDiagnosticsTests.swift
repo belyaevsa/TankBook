@@ -46,7 +46,7 @@ struct ReceiptFieldDiagnosticsTests {
         for image in images {
             guard let want = expected[image] else { continue }
             let url = folder.appendingPathComponent(image)
-            let ocrLines = try await VisionTextRecognizer.recognizeText(in: url, languages: Self.languages)
+            let ocrLines = try await TestOCR.recognizeText(in: url, languages: Self.languages)
             let qrAnchor = CorpusScorer.qrAnchor(forImage: image, in: folder)
             let got = extractor.extract(lines: ocrLines, source: .receipt, qrAnchor: qrAnchor)
 

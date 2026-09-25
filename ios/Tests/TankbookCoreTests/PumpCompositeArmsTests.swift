@@ -43,7 +43,7 @@ struct PumpCompositeArmsTests {
         for image in images {
             let name = image.lastPathComponent
             let want = expected[name]!
-            let lines = try await VisionTextRecognizer.recognizeText(in: image, languages: Self.languages)
+            let lines = try await TestOCR.recognizeText(in: image, languages: Self.languages)
             let rules = extractor.extract(lines: lines, source: .pump,
                                           qrAnchor: CorpusScorer.qrAnchor(forImage: name, in: folder))
             var reader = FuelExtraction()

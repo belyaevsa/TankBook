@@ -28,7 +28,7 @@ struct ScreenshotCrossCheckTests {
     private func extract(_ filename: String) async throws -> FuelExtraction {
         let image = Self.fixturesRoot
             .appendingPathComponent("screenshots").appendingPathComponent(filename)
-        let ocr = try await VisionTextRecognizer.recognizeText(in: image, languages: Self.languages)
+        let ocr = try await TestOCR.recognizeText(in: image, languages: Self.languages)
         return FuelExtractor().extract(lines: ocr)
     }
 
@@ -108,7 +108,7 @@ struct ScreenshotCrossCheckTests {
         let image = Self.fixturesRoot
             .appendingPathComponent("receipts")
             .appendingPathComponent("receipt-038-circlek-sikupilli-95e0-pump8-ee.jpg")
-        let ocr = try await VisionTextRecognizer.recognizeText(in: image, languages: Self.languages)
+        let ocr = try await TestOCR.recognizeText(in: image, languages: Self.languages)
         let result = FuelExtractor().extract(lines: ocr)
 
         if case .reconciled = result.crossCheck {

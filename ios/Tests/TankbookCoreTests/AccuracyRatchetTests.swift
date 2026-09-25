@@ -368,7 +368,7 @@ struct CorpusAccuracyGateTests {
         var fixtures: [ExpenseFixture] = []
         for row in expected {
             if let photo = photograph(for: row.filename, in: folder) {
-                let ocr = try await VisionTextRecognizer.recognizeText(in: photo, languages: languages)
+                let ocr = try await TestOCR.recognizeText(in: photo, languages: languages)
                 let regenerated = ocr.map(\.text).joined(separator: "\n") + "\n"
                 let dumpURL = folder.appendingPathComponent(row.filename)
                 let committed = try? String(contentsOf: dumpURL, encoding: .utf8)
@@ -429,7 +429,7 @@ struct CorpusAccuracyGateTests {
         var records: [String: ExtractionRecord] = [:]
         for image in images {
             guard expected[image.lastPathComponent] != nil else { continue }
-            let ocrLines = try await VisionTextRecognizer.recognizeText(in: image, languages: Self.languages)
+            let ocrLines = try await TestOCR.recognizeText(in: image, languages: Self.languages)
             // The pump class is scored as a pump (source .pump) - the pump
             // parser paths (no fuel kind, P2.13 digit repair) are pump-source
             // behaviour, and scoring them as receipts would measure a parser

@@ -43,8 +43,8 @@ struct CaptureOrientationTests {
         let upright = try #require(Self.loadCGImage(from: Self.fixture))
         let rotated = try #require(Self.rotate90Clockwise(upright))
 
-        let uprightLines = try await VisionTextRecognizer.recognizeText(image: upright, languages: Self.languages)
-        let rotatedLines = try await VisionTextRecognizer.recognizeText(
+        let uprightLines = try await TestOCR.recognizeText(image: upright, languages: Self.languages)
+        let rotatedLines = try await TestOCR.recognizeText(
             image: rotated, orientation: .right, languages: Self.languages)
 
         // The recognised line count must match: sideways pixels lose and misread

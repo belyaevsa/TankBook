@@ -70,7 +70,7 @@ struct CorpusCompressionTests {
                 continue
             }
             compressed += 1
-            let ocrLines = try await VisionTextRecognizer.recognizeText(image: rendition, languages: Self.languages)
+            let ocrLines = try await TestOCR.recognizeText(image: rendition, languages: Self.languages)
             let qrAnchor = CorpusScorer.qrAnchor(forImage: image, in: folder)
             let result = extractor.extract(lines: ocrLines, source: .receipt, qrAnchor: qrAnchor)
             records[image] = ExtractionRecord(filename: image, extraction: result)

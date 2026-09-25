@@ -91,7 +91,7 @@ struct VisionRequestGateTests {
     }
 
     @Test("waiters suspend: a body that needs the cooperative pool still finishes under a full queue of waiters",
-          .timeLimit(.minutes(1)))
+          .timeLimit(.minutes(3)))
     func waitersSuspendRatherThanBlock() async {
         // Models Vision on macOS 27: the body, on its dispatch thread, cannot
         // finish until a Task runs on the cooperative pool. With a blocking
@@ -99,7 +99,9 @@ struct VisionRequestGateTests {
         // thread, that Task never runs, and the run hangs (the time limit is
         // the failure signal). A suspending wait holds no thread, so the Task
         // runs and every caller finishes. The count is well above any
-        // machine's core count.
+        // machine's core count. The limit is generous because a hang never
+        // finishes at all, while the full parallel suite keeps the pool busy
+        // enough to make 64 sequential turns take over a minute.
         let gate = VisionRequestGate(limit: 1)
         let waiters = 64
         let completed = Peak()

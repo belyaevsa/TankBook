@@ -29,7 +29,7 @@ struct ExtractionAssemblerTests {
     func receiptFixtureResolvesExtractionAndCropRects() async throws {
         let image = Self.fixturesRoot
             .appendingPathComponent("receipts/receipt-011-samara-diesel-ru.png")
-        let ocr = try await VisionTextRecognizer.recognizeText(in: image, languages: Self.languages)
+        let ocr = try await TestOCR.recognizeText(in: image, languages: Self.languages)
         let assembly = ExtractionAssembler.assemble(lines: ocr, qrPayload: nil, source: .receipt)
 
         // The extraction the fixture's expected.csv promises.

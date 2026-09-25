@@ -179,7 +179,7 @@ struct RV56TotalPropertyTests {
         for image in images {
             guard let want = expected[image]?.total else { continue }
             let url = folder.appendingPathComponent(image)
-            let ocr = try await VisionTextRecognizer.recognizeText(in: url, languages: Self.languages)
+            let ocr = try await TestOCR.recognizeText(in: url, languages: Self.languages)
             let result = extractor.extract(lines: ocr, source: .receipt)
             guard let got = result.total?.corpusBoundaryDouble else { continue }
             if abs(got - want) >= CorpusScorer.tolerance {

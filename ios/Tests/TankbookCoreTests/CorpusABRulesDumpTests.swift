@@ -47,7 +47,7 @@ struct CorpusABRulesDumpTests {
             var records: [String: ExtractionRecord] = [:]
             for image in imageURLs {
                 guard expected[image.lastPathComponent] != nil else { continue }
-                let ocrLines = try await VisionTextRecognizer.recognizeText(in: image, languages: Self.languages)
+                let ocrLines = try await TestOCR.recognizeText(in: image, languages: Self.languages)
                 let result = extractor.extract(lines: ocrLines)
                 records[image.lastPathComponent] = ExtractionRecord(
                     filename: image.lastPathComponent, extraction: result
