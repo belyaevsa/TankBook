@@ -1,10 +1,69 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-25 ("Where it stands (2026-09-25)" immediately below is the newest; the 2026-09-24
-section after it is now history). 20 commits since the 2026-09-24 handover. Read this, then `CLAUDE.md`, then
-`docs/DEVELOPMENT-TIMELINE.md`, then `docs/TASKS.md`'s index.*
+*Updated 2026-09-26 ("Where it stands (2026-09-26)" immediately below is the newest; the sections
+after it are history). Read this, then `CLAUDE.md`, then `docs/DEVELOPMENT-TIMELINE.md`, then
+`docs/TASKS.md`'s index.*
 
-## Where it stands (2026-09-25) - read this before picking anything up
+## Where it stands (2026-09-26) - read this before picking anything up
+
+**The pump reader reads rows whole now, and it clears its gate.** PU.89 shipped PU.77's row reader
+(`RowRead.mlpackage`, a CRNN + CTC): the app's live path went **62 / 61 -> 119 committed / 118
+correct** on the heldout split (precision 0.992, the one wrong cell cautioned), photos with every
+field right 21 -> 41 of 68, the annotated tier 126 -> 154. PU.86 (a repair pays the reader's own
+posterior, at most 4 nats) and PU.88 (row assignment undoes the display's tilt) came first; PU.49
+and PU.84 closed as superseded. **The gate now decides on the reader's own heldout numbers**
+(`PumpPhotoGate.allowsPumpPhoto`, precision >= 0.99 and coverage >= 0.60 - both clear), **and it is
+a ceiling, not the switch**: the alpha framing follows the owner's `pumpPhoto` config flag, still
+**off** in `Config.default.json`. Turning pump photo on (dropping the alpha notice) is the owner's
+call - one flag.
+
+**The OCR accuracy suites are measured in the iOS 27 simulator** (owner, 2026-09-25), not on
+macOS: `scripts/vision-suites.sh` runs the package's test target there, one OCR at a time
+(`VISION_SERIAL=1`, because concurrent requests read some receipts differently in the simulator);
+`swift test` on a Mac skips those suites with the reason printed. The first iOS measurement found
+receipt reads iOS 27 turns into confident wrong values - fixed as RV.307 before the marks were
+recorded (receipt-025, 057, 062, 083 and two expense totals) - and two corpus rows with litres and
+price swapped (receipt-080/081, corrected against the photo). The marks were re-recorded on iOS 27:
+receipts 348/468, pump 117/186 (heldout composite), screenshots 40/45, expenses 50/54, stations
+44/83, fiscal 5/5 (`high-water.json`'s 2026-09-26 note). **A task that touches a parser, the pump
+reader or a fixture runs `scripts/vision-suites.sh`** (~15 min, not in `gate.sh`). CI still runs
+only `swift test` there: RV.308.
+
+**Shipped this stretch** (all verified in the orchestrator's hands; commit list in `git log`):
+PU.88, PU.86, PU.89, the J4 walk (`diagnostics/REVIEW-SCENARIO-J4-2026-09-25.md`, NOT IMPLEMENTED),
+RV.307, the iOS-27 measured runtime, PJ.501 (the first-use "No receipt? Shoot the pump display"
+caption), PJ.502 (the Log's pump mark on a pump-read entry), PJ.504 (a pump photo nothing was read
+from says so and asks for the numbers - owner, 2026-09-26), PU.49/PU.84 closed, PU.90 measured.
+
+**Model routing:** DeepSeek dropped; Qwen (Alibaba) out of quota until 2026-10-05 16:00 UTC; Codex
+`gpt-6-sol` reviews; the orchestrator builds. Models live in `ml/pump-reader/models.json` and the
+bucket's `models/<id>/` (`corpus-sync.py push --models`); a new model gets a registry row, a
+`models.json` entry and a push in the same change.
+
+**Next, in order:**
+
+1. **Owner's calls:** turn the `pumpPhoto` flag on (the gate allows it); PJ.503 (whether the beta
+   may send diagnostics counts to the server - a hard-rule-9 decision); the owner's "5." item that
+   arrived empty.
+2. **PU.90** - the owner draws windows on `pump-332..340` and `video-050/051`, then a RowSeg round:
+   every failure measured there is location and roles, not digit reading (the row's note).
+3. **RV.308** - a CI job on a runner with the iOS 27 simulator runs `scripts/vision-suites.sh`.
+4. **RV.295 / Capture Lab** - timing and reading on a real iPhone (the simulator runs Vision on the CPU).
+5. Re-derive the law's windows for the row reader (PU.89's named departure) once new heldout material exists.
+
+**Traps this stretch paid for:**
+
+- **macOS is not the phone.** The same receipts read 4 wrong totals and 8 wrong volumes on macOS 27,
+  1 and 4 in the iOS 27 simulator, different receipts each. Measure in the simulator.
+- **The simulator's Vision is not deterministic under concurrency**: a receipt read alone is identical
+  every run; inside the parallel suite it varied. Measure serially.
+- **A test can pin a wrong value.** `RV153TotalPrecedenceTests` asserted the misread `17,56 L`; the
+  corpus note for receipt-080/081 had litres and price swapped. Check a pinned value against the paper.
+- **Array order is not reading order for Vision's lines** - a rule that assumes it (the row after a
+  label) is right on a text dump and wrong on the phone (receipt-027 read 0.5).
+- **Rewriting the String Catalog with a JSON dump reformats 24k lines** - insert entries as text.
+
+## Where it stands (2026-09-25) - history, superseded by the section above
 
 **The pump reader ships the segmenter locator (PU.87, `4f836a6a`).** `RowSeg.mlpackage` (the
 PU.76 PixelLink segmenter, 1.8 MB) replaces `DigitRows` as the app's row locator; `DigitRows.mlmodel`
