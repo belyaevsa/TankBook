@@ -1,5 +1,15 @@
 {
   "frames": {
+    "AD.14-send-diagnostics-sending": {
+      "commit": "688ceb89",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "AD.14-send-diagnostics-sending-ru": {
+      "commit": "688ceb89",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "AD.2-send-diagnostics": {
       "commit": "1df3b1b8",
       "device": "iPhone 17",

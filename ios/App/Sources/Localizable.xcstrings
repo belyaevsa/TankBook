@@ -1,6 +1,23 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Uploaded %lld of %lld files": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uploaded %1$lld of %2$lld files"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отправлено файлов: %1$lld из %2$lld"
+          }
+        }
+      }
+    },
     "None yet": {
       "extractionState": "manual",
       "localizations": {

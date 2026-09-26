@@ -71,6 +71,9 @@ struct DiagnosticsCaseView: View {
             if case .failed(let error) = model.state {
                 failure(error)
             }
+            if case .sending(let uploaded, let total) = model.state {
+                progress(uploaded: uploaded, total: total)
+            }
             sendButton
         }
     }
@@ -134,8 +137,8 @@ struct DiagnosticsCaseView: View {
             Task { await model.submit() }
         } label: {
             HStack(spacing: 8) {
-                if model.state == .sending { ProgressView().controlSize(.small) }
-                Text(model.state == .sending ? "Sending" : "Send")
+                if model.isSending { ProgressView().controlSize(.small) }
+                Text(model.isSending ? "Sending" : "Send")
             }
             .font(.body.weight(.bold))
             .foregroundStyle(Theme.Palette.midnight)
@@ -145,8 +148,20 @@ struct DiagnosticsCaseView: View {
             .clipShape(RoundedRectangle(cornerRadius: 15))
         }
         .buttonStyle(.plain)
-        .disabled(model.state == .loading || model.state == .sending)
+        .disabled(model.state == .loading || model.isSending)
         .accessibilityIdentifier("diagnosticsCaseSendButton")
+    }
+
+    private func progress(uploaded: Int, total: Int) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ProgressView(value: Double(uploaded), total: Double(max(total, 1)))
+                .tint(Theme.Palette.taillight)
+            Text("Uploaded \(uploaded) of \(total) files")
+                .font(.footnote)
+                .monospacedDigit()
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .accessibilityIdentifier("diagnosticsCaseProgress")
+        }
     }
 
     private func failure(_ error: DebugCaseError) -> some View {

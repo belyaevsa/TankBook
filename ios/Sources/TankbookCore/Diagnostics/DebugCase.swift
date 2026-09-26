@@ -52,16 +52,29 @@ public enum DebugCase {
 
     /// The `multipart/form-data` body: one file field per part, named by the part.
     public static func multipartBody(_ parts: [DebugCasePart], boundary: String) -> Data {
+        multipart(parts, boundary: boundary).body
+    }
+
+    /// The body and, for each part, the byte offset where it ends - how many body
+    /// bytes must have left the device before that part is uploaded.
+    static func multipart(_ parts: [DebugCasePart], boundary: String) -> (body: Data, partEnds: [Int64]) {
         var body = Data()
+        var ends: [Int64] = []
         for part in parts {
             body.append(Data("--\(boundary)\r\n".utf8))
             body.append(Data("Content-Disposition: form-data; name=\"\(part.name)\"; filename=\"\(part.name)\"\r\n".utf8))
             body.append(Data("Content-Type: \(part.contentType)\r\n\r\n".utf8))
             body.append(part.data)
             body.append(Data("\r\n".utf8))
+            ends.append(Int64(body.count))
         }
         body.append(Data("--\(boundary)--\r\n".utf8))
-        return body
+        return (body, ends)
+    }
+
+    /// How many parts are fully sent after `bytesSent` body bytes.
+    static func partsSent(_ bytesSent: Int64, partEnds: [Int64]) -> Int {
+        partEnds.prefix { $0 <= bytesSent }.count
     }
 }
 
@@ -103,17 +116,25 @@ public struct DebugCaseClient: Sendable {
         self.deviceID = deviceID
     }
 
-    public func send(_ parts: [DebugCasePart]) async throws -> DebugCaseReceipt {
+    /// Sends the case. `progress` receives (parts uploaded, parts in total) as the
+    /// body leaves the device - on any thread, and only while bytes are moving.
+    public func send(_ parts: [DebugCasePart],
+                     progress: (@Sendable (Int, Int) -> Void)? = nil) async throws -> DebugCaseReceipt {
         let url = director.baseURL().appendingPathComponent("v1").appendingPathComponent("cases")
         let boundary = "tankbook-case-\(UUID().uuidString)"
-        var request = TankbookHTTPRequest(url: url, method: "POST",
-                                          body: DebugCase.multipartBody(parts, boundary: boundary),
+        let multipart = DebugCase.multipart(parts, boundary: boundary)
+        var request = TankbookHTTPRequest(url: url, method: "POST", body: multipart.body,
                                           timeoutInterval: TransportTimeouts.upload)
         request.headers["Content-Type"] = "multipart/form-data; boundary=\(boundary)"
         if let deviceID { request.headers["X-Device-Id"] = deviceID }
+        let partEnds = multipart.partEnds
+        var handler: (@Sendable (Int64) -> Void)?
+        if let progress {
+            handler = { @Sendable sent in progress(DebugCase.partsSent(sent, partEnds: partEnds), partEnds.count) }
+        }
         let response: TankbookHTTPResponse
         do {
-            response = try await httpClient.send(request)
+            response = try await UploadProgress.$handler.withValue(handler) { try await httpClient.send(request) }
         } catch TankbookHTTPClientError.httpError(let status, _, _, _, _) {
             await director.report(.response(status: status))
             switch status {

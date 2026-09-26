@@ -482,6 +482,26 @@ public static class TankbookLog
             ("TotalBytes", totalBytes),
             ("HasAccount", hasAccount));
 
+    /// <summary>A case's parts reached blob storage. Id, counts and a duration only.</summary>
+    public static void CaseStored(ILogger logger, string id, int parts, long totalBytes, long durationMs)
+        => Emit(logger, LogLevel.Information, "case.stored",
+            ("Id", id),
+            ("Parts", parts),
+            ("TotalBytes", totalBytes),
+            ("DurationMs", durationMs));
+
+    /// <summary>
+    /// An upload attempt failed. Warning, because a case that stays here is one
+    /// the owner cannot read; the reason is a code (spoolMissing / storageError).
+    /// </summary>
+    public static void CaseStoreFailed(ILogger logger, string id, int attempts, int maxAttempts, string reason)
+        => Emit(logger, LogLevel.Warning, "case.storeFailed",
+            ("Id", id),
+            ("Attempts", attempts),
+            ("MaxAttempts", maxAttempts),
+            ("Reason", reason),
+            ("GaveUp", attempts >= maxAttempts));
+
     /// <summary>The 30-day case purge dropped some cases. Count only (hard rule 12).</summary>
     public static void CasePurge(ILogger logger, int purged)
         => Emit(logger, LogLevel.Information, "case.purge",

@@ -20,8 +20,9 @@ public static partial class CaseEndpoints
 
     public sealed record Part(string Name, string ContentType, long Bytes);
 
+    /// <summary><c>Stored</c> is false while the API's uploader is still moving the parts to the bucket.</summary>
     public sealed record Case(string Id, DateTimeOffset CreatedAt, string? App, Guid? AccountId, Guid DeviceId,
-        long TotalBytes, IReadOnlyList<Part> Parts);
+        long TotalBytes, bool Stored, bool UploadFailed, IReadOnlyList<Part> Parts);
 
     private sealed record StoredPart(string Name, string ContentType, long Bytes, string Key);
 
@@ -34,6 +35,8 @@ public static partial class CaseEndpoints
         public string Parts { get; init; } = "[]";
         public long TotalBytes { get; init; }
         public DateTime CreatedAt { get; init; }
+        public DateTime? StoredAt { get; init; }
+        public DateTime? UploadFailedAt { get; init; }
 
         public IReadOnlyList<StoredPart> StoredParts =>
             JsonSerializer.Deserialize<List<StoredPart>>(Parts, WireJson) ?? [];
@@ -53,16 +56,24 @@ public static partial class CaseEndpoints
             return Results.NotFound();
         }
         return Results.Ok(new Case(row.Id, new DateTimeOffset(DateTime.SpecifyKind(row.CreatedAt, DateTimeKind.Utc)),
-            row.App, row.AccountId, row.DeviceId, row.TotalBytes,
+            row.App, row.AccountId, row.DeviceId, row.TotalBytes, row.StoredAt is not null, row.UploadFailedAt is not null,
             row.StoredParts.Select(p => new Part(p.Name, p.ContentType, p.Bytes)).ToList()));
     }
 
     private static async Task<IResult> GetPart(string id, string name, Db db, IBlobReader blobs, CancellationToken ct)
     {
-        var part = (await FindAsync(db, id))?.StoredParts.FirstOrDefault(p => p.Name == name);
-        if (part is null)
+        var row = await FindAsync(db, id);
+        var part = row?.StoredParts.FirstOrDefault(p => p.Name == name);
+        if (row is null || part is null)
         {
             return Results.NotFound();
+        }
+        if (row.StoredAt is null)
+        {
+            return Results.Problem(statusCode: StatusCodes.Status409Conflict, title: "Still uploading.",
+                detail: row.UploadFailedAt is null
+                    ? "The case was received; its parts are still being moved to storage. Try again in a minute."
+                    : "The case was received, but moving its parts to storage failed; see case.storeFailed in the API log.");
         }
         var bytes = await blobs.ReadAsync(part.Key, ct);
         return bytes is null ? Results.NotFound() : Results.File(bytes, part.ContentType, part.Name);
@@ -78,7 +89,8 @@ public static partial class CaseEndpoints
         await using var c = db.ApiRead();
         return await c.QuerySingleOrDefaultAsync<Row>(
             "SELECT id, account_id AS AccountId, device_id AS DeviceId, app, parts::text AS Parts, " +
-            "total_bytes AS TotalBytes, created_at AS CreatedAt FROM debug_cases WHERE id = @normalized",
+            "total_bytes AS TotalBytes, created_at AS CreatedAt, stored_at AS StoredAt, upload_failed_at AS UploadFailedAt " +
+            "FROM debug_cases WHERE id = @normalized",
             new { normalized });
     }
 

@@ -52,6 +52,46 @@ public sealed class CaseRepository
             },
             cancellationToken: cancellationToken)));
 
+    /// <summary>
+    /// Claims up to <paramref name="limit"/> cases waiting for the uploader, counting an
+    /// attempt on each. A row another container claimed less than <paramref name="claimTimeout"/>
+    /// ago is skipped, and SKIP LOCKED keeps two concurrent claims apart.
+    /// </summary>
+    public async Task<IReadOnlyList<CaseRow>> ClaimPendingAsync(int limit, TimeSpan claimTimeout,
+                                                               CancellationToken cancellationToken)
+    {
+        var rows = await WithConnection(() => _db.QueryAsync<RawRow>(new CommandDefinition(
+            $"""
+            UPDATE debug_cases SET upload_claimed_at = now(), upload_attempts = upload_attempts + 1
+            WHERE id IN (
+                SELECT id FROM debug_cases
+                WHERE stored_at IS NULL AND upload_failed_at IS NULL
+                  AND (upload_claimed_at IS NULL OR upload_claimed_at < now() - @ClaimTimeout)
+                ORDER BY created_at LIMIT @Limit
+                FOR UPDATE SKIP LOCKED)
+            RETURNING {Columns}
+            """,
+            new { Limit = limit, ClaimTimeout = claimTimeout },
+            cancellationToken: cancellationToken)));
+        return rows.Select(ToRow).ToList();
+    }
+
+    /// <summary>Every part is in blob storage: the case becomes readable.</summary>
+    public Task MarkStoredAsync(string id, CancellationToken cancellationToken)
+        => WithConnection(() => _db.ExecuteAsync(new CommandDefinition(
+            "UPDATE debug_cases SET stored_at = now(), upload_claimed_at = NULL WHERE id = @Id",
+            new { Id = id }, cancellationToken: cancellationToken)));
+
+    /// <summary>An upload attempt failed: the claim is released, and after the last attempt the case is marked failed.</summary>
+    public async Task<int> ReleaseAfterFailureAsync(string id, int maxAttempts, CancellationToken cancellationToken)
+        => await WithConnection(() => _db.ExecuteScalarAsync<int>(new CommandDefinition(
+            """
+            UPDATE debug_cases SET upload_claimed_at = NULL,
+                upload_failed_at = CASE WHEN upload_attempts >= @Max THEN now() ELSE NULL END
+            WHERE id = @Id RETURNING upload_attempts
+            """,
+            new { Id = id, Max = maxAttempts }, cancellationToken: cancellationToken)));
+
     public async Task<IReadOnlyList<CaseRow>> ListDueAsync(DateTimeOffset cutoff, CancellationToken cancellationToken)
         => await QueryAsync("created_at <= @Cutoff", new { Cutoff = cutoff }, cancellationToken);
 

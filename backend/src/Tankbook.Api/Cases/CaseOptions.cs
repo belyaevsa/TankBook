@@ -26,7 +26,27 @@ public sealed class CaseOptions
     /// <summary>How often the background purge job runs a pass.</summary>
     public int PurgeIntervalMinutes { get; set; } = 60;
 
+    /// <summary>
+    /// Where accepted parts wait for the uploader. In production a host folder
+    /// mounted into every container colour (backend/scripts/deploy-blue-green.sh),
+    /// so a case accepted just before a deploy is still uploaded after it.
+    /// </summary>
+    public string SpoolPath { get; set; } = Path.Combine(Path.GetTempPath(), "tankbook-case-spool");
+
+    /// <summary>How often the uploader looks for pending cases when nothing woke it.</summary>
+    public int UploadIntervalSeconds { get; set; } = 30;
+
+    /// <summary>How many times one case's upload is tried before it is recorded as failed.</summary>
+    public int MaxUploadAttempts { get; set; } = 10;
+
+    /// <summary>How long a claim on a case holds before another container may take it over.</summary>
+    public int UploadClaimMinutes { get; set; } = 5;
+
     public TimeSpan RetentionPeriod => TimeSpan.FromDays(RetentionDays);
 
     public TimeSpan PurgeInterval => TimeSpan.FromMinutes(PurgeIntervalMinutes);
+
+    public TimeSpan UploadInterval => TimeSpan.FromSeconds(UploadIntervalSeconds);
+
+    public TimeSpan UploadClaim => TimeSpan.FromMinutes(UploadClaimMinutes);
 }

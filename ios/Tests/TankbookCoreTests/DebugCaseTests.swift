@@ -36,8 +36,10 @@ struct DebugCaseTests {
         let directory = tempDir()
         defer { try? FileManager.default.removeItem(at: directory) }
         let history = ScanHistory(directory: directory)
-        history.record(photo: Data([0xFF, 0xD8]), record: Data("{\"a\":1}".utf8), trace: Data("{}".utf8))
-        history.record(photo: Data([0xFF, 0xD9]), record: Data("{\"b\":2}".utf8), trace: nil)
+        let first = Date(timeIntervalSince1970: 1_790_000_000)
+        history.record(photo: Data([0xFF, 0xD8]), record: Data("{\"a\":1}".utf8), trace: Data("{}".utf8), at: first)
+        history.record(photo: Data([0xFF, 0xD9]), record: Data("{\"b\":2}".utf8), trace: nil,
+                       at: first.addingTimeInterval(20))
 
         let parts = DebugCase.parts(log: "line one", scans: history.recent(), app: "1.0.0", build: "abc1234")
         #expect(parts.map(\.name) == ["manifest.json", "log.txt",
@@ -77,6 +79,37 @@ struct DebugCaseTests {
         let text = String(decoding: body, as: UTF8.self)
         #expect(text == "--B\r\nContent-Disposition: form-data; name=\"log.txt\"; filename=\"log.txt\"\r\n"
                 + "Content-Type: text/plain\r\n\r\nhello\r\n--B--\r\n")
+    }
+
+    @Test("progress counts a part as uploaded once every byte of it has been sent")
+    func partsSentFollowsTheBody() {
+        let parts = [DebugCasePart(name: "a.txt", contentType: "text/plain", data: Data(count: 100)),
+                     DebugCasePart(name: "b.txt", contentType: "text/plain", data: Data(count: 1_000)),
+                     DebugCasePart(name: "c.txt", contentType: "text/plain", data: Data(count: 10))]
+        let multipart = DebugCase.multipart(parts, boundary: "B")
+        #expect(multipart.partEnds.count == 3)
+        #expect(multipart.partEnds.last! < Int64(multipart.body.count), "the closing boundary follows the last part")
+        #expect(DebugCase.partsSent(0, partEnds: multipart.partEnds) == 0)
+        #expect(DebugCase.partsSent(multipart.partEnds[0] - 1, partEnds: multipart.partEnds) == 0)
+        #expect(DebugCase.partsSent(multipart.partEnds[0], partEnds: multipart.partEnds) == 1)
+        #expect(DebugCase.partsSent(multipart.partEnds[1] + 5, partEnds: multipart.partEnds) == 2)
+        #expect(DebugCase.partsSent(Int64(multipart.body.count), partEnds: multipart.partEnds) == 3)
+    }
+
+    @Test("the send hands the transport a progress handler that reports parts, not bytes")
+    func progressReachesTheTransport() async throws {
+        let transport = ProgressReportingTransport()
+        let client = DebugCaseClient(
+            httpClient: TankbookHTTPClient(transport: transport, tokenProvider: CaseTestTokens()),
+            director: ConfigTransportDirector(baseURL: { URL(string: "https://api.tankbook.live")! }, report: { _ in }),
+            deviceID: "device-1")
+        let parts = [DebugCasePart(name: "log.txt", contentType: "text/plain", data: Data(count: 500)),
+                     DebugCasePart(name: "scan-1-photo.jpg", contentType: "image/jpeg", data: Data(count: 5_000))]
+        let seen = OSAllocatedUnfairLock(initialState: [(Int, Int)]())
+        _ = try await client.send(parts) { uploaded, total in seen.withLock { $0.append((uploaded, total)) } }
+        let reports = seen.withLock { $0 }
+        #expect(reports.map(\.0) == [0, 1, 2], "half the body, then the first part's end, then all of it")
+        #expect(reports.allSatisfy { $0.1 == 2 })
     }
 
     @Test("a 201 is the receipt; 429, 413 and no connection each map to their own error")
@@ -124,6 +157,23 @@ private final class CaseTestTransport: TankbookHTTPTransport, @unchecked Sendabl
             if let error = state.error { throw error }
             return state.next ?? TankbookHTTPResponse(status: 500)
         }
+    }
+}
+
+/// Answers 201 after reporting three byte counts through the task-local handler,
+/// as the URLSession transport does while the body leaves the device.
+private final class ProgressReportingTransport: TankbookHTTPTransport, @unchecked Sendable {
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        let total = Int64(request.body?.count ?? 0)
+        if let handler = UploadProgress.handler {
+            let body = request.body ?? Data()
+            let firstEnd = Int64((body.range(of: Data("--".utf8), in: 10..<body.count)?.lowerBound ?? 0))
+            handler(firstEnd / 2)
+            handler(firstEnd)
+            handler(total)
+        }
+        return TankbookHTTPResponse(status: 201, body: Data(
+            #"{"caseId":"K7Q2M-9XDRA","expiresAt":"2026-10-26T12:00:00+00:00"}"#.utf8))
     }
 }
 

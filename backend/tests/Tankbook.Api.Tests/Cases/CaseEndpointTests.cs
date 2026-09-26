@@ -30,10 +30,17 @@ public class CaseEndpointTests : IClassFixture<PostgresFixture>
     private const string LogMarker = "event=capture.classify display=false rows=0 stationName=<redacted>";
     private const string PhotoMarker = "JPEG-BYTES-Zvezda-Lubricants-77";
     private readonly PostgresFixture _fixture;
+    private readonly string _spool = Path.Combine(Path.GetTempPath(), "case-spool-" + Guid.NewGuid().ToString("N"));
 
     public CaseEndpointTests(PostgresFixture fixture)
     {
         _fixture = fixture;
+    }
+
+    private async Task<int> UploadPassAsync(TestApp app)
+    {
+        using var scope = app.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<CaseStorageUploader>().RunPassAsync(CancellationToken.None);
     }
 
     [SkippableFact]
@@ -53,15 +60,63 @@ public class CaseEndpointTests : IClassFixture<PostgresFixture>
         var expiresAt = body.GetProperty("expiresAt").GetDateTimeOffset();
         Assert.InRange(expiresAt - DateTimeOffset.UtcNow, TimeSpan.FromDays(29.9), TimeSpan.FromDays(30.1));
 
-        Assert.Equal(1, await app.CountAsync("debug_cases", "id = @p AND device_id = @d AND account_id IS NULL",
-                                             new { p = caseId, d = deviceId }));
+        Assert.Equal(1, await app.CountAsync("debug_cases",
+            "id = @p AND device_id = @d AND account_id IS NULL AND stored_at IS NULL", new { p = caseId, d = deviceId }));
         Assert.Equal(0, await app.CountAsync("accounts"));
+
+        // The response came before blob storage: the parts are in the spool, not the bucket.
+        Assert.Empty(storage.ByteObjects);
+        foreach (var (name, _, bytes) in StandardParts())
+        {
+            Assert.Equal(bytes, await File.ReadAllBytesAsync(Path.Combine(_spool, caseId, name)));
+        }
+
+        // The uploader moves them, marks the case stored and empties the spool.
+        Assert.Equal(1, await UploadPassAsync(app));
         foreach (var (name, _, bytes) in StandardParts())
         {
             var key = CaseKeys.PartKey(deviceId, caseId, name);
             Assert.True(storage.ByteObjects.TryGetValue(key, out var stored), $"{name} was not stored");
             Assert.Equal(bytes, stored);
         }
+
+        Assert.Equal(1, await app.CountAsync("debug_cases", "id = @p AND stored_at IS NOT NULL", new { p = caseId }));
+        Assert.False(Directory.Exists(Path.Combine(_spool, caseId)), "the spool folder is removed once stored");
+        Assert.Equal(0, await UploadPassAsync(app));
+    }
+
+    [SkippableFact]
+    public async Task Upload_AStorageFailureKeepsTheFiles_AndGivesUpAfterTheLastAttemptWithAWarning()
+    {
+        var writer = new InMemoryLogWriter(new List<string>());
+        var storage = new RecordingBlobStorage { FailPutObject = true };
+        await using var app = await StartAsync(storage, writer);
+        var caseId = await SubmitIdAsync(app, Guid.NewGuid());
+
+        Assert.Equal(0, await UploadPassAsync(app));
+        Assert.True(Directory.Exists(Path.Combine(_spool, caseId)), "a failed attempt keeps the spooled files");
+        Assert.Equal(1, await app.CountAsync("debug_cases", "id = @p AND upload_attempts = 1 AND upload_failed_at IS NULL", new { p = caseId }));
+
+        Assert.Equal(0, await UploadPassAsync(app));
+        Assert.Equal(1, await app.CountAsync("debug_cases", "id = @p AND upload_failed_at IS NOT NULL", new { p = caseId }));
+        storage.FailPutObject = false;
+        Assert.Equal(0, await UploadPassAsync(app));
+        var failed = writer.Lines.Where(l => l.Contains("case.storeFailed", StringComparison.Ordinal)).ToList();
+        Assert.True(failed.Count == 2, string.Join('\n', writer.Lines.Where(l => l.Contains("case.", StringComparison.Ordinal))));
+        Assert.Contains("WARNING", failed[1], StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("true", failed[1], StringComparison.OrdinalIgnoreCase);
+    }
+
+    [SkippableFact]
+    public async Task Upload_AMissingSpoolFileIsAFailure_NeverAStoredCase()
+    {
+        var storage = new RecordingBlobStorage();
+        await using var app = await StartAsync(storage);
+        var caseId = await SubmitIdAsync(app, Guid.NewGuid());
+        File.Delete(Path.Combine(_spool, caseId, "scan-1-photo.jpg"));
+
+        Assert.Equal(0, await UploadPassAsync(app));
+        Assert.Equal(1, await app.CountAsync("debug_cases", "id = @p AND stored_at IS NULL", new { p = caseId }));
     }
 
     [SkippableFact]
@@ -75,6 +130,7 @@ public class CaseEndpointTests : IClassFixture<PostgresFixture>
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         Assert.Equal(0, await app.CountAsync("debug_cases"));
         Assert.Empty(storage.ByteObjects);
+        Assert.False(Directory.Exists(_spool) && Directory.EnumerateFileSystemEntries(_spool).Any());
     }
 
     [SkippableTheory]
@@ -114,13 +170,17 @@ public class CaseEndpointTests : IClassFixture<PostgresFixture>
         var deviceId = Guid.NewGuid();
         var oldId = await SubmitIdAsync(app, deviceId);
         var recentId = await SubmitIdAsync(app, deviceId);
+        await UploadPassAsync(app);
+        var pendingOldId = await SubmitIdAsync(app, deviceId);
+        await app.Db.ExecuteAsync("UPDATE debug_cases SET created_at = now() - interval '31 days' WHERE id = @p", new { p = pendingOldId });
         await app.Db.ExecuteAsync("UPDATE debug_cases SET created_at = now() - interval '31 days' WHERE id = @p", new { p = oldId });
         await app.Db.ExecuteAsync("UPDATE debug_cases SET created_at = now() - interval '29 days' WHERE id = @p", new { p = recentId });
 
         using var scope = app.Services.CreateScope();
         var purged = await scope.ServiceProvider.GetRequiredService<CasePurgeService>().PurgeDueCasesAsync(CancellationToken.None);
 
-        Assert.Equal(1, purged);
+        Assert.Equal(2, purged);
+        Assert.False(Directory.Exists(Path.Combine(_spool, pendingOldId)), "a purged case that never reached storage leaves no spool files");
         Assert.Equal(1, await app.CountAsync("debug_cases", "id = @p", new { p = recentId }));
         Assert.True(storage.ByteObjects.ContainsKey(CaseKeys.PartKey(deviceId, recentId, "log.txt")));
         Assert.Equal(0, await app.CountAsync("debug_cases", "id = @p", new { p = oldId }));
@@ -147,6 +207,7 @@ public class CaseEndpointTests : IClassFixture<PostgresFixture>
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var caseId = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement.GetProperty("caseId").GetString()!;
         Assert.Equal(1, await app.CountAsync("debug_cases", "id = @p AND account_id = @a", new { p = caseId, a = accountId }));
+        await UploadPassAsync(app);
         Assert.True(storage.ByteObjects.ContainsKey(CaseKeys.PartKey(accountId, caseId, "log.txt")));
 
         await app.Db.ExecuteAsync("UPDATE accounts SET deleted_at = now() - interval '2 days' WHERE id = @p", new { p = accountId });
@@ -244,6 +305,8 @@ public class CaseEndpointTests : IClassFixture<PostgresFixture>
                 b.UseEnvironment("Testing");
                 b.UseSetting("ConnectionStrings:Postgres", connectionString);
                 b.UseSetting("Logging:LogLevel:Default", "Debug");
+                b.UseSetting("Cases:SpoolPath", _spool);
+                b.UseSetting("Cases:MaxUploadAttempts", "2");
                 if (accountDeletionGraceDays is not null)
                 {
                     b.UseSetting("Account:DeletionGraceDays", accountDeletionGraceDays.Value.ToString());

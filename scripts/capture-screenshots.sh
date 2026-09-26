@@ -1781,6 +1781,10 @@ capture PJ.505-capture-verify-pump-ru ru -seedVehicleForUITests -presentScreen c
 # for the explainer and the failure lines.
 capture AD.2-send-diagnostics         en -presentScreen about -presentSendDiagnostics -diagnosticsCaseStub sent
 capture AD.2-send-diagnostics-ru      ru -presentScreen about -presentSendDiagnostics -diagnosticsCaseStub sent
+CAPTURE_SLEEP=3
+capture AD.14-send-diagnostics-sending    en -presentScreen about -presentSendDiagnostics -diagnosticsCaseStub sent -diagnosticsCaseAutoSend
+capture AD.14-send-diagnostics-sending-ru ru -presentScreen about -presentSendDiagnostics -diagnosticsCaseStub sent -diagnosticsCaseAutoSend
+CAPTURE_SLEEP=6
 capture AD.2-send-diagnostics-sent    en -presentScreen about -presentSendDiagnostics -diagnosticsCaseStub sent -diagnosticsCaseAutoSend
 capture AD.2-send-diagnostics-sent-ru ru -presentScreen about -presentSendDiagnostics -diagnosticsCaseStub sent -diagnosticsCaseAutoSend
 

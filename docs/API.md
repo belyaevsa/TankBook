@@ -463,6 +463,13 @@ and the case is stored under the device; with a bearer it is stored under the ac
 content type outside the list). Logs carry the id, part count, byte total and account presence -
 never a part's name or content (hard rule 12).
 
+**`201` means received, not yet in storage (AD.13, 2026-09-26).** The server writes the parts to
+its own disk (a spool mounted into every container colour), registers the case and answers; a
+background uploader then moves the parts to blob storage and marks the case stored, usually within
+a second. The phone waits for its own upload only. Until the case is stored the admin viewer
+answers `409` for its parts; an upload that keeps failing is given up after a bounded number of
+attempts and logged (`case.storeFailed`), never retried forever. Nothing on the wire changed.
+
 **Breaking-change verdict (2026-09-26): additive** - a new endpoint (hard rule 16); nothing an
 existing client sends changes. Checked against build 1783, the newest in TestFlight, which does not
 call it.

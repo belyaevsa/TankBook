@@ -20,14 +20,18 @@ final class DiagnosticsCaseUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 10), "the experiment's row is in About")
         row.tap()
         XCTAssertTrue(app.buttons["diagnosticsCaseSendButton"].waitForExistence(timeout: 10))
+        // Send is enabled once the log has loaded - its size is named then.
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label ENDSWITH %@", " lines")).firstMatch
+            .waitForExistence(timeout: 10), "the log's size is named before anything is sent")
         return app
     }
 
     func testASendShowsTheIdToPassOn() {
         let app = open("sent")
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label ENDSWITH %@", " lines")).firstMatch
-            .waitForExistence(timeout: 10), "the log's size is named before anything is sent")
         app.buttons["diagnosticsCaseSendButton"].tap()
+        let progress = app.staticTexts["diagnosticsCaseProgress"]
+        XCTAssertTrue(progress.waitForExistence(timeout: 5), "the send shows how many files are up")
+        XCTAssertTrue(progress.label.contains("Uploaded"), progress.label)
         let id = app.staticTexts["diagnosticsCaseId"]
         XCTAssertTrue(id.waitForExistence(timeout: 10))
         XCTAssertEqual(id.label, "K7Q2M-9XDRA")

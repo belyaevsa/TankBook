@@ -25,8 +25,10 @@ public sealed record CaseUpload(string Name, string ContentType, byte[] Bytes);
 
 /// <summary>
 /// Debug cases (hard rule 9's debug-cases amendment): a bundle the user chose to
-/// send - the app's log, recent scan photos and their pipeline traces - stored
-/// so the owner can read it by the id the phone shows. The server enforces the
+/// send - the app's log, recent scan photos and their pipeline traces - kept so
+/// the owner can read it by the id the phone shows. Accepted into a local spool
+/// and moved to blob storage after the response, so the phone waits for its own
+/// upload only. The server enforces the
 /// envelope (part count, names, content types, sizes) and never reads a part
 /// (hard rule 9). Works signed out: the case is then stored under the device
 /// identity. Logs carry shape only (hard rule 12).
@@ -42,38 +44,53 @@ public sealed partial class CaseService
     private readonly IBlobStorage _storage;
     private readonly CaseOptions _options;
     private readonly TimeProvider _time;
+    private readonly CaseUploadSignal _signal;
     private readonly ILogger<CaseService> _logger;
 
     public CaseService(CaseRepository repository, IBlobStorage storage, IOptions<CaseOptions> options,
-                       TimeProvider time, ILogger<CaseService> logger)
+                       TimeProvider time, CaseUploadSignal signal, ILogger<CaseService> logger)
     {
         _repository = repository;
         _storage = storage;
         _options = options.Value;
         _time = time;
+        _signal = signal;
         _logger = logger;
     }
 
-    /// <summary>Validates the envelope, stores every part, then the index row; returns the new case.</summary>
+    /// <summary>
+    /// Validates the envelope, writes every part to the spool, registers the case and
+    /// wakes the uploader; the parts reach blob storage after the response
+    /// (<see cref="CaseStorageUploader"/>). A part written to the spool is on disk
+    /// before the row exists, so a registered case always has its files.
+    /// </summary>
     public async Task<CaseRow> AcceptAsync(IReadOnlyList<CaseUpload> uploads, Guid? accountId, Guid deviceId,
                                            string? app, CancellationToken cancellationToken)
     {
         Validate(uploads);
         var id = CaseIds.New();
         var owner = accountId ?? deviceId;
+        var folder = SpoolFolder(id);
+        Directory.CreateDirectory(folder);
         var parts = new List<CasePart>(uploads.Count);
         foreach (var upload in uploads)
         {
-            var key = CaseKeys.PartKey(owner, id, upload.Name);
-            await _storage.PutObjectAsync(key, upload.Bytes, upload.ContentType, cancellationToken);
-            parts.Add(new CasePart(upload.Name, upload.ContentType, upload.Bytes.LongLength, key));
+            var temp = Path.Combine(folder, upload.Name + ".partial");
+            await File.WriteAllBytesAsync(temp, upload.Bytes, cancellationToken);
+            File.Move(temp, Path.Combine(folder, upload.Name), overwrite: true);
+            parts.Add(new CasePart(upload.Name, upload.ContentType, upload.Bytes.LongLength,
+                                   CaseKeys.PartKey(owner, id, upload.Name)));
         }
 
         var row = new CaseRow(id, accountId, deviceId, app, parts, parts.Sum(p => p.Bytes), _time.GetUtcNow());
         await _repository.InsertAsync(row, cancellationToken);
         TankbookLog.CaseAccepted(_logger, id, parts.Count, row.TotalBytes, accountId is not null);
+        _signal.Wake();
         return row;
     }
+
+    /// <summary>The spool folder of one case.</summary>
+    public string SpoolFolder(string caseId) => Path.Combine(_options.SpoolPath, caseId);
 
     /// <summary>
     /// When a case stops being kept, in whole seconds UTC: the wire carries it as plain
@@ -109,8 +126,23 @@ public sealed partial class CaseService
         }
 
         await _storage.DeleteManyAsync(rows.SelectMany(r => r.Parts.Select(p => p.Key)).ToList(), cancellationToken);
+        foreach (var row in rows)
+        {
+            DeleteSpool(row.Id);
+        }
+
         await _repository.DeleteManyAsync(rows.Select(r => r.Id).ToList(), cancellationToken);
         return rows.Count;
+    }
+
+    /// <summary>Removes a case's spool folder; a folder already gone is not an error.</summary>
+    public void DeleteSpool(string caseId)
+    {
+        var folder = SpoolFolder(caseId);
+        if (Directory.Exists(folder))
+        {
+            Directory.Delete(folder, recursive: true);
+        }
     }
 
     private static void Validate(IReadOnlyList<CaseUpload> uploads)

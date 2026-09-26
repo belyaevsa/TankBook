@@ -309,6 +309,9 @@ The events that can only be written at the moment they happen, because after the
 ### Debug cases (AD.3)
 
 `case.accepted` - the case id, the part count, the byte total, whether an account sent it;
+`case.stored` - the case id, part count, byte total and the upload's duration, when the uploader
+has moved a case from the spool to blob storage; `case.storeFailed` (Warning) - the case id, the
+attempt and its limit, a reason code (`spoolMissing` / `storageError`) and whether it gave up;
 `case.purge` - how many cases the 30-day pass dropped. Never a part's name or content (hard rule 12):
 the parts are the user's, and the log is not a second copy of them.
 

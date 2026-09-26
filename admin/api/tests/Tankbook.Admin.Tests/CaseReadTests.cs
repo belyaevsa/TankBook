@@ -31,7 +31,7 @@ public sealed class CaseReadTests(AdminDatabase database) : IAsyncLifetime
             new { name = "scan-1-photo.jpg", contentType = "image/jpeg", bytes = 4L, key = $"{Device:N}/cases/{CaseId}/scan-1-photo.jpg" },
         };
         await c.ExecuteAsync(
-            "INSERT INTO debug_cases (id, device_id, app, parts, total_bytes) VALUES (@id, @device, '1.0.0+1784', CAST(@parts AS jsonb), 15)",
+            "INSERT INTO debug_cases (id, device_id, app, parts, total_bytes, stored_at) VALUES (@id, @device, '1.0.0+1784', CAST(@parts AS jsonb), 15, now())",
             new { id = CaseId, device = Device, parts = JsonSerializer.Serialize(parts) });
         _factory.Blobs[$"{Device:N}/cases/{CaseId}/log.txt"] = Encoding.UTF8.GetBytes("line one\nx");
         _factory.Blobs[$"{Device:N}/cases/{CaseId}/scan-1-photo.jpg"] = [0xFF, 0xD8, 0xFF, 0xD9];
@@ -103,6 +103,20 @@ public sealed class CaseReadTests(AdminDatabase database) : IAsyncLifetime
         using var response = await WithKey("not-the-key").GetAsync($"/api/cases/{CaseId}");
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.Empty(await AccessRowsAsync());
+    }
+
+    [Fact]
+    public async Task ACaseStillUploadingSaysSo_AndServesNoPart()
+    {
+        await using (var c = new NpgsqlConnection(database.Superuser))
+        {
+            await c.ExecuteAsync("UPDATE debug_cases SET stored_at = NULL WHERE id = @id", new { id = CaseId });
+        }
+        var client = Owner();
+        var body = await client.GetFromJsonAsync<JsonElement>($"/api/cases/{CaseId}");
+        Assert.False(body.GetProperty("stored").GetBoolean());
+        using var part = await client.GetAsync($"/api/cases/{CaseId}/parts/log.txt");
+        Assert.Equal(HttpStatusCode.Conflict, part.StatusCode);
     }
 
     [Fact]

@@ -39,7 +39,16 @@ public struct URLSessionTransport: TankbookHTTPTransport {
         // else takes the session's `TransportTimeouts.readJSON` budget.
         urlRequest.timeoutInterval = request.timeoutInterval ?? configuration.timeoutIntervalForRequest
 
-        let (data, response) = try await session.data(for: urlRequest)
+        let data: Data
+        let response: URLResponse
+        if let handler = UploadProgress.handler, let body = request.body {
+            // An upload task reports bytes as they leave the device; a data task does not.
+            urlRequest.httpBody = nil
+            (data, response) = try await session.upload(for: urlRequest, from: body,
+                                                        delegate: UploadProgressDelegate(handler: handler))
+        } else {
+            (data, response) = try await session.data(for: urlRequest)
+        }
         guard let http = response as? HTTPURLResponse else { throw TransportError.notHTTP }
 
         var headers: [String: String] = [:]
@@ -52,5 +61,26 @@ public struct URLSessionTransport: TankbookHTTPTransport {
             headers: headers,
             body: data
         )
+    }
+}
+
+/// A request's upload progress, for the one caller that shows it (the debug case
+/// send). Task-local, so it reaches the transport through every layer between -
+/// the client's redirects, the token refresh, the logging wrapper - without each
+/// of them carrying a callback. Reports the bytes of the request body sent so far.
+public enum UploadProgress {
+    @TaskLocal public static var handler: (@Sendable (Int64) -> Void)?
+}
+
+private final class UploadProgressDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    private let handler: @Sendable (Int64) -> Void
+
+    init(handler: @escaping @Sendable (Int64) -> Void) {
+        self.handler = handler
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64,
+                    totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
+        handler(totalBytesSent)
     }
 }

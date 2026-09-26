@@ -212,13 +212,18 @@ if (!builder.Environment.IsEnvironment("Testing"))
 
 // Debug cases (hard rule 9's debug-cases amendment, docs/API.md "Debug cases"):
 // a bundle the user chose to send, stored opaque for 30 days and read only by
-// the admin viewer. The purge timer is registered outside test hosts only.
+// the admin viewer. Accepted into a local spool; the uploader moves it to blob
+// storage after the response. The purge and upload timers run outside test
+// hosts only.
 builder.Services.AddScoped<CaseRepository>();
 builder.Services.AddScoped<CaseService>();
 builder.Services.AddScoped<CasePurgeService>();
+builder.Services.AddScoped<CaseStorageUploader>();
+builder.Services.AddSingleton<CaseUploadSignal>();
 if (!builder.Environment.IsEnvironment("Testing"))
 {
     builder.Services.AddHostedService<CasePurgeHostedService>();
+    builder.Services.AddHostedService<CaseUploadHostedService>();
 }
 
 // Feedback intake (docs/API.md "Feedback"): a public POST that stores one case.

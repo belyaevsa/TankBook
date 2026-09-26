@@ -67,6 +67,7 @@ fetch() { # <path> <output file>
     200) return 0 ;;
     401) echo "case: the read key was refused (${ENVIRONMENT})" >&2 ;;
     404) echo "case: ${CASE_ID} not found on ${ENVIRONMENT} - wrong id, wrong server, or older than 30 days" >&2 ;;
+    409) echo "case: ${CASE_ID} was received but is still being moved to storage - try again in a minute" >&2 ;;
     429) echo "case: rate-limited, try again in a minute" >&2 ;;
     *) echo "case: ${1} answered ${status}" >&2 ;;
   esac

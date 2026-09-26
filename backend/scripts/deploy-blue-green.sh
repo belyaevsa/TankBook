@@ -43,6 +43,12 @@ SERVE_PORT="${TANKBOOK_SERVE_PORT:-17080}"     # what external nginx proxies to
 SCRATCH_PORT="${TANKBOOK_SCRATCH_PORT:-17081}" # verification only, never public
 STATE_DIR="${TANKBOOK_API_DIR:-/opt/tankbook/api}"
 STATE_FILE="${STATE_DIR}/active"
+# Debug cases wait here between the response and blob storage (docs/API.md
+# "Debug cases"). A HOST folder mounted into every colour, so a case accepted
+# just before a deploy is uploaded by the container that replaces it; the
+# uploader's database claim keeps two containers off the same case.
+SPOOL_DIR="${STATE_DIR}/case-spool"
+SPOOL_MOUNT="/var/lib/tankbook/case-spool"
 HEALTH_ATTEMPTS="${TANKBOOK_HEALTH_ATTEMPTS:-40}"
 HEALTH_DELAY="${TANKBOOK_HEALTH_DELAY:-3}"
 
@@ -183,10 +189,18 @@ docker run --rm --env-file "$ENV_FILE" \
     || fail "migrations failed; ${current_colour:-nothing} is still serving and no container was replaced"
 log "migrations applied"
 
+# The container runs as the image's non-root `app` user (UID 1654, backend/Dockerfile),
+# which must own the spool; the image itself sets that, so no host sudo is needed.
+mkdir -p "$SPOOL_DIR"
+docker run --rm --user root --entrypoint /bin/sh -v "${SPOOL_DIR}:${SPOOL_MOUNT}" "$IMAGE" \
+    -c "chown 1654:1654 ${SPOOL_MOUNT} && chmod 700 ${SPOOL_MOUNT}" \
+    || fail "could not prepare the case spool at ${SPOOL_DIR}"
+
 # --- 2. verify the new image on a scratch port ------------------------------
 docker rm -f "${target_container}-verify" >/dev/null 2>&1 || true
 docker run -d --name "${target_container}-verify" \
     --env-file "$ENV_FILE" \
+    -v "${SPOOL_DIR}:${SPOOL_MOUNT}" -e "Cases__SpoolPath=${SPOOL_MOUNT}" \
     --publish "127.0.0.1:${SCRATCH_PORT}:8080" \
     "$IMAGE" >/dev/null || fail "could not start the verification container"
 
@@ -210,6 +224,7 @@ fi
 docker rm -f "$target_container" >/dev/null 2>&1 || true
 if ! docker run -d --name "$target_container" \
         --env-file "$ENV_FILE" \
+        -v "${SPOOL_DIR}:${SPOOL_MOUNT}" -e "Cases__SpoolPath=${SPOOL_MOUNT}" \
         --restart unless-stopped \
         --publish "127.0.0.1:${SERVE_PORT}:8080" \
         "$IMAGE" >/dev/null; then

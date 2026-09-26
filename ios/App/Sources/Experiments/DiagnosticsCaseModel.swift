@@ -13,7 +13,8 @@ final class DiagnosticsCaseModel {
     enum State: Equatable {
         case loading
         case ready
-        case sending
+        /// Parts fully uploaded, of the parts in the case.
+        case sending(uploaded: Int, total: Int)
         case sent(DebugCaseReceipt)
         case failed(DebugCaseError)
     }
@@ -23,9 +24,10 @@ final class DiagnosticsCaseModel {
     private(set) var scans: [ScanHistory.Entry] = []
     var includeScans = true
 
-    private let send: @Sendable ([DebugCasePart]) async throws -> DebugCaseReceipt
+    typealias Progress = @Sendable (Int, Int) -> Void
+    private let send: @Sendable ([DebugCasePart], @escaping Progress) async throws -> DebugCaseReceipt
 
-    init(send: @escaping @Sendable ([DebugCasePart]) async throws -> DebugCaseReceipt) {
+    init(send: @escaping @Sendable ([DebugCasePart], @escaping Progress) async throws -> DebugCaseReceipt) {
         self.send = send
     }
 
@@ -39,14 +41,25 @@ final class DiagnosticsCaseModel {
         if state == .loading { state = .ready }
     }
 
+    var isSending: Bool {
+        if case .sending = state { return true }
+        return false
+    }
+
     func submit() async {
-        guard state != .sending else { return }
-        state = .sending
+        guard !isSending else { return }
         let parts = DebugCase.parts(log: logText, scans: includeScans ? scans : [],
                                     app: LogContext.currentAppVersion(),
                                     build: Bundle.main.object(forInfoDictionaryKey: "TankbookBuildCommit") as? String)
+        state = .sending(uploaded: 0, total: parts.count)
         do {
-            state = .sent(try await send(parts))
+            let receipt = try await send(parts) { uploaded, total in
+                Task { @MainActor [weak self] in
+                    guard let self, case .sending(let shown, _) = self.state, uploaded > shown else { return }
+                    self.state = .sending(uploaded: uploaded, total: total)
+                }
+            }
+            state = .sent(receipt)
         } catch let error as DebugCaseError {
             state = .failed(error)
         } catch {
@@ -66,7 +79,7 @@ final class DiagnosticsCaseModel {
                                            tokenProvider: KeychainTokenProvider(sessionStore: sessionStore)),
             director: AppConfigStore.shared.director,
             deviceID: ImportService.deviceID(sessionStore: sessionStore))
-        return DiagnosticsCaseModel { parts in try await client.send(parts) }
+        return DiagnosticsCaseModel { parts, progress in try await client.send(parts, progress: progress) }
     }
 
     #if DEBUG
@@ -77,8 +90,14 @@ final class DiagnosticsCaseModel {
             return nil
         }
         let outcome = arguments[index + 1]
-        return DiagnosticsCaseModel { _ in
-            try await Task.sleep(for: .milliseconds(300))
+        return DiagnosticsCaseModel { parts, progress in
+            // About 1.8 s in all, however many parts: long enough to see the
+            // progress, short enough for a UI test's wait.
+            let step = max(60, 1_800 / max(parts.count, 1))
+            for uploaded in 1...max(parts.count, 1) {
+                try await Task.sleep(for: .milliseconds(step))
+                progress(uploaded, parts.count)
+            }
             switch outcome {
             case "offline": throw DebugCaseError.offline
             case "tooLarge": throw DebugCaseError.tooLarge

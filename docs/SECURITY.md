@@ -427,7 +427,11 @@ actually captured. One internal tool reads three kinds of user content; these ar
   Received by `POST /v1/cases` (additive, hard rule 16, docs/API.md -> Debug cases): every part
   goes to the blob store under the sender's prefix (`{owner}/cases/{caseId}/{part}`), and the
   `debug_cases` row (migration 026) holds only the envelope - part names, content types, sizes.
-  The server never reads a part (hard rule 9).
+  The server never reads a part (hard rule 9). Between the response and blob storage the parts
+  sit in the API host's **spool** (`/opt/tankbook/api/case-spool`, mode 700, owned by the
+  container's non-root user) - usually for under a second; the spool folder is deleted once the
+  parts are stored, and the 30-day and account purges delete a spool folder that was never
+  uploaded.
 - **The LLM call ledger** - rows and prompt renditions, joined to a case by `traceId`.
 - **An account's synced attachments**, by account id.
 
