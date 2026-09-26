@@ -40,7 +40,9 @@ struct RV153TotalPrecedenceTests {
     // receipt-055: the volume OCRs as `17,56L` (truth 77,56L), so the product is
     // 33.96 - but the receipt prints its total twice, `KOKKU 150,00` and
     // `KK MAKSE 150,00 EUR`, both read at confidence 1.00. The printed total,
-    // corroborated by two independent label reads, is the amount.
+    // corroborated by two independent label reads, is the amount - and the
+    // volume those two reads and the marked price outvote is not committed at
+    // all (`volumeContradictedByCorroboratedTotal`); the user types it.
     @Test("receipt-055: a misread volume must not outrank the printed 150.00")
     func printedTotalBeatsMisreadVolumeProduct() {
         let result = FuelExtractor().extract(lines: [
@@ -52,7 +54,7 @@ struct RV153TotalPrecedenceTests {
             line("KK MAKSE", midX: 0.413, midY: 0.384),
             line("150,00 EUR2", midX: 0.766, midY: 0.382)
         ])
-        #expect(result.liters == 17.56)
+        #expect(result.liters == nil, "the misread 17,56 is outvoted, never committed")
         #expect(result.unitPrice == decimal("1.934"))
         #expect(result.total == decimal("150.00"),
                 "17,56 x 1,934 = 33,96 must not outrank the printed 150,00")

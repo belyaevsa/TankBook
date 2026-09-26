@@ -152,6 +152,7 @@ struct CorpusAccuracyGateTests {
             default: scored = try await scoreClass(name)
             }
             let recorded = highWater.recorded(for: name)
+            print("L5 \(name): \(scored.hits)/\(scored.total) (mark \(recorded.hits)/\(recorded.total))")
             if let violation = AccuracyRatchet.violation(
                 name: name,
                 currentHits: scored.hits,
@@ -371,6 +372,11 @@ struct CorpusAccuracyGateTests {
                 let ocr = try await TestOCR.recognizeText(in: photo, languages: languages)
                 let regenerated = ocr.map(\.text).joined(separator: "\n") + "\n"
                 let dumpURL = folder.appendingPathComponent(row.filename)
+                // `VISION_REWRITE_DUMPS=1` on the measured runtime rewrites the
+                // dump from this OCR (scripts/vision-suites.sh); review its diff.
+                if ProcessInfo.processInfo.environment["VISION_REWRITE_DUMPS"] == "1" {
+                    try regenerated.write(to: dumpURL, atomically: true, encoding: .utf8)
+                }
                 let committed = try? String(contentsOf: dumpURL, encoding: .utf8)
                 let drift = committed.flatMap { $0 == regenerated ? nil
                     : "\(row.filename): the committed Vision dump differs from a fresh OCR of "
@@ -413,7 +419,8 @@ struct CorpusAccuracyGateTests {
                 .appendingPathComponent("ios/App/Resources/PumpSegments.mlpackage")
         guard let model = try? PumpSegmentsModel(contentsOf: modelURL) else { return nil }
         return PumpReaderHandle(reader: PumpReader(model: model,
-                                                   detector: PumpReaderTestSupport.makeDetector()))
+                                                   detector: PumpReaderTestSupport.makeDetector(),
+                                                   rowReader: PumpReaderTestSupport.makeRowReader()))
     }
 
     private func extractRecords(folder: URL, images: [URL], expected: [String: ExpectedRow],
@@ -449,10 +456,13 @@ struct CorpusAccuracyGateTests {
                let rgb = PumpReaderTestSupport.loadRGB(url: image),
                let cgImage = PumpQuadWarp.makeImage(rgb.pixels, width: rgb.width, height: rgb.height) {
                 let currency = expected[image.lastPathComponent]?.currency
+                // No wall-clock cap, as the live floor measures: a Debug build in
+                // the simulator runs the verifier several times slower than the
+                // Release app, so the app's cap would score this runtime's speed.
                 let reading = PumpDisplayCapture.classify(
                     image: cgImage, reader: pumpReader, currency: currency,
                     priceBand: DefaultFuelPriceBandProvider(pack: pack).currencyBand(currency: currency),
-                    rotationCW: 0).reading
+                    budget: .infinity, rotationCW: 0).reading
                 if let reading {
                     result.liters = reading.extraction.liters ?? result.liters
                     result.unitPrice = reading.extraction.unitPrice ?? result.unitPrice

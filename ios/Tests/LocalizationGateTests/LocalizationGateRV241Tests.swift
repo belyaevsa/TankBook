@@ -5,8 +5,8 @@ import Testing
 /// RV.241 (docs/TASKS.md; docs/JOURNEYS.md J1): the Welcome screen names what
 /// the build does, in both directions. The tagline promised EV charging
 /// (`PJ.49`, v2 - an EV cannot log a single charge) and the feature row promised
-/// pump-display scanning, which ships off (`PumpPhotoGate.allowsPumpPhoto ==
-/// false`); the same rule `PJ.51` applied to the store listing. The guest Home's
+/// pump-display scanning, which ships off (the `pumpPhoto` flag is off in the
+/// bundled config); the same rule `PJ.51` applied to the store listing. The guest Home's
 /// import card promised Fuelio, which the server does not register (`RV.190`
 /// names Drivvo and My Fuel Manager).
 ///

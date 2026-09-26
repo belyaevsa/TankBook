@@ -17,6 +17,14 @@ enum CapturePipeline {
     /// (receipts arrive in RU/KZ/EE with Latin and Cyrillic text).
     static let languages = ["en-US", "de-DE", "pl-PL", "cs-CZ", "ru-RU"]
 
+    /// Whether pump photos are offered as an ordinary pre-fill rather than
+    /// framed as alpha: the owner's `pumpPhoto` flag, which the build's
+    /// accuracy gate caps (`ConfigStore.isEnabled`, `PumpPhotoGate`). Off
+    /// until the owner turns it on, whatever the gate.
+    static var pumpPhotoEnabled: Bool {
+        AppConfigStore.shared.store?.isEnabled(.pumpPhoto) ?? false
+    }
+
     /// The whole path: image in, a `ConfirmPrefill` out. A `UIImage` with no
     /// `CGImage`, or OCR that resolves nothing, produces an all-nil extraction -
     /// which the Confirm sheet renders as the ordinary empty manual form, never
@@ -101,7 +109,7 @@ enum CapturePipeline {
             prefill.provenance = .pumpPhoto
             prefill.pumpCaution = pumpReading?.law.caution
             prefill.pumpAlpha = PumpPhotoCapture.outcome(
-                pumpPhotoEnabled: PumpPhotoGate.allowsPumpPhoto, extraction: assembly.extraction).alpha
+                pumpPhotoEnabled: pumpPhotoEnabled, extraction: assembly.extraction).alpha
         }
         return prefill
     }

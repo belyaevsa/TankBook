@@ -6,23 +6,36 @@ import Testing
 /// expense `.txt` dumps - are measurements of ONE Vision runtime, the way the
 /// L4 snapshot baselines are measurements of one simulator runtime
 /// (`docs/TESTING.md` -> "The OCR accuracy suites are runtime-specific"). On a
-/// different major OS the recognizer reads the same pixels differently, and a
-/// red there says nothing about the parser. Those suites therefore run only
-/// on the runtime they were measured on and skip, with this reason, elsewhere.
+/// different OS the recognizer reads the same pixels differently, and a red
+/// there says nothing about the parser. The measured runtime is the iOS
+/// simulator's - the iOS build of Vision, the nearest this project gets to a
+/// phone without one - so these suites run only there
+/// (`scripts/vision-suites.sh`) and skip, with this reason, everywhere else.
 enum VisionMeasuredRuntime {
-    /// The macOS major version the corpus numbers were recorded on.
-    static let measuredMajorVersion = 26
+    /// The iOS major version the corpus numbers were recorded on.
+    static let measuredMajorVersion = 27
 
     static var isCurrent: Bool {
-        ProcessInfo.processInfo.operatingSystemVersion.majorVersion == measuredMajorVersion
+        if ProcessInfo.processInfo.environment["VISION_MEASURE_ANYWAY"] == "1" { return true }
+        #if os(iOS)
+        return ProcessInfo.processInfo.operatingSystemVersion.majorVersion == measuredMajorVersion
+        #else
+        return false
+        #endif
     }
 
     static var skipReason: Comment {
         let current = ProcessInfo.processInfo.operatingSystemVersion
+        #if os(iOS)
+        let here = "iOS"
+        #else
+        let here = "macOS"
+        #endif
         return Comment(rawValue:
-            "OCR accuracy numbers were measured on macOS \(measuredMajorVersion); this is "
-            + "macOS \(current.majorVersion).\(current.minorVersion), where Vision reads the corpus "
-            + "differently (docs/TESTING.md -> \"The OCR accuracy suites are runtime-specific\")")
+            "OCR accuracy numbers are measured on the iOS \(measuredMajorVersion) simulator; this is "
+            + "\(here) \(current.majorVersion).\(current.minorVersion), where Vision reads the corpus "
+            + "differently (docs/TESTING.md -> \"The OCR accuracy suites are runtime-specific\"; "
+            + "scripts/vision-suites.sh runs them)")
     }
 }
 

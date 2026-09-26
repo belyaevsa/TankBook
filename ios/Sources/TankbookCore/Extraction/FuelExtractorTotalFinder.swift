@@ -307,10 +307,18 @@ extension FuelExtractor {
            let value = NumberScanner.value(in: label.text) {
             return value
         }
-        // Adjacent value lines (reading order), for receipts where the value
-        // sits on its own row above or below the label.
-        if index > 0, let value = adjacentValue(lines[index - 1]) { return value }
-        if index + 1 < lines.count, let value = adjacentValue(lines[index + 1]) { return value }
+        // Adjacent value lines, for receipts where the value sits on its own row
+        // above or below the label. Lines with no geometry are plain text in
+        // reading order, where a total's figure follows its label and the row
+        // before is often the last line item's amount (`=2380.00 НДС 5%` above
+        // `ИТОГ 2525.00`) or a column figure above a document label: the row
+        // after is tried first. Vision's own array order is not reading order,
+        // so a located line keeps the row before first.
+        let after = index + 1 < lines.count ? adjacentValue(lines[index + 1]) : nil
+        let before = index > 0 ? adjacentValue(lines[index - 1]) : nil
+        if label.boundingBox == .zero, let after { return after }
+        if let before { return before }
+        if let after { return after }
         return nil
     }
 

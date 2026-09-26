@@ -12,6 +12,14 @@ import Testing
 enum TestOCR {
     static let attempts = 3
 
+    /// `VISION_SERIAL=1` - set by `scripts/vision-suites.sh` - runs one OCR at a
+    /// time, the way a phone reads one photo. In the iOS simulator concurrent
+    /// requests read some receipts differently from a lone one (`receipt-083`
+    /// read alone is the same every time; inside the parallel suite it varied
+    /// run to run), so the measured runtime's marks are taken one at a time.
+    static let serial = ProcessInfo.processInfo.environment["VISION_SERIAL"] == "1"
+    private static let lock = SerialLock()
+
     static func recognizeText(in url: URL, languages: [String]) async throws -> [OCRLine] {
         try await retrying { try await VisionTextRecognizer.recognizeText(in: url, languages: languages) }
     }
@@ -32,6 +40,19 @@ enum TestOCR {
     }
 
     static func retrying(_ body: () async throws -> [OCRLine]) async throws -> [OCRLine] {
+        guard serial else { return try await retryingConcurrently(body) }
+        await lock.acquire()
+        do {
+            let lines = try await retryingConcurrently(body)
+            await lock.release()
+            return lines
+        } catch {
+            await lock.release()
+            throw error
+        }
+    }
+
+    private static func retryingConcurrently(_ body: () async throws -> [OCRLine]) async throws -> [OCRLine] {
         var attempt = 1
         while true {
             do {
@@ -72,5 +93,27 @@ struct TestOCRRetryTests {
             _ = try await TestOCR.retrying { exhausted += 1; throw RuntimeFailure() }
         }
         #expect(exhausted == TestOCR.attempts)
+    }
+}
+
+/// A one-holder async lock: `acquire` suspends until the holder releases.
+private actor SerialLock {
+    private var held = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func acquire() async {
+        guard held else {
+            held = true
+            return
+        }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func release() {
+        if waiters.isEmpty {
+            held = false
+        } else {
+            waiters.removeFirst().resume()
+        }
     }
 }

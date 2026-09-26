@@ -1,67 +1,65 @@
 Arve Nr. C2654962727
 Väljastamise kuupäev: 14.09.2026
 Sale date: 14.09.2026
-shaBb
+shaBB
 Maksetähtaeg: 14.09.2026
 Tasumisviis: Card
 Ostja
 Müüja
+Snabb OU
 9126002644@mail.ru
-Snabb OÜ
 Veerenni tn 40a
 visa_applepay **** 9404
 10138 Tallinn, Eesti
 KMKR nr EE101780601
 https://snabb.xyz
 info@snabb.ee
+Kokku ilma
+Kokku
 Ühiku
 Maksu% %
 Maksu
-Kokku ilma
-Kokku
+Nr.
 Kogus
 Kirje
-Nr.
-netohind
-maksudega
-summa
 maksudeta
+maksudega
+netohind
+summa
 1
-1
+4,00
 3,23
 24
 3,23
-PARKING
 0,77
-4,00
+PARKING
 10:51 14.09.2026 - 18:12 14.09.2026 Akadeemia
 tee 15b, Tallinn (X237); Söiduki numbrimärk:
 004TXK
-24
 0,31
-1
-Snabbi teenustasu
+0,31
 0,08
+Snabbi teenustasu
 2
+24
 0,39
-0,31
-Maksumäär
 24
 3,54
 0,85
+4,39
+Maksumäär
+0,85
+3,54
 4,39
 Kokku
-3,54
-0,85
-4,39
-3,54 EUR
 Kokku ilma maksudeta
-0,85 EUR
+3,54 EUR
 Maksu summa
+0,85 EUR
 Kokku maksudega
 4,39 EUR
-TASUTUD
+TASUTUT
 Tasutud
 4,39 EUR
-Kokku tasuda
 0,00 EUR
+Kokku tasuda

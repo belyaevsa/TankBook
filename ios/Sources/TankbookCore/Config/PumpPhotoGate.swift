@@ -36,20 +36,22 @@ public enum PumpPhotoGate {
     /// (liters, unitPrice, total - blanks skipped). `fuelKind` is never scored for a
     /// pump (the spec forbids inferring it) and `currency` is reported
     /// separately, never in the gate.
-    public static let measuredCommittedCorrect: Int = 53
+    public static let measuredCommittedCorrect: Int = 117
 
     /// Numeric cells the parser committed to at build time (the coverage
     /// numerator). A cell it abstained on - a correct refusal or an honest
     /// miss - is not committed.
     ///
-    /// Committed exceeds `measuredCommittedCorrect`: three committed values in
-    /// the corpus are WRONG, so precision is no longer 100%. That is the corpus
-    /// doing its job - the mode is off on coverage and on precision too.
-    public static let measuredCommitted: Int = 56
+    /// Committed exceeds `measuredCommittedCorrect` by the cells `expected.csv`
+    /// scores against the paper where the display differs (pump-031's receipt
+    /// discount) and the pair tier's cautioned totals; the composite is a
+    /// record here, and `allowsPumpPhoto` decides on the reader's own heldout
+    /// numbers below.
+    public static let measuredCommitted: Int = 120
 
     /// Numeric cells the parser resolved correctly at build time (recall, kept
     /// for legibility - the gate no longer runs on it).
-    public static let measuredNumericHits: Int = 53
+    public static let measuredNumericHits: Int = 117
 
     /// The numeric cells the pump corpus scores (B1). Not one per fixture x 3: blank
     /// numeric cells stay skipped (glare on a total, the two idle pumps have no
@@ -61,35 +63,29 @@ public enum PumpPhotoGate {
     /// does; the ratchet test asserts they match it. They describe the measured
     /// corpus, not a target - the ship decision is `violation(flagEnabled:)`
     /// against the precision threshold and coverage floor below.
-    public static let measuredNumericTotal: Int = 922
+    public static let measuredNumericTotal: Int = 186
 
     // MARK: - The reader's own measurement (PU.61)
     //
-    // The constants above are the COMPOSITE score - the reader with the rules
-    // arm behind it, the path `CapturePipeline` runs - and they are recorded on
-    // the Vision runtime they were measured on, so the test that binds them
-    // (`CorpusAccuracyGateTests`) skips on any other macOS. For the whole pump
-    // tranche that meant the gate's binding test did not execute at all on the
-    // development machine.
+    // The constants above are the COMPOSITE score over the heldout split - the
+    // reader with the rules arm behind it, the path `CapturePipeline` runs -
+    // recorded on the measured Vision runtime (the iOS simulator), where
+    // `CorpusAccuracyGateTests` binds them.
     //
-    // These three are the reader's own numbers over the frozen heldout split,
-    // measured through the app's entry point (`PumpDisplayCapture.classify`:
-    // the display decision, then the read). The decision's text-line count is
-    // a Vision measurement; everything else is Core ML and the law, so the test
-    // that binds them (`PumpReaderPipelineTests.livePath`) runs on every
-    // runtime, and a change to the reader has somewhere in the gate to land. They are not a
-    // second gate: `allowsPumpPhoto` is still decided by the composite above,
-    // because the composite is what the user meets.
+    // These three are the reader's own numbers over the same split, measured
+    // through the app's entry point (`PumpDisplayCapture.classify`: the display
+    // decision, then the read) on the measured runtime, and bound by
+    // `PumpReaderPipelineTests.livePath` there. They decide `allowsPumpPhoto`.
 
     /// Numeric cells the READER committed over the heldout split, of
     /// `readerNumericTotal`.
-    public static let readerCommitted: Int = 117
+    public static let readerCommitted: Int = 119
 
     /// Of `readerCommitted`, the cells that match the corpus. The one cell
     /// short of `readerCommitted` is a pair-tier total committed with the
     /// shown-price caution (`PumpReadingCaution.shownPriceDiffers`), which
     /// reaches Confirm flagged; no wrong cell is committed without a caution.
-    public static let readerCommittedCorrect: Int = 116
+    public static let readerCommittedCorrect: Int = 118
 
     /// The numeric cells the heldout split asserts (liters, unitPrice, total;
     /// blanks skipped), the reader's coverage denominator.
@@ -132,11 +128,16 @@ public enum PumpPhotoGate {
         measuredNumericTotal > 0 ? Double(measuredCommitted) / Double(measuredNumericTotal) : 0
     }
 
-    /// Whether this build may offer pump-photo mode. The gate, not the remote
-    /// flag, is the deciding input: `ConfigStore.isEnabled(.pumpPhoto)` is false
-    /// regardless of rollout while this is false.
+    /// Whether this build MAY offer pump-photo mode: the reader's own heldout
+    /// precision and coverage clear the gate. The composite (the rules arm
+    /// filling what the reader refused) adds no committed cell over the reader
+    /// on the measured runtime (`PumpCompositeArmsTests`), so the reader's
+    /// measurement is what the user meets. It is a ceiling, not the switch:
+    /// `ConfigStore.isEnabled(.pumpPhoto)` - the owner's flag, off in the
+    /// bundled config - is what the capture path reads, and it is false
+    /// whatever the rollout while this is false.
     public static var allowsPumpPhoto: Bool {
-        measuredPrecision >= precisionThreshold && measuredCoverage >= coverageFloor
+        readerPrecision >= precisionThreshold && readerCoverage >= coverageFloor
     }
 
     /// The gate as a check: nil when a flag state is consistent with the build's

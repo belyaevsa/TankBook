@@ -29,7 +29,8 @@ struct PumpCompositeArmsTests {
         let modelURL = PumpReaderTestSupport.repoRoot
             .appendingPathComponent("ios/App/Resources/PumpSegments.mlpackage")
         let handle = PumpReaderHandle(reader: PumpReader(model: try PumpSegmentsModel(contentsOf: modelURL),
-                                                         detector: PumpReaderTestSupport.makeDetector()))
+                                                         detector: PumpReaderTestSupport.makeDetector(),
+                                                         rowReader: PumpReaderTestSupport.makeRowReader()))
         let pack = try FuelPriceBandStore.bundledPack()
         let bands = DefaultFuelPriceBandProvider(pack: pack)
         let extractor = FuelExtractor(bandProvider: bands)

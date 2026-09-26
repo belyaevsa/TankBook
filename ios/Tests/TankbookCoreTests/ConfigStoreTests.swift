@@ -512,22 +512,23 @@ private func cacheFileURL(directory: URL) -> URL {
     #expect(store.isEnabled(.pumpPhoto) == false)
 }
 
-@Test func remoteConfigCannotEnablePumpPhotoWhileTheGateFails() throws {
+@Test func remoteConfigCannotEnablePumpPhotoBeyondTheGate() throws {
     let directory = tempDirectory()
     defer { try? FileManager.default.removeItem(at: directory) }
 
     // A config that tries to enable pumpPhoto at 100% rollout. The accuracy gate
-    // (PumpPhotoGate, measured below the precision/coverage gate) must keep the
-    // flag off regardless - a remote document cannot flip an accuracy gate into
-    // truth (docs/CONFIG.md -> "Config can never disable a security control").
+    // (PumpPhotoGate) is the ceiling: the flag reads on only when the build's
+    // measured reader clears the gate - a remote document cannot flip an
+    // accuracy gate into truth (docs/CONFIG.md -> "Config can never disable a
+    // security control").
     let onData = makeDocument(apiBaseURL: "https://api.tankbook.live",
                               flags: "{\"pumpPhoto\":{\"enabled\":true,\"rolloutPercent\":100}}")
     let onDoc = try ConfigDocument.parse(onData)
     let onBundled = AppConfig(document: onDoc, apiBaseURL: onDoc.apiBaseURL!)
     let store = makeStore(bundled: onBundled, directory: directory)
 
-    #expect(store.isEnabled(.pumpPhoto) == false,
-            "the accuracy gate must keep pumpPhoto off despite a 100% rollout")
+    #expect(store.isEnabled(.pumpPhoto) == PumpPhotoGate.allowsPumpPhoto,
+            "a 100% rollout reads on exactly when the accuracy gate allows it")
 }
 
 // MARK: - 15. Key coverage

@@ -11,6 +11,15 @@ decisions.
 
 ---
 
+## 2026-09-26 · The OCR accuracy suites are measured in the iOS 27 simulator
+
+| | |
+|---|---|
+| **Commits** | this entry's commit (`scripts/vision-suites.sh`, `VisionMeasuredRuntime.swift`, `HostProcessStandIn.swift`, `docs/TESTING.md` -> "The OCR accuracy suites are runtime-specific", the re-recorded `high-water.json`) |
+| **Reason** | Product owner, 2026-09-25: *"can we run reader on an emulator? to validate the number?"*, then *"yeah, let's use ios 27 simulator for measure"*. This reverses 2026-09-18's decision to keep the macOS 26 numbers and skip everywhere else, which left the suites running nowhere on the development machine (macOS 27) for a week. |
+| **Evidence** | One probe over the 98 receipts, the same extraction path on both: **macOS 27** - 4 confidently wrong totals, 8 wrong volumes; **iOS 27 simulator** - 1 and 4, with different receipts wrong (`receipt-062` reads 1.0 L for 30.0 L on iOS only, `receipt-003/005/032` read 2.0 L for 20.0 L on macOS only). macOS is not a stand-in for the phone. The simulator's run found two parser defects the app ships on iOS 27 (`receipt-025`'s misread printed fuel line, `receipt-057`'s occluded price), fixed before the marks were recorded. The pump reader reads the same or better in the simulator (live 119 / 118 against 117 / 116 on macOS). |
+| **What changed** | The measured runtime is the iOS 27 simulator; `scripts/vision-suites.sh` runs the package's test target there with the measured suites only; `swift test` on a Mac skips them with the reason printed; a task touching the parsers, the pump reader or a fixture runs the script (~15 minutes, not in `gate.sh`). The device itself stays `RV.295`'s. |
+
 ## 2026-09-24 · Experiments ship to the beta, and leave it only by the owner's decision
 
 | | |

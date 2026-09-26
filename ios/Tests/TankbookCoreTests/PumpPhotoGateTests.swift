@@ -38,13 +38,18 @@ struct PumpPhotoGateTests {
         #expect(PumpPhotoGate.violation(flagEnabled: true, precision: 1.0, coverage: 1.0) == nil)
     }
 
-    @Test("allowsPumpPhoto requires both precision and coverage")
+    @Test("allowsPumpPhoto is the reader's measured precision and coverage against the gate")
     func allowsPumpPhotoRequiresBoth() {
         #expect(PumpPhotoGate.precisionThreshold == 0.99)
         #expect(PumpPhotoGate.coverageFloor == 0.60)
-        // A build that is precise but commits nothing must not ship.
-        #expect(PumpPhotoGate.allowsPumpPhoto == false,
-                "the mode must stay off while the measured corpus is below the gate")
+        #expect(PumpPhotoGate.allowsPumpPhoto
+                == (PumpPhotoGate.readerPrecision >= 0.99 && PumpPhotoGate.readerCoverage >= 0.60))
+    }
+
+    @Test("the gate is a ceiling: the bundled config keeps pump photo off until the owner turns it on")
+    func bundledFlagIsOff() throws {
+        let flag = try ConfigDefaults.bundledAppConfig().flags["pumpPhoto"]
+        #expect(flag?.enabled == false)
     }
 }
 

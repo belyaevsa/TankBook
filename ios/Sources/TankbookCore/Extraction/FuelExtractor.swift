@@ -68,9 +68,19 @@ public struct FuelExtractor: Sendable {
             )
             result.liters = volumePrice.liters
             result.total = resolveTotal(lines, liters: result.liters, unitPrice: volumePrice.price)
+            var price = volumePrice.price
+            if let reread = volumeAgainstTotal(candidates, liters: result.liters, price: price, total: result.total,
+                                               currency: result.currency, fuelKind: result.fuelKind,
+                                               date: parsedDate) {
+                result.liters = reread.liters
+                price = reread.price
+            }
+            if volumeContradictedByCorroboratedTotal(lines, liters: result.liters, price: price, total: result.total) {
+                result.liters = nil
+            }
             // Money is born Decimal here (P2.2b); RV.282 guards pick the price.
             result.unitPrice = reconciledUnitPrice(
-                volumePrice.price, liters: result.liters, total: result.total, in: lines
+                price, liters: result.liters, total: result.total, in: lines
             ).flatMap {
                 ConfirmFormat.decimal(fromExtraction: $0,
                                       fractionDigits: ConfirmFormat.fractionDigits(for: .unitPrice))
@@ -322,6 +332,7 @@ public struct FuelExtractor: Sendable {
         var price: Double?
         for (index, line) in lines.enumerated() {
             if volume == nil, line.text.firstMatch(of: /[xXхХ*·×]/) == nil, line.text.hasVolumeMarker,
+               !line.text.isUnitLegend,
                let value = NumberScanner.numbers(in: line.text).first {
                 volume = value
             }
@@ -354,6 +365,15 @@ public struct FuelExtractor: Sendable {
         var fuelLine: Double?
         if let printedSum = printedFuelLineSum(in: lines) {
             fuelLine = printedSum
+            // The printed figure outranks the product only while it agrees with
+            // its own operands. When it does not, and the document's accounting
+            // - the grand total less every other operand line's product -
+            // reproduces the product, the printed figure is the misread (a `6`
+            // read as `8` beside `43.38 Х 38.28`, receipt-025 on iOS).
+            if let product = (liters.flatMap { l in unitPrice.map { l * $0 } }) ?? fuelOperandProduct(in: lines),
+               productOutranksPrintedFuelLine(printedSum, product: product, in: lines) {
+                fuelLine = product
+            }
         } else if let liters, let unitPrice {
             fuelLine = ExtractionCrossCheck.printedFuelLineAmount(
                 lines, liters: liters, unitPrice: unitPrice
@@ -616,6 +636,13 @@ extension String {
     var hasVolumeMarker: Bool {
         firstMatch(of: /\d\s*[лЛL](?:ИТР?|итр?)?(?!\p{L})/) != nil
             || firstMatch(of: /(?:^|[^\p{L}])[лЛL]\s*\d/) != nil
+    }
+
+    /// A unit-conversion legend - `1 ЕД. = 1 ЛИТР ДЛЯ НЕФТЕПРОДУКТОВ`, `1 ЕД. = 1 М3
+    /// ДЛЯ КПГ` - names what a unit means, never how much was bought, though it
+    /// carries a litre marker beside a number.
+    var isUnitLegend: Bool {
+        firstMatch(of: /=\s*1\s*(?:[лЛL](?:ИТР|итр)|[мМM][3З])/) != nil
     }
 
     var hasPriceMarker: Bool {

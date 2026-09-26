@@ -1,11 +1,12 @@
 {
+  "_note_2026_09_26": "Re-recorded on the measured runtime, the iOS 27 simulator (docs/TESTING.md -> runtime-specific; scripts/vision-suites.sh, one OCR at a time). Every earlier mark was a macOS 26 measurement. Recorded after RV.307 fixed the iOS 27 reads that committed a wrong value (receipt-025 printed fuel line, receipt-057 occluded price, receipt-062 unit legend, receipt-083 outvoted volume, two expense totals) and receipt-080/081's corpus rows were corrected (litres and price swapped). The pump class is scored on the heldout split only since PU.61 (186 cells, the composite with the row reader, no wall-clock cap). Two serial runs on this tree agreed exactly.",
   "receipts": {
-    "hits": 286,
+    "hits": 348,
     "total": 468
   },
   "pump": {
-    "hits": 53,
-    "total": 922
+    "hits": 117,
+    "total": 186
   },
   "_note_2026_09_20b": "pump-214..216 - three owner captures of the Cyrillic-labelled Gilbarco Veeder-Root head: pump-214 3478,52 / 67,14 at 51,81 (RUB, day, no padding); pump-215 a Lukoil head, zero-padded 00809,59 / 00015,11 at 053,58 with the four-grade board lit (053,58 / 045,08 / 048,16 / 053,89 - the first cell IS the transaction price); pump-216 the same head at night, 1042,00 / 20,00 at 52,10, board unlit. Every triple closes exactly. Telegram-routed PNGs transcoded to JPEG with the APP1 stripped; all three train (decision 9); windows drawn by hand (13). Beside them video-004 in pump-live: the Kyrgyz Veeder-Root display counting up through a 66 L diesel fill at 99,9 som/L. Plus pump-217, an Australian Veeder-Root in cents per litre: $277.42 / 196.89 L at 140.9 (CSV 1.409, AUD), E85 lit on a four-grade ladder (diesel 125.7, ethanol 85 140.9, unleaded E10 136.7, unleaded 142.7). Pump cells 599 -> 611, totals only: measured on macOS 27, so hits 53 / committed 56 / committed-correct 53 stand until the measured runtime runs.",
   "fiscal": {
@@ -17,11 +18,11 @@
     "total": 45
   },
   "expenses": {
-    "hits": 33,
+    "hits": 50,
     "total": 54
   },
   "stations": {
-    "hits": 31,
+    "hits": 44,
     "total": 83
   },
   "_note_2026_09_19": "Two Circle K Sikupilli pairs, EXIF stripped (pump-115/116, receipt-074/075: 15.17 x 1.979 = 30.02 and 27.86 x 1.979 = 55.13, 98 miles+), with Live records and two 4K angle-and-flicker videos in pump-live/ (the tankbook-corpus bucket). Totals only: receipts +10, pump +6. The hit and commit marks are NOT re-measured - this machine is macOS 27 and the marks are macOS 26 measurements (docs/TESTING.md -> runtime-specific); the next macOS 26 run records what the parser reads on the four new documents. Until then the marks are a floor the new cells can only raise.",

@@ -554,36 +554,49 @@ parameterized test above) and keep the same margin: the recorded 8 is ceiling 11
 The cost of the gate is nil in wall-clock – the suite runs *faster* than the blocking
 baseline because the recognizer is no longer driven from the cooperative pool.
 
-## The OCR accuracy suites are runtime-specific (measured on macOS 26)
+## The OCR accuracy suites are runtime-specific (measured in the iOS 27 simulator)
 
 Every L5 number – the high-water marks in `Spike/ReceiptSpike/fixtures/high-water.json`,
 `PumpPhotoGate`'s measured counts, RV.56's *zero confident-wrong totals*, the screenshot
 cross-check values and the expense `.txt` dumps – is a measurement of **one Vision runtime**,
 exactly as the L4 snapshot baselines are measurements of one simulator runtime (the section
-below). Measured 2026-09-18 on **macOS 27.0** against the same corpus and the same parser:
-receipts **274/345** resolved (mark 286), pump **13/320** (mark 53), screenshots **39/45**
-(mark 40), three receipts with a *confidently wrong* total where the mark is zero,
-`receipt-038` losing its litres, and one expense dump drifted. Nothing in the tree changed;
-the recognizer under it did.
+below). Nothing in the tree has to change for the numbers to move; the recognizer under them does.
 
-The decision (product owner, 2026-09-18): **keep the macOS 26 numbers and run the four
-measured suites only on the runtime they were measured on** – `ScreenshotCrossCheckTests`,
-`CorpusCompressionTests`, `RV56TotalPropertyTests` and `CorpusAccuracyGateTests` carry
-`.visionMeasuredRuntimeOnly` (`VisionMeasuredRuntime.swift`), and elsewhere they **skip with
-the reason printed**, never silently. Re-baselining on 27 was rejected because it would lower
-every mark and turn "zero confident-wrong totals" into "three". The open question is not this
-Mac's Vision but the **iPhone's**: the app runs on iOS, and whether iOS 27 reads receipts the
-way macOS 27 does is a device measurement (`RV.295`). Two consequences until it is made:
+**The measured runtime is the iOS 27 simulator** (product owner, 2026-09-25: *"let's use ios 27
+simulator for measure"*), which reverses the 2026-09-18 decision to keep macOS 26's numbers. The
+reason is measured: the same probe over the 98 receipts read **4 wrong totals and 8 wrong volumes on
+macOS 27** but **1 and 4 on the iOS 27 simulator**, with different receipts wrong on each - macOS is
+not a stand-in for the phone, and the app runs on iOS. The simulator is still not the device (it runs
+Vision on the CPU where a phone may use the Neural Engine), so `RV.295`'s device measurement stays
+open; it is the nearest runtime this project can run on every change.
 
-1. **A green `swift test` on macOS 27 is not evidence the parser is at its mark** – the skips
-   are printed in the run and CI on the measured runtime is where the numbers are enforced.
-   **One exception, named**: the `stations` mark (RV.179, 2026-09-19) was measured on macOS 27
-   because no other runtime was on hand; `high-water.json`'s note beside it says so, and the
-   first macOS 26 run re-records it (a higher count moves the mark, a lower one is a red to read
-   as the runtime).
-2. **Extending a high-water mark or a fixture needs the measured runtime** – a number recorded
-   on 27 would be compared against 26's marks by the next 26 run.
+How it runs:
 
+1. **`scripts/vision-suites.sh`** runs the package's own test target in the simulator
+   (`xcodebuild test -scheme TankbookCore-Package`, iPhone 17, iOS 27.0) with only the measured
+   suites - `CorpusAccuracyGateTests`, `CorpusCompressionTests`, `CorpusPairTests`,
+   `RV56TotalPropertyTests`, `ScreenshotCrossCheckTests` - and prints each suite's result; name
+   suites to run fewer. It forwards every `VISION_*` and `PUMP_*` variable into the simulator
+   (`VISION_REWRITE_DUMPS=1` re-records the expense dumps, `VISION_DUMP=<fixtures>` writes what Vision
+   reads on them to `ios/.build/vision-dump/`, `PUMP_ARMS=1` the pump composite arms). It sets
+   `VISION_SERIAL=1`: `TestOCR` then reads one photo at a time, as a phone does - in the simulator
+   concurrent requests read some receipts differently from a lone one (`receipt-083` read alone is
+   identical every time; inside the parallel suite it varied run to run), and a mark taken under that
+   contention would flicker.
+2. **`swift test` on a Mac skips those suites with the reason printed** (`.visionMeasuredRuntimeOnly`,
+   `VisionMeasuredRuntime.swift`), never silently. A green `swift test` is therefore not evidence the
+   parser is at its mark. The pump live floor (`PumpReaderPipelineTests.livePath`) runs everywhere
+   but binds its exact counts only on the measured runtime - its display decision counts Vision text
+   lines - and holds other runtimes to a small band.
+3. **A task that touches the OCR parsers, the pump reader or a corpus fixture runs
+   `scripts/vision-suites.sh`** and reads each count, the way a task that touches a screen runs its UI
+   suite. It is ~15 minutes, so it is not in `scripts/gate.sh`.
+4. **Extending a high-water mark or a fixture needs the measured runtime**: a number recorded
+   elsewhere is compared against the simulator's by the next run. The marks were re-recorded on iOS 27
+   on 2026-09-26 after the two receipt defects the new runtime showed were fixed
+   (`receipt-025`'s printed fuel line, `receipt-057`'s occluded price); `high-water.json`'s note says so.
+5. **CI** runs `swift test` on `macos-latest`, where these suites skip; enforcing them there needs a
+   runner with the iOS 27 simulator runtime (filed as its own row).
 
 ## The baseline gate: it builds and it lints (every task, no exceptions)
 

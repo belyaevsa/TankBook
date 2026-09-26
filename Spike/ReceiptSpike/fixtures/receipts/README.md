@@ -1060,9 +1060,11 @@ fuel line and the ИТОГ), НДС 22%, 13.09.26. Flat scan-like photo. Station
 on the second line, the legal entity on the first. Five cells: 369 → 374.
 
 `receipt-080` and `receipt-081`: one station, two fills - Сеть АЗС "Газпромнефть" / ООО "Альфа
-Ойл" АЗС 33088 (Бедарево, Kemerovo region), АИ-92-К5, both **62.37 L**: `62.37*30.090 л =1876.71`
-and `62.37*39.720 л =2477.34` (the latter dated 09.09.26 19:46; the former's date is on the fold). Two prices for the same litres on the same day is
-what the paper says; a reader that "corrects" one from the other is wrong. `receipt-080` is a
+Ойл" АЗС 33088 (Бедарево, Kemerovo region), АИ-92-К5, both at **62.37 RUB/L**: `62.37*30.090 л =1876.71`
+(30.090 L) and `62.37*39.720 л =2477.34` (39.720 L; dated 09.09.26 19:46, the former's date is on the fold) -
+price first, then the quantity with its `л`. **Corrected 2026-09-26**: this note and `expected.csv` first
+read both as 62.37 L at two prices; the photographed line puts the litre unit after the three-decimal
+quantity, and 30.09 / 39.72 RUB/L is no AI-92 price in 2026. `receipt-080` is a
 **folded strip unrolled by hand with three receipts in frame** - the top one upside down and
 mirrored through the paper, the bottom one a different fill (`=2401.25`) partly covered by a thumb;
 the asserted receipt is the middle one, and its `Газпромнефть` header is on the fold, so the
