@@ -28,6 +28,11 @@ public sealed class TankbookLoggerProvider : ILoggerProvider, ISupportExternalSc
 
     private void Emit(string category, LogLevel level, EventId eventId, object? state, Exception? exception)
     {
+        if (IsClientAbortNoise(category, exception))
+        {
+            return;
+        }
+
         var scopeProperties = new List<KeyValuePair<string, object?>>();
         _scopeProvider?.ForEachScope((scope, list) =>
         {
@@ -45,6 +50,19 @@ public sealed class TankbookLoggerProvider : ILoggerProvider, ISupportExternalSc
         var line = _renderer.Render(category, level, eventId, state, exception, scopeProperties);
         _writer.WriteLine(line);
     }
+
+    /// <summary>
+    /// Kestrel's "Connection processing ended abnormally" with "Reading is
+    /// already in progress" is how the server reports a client that hung up
+    /// mid-upload - a bare ASP.NET app logs the same line for the same socket
+    /// close. It carries no fault of ours, and rendered it read as a WARNING with
+    /// errorCode=internal_error. The request's own line records the event as
+    /// 499 (TraceCorrelationMiddleware.LoggedStatus), so this one is dropped;
+    /// any other Kestrel error still logs.
+    /// </summary>
+    internal static bool IsClientAbortNoise(string category, Exception? exception)
+        => category == "Microsoft.AspNetCore.Server.Kestrel"
+           && exception is InvalidOperationException { Message: "Reading is already in progress." };
 
     private sealed class TankbookLogger : ILogger
     {

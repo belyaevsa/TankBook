@@ -106,7 +106,8 @@ public sealed class TraceCorrelationMiddleware
             // for it.
             var isHealth = routeTemplate.StartsWith("/health", StringComparison.OrdinalIgnoreCase);
             var isUnmatched = routeTemplate == UnmatchedRoute;
-            var level = (isHealth, isUnmatched, status: context.Response.StatusCode) switch
+            var status = LoggedStatus(context);
+            var level = (isHealth, isUnmatched, status) switch
             {
                 (true, _, _) => LogLevel.Debug,
                 (_, _, >= 500) => LogLevel.Warning,
@@ -122,12 +123,27 @@ public sealed class TraceCorrelationMiddleware
                 level,
                 context.Request.Method,
                 routeTemplate,
-                context.Response.StatusCode,
+                status,
                 stopwatch.Elapsed.TotalMilliseconds,
                 context.Request.ContentLength ?? 0,
                 counting.BytesWritten,
                 enrichment);
         }
+    }
+
+    /// <summary>
+    /// The status the request line records. A client that hung up is 499
+    /// (client closed request) whatever the pipeline answered after it left:
+    /// an upload cut off mid-body fails model binding, and the 400 the binder
+    /// sets was never received - logging it as 400 reads as a malformed request
+    /// from a client that did nothing wrong. Server errors keep their status.
+    /// </summary>
+    internal static int LoggedStatus(HttpContext context)
+    {
+        var status = context.Response.StatusCode;
+        return context.RequestAborted.IsCancellationRequested && status < 500
+            ? StatusCodes.Status499ClientClosedRequest
+            : status;
     }
 }
 

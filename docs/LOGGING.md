@@ -140,6 +140,9 @@ event name made every request line identical.
 
 **What changed** is expressed as identity + outcome (`id`, `entityType`, `schema_version`, old→new `scn`), never as a value diff. A record's history is already in the stream; the log's job is to say *that* it changed and whether it succeeded.
 
+### A client that hung up (RV.309)
+The request line records **499** whenever the client is gone by the time the line is written (`RequestAborted`), whatever the pipeline answered after it left - an upload cut off mid-body fails model binding with a 400 the client never received, and logging it as 400 read as a malformed request. Server errors keep their 5xx. Kestrel reports the same socket close as `Connection processing ended abnormally` with `InvalidOperationException: Reading is already in progress` (a bare ASP.NET app logs it identically); that one line is dropped by the logger provider, because the 499 request line already records the event and the warning rendered as `errorCode=internal_error` - a server fault that was not one. Any other Kestrel error still logs.
+
 ### Errors
 Every ERROR line carries: `errorCode` (the stable code from API.md), `exceptionType`, `message`, `stackTrace`, `traceId`, plus **safe reproduction context**: which endpoint, which entity id, which schemaVersion, payload *size*, and for validation failures the **JSON pointer** to the offending field (the pointer names the field, never its value). That is the set that lets an engineer reproduce without seeing the data. `exceptionType` and `errorCode` are stable codes and pass through; the exception `message` and `stackTrace` are free text that can embed a statement's arguments or a domain value, so both go through the redactor and are masked (`***`) in every build - never raw (hard rule 12, `RedactionTests.SensitiveValueInsideAnExceptionMessage_IsMasked`).
 

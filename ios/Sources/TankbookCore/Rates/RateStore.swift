@@ -283,14 +283,37 @@ public final class RateStore: @unchecked Sendable {
         return true
     }
 
-    /// The single-flight fetch body: fetch the rolling `packWindowDays` pack and
-    /// merge it into the cache. A fetch failure is silent - a miss is not an
-    /// error (docs/SCHEMA.md -> Exchange rates, F9).
+    /// The single-flight fetch body: fetch what the rolling `packWindowDays`
+    /// window lacks and merge it into the cache. A fetch failure is silent - a
+    /// miss is not an error (docs/SCHEMA.md -> Exchange rates, F9).
     private func fetchAndMerge(fetcher: any RateFetcher) async {
         let now = clock()
-        let from = calendar.date(byAdding: .day, value: -(Self.packWindowDays - 1), to: now) ?? now
-        guard let pack = try? await fetcher.fetchPack(from: from, to: now, base: .eur) else { return }
+        guard let pack = try? await fetcher.fetchPack(from: refreshStart(now: now), to: now, base: .eur) else {
+            return
+        }
         merge(pack.rates)
+    }
+
+    /// How many days before the newest cached day a refresh asks for again. A
+    /// past day's quotes do not change (docs/API.md -> Exchange rates: served
+    /// immutable), but the newest ones can still be a carry-forward that a late
+    /// publish replaces; a week covers a long weekend and a holiday on each side.
+    static let refreshOverlapDays = 7
+
+    /// Where a refresh starts: the rolling window's first day on a cold cache;
+    /// otherwise `refreshOverlapDays` before the newest EUR-based day the cache
+    /// holds, never earlier than the window. Past days never change, so asking
+    /// for the whole window on every foreground re-downloaded ~1.2 MB each time -
+    /// long enough that a switch to another app cut it off (the 499s in the
+    /// production log, 2026-09-26).
+    func refreshStart(now: Date) -> Date {
+        let windowStart = calendar.date(byAdding: .day, value: -(Self.packWindowDays - 1), to: now) ?? now
+        let newest = lock.withLock { state in
+            state.rates.lazy.filter { $0.base == .eur }.map(\.date).max()
+        }
+        guard let newest, newest >= windowStart else { return windowStart }
+        let overlap = calendar.date(byAdding: .day, value: -Self.refreshOverlapDays, to: min(newest, now)) ?? newest
+        return max(windowStart, overlap)
     }
 
     /// Fetches the rate pack for an explicit date span and merges it - the
