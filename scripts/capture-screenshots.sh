@@ -1761,6 +1761,19 @@ capture PJ.502-log-pump-mark-ru ru -seedSettingsSignedIn -seedHomePumpRead
 capture PJ.504-confirm-pump-nothing-read    en -seedVehicleForUITests -presentScreen confirmManual -seedPumpCaptureNothingRead
 capture PJ.504-confirm-pump-nothing-read-ru ru -seedVehicleForUITests -presentScreen confirmManual -seedPumpCaptureNothingRead
 
+# PJ.505: the capture verify screen - the photo with its recognised numbers - for a receipt and for
+# a doubtful pump reading (the alpha and price notices above the fields).
+PJ505_PUMP="${PWD}/Spike/ReceiptSpike/fixtures/pump/pump-032-gilbarco-circlek-ee-clean.jpg"
+CAPTURE_SLEEP=3
+capture PJ.505-capture-verify-reading    en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureFixtureImage "${RV5_FIXTURE}" -captureAutoReview
+capture PJ.505-capture-verify-reading-ru ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureFixtureImage "${RV5_FIXTURE}" -captureAutoReview
+CAPTURE_SLEEP=20
+capture PJ.505-capture-verify         en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureFixtureImage "${RV5_FIXTURE}" -captureAutoReview
+capture PJ.505-capture-verify-ru      ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureFixtureImage "${RV5_FIXTURE}" -captureAutoReview
+CAPTURE_SLEEP=6
+capture PJ.505-capture-verify-pump    en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureFixtureImage "${PJ505_PUMP}" -captureAutoReview -seedFillUpScanPumpCaution
+capture PJ.505-capture-verify-pump-ru ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureFixtureImage "${PJ505_PUMP}" -captureAutoReview -seedFillUpScanPumpCaution
+
 # Merge this run's frames into the manifest. `frames` is the script's record;
 # `legacy` (frames no line can reproduce) is hand-maintained and preserved.
 if [ "${#CAPTURED[@]}" -gt 0 ]; then

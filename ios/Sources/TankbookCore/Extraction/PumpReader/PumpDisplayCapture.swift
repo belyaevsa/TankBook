@@ -66,6 +66,9 @@ public enum PumpDisplayCapture {
         /// The windows the fields were read from, normalised over the image,
         /// for the Confirm sheet's tap-to-verify crops.
         public let cropRects: [ManualFillUpMath.Field: CGRect]
+        /// The clockwise quarter turn the display was read at: the rotation
+        /// that shows the photo with its digits upright.
+        public var rotationCW: Int = 0
     }
 
     public static let minimumRows = 2
@@ -426,7 +429,8 @@ public enum PumpDisplayCapture {
             total: reading.total.value,
             currency: currency)
         extraction.crossCheck = reading.committedCount == 3 ? .lock : .notApplicable
-        return Reading(detection: detection, extraction: extraction, law: reading, cropRects: rects)
+        return Reading(detection: detection, extraction: extraction, law: reading, cropRects: rects,
+                       rotationCW: rotationCW)
     }
 }
 

@@ -58,14 +58,14 @@ final class CaptureReviewUITests: XCTestCase {
         let app = launchCapture()
         shoot(app)
 
-        let image = app.images["captureReviewImage"]
+        let image = app.images["captureVerifyImage"]
         XCTAssertTrue(image.waitForExistence(timeout: 15),
                       "the shot must be shown before anything is read from it")
         XCTAssertGreaterThan(image.frame.height, 200,
                              "the photo must be large enough to read a total on")
 
-        let useThis = app.buttons["captureReviewUseButton"]
-        let retake = app.buttons["captureReviewRetakeButton"]
+        let useThis = app.buttons["captureVerifyContinueButton"]
+        let retake = app.buttons["captureVerifyRetakeButton"]
         XCTAssertTrue(useThis.exists && useThis.isHittable, "Use this must be reachable")
         XCTAssertTrue(retake.exists && retake.isHittable, "Re-take must be reachable")
 
@@ -75,26 +75,19 @@ final class CaptureReviewUITests: XCTestCase {
                        "the review must precede the Confirm sheet, not follow it")
     }
 
-    /// Hard rule 15: the manual door is a peer on this screen, side by side
-    /// with Re-take and no harder to reach - and it opens the same manual form.
-    func testTypeItIsAPeerOnTheReviewStep() {
+    /// Hard rule 15 on the verify step: the fields take typing at once, before
+    /// recognition returns, so the screen is itself the typed door - and a
+    /// separate "Type it" (the same entry minus the photo) is not offered.
+    func testTheVerifyStepTakesTypingAtOnce() {
         let app = launchCapture()
         shoot(app)
 
-        let typeIt = app.buttons["captureReviewTypeItButton"]
-        XCTAssertTrue(typeIt.waitForExistence(timeout: 15), "Type it must be on the review step")
-        let retake = app.buttons["captureReviewRetakeButton"]
-        XCTAssertTrue(retake.exists)
-        // Peers: same row, same size. A consolation prize would be smaller or
-        // pushed below the fold.
-        XCTAssertEqual(typeIt.frame.height, retake.frame.height, accuracy: 1,
-                       "Type it and Re-take must carry the same weight")
-        XCTAssertEqual(typeIt.frame.minY, retake.frame.minY, accuracy: 1,
-                       "Type it must sit beside Re-take, not below it")
-
-        typeIt.tap()
-        XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 10),
-                      "Type it must open the manual form")
+        let total = app.textFields["captureVerifyTotalField"]
+        XCTAssertTrue(total.waitForExistence(timeout: 15), "the total field must be on the verify step")
+        XCTAssertTrue(total.isHittable, "the total field must take typing")
+        XCTAssertFalse(app.buttons["captureVerifyTypeItButton"].exists,
+                       "no second typed door that drops the photo")
+        XCTAssertTrue(app.buttons["captureVerifyRetakeButton"].isHittable, "Re-take is the back path")
     }
 
     // MARK: - Use this
@@ -106,7 +99,7 @@ final class CaptureReviewUITests: XCTestCase {
         let app = launchCapture()
         shoot(app)
 
-        let useThis = app.buttons["captureReviewUseButton"]
+        let useThis = app.buttons["captureVerifyContinueButton"]
         XCTAssertTrue(useThis.waitForExistence(timeout: 15))
         useThis.tap()
 
@@ -126,7 +119,7 @@ final class CaptureReviewUITests: XCTestCase {
         let app = launchCapture()
         shoot(app)
 
-        let retake = app.buttons["captureReviewRetakeButton"]
+        let retake = app.buttons["captureVerifyRetakeButton"]
         XCTAssertTrue(retake.waitForExistence(timeout: 15))
         retake.tap()
 
@@ -135,7 +128,7 @@ final class CaptureReviewUITests: XCTestCase {
         XCTAssertTrue(shutter.waitForExistence(timeout: 10),
                       "Re-take must return to the live camera")
         XCTAssertTrue(shutter.isHittable, "the shutter must be usable again after a re-take")
-        XCTAssertFalse(app.buttons["captureReviewUseButton"].exists,
+        XCTAssertFalse(app.buttons["captureVerifyContinueButton"].exists,
                        "the review must be gone after a re-take")
 
         // The point of the test: nothing was accepted, so nothing was read.
@@ -146,7 +139,7 @@ final class CaptureReviewUITests: XCTestCase {
 
         // And the surface still works: shooting again reviews again.
         shutter.tap()
-        XCTAssertTrue(app.buttons["captureReviewUseButton"].waitForExistence(timeout: 15),
+        XCTAssertTrue(app.buttons["captureVerifyContinueButton"].waitForExistence(timeout: 15),
                       "a second shot must review again")
     }
 }

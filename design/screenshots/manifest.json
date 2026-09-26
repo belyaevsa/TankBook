@@ -1345,6 +1345,36 @@
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },
+    "PJ.505-capture-verify": {
+      "commit": "7ab083eb",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.505-capture-verify-pump": {
+      "commit": "7ab083eb",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.505-capture-verify-pump-ru": {
+      "commit": "7ab083eb",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.505-capture-verify-reading": {
+      "commit": "7ab083eb",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.505-capture-verify-reading-ru": {
+      "commit": "7ab083eb",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.505-capture-verify-ru": {
+      "commit": "7ab083eb",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "PJ.55-station-favourite": {
       "commit": "c933a3b",
       "device": "iPhone 17",

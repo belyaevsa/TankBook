@@ -21,7 +21,8 @@ import TankbookCore
 extension ManualFillUpView {
     /// Whether the empty-but-alive caption (and the Total focus) applies.
     var emptyScanCaptionShows: Bool {
-        ConfirmEmptyScanCaption.shouldShow(
+        // A capture checked on the verify screen already said it there.
+        prefill?.verified == nil && ConfirmEmptyScanCaption.shouldShow(
             extraction: prefill?.extraction,
             qrAnchor: prefill?.qrAnchor,
             hasPhoto: prefill?.sourceImage != nil)
@@ -29,7 +30,7 @@ extension ManualFillUpView {
 
     /// A pump photo whose reading committed none of the three numbers.
     var pumpReadFailed: Bool {
-        PumpReadFailure.applies(provenance: prefill?.provenance, extraction: prefill?.extraction,
+        prefill?.verified == nil && PumpReadFailure.applies(provenance: prefill?.provenance, extraction: prefill?.extraction,
                                 hasPhoto: prefill?.sourceImage != nil)
     }
 

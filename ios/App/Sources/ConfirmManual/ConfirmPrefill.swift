@@ -50,6 +50,15 @@ struct ConfirmPrefill {
     /// one the pair implies. The sheet says so beside the fields; nil on every
     /// other path.
     var pumpCaution: PumpReadingCaution?
+    /// The three numbers as the user checked them on the capture verify screen
+    /// (`CaptureVerifyView`), in the car's display units. When set, Confirm
+    /// takes them as they are - already confirmed, never dimmed, never
+    /// re-resolved against the fiscal QR - and does not repeat the verify
+    /// screen's notices. Nil on every path that skips the verify screen.
+    var verified: CaptureVerifiedNumbers?
+    /// The clockwise quarter turn a pump display was read at, so the verify
+    /// screen shows the photo with its digits upright. Zero for a receipt.
+    var displayRotationCW: Int = 0
     /// P2.5: the extraction's currency is uncertain - the sheet must ask, never
     /// silently convert (docs/ERRORS.md -> Confirm). False by default; the real
     /// OCR-confidence signal lands with the Foundation-models work (P2.8).
@@ -347,3 +356,12 @@ extension Color {
     }
 }
 #endif
+
+/// The capture verify screen's three numbers as typed or confirmed, in the
+/// car's display units (the same texts Confirm's fields hold). An empty text is
+/// a field the user left for Confirm.
+struct CaptureVerifiedNumbers: Equatable {
+    var total: String
+    var volume: String
+    var unitPrice: String
+}

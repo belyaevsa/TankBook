@@ -146,4 +146,7 @@ struct CaptureReviewView: View {
 struct CaptureReviewSubject: Identifiable {
     let id = UUID()
     let image: UIImage
+    /// Set for a capture that goes to the verify screen (the fill-up modes)
+    /// rather than this review.
+    var verify: CaptureVerifySession?
 }

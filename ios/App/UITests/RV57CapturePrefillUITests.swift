@@ -56,7 +56,7 @@ final class RV57CapturePrefillUITests: XCTestCase {
         let shutter = app.buttons["captureShutterButton"]
         XCTAssertTrue(shutter.waitForExistence(timeout: 10), "captureShutterButton never appeared")
         shutter.tap()
-        let useThis = app.buttons["captureReviewUseButton"]
+        let useThis = app.buttons["captureVerifyContinueButton"]
         XCTAssertTrue(useThis.waitForExistence(timeout: 15),
                       "the RV.5 review must appear after the shutter")
         useThis.tap()

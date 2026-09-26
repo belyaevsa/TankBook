@@ -78,7 +78,10 @@ flowchart TD
     ExcludedEntries -->|row| EditEntry
 
     subgraph CaptureFlow["Capture (modal)"]
-        Capture -->|shutter / Photos| CaptureReview
+        Capture -->|shutter / Photos · Fill-up mode| CaptureVerify
+        CaptureVerify -.->|Re-take| Capture
+        CaptureVerify -->|Continue · the checked numbers| Confirm
+        Capture -->|shutter / Photos · Expense mode| CaptureReview
         CaptureReview -.->|Re-take| Capture
         CaptureReview -->|Type it| ConfirmManual
         CaptureReview -->|Use this · auto: receipt| Confirm
@@ -254,6 +257,7 @@ Beneath the three doors sits a fourth affordance that is **not** a peer door but
 | Home (incl. guest/empty state) | tab root | gear → Settings (the shared tab-root header), the S5 "came back – stays archived" card (PJ.40: real data, Delete again / Keep in place; the Garage shows the same card), the reminder chip strip (RV.122: one chip per due reminder, 'All reminders' last; absent with nothing due), car card, entries (the log stream, present for a guest too once an entry exists, RV.197), capture · **the header "Type it" split (RV.61)**: the primary action is the fill-up door in one tap, its trailing chevron is a menu offering Service and Expense entry - the same peer manual doors the capture screen's mode row offers, with no camera required · the J9 anomaly insight card (amber, in the Log) expands in place to the evidence (chart + cost) and offers **Create reminder** (act → creates the reminder and opens it for edit) or **Dismiss** (one tap, suppresses the cause - no sheet, RV.240) | tab root – no back |
 | **Inbox** (RV.38, RV.45) | the bell on the shared tab-root header (Log, Trends and Garage alike) | an item → Edit entry (the entry the reading is about) · an item resolves in place with a **per-field comparison** – each field the receipt read that differs or fills a blank shows "yours vs the receipt" with a tick, then **update from the receipt** (takes the ticked fields only, disabled until one is ticked, hard rule 13), **leave it as it is**, **replace the receipt** (routes to Edit entry). **RV.64: the emphasis follows the tick count, the ORDER never moves** - with nothing ticked "leave it as it is" is the filled button, and from the first tick "update from the receipt" becomes it, so the loud default never contradicts what the user just did and nothing shifts under a finger already reaching for a button · a reading that would change nothing says so and offers no update · Reminders (planned, links, never replaces that screen) | back chevron + edge-swipe → the tab root that pushed it |
 | Capture | the tab bar's centre capture button (any tab), GuestHome CTA, notification deep links | mode-dependent confirm sheets · "Type it" opens the form for the selected mode (PJ.6: Fill-up → ConfirmManual, Service → ServiceEntry, Expense → ExpenseEntry) · shutter / Photos → **Capture review** (RV.5) · scan → Confirm/ServiceEntry · **scan · Expense mode** (RV.62) → ExpenseEntry pre-filled with the recognised total/currency/date | X → opener |
+| **Capture verify** (PJ.505, full-screen cover over Capture, Fill-up mode) | Capture's shutter · Capture's Photos pick in Fill-up mode | Continue → Confirm with the checked numbers · Re-take → Capture. No "Type it": the fields take typing from the first frame, so the screen is itself the typed door (hard rule 15); Capture keeps its own Type it |
 | **Capture review** (RV.5, full-screen cover over Capture) | Capture's shutter · Capture's Photos pick – both doors, always; Service mode goes to the document camera instead and never passes through here | **Use this** → the pipeline runs, then Confirm/Foreign/Mixed/Manual, **pre-filled from the LOCAL read and opened immediately** (RV.57). The sheet carries a dismissible notice - "A more reliable reading may still arrive. You can proceed now." - because the cloud answer measured 12-36 s against a 3 s budget (RV.51), so waiting for it is not an option the user should be made to take. **A late answer never reaches the open editor**: within budget it fills blanks, past it the reading routes to the Inbox, where the per-field comparison is the place to accept it (hard rule 13 - nothing the user has typed is overwritten behind their back) · **Use this · Expense mode** (RV.62) → ExpenseEntry pre-filled with the recognised total/currency/date (never liters or fuel kind – a shop receipt has no fuel fields) · **Re-take** → Capture, nothing kept · **Type it** → the form for the selected mode (the same door the capture surface offers) | Re-take **is** the back path – it is the only way out other than a verdict, so the step can never be a dead end |
 | Confirm / Foreign / Mixed / Manual | Capture review "Use this" · Capture "Type it" (Fill-up mode) | Save → the sheet AND the capture modal behind it close (RV.12) → the opener tab, entry visible + toast · tank row → TankLevel · the foreign-currency conversion card offers the manual-rate entry on the card itself when the rate is pending (F9, hard rule 7), and "Edit rate" on a feed conversion (hard rule 13) | back → Capture (photo kept) · swipe-down discards scan (photo re-offerable) |
 | Tank level (sheet) | Confirm's tank row | Set / Skip → Confirm | swipe-down = Skip |
@@ -283,6 +287,23 @@ Beneath the three doors sits a fourth affordance that is **not** a peer door but
 | Account & devices (P6.4) | Settings account card (signed in) | device list (revoke; **revoked rows stay listed, marked "Signed out"** – the Settings card's count counts the live ones only, RV.54) · Delete account (tombstone; the log on this phone is never touched) | back → Settings |
 | About & feedback | Settings | identity header (icon, name, version) · the update row (`.recommended`, dismissible; App Store link only when a compiled-in app id exists) · feedback/rate/privacy (later tasks) · **Attach diagnostics** (OB.4): a once-asked consent, default OFF and persisted, whose "Preview what will be shared" opens the Diagnostics preview | back → Settings |
 | **Diagnostics preview** (sheet, docs/LOGGING.md §5) | About -> Attach diagnostics (only reachable once the opt-in is on) | Share (system share sheet - the exact text shown) · read the full redacted bundle: 24 h log window, sync state (last success, dirty/flagged counts, last failure kind + code + traceId), per-table row counts | Close / swipe-down → About - nothing was sent |
+
+### The capture verify screen (PJ.505, Fill-up mode)
+
+A fill-up capture (a receipt or a pump display) lands on the **verify screen**: a full-screen cover
+over Capture with the photo - upright (a pump display turned to the angle it was read at), zoomable
+by pinch, double tap and the − / + controls, turnable by a quarter at a time - and the three numbers
+recognised from it underneath: **total, litres (or gallons), price per unit**, in the car's units.
+Recognition starts the moment the photo exists and fills the fields behind it; a field the user
+typed is never overwritten. The notices about the reading - nothing read (receipt or pump), the pump
+alpha notice, a shown price that differs, numbers that don't multiply up - sit between the photo and
+the fields (docs/ERRORS.md -> Capture verify), and the entry does not repeat them.
+
+- **Continue** opens the fill-up entry (Confirm) with the three numbers as the user left them,
+  confirmed (never dimmed) and never re-resolved; tapped while recognition runs, it waits for it.
+- **Re-take** is the back path (the recognition is cancelled, nothing kept); **Type it** is a peer
+  on the same row and opens the typed form (hard rule 15).
+- Expense and Service captures keep the review step below.
 
 ### The capture review step (RV.5)
 

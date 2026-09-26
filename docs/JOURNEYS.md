@@ -86,7 +86,7 @@ once an entry exists the capture card drops its "first" wording.
 ## Core loop
 
 ### J3 · The 5-second fill-up (receipt)
-**Status: implemented 2026-09-13** (reviewed by the orchestrator, REVIEW-SCENARIO-J3-2026-09-13)
+*(Status cleared 2026-09-26: the Review stage became the verify screen - the photo with its recognised numbers, checked before the entry opens (PJ.505); the 2026-09-13 review predates it.)*
 **Trigger:** standing at the pump or walking back to the car, receipt in hand. Cold, dark, engine of the queue behind.
 **Goal:** logged before the seatbelt clicks.
 
@@ -94,7 +94,7 @@ once an entry exists the capture card drops its "first" wording.
 |---|---|---|---|
 | Open | Lock-screen widget / app opens on capture | In a hurry; one hand holds the receipt | → Camera ready in <1s; auto-shutter on document detect |
 | Scan | Points at crumpled thermal receipt | "Will it read this?" | ⚠ Glare, dark canopy → torch auto-suggest; keep the photo regardless of OCR result *(PJ.1: shutter and Photos now feed one pipeline into `ConfirmPrefill` – a real image becomes the prefill, no `-seedConfirmPrefill` fixture in the path.)* |
-| Review | Sees the shot filling the screen; "Use this" / "Re-take" / "Type it" | "That's readable – go" *(or: "that's a blur, again")* | → **RV.5**: the missing beat the device walk found - the shutter used to fire and move on with nothing shown, so the frame could be neither seen nor refused. The photo appears **immediately**, before any recognition: OCR runs only on *Use this*, so a re-take costs nothing and the wait is spent on a picture the user accepted. Re-take is the back path (nothing kept); "Type it" is a peer on the same row, never the failure branch (hard rule 15) |
+| Verify | Sees the photo - upright, zoomable, turnable - with **total, litres and price** read from it underneath; checks each against the paper, corrects one, taps **Continue** ("Re-take" below it) | "Yes, 71.02 - and the litres were 42.30" | → **PJ.505 (product owner, 2026-09-26)**: the numbers are checked against the photo *before* the entry opens, so the entry is where the checked values land, not where they are doubted. The photo appears at once and recognition fills the fields behind it; a field the user typed is never overwritten by a late recognition (hard rule 13). What the app could not read, or read with doubt - nothing read, the pump alpha notice, a shown price that differs, numbers that don't multiply up - is said **here**, above the fields, and the entry does not repeat it. **Continue** copies the three numbers into the entry as the user left them (confirmed, not dimmed); tapped while recognition still runs, it waits for it rather than dropping it. The fields follow the car's units (litres or gallons). Re-take is the back path. The fields take typing from the first frame, before recognition returns, so this screen is itself the typed door (hard rule 15) and carries no separate "Type it" - that would open the same entry minus the photo (product owner, 2026-09-26); Capture keeps its own. *(RV.5's review - the photo before any recognition - stays for Expense and Service captures, whose documents carry line items, not three numbers.)* |
 | Confirm | Pump Card pre-filled; cross-check line locks ✓; types odometer, sees "+907 km since last" | Trust building with each correct field | ⚠ One wrong digit typed in odometer ruins consumption → live delta as sanity check; low-confidence fields dimmed until tapped. *(PJ.14: the delta is LIVE – typed > last shows "+N km since last", typed < last warns amber "went backwards", an implied pace over the vehicle's `paceLimitKmPerDay` warns amber "over the limit", equal shows neutral "Same as last"; none of them ever blocks the save, hard rule 13.)* *(RV.71: a scanned fuel kind the car does not offer - diesel on a petrol-95 car, say - warns amber under the fuel row at this moment and never blocks; the scanned kind stays an editable chip, and the grade case (92 on a 95 car) or an undeclared car never warns.)* |
 | Done | Save → haptic → "6.8 L/100km – best this year" | Micro-reward; closes phone | → The insight one-liner is the habit hook, not the stored row. **PJ.15 (2026-09-18):** the line is the engine's figure for the segment the save closed - "best this year" when it is, "this tank" when it is not, the D4 "one more full tank" line for a first full tank, and **nothing** when the data cannot say (a partial with no segment): a number is never invented to have a toast. Tap → Trends. **RV.12:** Save also **leaves capture** – the sheet and the capture modal behind it both close, landing on the tab the capture started from with the entry visible. Until RV.12 the camera was on screen again after Save, so a finished entry read as a failed one and a second tap started a second entry |
 
@@ -154,9 +154,11 @@ prefers (PU.53). **While the build is below the pump
 gate the sheet says so** - *"Read from the pump display – this is in alpha. Check every field
 before saving."* - and typing stays the peer door (hard rule 15). **When nothing was read, it says
 that instead** (PJ.504, product owner 2026-09-26): a pump display whose reading committed none of
-the three numbers opens Confirm with *"Couldn't read the pump display – type the numbers from it,
-the photo stays attached."*, Total focused and no alpha claim - the app admits the failure and hands
-the user the form. A pump photo never runs the
+the three numbers says *"Couldn't read the pump display – type the numbers from it, the photo stays
+attached."*, with no alpha claim - the app admits the failure and hands the user the fields. Both
+notices are on the **verify screen** (PJ.505, J3's Verify stage): the photo, upright - turned to the
+angle the display was read at - and zoomable, with the three numbers under it to check before the
+entry opens. A pump photo never runs the
 receipt parser in silence. The photo's kind is recorded on the attachment (`pipeline:
 "pump-reader v1"`), the entry carries `.pumpPhoto`, and the gateway is asked with `kind: "pump"`
 so the backend ledger records it. The locator is automatic (decision 8); a tap-to-frame crop is

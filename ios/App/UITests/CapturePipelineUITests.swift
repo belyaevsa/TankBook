@@ -89,7 +89,7 @@ final class CapturePipelineUITests: XCTestCase {
 
         // RV.5: the shutter now lands on the review step first; "Use this" is
         // what runs the pipeline and opens Confirm.
-        let useThis = app.buttons["captureReviewUseButton"]
+        let useThis = app.buttons["captureVerifyContinueButton"]
         XCTAssertTrue(useThis.waitForExistence(timeout: 15),
                       "the shutter must open the RV.5 review step")
         useThis.tap()
@@ -126,7 +126,7 @@ final class CapturePipelineUITests: XCTestCase {
 
         // RV.5: the Photos door reviews the picked image exactly as the
         // shutter reviews the shot one - one review step, both doors.
-        let useThis = app.buttons["captureReviewUseButton"]
+        let useThis = app.buttons["captureVerifyContinueButton"]
         XCTAssertTrue(useThis.waitForExistence(timeout: 15),
                       "the Photos door must open the RV.5 review step")
         useThis.tap()
@@ -168,7 +168,7 @@ final class CapturePipelineUITests: XCTestCase {
                        "the capture modal must cover the tab it was opened from")
 
         shutter.tap()
-        let useThis = app.buttons["captureReviewUseButton"]
+        let useThis = app.buttons["captureVerifyContinueButton"]
         XCTAssertTrue(useThis.waitForExistence(timeout: 15),
                       "the shutter must open the RV.5 review step")
         useThis.tap()
@@ -214,7 +214,7 @@ final class CapturePipelineUITests: XCTestCase {
         XCTAssertTrue(shutter.waitForExistence(timeout: 10), "captureShutterButton never appeared")
         shutter.tap()
 
-        let useThis = app.buttons["captureReviewUseButton"]
+        let useThis = app.buttons["captureVerifyContinueButton"]
         XCTAssertTrue(useThis.waitForExistence(timeout: 15),
                       "the shutter must open the RV.5 review step")
         useThis.tap()
@@ -267,7 +267,7 @@ final class CapturePipelineUITests: XCTestCase {
         let shutter = app.buttons["captureShutterButton"]
         XCTAssertTrue(shutter.waitForExistence(timeout: 10))
         shutter.tap()
-        let useThis = app.buttons["captureReviewUseButton"]
+        let useThis = app.buttons["captureVerifyContinueButton"]
         XCTAssertTrue(useThis.waitForExistence(timeout: 15),
                       "the shutter must open the RV.5 review step")
         useThis.tap()

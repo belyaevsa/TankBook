@@ -44,4 +44,33 @@ extension ManualFillUpView {
         if extraction.fuelKind != nil { resolved.insert(.fuelKind) }
         return resolved
     }
+
+    /// A capture the user checked on the verify screen: its three numbers go in
+    /// as the user left them - confirmed, so never dimmed, and never resolved
+    /// again against the fiscal QR or the mixed-receipt rule (the verify screen
+    /// already showed the total that rule chose). A field left blank there is
+    /// blank here and still derives. Every value stays editable (hard rule 13),
+    /// and a late cloud answer fills only a blank the user left.
+    func applyVerified(_ verified: CaptureVerifiedNumbers, extraction: FuelExtraction,
+                       prefill: ConfirmPrefill, vehicle: Vehicle) {
+        currencyLowConfidence = prefill.currencyLowConfidence
+        form.resolvedByExtraction.removeAll()
+        form.total = verified.total
+        form.liters = verified.volume
+        form.pricePerL = verified.unitPrice
+        form.userConfirmedFields = [.total, .volume, .unitPrice]
+        var onDevice = Self.onDeviceResolvedFields(extraction)
+        if !verified.total.isEmpty { onDevice.insert(.total) }
+        if !verified.volume.isEmpty { onDevice.insert(.volume) }
+        if !verified.unitPrice.isEmpty { onDevice.insert(.unitPrice) }
+        gatewayOnDeviceResolved = onDevice
+        form.currency = extraction.currency ?? vehicle.homeCurrency
+        if let kind = extraction.fuelKind, vehicle.fuelKinds.contains(kind) {
+            form.fuelKind = kind
+        }
+        if let rawDate = extraction.date, let date = ConfirmDate.parse(rawDate) {
+            form.date = date
+        }
+        applyScannedStation(extraction.stationName)
+    }
 }

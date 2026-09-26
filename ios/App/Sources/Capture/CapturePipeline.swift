@@ -108,6 +108,7 @@ enum CapturePipeline {
         if resolvedSource == .pump {
             prefill.provenance = .pumpPhoto
             prefill.pumpCaution = pumpReading?.law.caution
+            prefill.displayRotationCW = pumpReading?.rotationCW ?? 0
             prefill.pumpAlpha = PumpPhotoCapture.outcome(
                 pumpPhotoEnabled: pumpPhotoEnabled, extraction: assembly.extraction).alpha
         }

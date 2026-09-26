@@ -48,7 +48,7 @@ struct CaptureView: View {
     @State var activeSheet: CaptureSheet?
     /// RV.5: the captured frame awaiting the user's verdict. Non-nil means the
     /// review step is up; the capture pipeline has NOT run yet.
-    @State private var reviewSubject: CaptureReviewSubject?
+    @State var reviewSubject: CaptureReviewSubject?
     @State private var hasUnsavedChanges = false
     @State private var resolved = false
     /// Guards against a double shutter tap starting two pipelines.
@@ -167,10 +167,14 @@ struct CaptureView: View {
         // view is the known SwiftUI pitfall the enum above exists to avoid,
         // and the review needs the whole screen anyway (see CaptureReviewView).
         .fullScreenCover(item: $reviewSubject) { subject in
-            CaptureReviewView(image: subject.image,
-                              onUse: { acceptReview(subject.image) },
-                              onRetake: { reviewSubject = nil },
-                              onTypeIt: { typeItAfterReview() })
+            if let session = subject.verify {
+                verifyScreen(session)
+            } else {
+                CaptureReviewView(image: subject.image,
+                                  onUse: { acceptReview(subject.image) },
+                                  onRetake: { reviewSubject = nil },
+                                  onTypeIt: { typeItAfterReview() })
+            }
         }
     }
 
@@ -340,7 +344,7 @@ struct CaptureView: View {
     /// raw image immediately and decides; OCR runs in `acceptReview` only once
     /// they have accepted, so a re-take costs nothing.
     private func processScanned(_ image: UIImage) {
-        reviewSubject = CaptureReviewSubject(image: image)
+        reviewSubject = CaptureReviewSubject(image: image, verify: verifySession(for: image))
     }
 
     /// "Use this": exactly where the flow went before the review existed - the
@@ -379,7 +383,7 @@ struct CaptureView: View {
     /// same call the capture surface's own affordance makes (hard rule 15 -
     /// one door, not a lesser copy of it). The photo is dropped, exactly as a
     /// re-take drops it; nothing is silently carried into a typed entry.
-    private func typeItAfterReview() {
+    func typeItAfterReview() {
         let form = mode.manualEntryForm
         reviewSubject = nil
         Task {

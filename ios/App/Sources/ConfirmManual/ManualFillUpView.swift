@@ -75,7 +75,7 @@ struct ManualFillUpView: View {
     @State private var gatewaySession = GatewayScanSession()
     /// The fields the ON-DEVICE extraction resolved (the pre-fill already on
     /// screen). A late gateway answer never refills one of these (F4).
-    @State private var gatewayOnDeviceResolved: Set<FieldRef> = []
+    @State var gatewayOnDeviceResolved: Set<FieldRef> = []
     /// Arming guard for the currency/fuelKind/date touch hooks: the form's own
     /// load-time assignment must not count as a user touch.
     @State private var gatewayTouchTrackingArmed = false
@@ -164,8 +164,8 @@ struct ManualFillUpView: View {
                                            currency: form.currency)
                     ManualFillUpFuelFullCard(form: $form, fuelKinds: vehicle!.fuelKinds)
                     FuelKindMismatchNotice(scannedKind: prefill?.extraction?.fuelKind, fuelKinds: vehicle!.fuelKinds)
-                    PumpDisplayAlphaNotice(shown: (prefill?.pumpAlpha ?? false) && !pumpReadFailed)
-                    PumpReadingCautionNotice(caution: prefill?.pumpCaution)
+                    PumpDisplayAlphaNotice(shown: (prefill?.pumpAlpha ?? false) && !pumpReadFailed && prefill?.verified == nil)
+                    PumpReadingCautionNotice(caution: prefill?.verified == nil ? prefill?.pumpCaution : nil)
                     if !form.isFull {
                         TankLevelRow(isFull: form.isFull,
                                      tankLevelAfterPct: form.tankLevelAfterPct,
@@ -371,6 +371,7 @@ struct ManualFillUpView: View {
     /// moment it is offered and afterwards (hard rule 13).
     private func apply(_ prefill: ConfirmPrefill, vehicle: Vehicle) {
         guard let extraction = prefill.extraction else { return }
+        if let verified = prefill.verified { return applyVerified(verified, extraction: extraction, prefill: prefill, vehicle: vehicle) }
         currencyLowConfidence = prefill.currencyLowConfidence
         form.resolvedByExtraction.removeAll()
         // P6.3: the fields the ON-DEVICE pipeline resolved are the late-answer

@@ -66,7 +66,7 @@ final class CaptureRecoveryUITests: XCTestCase {
         XCTAssertTrue(shutter.waitForExistence(timeout: 10),
                       "a grant on return must resume the camera surface, no relaunch")
         shutter.tap()
-        XCTAssertTrue(app.buttons["captureReviewUseButton"].waitForExistence(timeout: 10),
+        XCTAssertTrue(app.buttons["captureVerifyContinueButton"].waitForExistence(timeout: 10),
                       "the resumed session must hand back a frame, not a blank preview")
     }
 

@@ -259,6 +259,20 @@ user-initiated vs automatic, never "rates are noisy now". The surface split:
 | Nothing detected for ~4s | Hint: "Fill the frame with the receipt – or type it instead." | Keep trying · Type it |
 | Storage full (can't save photo) | Warn sheet: "No space to keep the photo. The entry can still be saved without it." | Save without photo · manage storage (deep link) |
 
+#### Capture verify (PJ.505, Fill-up mode)
+
+The photo with the numbers recognised from it; what the app could not read, or read with doubt, is
+said here, above the fields - the entry that follows does not repeat it.
+
+| Condition | Shows | Next step |
+|---|---|---|
+| Recognition still running | A small reading indicator in each empty field; the photo is already there | Type any field now (it is kept) · Continue waits for the reading |
+| A pump display none of whose numbers was read (PJ.504) | `inkSoft` hint: "Couldn't read the pump display – type the numbers from it, the photo stays attached." - no alpha claim | Type the numbers · Continue · Re-take |
+| A receipt (or other frame) nothing was read from (F1) | `inkSoft` hint: "Couldn't read this one – type it, the photo stays attached." | Type the numbers · Continue · Re-take |
+| A pump reading below the gate or with the owner's flag off | `warn`: "Read from the pump display – this is in alpha. Check every field before saving." | Check each field against the photo · Continue |
+| A pump pair whose shown price differs (PJ.500) | `warn`: the PJ.500 sentence naming both prices | Check total and litres · Continue |
+| The numbers on screen don't multiply up (F2) | `warn`: "These numbers don't multiply up – check them against the photo." - updates as the user types | Correct a field · Continue (never blocked - hard rule 13) |
+
 #### The capture review step (RV.5)
 
 The shot is shown before anything is read from it, with one question - "Can you read the total
@@ -306,6 +320,9 @@ and, while the build is below `PumpPhotoGate`, this notice under the fuel card:
   user edits (hard rule 13). No action bar - the action is the form itself.
 - It shows once per sheet, above the currency row, and disappears the day the gate clears
   (`PumpPhotoCapture.outcome(...).alpha`), with no code change on the sheet.
+- **A capture checked on the verify screen** (PJ.505) had these notices there, so Confirm shows
+  none of them for it; they remain on Confirm only for the paths that skip the verify screen
+  (an attach or replace from the entry editor).
 - **It never shows over a reading that did not happen** (PJ.504): a pump display whose reading
   committed none of litres, price and total gets the F1-style caption instead - *"Couldn't read the
   pump display – type the numbers from it, the photo stays attached."* - a hint in `inkSoft` (not an

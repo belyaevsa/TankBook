@@ -271,7 +271,7 @@ final class ColdLaunchJourneyUITests: XCTestCase {
         XCTAssertTrue(shutter.waitForExistence(timeout: 10),
                       "the capture cover must offer the shutter")
         shutter.tap()
-        let useThis = app.buttons["captureReviewUseButton"]
+        let useThis = app.buttons["captureVerifyContinueButton"]
         XCTAssertTrue(useThis.waitForExistence(timeout: 15),
                       "the shutter must open the review step before anything is read")
         useThis.tap()

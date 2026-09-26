@@ -17,6 +17,10 @@ import TankbookCore
 /// - `-seedFillUpScanSparse` - only liters resolved: the late-answer test's
 ///   boundary, where the OLD behaviour filled the blank total/price and the
 ///   new behaviour (RV.57) leaves them untouched.
+/// - `-seedFillUpScanPumpNothingRead` - a pump display none of whose numbers
+///   was read: the verify screen's admission.
+/// - `-seedFillUpScanPumpCaution` - a pump pair whose shown price differs from
+///   the one it implies, read in alpha: both notices on the verify screen.
 enum FillUpScanTestSeed {
     static func extraction(from arguments: [String]) -> FuelExtraction? {
         if arguments.contains("-seedFillUpScan") {
@@ -27,7 +31,27 @@ enum FillUpScanTestSeed {
         if arguments.contains("-seedFillUpScanSparse") {
             return FuelExtraction(liters: 42.30, currency: .eur)
         }
+        if arguments.contains("-seedFillUpScanPumpNothingRead") {
+            return FuelExtraction(currency: .eur)
+        }
+        if arguments.contains("-seedFillUpScanPumpCaution") {
+            return FuelExtraction(liters: 11.88, total: Decimal(string: "20.02"), currency: .eur)
+        }
         return nil
+    }
+
+    /// The pump seeds' provenance and notices, as the pipeline sets them.
+    static func decorate(_ prefill: inout ConfirmPrefill, arguments: [String]) {
+        if arguments.contains("-seedFillUpScanPumpNothingRead") {
+            prefill.provenance = .pumpPhoto
+            prefill.pumpAlpha = true
+        }
+        if arguments.contains("-seedFillUpScanPumpCaution") {
+            prefill.provenance = .pumpPhoto
+            prefill.pumpAlpha = true
+            prefill.pumpCaution = .shownPriceDiffers(shown: Decimal(string: "1.759")!,
+                                                     implied: Decimal(string: "1.685")!)
+        }
     }
 }
 #endif
