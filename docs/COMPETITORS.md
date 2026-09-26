@@ -52,6 +52,30 @@
 - Pricing: free + small IAPs ($0.99–$8.49).
 - Takeaway: the most technically serious competitor on both OCR and EV – but web-era UX, community-account-centric, DACH-focused. Validates that our feature bets are real user needs.
 
+### FuelMe - Tankbuch (added 2026-09-26, product owner)
+- **iOS/iPadOS/macOS only** (no Android), developer Martin Schröder, Germany. **4.8★ / 1 626 ratings** (DE store),
+  v26.9.5 released 2026-09-24 - actively and frequently updated. 24 languages including Ukrainian (no Russian).
+  App Store id 1440976340 (the listing dates from roughly 2018 - inference from the id). Site:
+  https://www.fuelme-tankbuch.app/
+- Features: fuel log (litres, price, place, fuel type incl. electric), expenses beyond fuel, **unlimited vehicles free**,
+  consumption per 100 km, price trends, cost per km, reminders (TÜV, oil, insurance) with lead time, **German fuel
+  prices by location with auto-fill** of the price, **CarPlay fuel prices** (subscription), **Apple Watch app** for quick
+  entry, widgets, **iCloud sync and iCloud sharing of a vehicle between people**, CSV import/export, a receipt photo
+  as an attachment.
+- **Receipt scanning since v26.8 (August 2026)**: "Tankbelege scannen" - photograph the receipt and the values are
+  extracted; the 26.9 notes improve "die Werte-Erkennung beim Scannen von Tankbelegen". Receipts only - **no
+  pump-display reading**, no multi-currency story, nothing about how a misread is caught.
+- Pricing: base free and unrestricted; single unlocks **EUR 3.99** each (charts, reminders, German fuel prices);
+  **Pro EUR 1.99/mo or EUR 19.99/yr**; **Pro Family EUR 79.99 one-time**; tip jar EUR 0.99-9.99.
+- Privacy label: approximate location and diagnostics, not linked to the user; "Deine Daten bleiben in Deiner
+  iCloud" - local-first by way of iCloud, no own account or server.
+- Reviews: long-time users praise free unlimited vehicles, clear statistics and a developer who answers within days.
+- Takeaway: **the closest competitor to Tankbook's stance on iOS** - local-first (iCloud), no account wall, generous
+  free tier, a solo developer shipping monthly, and now receipt OCR. It is DACH-centred (fuel prices are Germany only)
+  and Apple-only. Where we differ: pump-display reading (no one else ships it), the arithmetic cross-check that refuses
+  a wrong number, multi-currency trips with rate snapshots, EN+RU, and cross-platform sync through our own backend.
+  Where it is ahead: CarPlay, Apple Watch, fuel-price auto-fill, shared vehicles via iCloud, 24 languages.
+
 ### Simply Auto
 - **iOS:** 4.1★ / ~820 ratings, updates lag Android. **Play:** 4.4★ / 24.2K reviews, updated this month.
 - Features: fuel + maintenance + expenses, GPS/Bluetooth auto trip logging, business-vs-personal mileage for tax deduction, cloud backup, aCar import.
@@ -116,6 +140,7 @@ them anywhere user-facing; storefronts differ and several of these products were
 | CarScope | **$0.99/mo or $6.49/yr** (a **$47.99** IAP also listed) | Chiefly automatic mileage tracking |
 | MyFuelLog2 | ~**EUR 1.99** one-time | Ad removal; the tax form, imports and GPS are free |
 | Road Trip MPG | **$6.99 one-time** | Everything; no subscription at all, and ~4.9 stars |
+| FuelMe (added 2026-09-26) | **EUR 1.99/mo or EUR 19.99/yr**; Pro Family **EUR 79.99 one-time**; single unlocks **EUR 3.99** | CarPlay fuel prices, German fuel-price auto-fill, charts and reminders (each also sold alone); receipt scanning; the base app and unlimited vehicles stay free |
 
 **Two of these price what we give away.** Fuelly charges annually and Spritmonitor sells credit
 packs for **photo attachments**; our attachments are free and our export takes them with it.
@@ -126,7 +151,7 @@ Worth knowing that the EN keyword `mileage` will attract people who mean exactly
 
 ### What they have that we do not
 
-Fuel-price map and station comparison (Fuelio, plus CarPlay) · automatic GPS trips with
+Fuel-price map and station comparison (Fuelio, plus CarPlay; FuelMe auto-fills the price from German station data and shows it in CarPlay) · an Apple Watch entry app (FuelMe) · a vehicle shared between people through iCloud (FuelMe) · automatic GPS trips with
 business/personal classification (Simply Auto, CarScope, Fuelio, MyFuelLog2's PDF tax form) ·
 community comparison against other owners of the same car (Fuelly, Spritmonitor's million-vehicle
 database) · Home Screen widgets (aCar, Fuelio, My Cars) · Siri Shortcuts (Road Trip) ·
