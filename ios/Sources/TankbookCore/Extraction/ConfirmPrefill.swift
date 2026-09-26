@@ -253,6 +253,20 @@ public enum ConfirmEmptyScanCaption {
     }
 }
 
+// MARK: - A pump photo nothing was read from
+
+/// A capture classified as a pump display whose reading committed none of the
+/// three numbers - litres, price, total. Confirm admits it in words and asks
+/// for the numbers by hand instead of framing an empty form as an alpha
+/// reading (docs/ERRORS.md -> Confirm, docs/JOURNEYS.md J4). A currency or a
+/// date guessed from the device is not a reading of the display.
+public enum PumpReadFailure {
+    public static func applies(provenance: Provenance?, extraction: FuelExtraction?, hasPhoto: Bool) -> Bool {
+        guard provenance == .pumpPhoto, hasPhoto else { return false }
+        return extraction?.liters == nil && extraction?.unitPrice == nil && extraction?.total == nil
+    }
+}
+
 // MARK: - The lock's reduce-motion decision
 
 /// The cross-check lock's motion (docs/DESIGN.md -> Motion: the rule draws in

@@ -4755,6 +4755,23 @@
         }
       }
     },
+    "Couldn't read the pump display – type the numbers from it, the photo stays attached.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't read the pump display – type the numbers from it, the photo stays attached."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось прочитать табло колонки – введите числа с него, фото останется в записи."
+          }
+        }
+      }
+    },
     "Couldn't read this one – type it, the photo stays attached.": {
       "extractionState": "manual",
       "localizations": {
@@ -8792,6 +8809,23 @@
         }
       }
     },
+    "No receipt? Shoot the pump display": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No receipt? Shoot the pump display"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет чека? Снимите табло колонки"
+          }
+        }
+      }
+    },
     "No reminders yet": {
       "extractionState": "manual",
       "localizations": {
@@ -10624,6 +10658,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Недавно удалённые"
+          }
+        }
+      }
+    },
+    "Read from the pump display": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read from the pump display"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Прочитано с табло колонки"
           }
         }
       }

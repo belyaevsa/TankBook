@@ -192,6 +192,23 @@ struct LogStreamTests {
                                                                           currency: .eur))
     }
 
+    // MARK: - Pump origin
+
+    @Test("a fill read from a pump display carries the pump mark; a typed one does not")
+    func pumpReadFillCarriesTheMark() {
+        var read = Self.fill(Self.date(2025, 8, 10))
+        read.provenance = .pumpPhoto
+        let typed = Self.fill(Self.date(2025, 8, 12))
+        let rows = LogStream(vehicle: Self.vehicle(fuelKinds: [.petrol95]), entries: [read, typed],
+                             calendar: Self.calendar).allRows
+        let entries = rows.compactMap { row -> LogStream.LogEntry? in
+            if case .entry(let entry) = row { return entry } else { return nil }
+        }
+        let byID = Dictionary(uniqueKeysWithValues: entries.map { ($0.id, $0) })
+        #expect(byID[read.id]?.subtitleSegments.contains(.pumpReading) == true)
+        #expect(byID[typed.id]?.subtitleSegments.contains(.pumpReading) == false)
+    }
+
     // MARK: - Fuel-kind visibility (docs/DESIGN.md)
 
     @Test func fuelKindHiddenForSingleFuelVehicleWithUsualKind() {

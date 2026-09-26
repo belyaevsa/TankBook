@@ -34,6 +34,15 @@ extension CaptureView {
                 .padding(.bottom, 22)
                 .accessibilityIdentifier("captureGuidance")
                 .accessibilityValue(guidanceAccessibilityValue)
+        } else if pumpTipVisible, mode == .fillUpAuto {
+            Text("No receipt? Shoot the pump display")
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .multilineTextAlignment(.center)
+                .lineLimit(3)
+                .padding(.horizontal, 36)
+                .padding(.bottom, 22)
+                .accessibilityIdentifier("capturePumpTip")
         } else {
             Text(captureCaption)
                 .font(.system(size: 12))

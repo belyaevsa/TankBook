@@ -164,7 +164,7 @@ struct ManualFillUpView: View {
                                            currency: form.currency)
                     ManualFillUpFuelFullCard(form: $form, fuelKinds: vehicle!.fuelKinds)
                     FuelKindMismatchNotice(scannedKind: prefill?.extraction?.fuelKind, fuelKinds: vehicle!.fuelKinds)
-                    PumpDisplayAlphaNotice(shown: prefill?.pumpAlpha ?? false)
+                    PumpDisplayAlphaNotice(shown: (prefill?.pumpAlpha ?? false) && !pumpReadFailed)
                     PumpReadingCautionNotice(caution: prefill?.pumpCaution)
                     if !form.isFull {
                         TankLevelRow(isFull: form.isFull,
@@ -181,7 +181,7 @@ struct ManualFillUpView: View {
                     // the card it stays in frame whenever the user can see what
                     // they are typing into (the design's caption->card
                     // adjacency, ConfirmManual.dc.html).
-                    if emptyScanCaptionShows {
+                    if emptyScanCaptionShows || pumpReadFailed {
                         emptyScanCaption
                     }
                     ManualFillUpNumbersCard(

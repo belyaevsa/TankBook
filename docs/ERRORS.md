@@ -306,6 +306,10 @@ and, while the build is below `PumpPhotoGate`, this notice under the fuel card:
   user edits (hard rule 13). No action bar - the action is the form itself.
 - It shows once per sheet, above the currency row, and disappears the day the gate clears
   (`PumpPhotoCapture.outcome(...).alpha`), with no code change on the sheet.
+- **It never shows over a reading that did not happen** (PJ.504): a pump display whose reading
+  committed none of litres, price and total gets the F1-style caption instead - *"Couldn't read the
+  pump display – type the numbers from it, the photo stays attached."* - a hint in `inkSoft` (not an
+  error, rule 5) with its next step in the sentence (rule 7), Total focused.
 
 ### Confirm (all variants: standard / foreign / mixed / manual)
 | Condition | Shows | Next step |

@@ -1305,6 +1305,46 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "PJ.500-confirm-price-differs": {
+      "commit": "c96f35e2",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.500-confirm-price-differs-ru": {
+      "commit": "c96f35e2",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.501-capture-pump-tip": {
+      "commit": "c96f35e2",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.501-capture-pump-tip-ru": {
+      "commit": "c96f35e2",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.502-log-pump-mark": {
+      "commit": "c96f35e2",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.502-log-pump-mark-ru": {
+      "commit": "c96f35e2",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.504-confirm-pump-nothing-read": {
+      "commit": "c96f35e2",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.504-confirm-pump-nothing-read-ru": {
+      "commit": "c96f35e2",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "PJ.55-station-favourite": {
       "commit": "c933a3b",
       "device": "iPhone 17",
@@ -1484,6 +1524,16 @@
       "commit": "e8b8a1c",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
+    },
+    "PU.29-confirm-pump-alpha": {
+      "commit": "c96f35e2",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PU.29-confirm-pump-alpha-ru": {
+      "commit": "c96f35e2",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
     },
     "PU.39-capture-lab": {
       "commit": "e1aa90c6",

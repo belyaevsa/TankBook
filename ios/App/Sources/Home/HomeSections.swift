@@ -475,6 +475,11 @@ struct HomeRecentEntries: View {
             let figure = ConsumptionDisplay.value(per100: per100, unit: vehicle.headlineUnit)
             Text("\(ManualFillUpFormat.decimal(figure, fractionDigits: 1)) \(consumptionUnitLabel)")
                 .accessibilityIdentifier("logEntryConsumption")
+        case .pumpReading:
+            Image(systemName: "fuelpump")
+                .font(.caption2)
+                .accessibilityLabel(L10n.localize("Read from the pump display"))
+                .accessibilityIdentifier("logEntryPumpReading")
         case .attachment:
             Image(systemName: "paperclip")
                 .font(.caption2)

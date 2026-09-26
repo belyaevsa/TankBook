@@ -56,6 +56,8 @@ struct CaptureView: View {
     /// The P6.10 alpha-testing disclosure, derived on appear from the capture
     /// count and the persisted dismissal state (see `CaptureAlphaNoticeState`).
     @State private var alphaNoticeVisible = false
+    /// The caption names the pump display on the first capture session.
+    @State var pumpTipVisible = false
 
     /// The selected car's powertrain, which decides the mode row
     /// (`CaptureMode.modes(for:)`). Defaults to `.ice` so the screen renders
@@ -306,9 +308,11 @@ struct CaptureView: View {
     private func loadAlphaNotice() {
         #if DEBUG
         CaptureAlphaNoticeState.resetForTestsIfRequested()
+        CapturePumpTip.resetForTestsIfRequested()
         HomeTestSeed.seedIfRequested()
         #endif
         alphaNoticeVisible = CaptureAlphaNoticeState.shouldShow(captureCount: captureEntryCount())
+        pumpTipVisible = offeredModes.contains(.fillUpAuto) && CapturePumpTip.takeIfUnseen()
     }
 
     /// How many captures the device holds - every entry, across every live
@@ -525,9 +529,9 @@ struct CaptureView: View {
 
     /// The caption under the mode row, tailored per powertrain and per the
     /// pump-photo accuracy gate (PJ.12b). "Receipts and pump displays" is true
-    /// only for a fuel-tank car AND only while `PumpPhotoGate` lets pump photo
-    /// ship - so the pump claim is the gate's answer, never a constant, and a
-    /// future build that turns the gate on gets the copy it has earned. An EV
+    /// only for a fuel-tank car AND only while pump photo is on - the owner's
+    /// `pumpPhoto` flag under the accuracy gate (`CapturePipeline.pumpPhotoEnabled`) -
+    /// so the pump claim is that answer, never a constant. An EV
     /// (no `.fillUpAuto` mode) is never offered the pump claim at all: there is
     /// no fuel tank and no pump display to read. `offeredModes` is the same
     /// source of truth as the mode row, so the screen decides what it offers
@@ -535,7 +539,7 @@ struct CaptureView: View {
     /// Internal, not private: the guidance caption lives in
     /// `CaptureGuidanceCaption.swift` (this file is at its length limit).
     var captureCaption: LocalizedStringKey {
-        if offeredModes.contains(.fillUpAuto), PumpPhotoGate.allowsPumpPhoto {
+        if offeredModes.contains(.fillUpAuto), CapturePipeline.pumpPhotoEnabled {
             return "Receipts and pump displays are detected automatically"
         }
         return "Receipts are detected automatically"

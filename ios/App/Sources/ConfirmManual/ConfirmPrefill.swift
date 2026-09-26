@@ -71,6 +71,8 @@ struct ConfirmPrefill {
 /// - `-seedConfirmPrefillEmptyPhoto` - the PJ.17 empty-but-alive state: the
 ///   same all-nil extraction WITH a photo, so the quiet caption shows and Total
 ///   is focused (docs/JOURNEYS.md F1).
+/// - `-seedPumpCaptureNothingRead` - a pump photo whose reading committed none
+///   of the three numbers: the pump caption, no alpha notice.
 /// - `-seedConfirmPrefillSparse` - one field resolved (a pump's liters), the
 ///   rest blank and focusable, the resolved field dimmed.
 /// - `-seedConfirmPrefill` - the common partly-empty reality (liters + price,
@@ -106,7 +108,7 @@ enum ConfirmPrefillSeed {
         // PJ.17: the empty-but-alive state - a scan that resolved NOTHING but
         // kept its photo (docs/JOURNEYS.md F1). The extraction is all-nil;
         // this is what carries the photo the caption promises stays attached.
-        if arguments.contains("-seedConfirmPrefillEmptyPhoto") {
+        if arguments.contains("-seedConfirmPrefillEmptyPhoto") || arguments.contains("-seedPumpCaptureNothingRead") {
             prefill.sourceImage = syntheticSourceImage()
         }
         // RV.149: force the save's photo write to fail. `rawPrefill` sets no
@@ -244,11 +246,17 @@ enum ConfirmPrefillSeed {
     /// (Spike/ReceiptSpike/fixtures/pump).
     private static func pumpPrefill(from arguments: [String]) -> ConfirmPrefill? {
         if let cautioned = pumpCautionPrefill(from: arguments) { return cautioned }
+        if arguments.contains("-seedPumpCaptureNothingRead") {
+            // A pump display the reader committed nothing on.
+            var prefill = ConfirmPrefill(extraction: FuelExtraction(currency: .eur), provenance: .pumpPhoto)
+            prefill.pumpAlpha = !CapturePipeline.pumpPhotoEnabled
+            return prefill
+        }
         guard arguments.contains("-seedPumpCapture") else { return nil }
         let extraction = FuelExtraction(liters: 60.25, unitPrice: 76.24, total: 4593.46,
                                         currency: .rub, date: "17.08.2026")
         let outcome = PumpPhotoCapture.outcome(
-            pumpPhotoEnabled: PumpPhotoGate.allowsPumpPhoto, extraction: extraction)
+            pumpPhotoEnabled: CapturePipeline.pumpPhotoEnabled, extraction: extraction)
         var prefill = ConfirmPrefill(extraction: outcome.extraction, provenance: .pumpPhoto)
         prefill.pumpAlpha = outcome.alpha
         return prefill
@@ -264,7 +272,7 @@ enum ConfirmPrefillSeed {
         let extraction = FuelExtraction(liters: 30.21, unitPrice: nil, total: Decimal(string: "55.56"),
                                         currency: .eur, date: "17.08.2026")
         let outcome = PumpPhotoCapture.outcome(
-            pumpPhotoEnabled: PumpPhotoGate.allowsPumpPhoto, extraction: extraction)
+            pumpPhotoEnabled: CapturePipeline.pumpPhotoEnabled, extraction: extraction)
         var prefill = ConfirmPrefill(extraction: outcome.extraction, provenance: .pumpPhoto)
         prefill.pumpAlpha = outcome.alpha
         prefill.pumpCaution = caution

@@ -1743,6 +1743,24 @@ capture SH.7-about-experiments-ru ru -presentScreen about
 capture SH.8-capture-lab-shutter    en -presentScreen about -presentCaptureLab -captureCameraTestFrame "${LAB_FIXTURE}"
 capture SH.8-capture-lab-shutter-ru ru -presentScreen about -presentCaptureLab -captureCameraTestFrame "${LAB_FIXTURE}"
 
+# PU.29: a pump reading pre-filled with the alpha notice; PJ.500: a pair whose shown price differs.
+capture PU.29-confirm-pump-alpha           en -seedVehicleForUITests -presentScreen confirmManual -seedPumpCapture
+capture PU.29-confirm-pump-alpha-ru        ru -seedVehicleForUITests -presentScreen confirmManual -seedPumpCapture
+capture PJ.500-confirm-price-differs       en -seedVehicleForUITests -presentScreen confirmManual -seedPumpCautionDiffers
+capture PJ.500-confirm-price-differs-ru    ru -seedVehicleForUITests -presentScreen confirmManual -seedPumpCautionDiffers
+
+# PJ.501: the first capture session's caption names the pump display.
+capture PJ.501-capture-pump-tip    en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -powertrain ice -pumpTipReset
+capture PJ.501-capture-pump-tip-ru ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -powertrain ice -pumpTipReset
+
+# PJ.502: the Log marks the fill read from a pump display, and not the typed one.
+capture PJ.502-log-pump-mark    en -seedSettingsSignedIn -seedHomePumpRead
+capture PJ.502-log-pump-mark-ru ru -seedSettingsSignedIn -seedHomePumpRead
+
+# PJ.504: a pump photo nothing was read from - the admission and the form, no alpha claim.
+capture PJ.504-confirm-pump-nothing-read    en -seedVehicleForUITests -presentScreen confirmManual -seedPumpCaptureNothingRead
+capture PJ.504-confirm-pump-nothing-read-ru ru -seedVehicleForUITests -presentScreen confirmManual -seedPumpCaptureNothingRead
+
 # Merge this run's frames into the manifest. `frames` is the script's record;
 # `legacy` (frames no line can reproduce) is hand-maintained and preserved.
 if [ "${#CAPTURED[@]}" -gt 0 ]; then

@@ -135,7 +135,7 @@ the device can zoom) when the rows are under the size rule, and *Tilt to show th
 when one row is short. The hint is a head start, never a gate – the shutter fires in every state
 and typing stays the peer door (hard rule 15) – and a receipt frame raises no hint at all.
 
-Same shape as J3, with the deltas: camera pointed at the pump display before hanging up the nozzle (→ prompt tip on first use: "no receipt? Shoot the pump"); OCR reads the three numbers, arithmetic triple-match assigns them (⚠ glare/LED segments – the spike's ~95% gate applies before this ships); station name auto-suggested from location + favorites. This journey is **unowned by any competitor** – it must feel as reliable as J3 or not exist.
+Same shape as J3, with the deltas: camera pointed at the pump display before hanging up the nozzle (→ prompt tip on first use: "no receipt? Shoot the pump"); OCR reads the three numbers, arithmetic triple-match assigns them (⚠ glare/LED segments – the ship gate applies before this leaves alpha: **≥ 99 % of the fields it fills are right**, over **≥ 60 %** of the fields the corpus asserts, `PumpPhotoGate`; the 99 % is the promise, product owner 2026-09-25); station name auto-suggested from location + favorites. This journey is **unowned by any competitor** – it must feel as reliable as J3 or not exist.
 
 **The reader, and what the shipped build does with a pump photo (PU.29, decisions 7 and 8,
 2026-09-19).** A frame is a pump display when the reader itself vouches for two or more large rows
@@ -152,7 +152,11 @@ measured that fallback and kept it) and is otherwise empty. A display sideways i
 upright: when the first read commits nothing the reader tries the orientation its row detector
 prefers (PU.53). **While the build is below the pump
 gate the sheet says so** - *"Read from the pump display – this is in alpha. Check every field
-before saving."* - and typing stays the peer door (hard rule 15). A pump photo never runs the
+before saving."* - and typing stays the peer door (hard rule 15). **When nothing was read, it says
+that instead** (PJ.504, product owner 2026-09-26): a pump display whose reading committed none of
+the three numbers opens Confirm with *"Couldn't read the pump display – type the numbers from it,
+the photo stays attached."*, Total focused and no alpha claim - the app admits the failure and hands
+the user the form. A pump photo never runs the
 receipt parser in silence. The photo's kind is recorded on the attachment (`pipeline:
 "pump-reader v1"`), the entry carries `.pumpPhoto`, and the gateway is asked with `kind: "pump"`
 so the backend ledger records it. The locator is automatic (decision 8); a tap-to-frame crop is
@@ -242,7 +246,7 @@ the coordinate is visible and removable on the station in the Garage (Stations �
 stamp applies to the LIVE station row at save time and rides the ordinary `.dirty` sync path;
 a save that changes nothing writes nothing ([RV.136]'s guard, `docs/SCHEMA.md` → Station).
 
-**Success metric:** pump-photo share of all captures (target ≥15% – proves the niche is real); extraction accuracy ≥95% on the confirm screen.
+**Success metric:** pump-photo share of all captures (target ≥15% – proves the niche is real; its measurement path is PJ.503's decision); **≥ 99 % of the fields the pump reader fills on the confirm screen are right** (product owner 2026-09-25, the gate's precision threshold).
 
 ### J3b · Type it (the peer path, every locale)
 **Status: implemented 2026-09-13** (reviewed by the orchestrator, REVIEW-SCENARIO-J3b-2026-09-13)

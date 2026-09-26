@@ -27,12 +27,18 @@ extension ManualFillUpView {
             hasPhoto: prefill?.sourceImage != nil)
     }
 
+    /// A pump photo whose reading committed none of the three numbers.
+    var pumpReadFailed: Bool {
+        PumpReadFailure.applies(provenance: prefill?.provenance, extraction: prefill?.extraction,
+                                hasPhoto: prefill?.sourceImage != nil)
+    }
+
     /// PJ.17 (F1): focuses Total on appear - the one field a receipt always
     /// shows. Called from `load()` once the form is ready; a `.task` on the
     /// caption itself was swallowed by the sheet's first-render focus system,
     /// so the hop lands a runloop turn later, after the numbers card exists.
     func focusEmptyScanTotalIfShown() {
-        guard emptyScanCaptionShows else { return }
+        guard emptyScanCaptionShows || pumpReadFailed else { return }
         DispatchQueue.main.async { focus = .total }
     }
 
@@ -43,7 +49,9 @@ extension ManualFillUpView {
     /// a `.task` on a view that appears inside the sheet's first render is
     /// swallowed by the focus system.
     var emptyScanCaption: some View {
-        Text("Couldn't read this one – type it, the photo stays attached.")
+        Text(pumpReadFailed
+             ? "Couldn't read the pump display – type the numbers from it, the photo stays attached."
+             : "Couldn't read this one – type it, the photo stays attached.")
             .font(.footnote)
             .foregroundStyle(Theme.Palette.inkSoft)
             .fixedSize(horizontal: false, vertical: true)

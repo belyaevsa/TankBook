@@ -649,7 +649,7 @@ extension CaptureUITests {
 @MainActor
 extension CaptureUITests {
     func testICECaptionDoesNotClaimPumpWhileTheGateFails() {
-        let app = captureApp("authorized", ["-powertrain", "ice"])
+        let app = captureApp("authorized", ["-powertrain", "ice", "-pumpTipSeen"])
         XCTAssertTrue(app.staticTexts["Receipts are detected automatically"].waitForExistence(timeout: 5),
                       "ICE must read 'Receipts are detected automatically' while the gate fails")
         XCTAssertFalse(app.staticTexts["Receipts and pump displays are detected automatically"].exists,
@@ -662,5 +662,19 @@ extension CaptureUITests {
                       "an EV must read 'Receipts are detected automatically'")
         XCTAssertFalse(app.staticTexts["Receipts and pump displays are detected automatically"].exists,
                        "an EV has no pump display - the claim must never reach it")
+    }
+
+    /// The first fill-up capture names the pump display once; the next
+    /// capture session reads the ordinary caption.
+    func testThePumpTipShowsOnceThenTheOrdinaryCaption() {
+        let first = captureApp("authorized", ["-powertrain", "ice", "-pumpTipReset"])
+        XCTAssertTrue(first.staticTexts["No receipt? Shoot the pump display"].waitForExistence(timeout: 5),
+                      "the first capture session must name the pump display")
+        first.terminate()
+        let second = captureApp("authorized", ["-powertrain", "ice"])
+        XCTAssertTrue(second.staticTexts["Receipts are detected automatically"].waitForExistence(timeout: 5),
+                      "a later capture session reads the ordinary caption")
+        XCTAssertFalse(second.staticTexts["No receipt? Shoot the pump display"].exists,
+                       "the tip is shown once, never again")
     }
 }

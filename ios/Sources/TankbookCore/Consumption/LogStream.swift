@@ -199,6 +199,9 @@ public struct LogStream: Equatable, Sendable {
         /// docs/SCHEMA.md -> Derived: consumption): a `0.0` would be a wrong
         /// claim about the car, so nothing renders.
         case consumption(Double)
+        /// The entry's values were read from a pump display: the one
+        /// kind of scan worth a second look (F2).
+        case pumpReading
         case attachment
         case date(Date)
     }
@@ -248,10 +251,12 @@ public struct LogStream: Equatable, Sendable {
         public let consumptionPer100: Double?
         public let money: Money?
         public let hasAttachment: Bool
+        /// Created from a pump-display photo (`Provenance.pumpPhoto`).
+        public let readFromPump: Bool
         public let isConflicted: Bool
 
         /// The subtitle line: `quantity · consumption? · fuelKind? · odometer? ·
-        /// 📎? · date`. An entry with no odometer simply omits that segment; a
+        /// pump? · 📎? · date`. An entry with no odometer simply omits that segment; a
         /// fill that closes no segment carries no consumption figure (RV.142).
         public var subtitleSegments: [SubtitleSegment] {
             var segments: [SubtitleSegment] = []
@@ -266,6 +271,9 @@ public struct LogStream: Equatable, Sendable {
             }
             if let odometer {
                 segments.append(.odometer(odometer))
+            }
+            if readFromPump {
+                segments.append(.pumpReading)
             }
             if hasAttachment {
                 segments.append(.attachment)
@@ -598,6 +606,7 @@ extension LogStream.LogEntry {
         self.odometer = entry.odometer
         self.money = entry.money
         self.hasAttachment = !entry.attachments.isEmpty
+        self.readFromPump = entry.provenance == .pumpPhoto
         self.isConflicted = entry.conflict != .none
 
         switch entry {

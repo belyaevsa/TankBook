@@ -33,7 +33,7 @@ final class CaptureGuidanceUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-homeResetDatabase", "-seedVehicleForUITests",
                                "-presentScreen", "capture", "-cameraStatus", "authorized",
-                               "-powertrain", "ice",
+                               "-powertrain", "ice", "-pumpTipSeen",
                                "-captureCameraTestFrame", fixture]
         app.launch()
         XCTAssertTrue(app.buttons["captureCloseButton"].waitForExistence(timeout: 10),
