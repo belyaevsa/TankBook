@@ -35,6 +35,9 @@ struct CaptureLabResult: Codable, Equatable {
     var pipelineMs: Int
     var resolvedFields: Int?
     var crossCheck: String?
+    /// The currency the pump reader was given - the selected car's, else the
+    /// phone region's (`PumpReaderCurrency`). Absent in logs written before it.
+    var currency: String? = nil
 
     /// How many of the three committed values resolved - the count the table
     /// shows (the values themselves stay in the log).

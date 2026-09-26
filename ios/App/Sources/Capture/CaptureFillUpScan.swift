@@ -26,7 +26,8 @@ extension CaptureView {
         let vehicle = try? currentVehicle()
         let prefill = await CapturePipeline.process(
             image,
-            bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle?.id))
+            bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle?.id),
+            homeCurrency: vehicle?.homeCurrency)
         activeSheet = .scanned(prefill)
     }
 }
@@ -43,11 +44,11 @@ extension CaptureView {
         guard mode == .fillUpAuto || mode == .charge else { return nil }
         let vehicle = try? currentVehicle()
         let session = CaptureVerifySession(image: image, volumeUnit: vehicle?.units.volume ?? .l)
-        session.start { await Self.recognize(image, vehicleId: vehicle?.id) }
+        session.start { await Self.recognize(image, vehicleId: vehicle?.id, homeCurrency: vehicle?.homeCurrency) }
         return session
     }
 
-    private static func recognize(_ image: UIImage, vehicleId: UUID?) async -> ConfirmPrefill {
+    private static func recognize(_ image: UIImage, vehicleId: UUID?, homeCurrency: CurrencyCode?) async -> ConfirmPrefill {
         #if DEBUG
         if let seeded = FillUpScanTestSeed.extraction(from: ProcessInfo.processInfo.arguments) {
             var prefill = ConfirmPrefill(extraction: seeded, sourceImage: image)
@@ -55,7 +56,8 @@ extension CaptureView {
             return prefill
         }
         #endif
-        return await CapturePipeline.process(image, bandProvider: AppFuelPriceBand.provider(vehicleId: vehicleId))
+        return await CapturePipeline.process(image, bandProvider: AppFuelPriceBand.provider(vehicleId: vehicleId),
+                                             homeCurrency: homeCurrency)
     }
 
     func verifyScreen(_ session: CaptureVerifySession) -> some View {

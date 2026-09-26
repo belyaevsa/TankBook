@@ -675,7 +675,8 @@ extension EditEntryView {
         Task {
             let prefill = await CapturePipeline.process(
                 image,
-                bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle.id))
+                bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle.id),
+                homeCurrency: vehicle.homeCurrency)
             attachOcrLines = prefill.ocrLines
             attachIsPumpDisplay = prefill.provenance == .pumpPhoto
             let extraction = prefill.extraction ?? FuelExtraction()

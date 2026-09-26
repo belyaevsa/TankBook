@@ -50,9 +50,14 @@ enum CapturePipeline {
     /// `CGImage`, or OCR that resolves nothing, produces an all-nil extraction -
     /// which the Confirm sheet renders as the ordinary empty manual form, never
     /// an error and never a dead end (hard rule 15).
+    ///
+    /// `homeCurrency` is the car's: the pump reader reads under it, and the
+    /// phone's region only when there is no car (`PumpReaderCurrency`). It has
+    /// no default so that no caller reads under the region by omission.
     @MainActor
     static func process(_ image: UIImage, source: ExtractionSource? = nil,
-                        bandProvider: (any FuelPriceBandProvider)? = nil) async -> ConfirmPrefill {
+                        bandProvider: (any FuelPriceBandProvider)? = nil,
+                        homeCurrency: CurrencyCode?) async -> ConfirmPrefill {
         // OB.2: the recognition duration rides the prefill so the
         // `capture.pipeline` line emitted at the confirm commit can carry it.
         // The duration covers OCR + QR + assembly, not the user's editing time.
@@ -71,8 +76,9 @@ enum CapturePipeline {
             if source == nil || source == .pump {
                 if let reader = pumpReader, let upright = uprightCGImage(of: image) {
                     let classifyStartedAt = Date()
-                    let classified = await readPumpDisplay(UprightBox(image: upright), reader: reader,
-                                                           bandProvider: bandProvider)
+                    let classified = await readPumpDisplay(
+                        UprightBox(image: upright), reader: reader, bandProvider: bandProvider,
+                        currency: PumpReaderCurrency.choose(homeCurrency: homeCurrency, region: .current))
                     pumpReading = classified.reading
                     pumpTrace = classified.traceJSON
                     if pumpReading != nil { resolvedSource = .pump }
@@ -151,10 +157,10 @@ enum CapturePipeline {
     /// capture's orientation, RV.49), so the reader's seed is 0 and its search
     /// is the fallback for a display sideways in that frame (PU.53).
     private static func readPumpDisplay(
-        _ box: UprightBox, reader: PumpReaderHandle, bandProvider: (any FuelPriceBandProvider)?
+        _ box: UprightBox, reader: PumpReaderHandle, bandProvider: (any FuelPriceBandProvider)?,
+        currency: CurrencyCode?
     ) async -> PumpDisplayCapture.TracedRun {
         await Task.detached(priority: .userInitiated) {
-            let currency: CurrencyCode? = Locale.current.currency.flatMap { CurrencyCode(rawValue: $0.identifier) }
             // Every build traces the run for the `capture.pumpRead` stage summary; a
             // build that carries experiments also keeps the whole trace for a debug
             // case (ScanRecorder). The traced run returns what the plain one does.

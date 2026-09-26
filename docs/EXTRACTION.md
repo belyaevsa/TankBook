@@ -1111,8 +1111,8 @@ What changes: **total + volume may commit without a price.** What replaces the a
 guard is the price the pair IMPLIES - `total / volume` must fall inside the plausible band for the
 currency and fuel (`FuelPriceBand`, already threaded through `PumpReadingLaw.resolve` and unused on
 this path today; **as built** the band is currency-wide - the lowest low and highest high over every
-fuel of that currency, EUR 0.4-3.0 - and the currency is the device locale's, not the photo's,
-`CapturePipeline.swift:142-145`, noted 2026-09-26); outside it the read still abstains, because an implausible implied price is how a
+fuel of that currency, EUR 0.4-3.0 - and the currency is the car's home currency, the phone's
+region only without a car, see "The currency the reader is given" below); outside it the read still abstains, because an implausible implied price is how a
 misread digit shows itself when there is no third number to check against. A price the display DOES
 show, or a board cell near the implied price, becomes a **validation**: agreement raises confidence,
 disagreement is meant to surface as the F2 confirm on the form (hard rule 13 - the app suggests,
@@ -1322,6 +1322,21 @@ the object detector it replaced (`DigitRows.mlmodel`) lives with its trainer in
 `ml/pump-reader/detector/` and stays selectable in the annotator and `pump-read`. A trained reader is the second
 non-rule producer of a field after the cloud model, and the same sentence governs both: it
 suggests, it never trusts.
+
+### The currency the reader is given (PU.98, 2026-09-26)
+
+The law's decimal conventions and the price band are chosen by currency, so the currency decides
+whether a display can close at all. The capture path passes **the car's home currency**, and the
+phone's region only for a capture with no car (`PumpReaderCurrency.choose`,
+`CapturePipeline.process(homeCurrency:)` - the parameter has no default, so no caller reads under
+the region by omission). Until this change it passed `Locale.current`'s currency: the owner's
+phone, region Russia, gave the reader RUB at Estonian pumps, and the reader refused every euro
+display - Capture Lab Run 4 found all three rows on seven shots and committed nothing, while the
+same photos read right under EUR (`docs/experiments/CAPTURE-LAB.md` -> Run 4). The Capture Lab
+logs the currency it read under. **Open**: a car whose home currency differs from where it fills
+(a euro car at a Russian pump) still reads under the home currency and refuses; whether the law
+may try a second currency is the owner's call, because a close under the wrong currency is a
+confident wrong value.
 
 ### Pump photo is on (product owner, 2026-09-26)
 

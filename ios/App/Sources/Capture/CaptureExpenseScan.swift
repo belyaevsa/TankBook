@@ -130,7 +130,8 @@ extension CaptureView {
         let vehicle = try? currentVehicle()
         let prefill = await CapturePipeline.process(
             image, source: .receipt,
-            bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle?.id))
+            bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle?.id),
+            homeCurrency: vehicle?.homeCurrency)
         return ExpenseScanCapture(image: image,
                                   extraction: prefill.extraction ?? FuelExtraction(),
                                   ocrLines: prefill.ocrLines)

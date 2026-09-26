@@ -118,7 +118,8 @@ final class CaptureLabRunner {
             committed: scored.committed,
             pipelineMs: scored.pipelineMs,
             resolvedFields: scored.resolvedFields,
-            crossCheck: scored.crossCheck)
+            crossCheck: scored.crossCheck,
+            currency: scored.currency)
     }
 
     // MARK: - Scoring
@@ -134,6 +135,7 @@ final class CaptureLabRunner {
         var pipelineMs: Int
         var resolvedFields: Int?
         var crossCheck: String?
+        var currency: String?
     }
 
     /// The production path decides: `CapturePipeline.process` with `source` nil
@@ -152,7 +154,10 @@ final class CaptureLabRunner {
             rows = detection.displayRows
             textLines = detection.textLines
         }
-        let prefill = await CapturePipeline.process(image, source: source.extractionSource)
+        // The selected car's currency, as a capture from the Capture screen uses.
+        let vehicle = (try? AppStore.repository().liveVehicles()).flatMap { AppCarSelection().selectedVehicle($0) }
+        let prefill = await CapturePipeline.process(image, source: source.extractionSource,
+                                                    homeCurrency: vehicle?.homeCurrency)
         let extraction = prefill.extraction
         return Score(
             classifyPath: classifyPath,
@@ -164,7 +169,8 @@ final class CaptureLabRunner {
                                            total: extraction?.total),
             pipelineMs: prefill.pipelineDurationMs ?? 0,
             resolvedFields: source == .receipt ? extraction.map(resolvedCount) : nil,
-            crossCheck: source == .receipt ? extraction.map { describe($0.crossCheck) } : nil)
+            crossCheck: source == .receipt ? extraction.map { describe($0.crossCheck) } : nil,
+            currency: PumpReaderCurrency.choose(homeCurrency: vehicle?.homeCurrency, region: .current)?.rawValue)
     }
 
     /// The reader's classification of one frame, off the main actor (the

@@ -71,7 +71,8 @@ extension ManualFillUpView {
         Task {
             let prefill = await CapturePipeline.process(
                 image,
-                bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle.id))
+                bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle.id),
+                homeCurrency: vehicle.homeCurrency)
             attachedPrefill = prefill
             guard let extraction = prefill.extraction else { return }
             let entry = form.blankDetectingEntry(vehicle: vehicle)
