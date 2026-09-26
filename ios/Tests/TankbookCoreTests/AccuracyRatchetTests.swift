@@ -270,11 +270,10 @@ struct CorpusAccuracyGateTests {
 
     /// P2.7 "the gate IS the check", made executable: the real, live-scored pump
     /// corpus must match the compile-time gate constants (so the constants cannot
-    /// drift from reality), and the shipped flag must be off while the measured
-    /// precision is below the 99% threshold or coverage below the 60% floor. A
-    /// flag flipped on below the gate is exactly what `PumpPhotoGate.violation`
-    /// catches.
-    @Test func pumpModeShipsOffWhileTheCorpusIsBelowTheGate() async throws {
+    /// drift from reality), and the shipped flag may be on only while the
+    /// reader's measured precision and coverage clear the gate. A flag on below
+    /// the gate is exactly what `PumpPhotoGate.violation` catches.
+    @Test func pumpGateConstantsMatchTheLiveScoreAndTheFlagIsUnderTheGate() async throws {
         let scored = try await scorePump()
         #expect(scored.numericHits == PumpPhotoGate.measuredNumericHits,
                 "measured numeric hits \(PumpPhotoGate.measuredNumericHits) must match the live \(scored.numericHits)")
@@ -293,7 +292,7 @@ struct CorpusAccuracyGateTests {
         #expect(PumpPhotoGate.violation(flagEnabled: shipped,
                                         precision: PumpPhotoGate.readerPrecision,
                                         coverage: PumpPhotoGate.readerCoverage) == nil,
-                Comment(stringLiteral: "the pump flag must stay off while precision is below "
+                Comment(stringLiteral: "the pump flag may not be on while the reader's precision is below "
                     + "\(PumpPhotoGate.precisionThreshold) or coverage below \(PumpPhotoGate.coverageFloor)"))
     }
 

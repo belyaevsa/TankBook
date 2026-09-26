@@ -133,9 +133,9 @@ public enum PumpPhotoGate {
     /// filling what the reader refused) adds no committed cell over the reader
     /// on the measured runtime (`PumpCompositeArmsTests`), so the reader's
     /// measurement is what the user meets. It is a ceiling, not the switch:
-    /// `ConfigStore.isEnabled(.pumpPhoto)` - the owner's flag, off in the
-    /// bundled config - is what the capture path reads, and it is false
-    /// whatever the rollout while this is false.
+    /// `ConfigStore.isEnabled(.pumpPhoto)` - the owner's flag in the bundled
+    /// config - is what the capture path reads, and it is false whatever the
+    /// rollout while this is false.
     public static var allowsPumpPhoto: Bool {
         readerPrecision >= precisionThreshold && readerCoverage >= coverageFloor
     }
