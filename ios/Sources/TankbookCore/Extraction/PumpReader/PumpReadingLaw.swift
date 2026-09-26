@@ -171,12 +171,75 @@ public enum PumpReadingLaw {
         // read, and nothing ambiguous near the best repair.
         guard let bestRepair = repairs.max(by: { $0.0.logPosterior < $1.0.logPosterior }),
               topRead - bestRepair.0.logPosterior <= readWindow else {
-            return .abstained(diagnoseNothingClosed(sets, priceBand: priceBand))
+            let diagnosis = diagnoseNothingClosed(sets, priceBand: priceBand)
+            guard diagnosis == .nothingClosed else { return .abstained(diagnosis) }
+            return pairFallback(literWindow: literWindow, totalWindow: totalWindow!, priceWindow: priceWindow,
+                                boards: byField[.board] ?? [], conventions: conventions, priceBand: priceBand)
         }
         let near = repairs.filter { bestRepair.0.logPosterior - $0.0.logPosterior <= ambiguityWindow }
         let distinct = Set(near.map { "\($0.0.liters)|\($0.0.price)|\($0.0.total)" })
         guard distinct.count == 1 else { return .abstained(.ambiguous) }
         return commit([bestRepair.0], repair: (bestRepair.1, bestRepair.2))
+    }
+
+    /// The price row did not close with total and volume, even with one repaired
+    /// cell. On a multi-price board the row taken as the price may be another
+    /// grade, and a loyalty discount pays a price no row shows (pump-055,
+    /// pump-056: total and volume read right, one board row assigned as the
+    /// price) - so the pair gets the no-price branch's chance: the price row's
+    /// read and every board's are the shown prices, and the pair commits only
+    /// when one of them validates it (`pairOutcome`: exact agreement, or within
+    /// `pairValidationTolerance` with the `.shownPriceDiffers` caution). The
+    /// price itself is never committed from here; otherwise the reading stays
+    /// `.nothingClosed`.
+    ///
+    /// Unlike the no-price branch, the arithmetic has already disagreed here,
+    /// and a validation tolerance cannot see a last-digit misread (pump-055's
+    /// 56.09 for 56.05 implies a price 0.07 % off). The pump computed the total
+    /// from the price it charged, which is itself a display price, so the pair
+    /// must close EXACTLY at some price in the display's resolution: 56.05 x
+    /// 1.939 is 108.68, while no price at all makes 56.09 into 108.68.
+    static func pairFallback(literWindow: PumpLocatedWindow, totalWindow: PumpLocatedWindow,
+                             priceWindow: PumpLocatedWindow, boards: [PumpLocatedWindow],
+                             conventions: PumpDisplayConventions, priceBand: FuelPriceBand?) -> PumpDisplayReading {
+        let shown = ([priceWindow] + boards).compactMap { topCandidate($0, decimals: conventions.priceDecimals)?.value }
+        guard let liters = topCandidate(literWindow, decimals: conventions.decimals(.liters, cells: literWindow.cells.count)),
+              let total = topCandidate(totalWindow, decimals: conventions.decimals(.total, cells: totalWindow.cells.count)),
+              liters.value >= minLiters,
+              discountedPriceCloses(liters: liters.value, total: total.value, shown: shown) else {
+            return .abstained(.nothingClosed)
+        }
+        switch pairOutcome(literWindow: literWindow, totalWindow: totalWindow, shownPrices: shown,
+                           conventions: conventions, priceBand: priceBand) {
+        case .committed(let reading): return reading
+        case .refused: return .abstained(.nothingClosed)
+        }
+    }
+
+    /// Whether some price at `priceDecimals` places, next to `total / liters`,
+    /// makes `liters x price` round or floor to `total` - a price the pump
+    /// could have charged for exactly this pair.
+    static func paidPriceCloses(liters: Double, total: Double, priceDecimals: Int) -> Bool {
+        let scale = pow(10, Double(priceDecimals))
+        let implied = (total / liters * scale).rounded()
+        return (-2...2).contains { step in
+            closesExactly(liters: liters, price: (implied + Double(step)) / scale, total: total)
+        }
+    }
+
+    /// Whether a price the pump could have charged closes the pair exactly AND
+    /// sits a whole number of half cents from a price the display shows - the
+    /// shape every discount in the corpus has (1.944 -> 1.939, 2.069 -> 2.034,
+    /// 1.919 -> 1.839). A misread volume or total closes at some price about a
+    /// third of the time; at a half-cent step from a shown one, far less often.
+    static func discountedPriceCloses(liters: Double, total: Double, shown: [Double]) -> Bool {
+        let implied = (total / liters * 1000).rounded()
+        for step in -2...2 {
+            let paid = (implied + Double(step)) / 1000
+            guard closesExactly(liters: liters, price: paid, total: total) else { continue }
+            if shown.contains(where: { Int((($0 - paid) * 1000).rounded()) % 5 == 0 }) { return true }
+        }
+        return false
     }
 
     /// The candidate sets a diagnosis needs: the raw sets before the

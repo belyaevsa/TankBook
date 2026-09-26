@@ -36,7 +36,7 @@ public enum PumpPhotoGate {
     /// (liters, unitPrice, total - blanks skipped). `fuelKind` is never scored for a
     /// pump (the spec forbids inferring it) and `currency` is reported
     /// separately, never in the gate.
-    public static let measuredCommittedCorrect: Int = 117
+    public static let measuredCommittedCorrect: Int = 120
 
     /// Numeric cells the parser committed to at build time (the coverage
     /// numerator). A cell it abstained on - a correct refusal or an honest
@@ -47,11 +47,11 @@ public enum PumpPhotoGate {
     /// discount) and the pair tier's cautioned totals; the composite is a
     /// record here, and `allowsPumpPhoto` decides on the reader's own heldout
     /// numbers below.
-    public static let measuredCommitted: Int = 120
+    public static let measuredCommitted: Int = 123
 
     /// Numeric cells the parser resolved correctly at build time (recall, kept
     /// for legibility - the gate no longer runs on it).
-    public static let measuredNumericHits: Int = 117
+    public static let measuredNumericHits: Int = 120
 
     /// The numeric cells the pump corpus scores (B1). Not one per fixture x 3: blank
     /// numeric cells stay skipped (glare on a total, the two idle pumps have no
@@ -79,13 +79,13 @@ public enum PumpPhotoGate {
 
     /// Numeric cells the READER committed over the heldout split, of
     /// `readerNumericTotal`.
-    public static let readerCommitted: Int = 119
+    public static let readerCommitted: Int = 122
 
     /// Of `readerCommitted`, the cells that match the corpus. The one cell
     /// short of `readerCommitted` is a pair-tier total committed with the
     /// shown-price caution (`PumpReadingCaution.shownPriceDiffers`), which
     /// reaches Confirm flagged; no wrong cell is committed without a caution.
-    public static let readerCommittedCorrect: Int = 118
+    public static let readerCommittedCorrect: Int = 121
 
     /// The numeric cells the heldout split asserts (liters, unitPrice, total;
     /// blanks skipped), the reader's coverage denominator.

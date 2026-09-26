@@ -1049,8 +1049,9 @@ budget; the locator, verifier, assignment and orientation search still use the s
 cell classifier. Seed 1 of PU.77's three was chosen on its train-side validation string accuracy
 (0.875), never on heldout. Swift and the Python reference agree on 252 of 252 heldout strips.
 On the heldout split, scored by the corpus scorer: **live path 62 / 61 -> 117 committed / 116
-correct** (`PumpPhotoGate`'s constants now record **119 / 118** of 183 - a later measurement; the
-gate reads precision 0.992, coverage 0.650, both above their floors) (precision 0.991; the one wrong cell is still pump-063's cautioned pair-tier total),
+correct** (`PumpPhotoGate`'s constants now record **122 / 121** of 183 - later measurements, the
+last PU.97's board pair fallback; the gate reads precision 0.992, coverage 0.667, both above their
+floors) (precision 0.991; the one wrong cell is still pump-063's cautioned pair-tier total),
 **photos with every field right 21 -> 40 of 68**; annotated tier **126 / 126 -> 154 / 153** (the
 one wrong cell pump-055's total, cautioned). The non-pump leak battery holds at 6 of 117 routed and
 none committing. The read step costs **2.6 ms per window against 5.5 ms** for the slicer and
@@ -1194,6 +1195,26 @@ transaction rows, 182 are proposed by some source, 171 by the learned detector, 
 verifier; the verifier's drops are slicer measurements (`cellCount`, `pitch`, `inkBand`), so a row the
 slicer miscounts is not read badly, it disappears. Nothing in this chain is a model training round.
 
+**The board pair fallback (PU.97, 2026-09-26).** On a multi-price board the row assignment can take
+one grade's board cell as the paid price (pump-055 and pump-056, the LIITRID layout: roles total,
+liters, unitPrice, one row unassigned). When that "price" closes with nothing - the pump charged a
+different grade or a loyalty discount no row shows - the three-field path refused everything,
+including a total and volume it had read right. Now a `.nothingClosed` refusal gets the pair tier's
+chance (`PumpReadingLaw.pairFallback`): the price row's read and every board's are the shown prices,
+the pair commits with the price abstained and the `.shownPriceDiffers` caution, and never adopts the
+price. Two guards keep it from committing a misread pair, because the arithmetic has already
+disagreed and the pair tier's 5 % validation cannot see a last-digit misread: the pair must close
+**exactly** at a price the pump could charge (three decimals), and that price must sit a whole number
+of **half cents** from a shown one - the shape of every discount in the corpus (1.944 -> 1.939, 2.069
+-> 2.034, 1.919 -> 1.839). A misread volume or total closes at some price about a third of the time;
+the half-cent step cuts that roughly five-fold. Measured on the iOS 27 simulator, heldout: reader
+live path **119 / 118 -> 122 / 121** (precision 0.992), annotated **154 / 153 -> 157 / 156**,
+composite **120 / 117 -> 123 / 120**, all three new cells right. The price paid for it: under the law
+tests' seeded single-digit misreads (`fragilityUnderMisreads`) the wrong-commit rate on the
+three-field path goes **3.1 % -> 5.7 %** (ceiling 10 %), every one of them cautioned. Tried and
+dropped on the way: no guard at all (124 / 122, precision 0.984 - below the gate; pump-055's volume
+read 56.09 for 56.05 committed) and a per-cell margin floor (the misread digit cleared it on iOS 27).
+
 **The close is exact (PU.78, 2026-09-24, `agents/research/PU.78.md`).** A triple closes only when the
 shown total IS the product rounded or floored to the cent - the check-digit paradigm: a redundant
 quantity computed from the same digits catches a single-digit error only at zero tolerance, and the
@@ -1305,7 +1326,8 @@ suggests, it never trusts.
 ### Pump photo is on (product owner, 2026-09-26)
 
 **The ship decision (PU.6):** with the reader at 119 committed / 118 correct of 183 heldout cells
-(precision 0.992 >= 0.99, coverage 0.65 >= 0.60), the owner turned `pumpPhoto` on. It ships in the
+(precision 0.992 >= 0.99, coverage 0.65 >= 0.60), the owner turned `pumpPhoto` on. PU.97 later moved
+the reader to 122 / 121 (precision 0.992, coverage 0.667). It ships in the
 **bundled default** (`Config.default.json`: enabled, rollout 100 %), because the server has no
 publish path for a remote config document yet (`ConfigPublishService` has no caller) and its baseline
 document carries no `flags` key, so the bundled value is what every build reads. `ConfigStore.isEnabled`
