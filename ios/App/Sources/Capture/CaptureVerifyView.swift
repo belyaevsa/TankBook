@@ -29,29 +29,56 @@ struct CaptureVerifyView: View {
                     .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
                     .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card)
                         .stroke(Theme.Palette.hairline, lineWidth: 1))
+                    .frame(maxHeight: typing ? Self.typingPhotoHeight : .infinity)
                     .padding(.horizontal, Theme.Spacing.screenMargin)
-                notices
+                if !typing { notices }
                 fields
-                actions
+                if !typing { actions }
             }
+            .padding(.bottom, typing ? 8 : 0)
+            .animation(.easeOut(duration: 0.2), value: typing)
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("captureVerifyScreen")
     }
+
+    /// While a field is being typed in, the decimal pad takes the lower half
+    /// of the screen: the subtitle, the notices and the actions step aside and
+    /// the photo takes a fixed height, so the title, the photo and all three
+    /// fields fit above the keyboard without relying on the system shrinking
+    /// the photo. "Done" puts the keyboard away (the decimal pad has no return
+    /// key) and brings the rest back.
+    private var typing: Bool { focus != nil }
+
+    /// The photo's height while typing: sized so title, photo and the three
+    /// fields fit above the decimal pad on a 390 x 844 pt phone.
+    static let typingPhotoHeight: CGFloat = 180
 
     private var header: some View {
         VStack(spacing: 4) {
             Text("Check the numbers")
                 .font(.headline)
                 .foregroundStyle(Theme.Palette.ink)
-            Text("Compare them with the photo and correct any that are wrong.")
-                .font(.subheadline)
-                .foregroundStyle(Theme.Palette.inkSoft)
-                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .overlay(alignment: .trailing) {
+                    if typing {
+                        Button("Done") { focus = nil }
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(Theme.Palette.taillight)
+                            .frame(minHeight: 44)
+                            .accessibilityIdentifier("captureVerifyDoneButton")
+                    }
+                }
+            if !typing {
+                Text("Compare them with the photo and correct any that are wrong.")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                    .multilineTextAlignment(.center)
+            }
         }
         .padding(.horizontal, Theme.Spacing.screenMargin)
-        .padding(.top, 14)
-        .padding(.bottom, 10)
+        .padding(.top, typing ? 4 : 14)
+        .padding(.bottom, typing ? 4 : 10)
     }
 
     // MARK: Notices

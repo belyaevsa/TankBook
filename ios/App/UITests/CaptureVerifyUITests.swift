@@ -61,6 +61,7 @@ final class CaptureVerifyUITests: XCTestCase {
         if app.menuItems["Select All"].waitForExistence(timeout: 2) { app.menuItems["Select All"].tap() }
         total.typeText(XCUIKeyboardKey.delete.rawValue)
         total.typeText("72.00")
+        app.buttons["captureVerifyDoneButton"].tap()
         app.buttons["captureVerifyContinueButton"].tap()
 
         XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 10),
@@ -96,6 +97,30 @@ final class CaptureVerifyUITests: XCTestCase {
 
     private func labelled(_ app: XCUIApplication, _ fragment: String) -> XCUIElement {
         app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", fragment)).firstMatch
+    }
+
+    /// With the decimal pad up, every field is still reachable (the keyboard
+    /// never covers them) and Done puts it away so Continue comes back.
+    func testTheKeyboardLeavesEveryFieldReachable() {
+        let app = shoot("-seedFillUpScanPumpNothingRead")
+        app.textFields["captureVerifyPriceField"].tap()
+        let done = app.buttons["captureVerifyDoneButton"]
+        XCTAssertTrue(done.waitForExistence(timeout: 5), "typing offers Done")
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5), "the decimal pad is up")
+        let keyboardTop = app.keyboards.firstMatch.frame.minY
+        for identifier in ["captureVerifyTotalField", "captureVerifyVolumeField", "captureVerifyPriceField"] {
+            let field = app.textFields[identifier]
+            XCTAssertTrue(field.isHittable, "\(identifier) must stay reachable while typing")
+            XCTAssertLessThanOrEqual(field.frame.maxY, keyboardTop, "\(identifier) must sit above the keyboard")
+        }
+        XCTAssertGreaterThanOrEqual(labelled(app, "Check the numbers").frame.minY, 0,
+                                    "the title stays on screen, never pushed under the status bar")
+        XCTAssertLessThanOrEqual(app.images["captureVerifyImage"].frame.height, 181,
+                                 "the photo takes the typing height, so the fit never relies on the system shrinking it")
+        done.tap()
+        XCTAssertTrue(app.buttons["captureVerifyContinueButton"].waitForExistence(timeout: 5),
+                      "Done brings the actions back")
+        XCTAssertTrue(app.buttons["captureVerifyContinueButton"].isHittable)
     }
 
     /// The photo zooms and turns: the controls are reachable and leave the
