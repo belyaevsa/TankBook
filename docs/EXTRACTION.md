@@ -1338,6 +1338,17 @@ logs the currency it read under. **Open**: a car whose home currency differs fro
 may try a second currency is the owner's call, because a close under the wrong currency is a
 confident wrong value.
 
+**Why the currency cannot simply be dropped (PU.99, measured 2026-09-27).** The law run over every
+reviewed still under all fifteen measured currencies: 247 of 344 stills read the same whatever the
+currency, but 21 have a currency that closes a **tenfold-shifted** triple - moving the point in the
+litres and the price together keeps the product, so `pump-021` closes as 0.809 L x 18.54 = 15.00
+under PHP and `pump-134` as 21.45 L x 23.31 = 500 under RUB. The arithmetic checks the numbers
+against each other, never their decade; the currency's conventions and band are what pick it.
+Committing only where every currency agrees made no new wrong cell (787 / 786 against 812 / 811)
+but lost 25 right ones, and it weakens with each currency added. So the currency stays a gate, and
+the work is its source: the car, then the currency the display prints (the Vision text already
+reads `€/L`, `EUR`, `руб`), then the region - never "any currency that closes".
+
 ### Pump photo is on (product owner, 2026-09-26)
 
 **The ship decision (PU.6):** with the reader at 119 committed / 118 correct of 183 heldout cells
