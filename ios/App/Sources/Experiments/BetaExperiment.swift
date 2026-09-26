@@ -10,12 +10,14 @@ import SwiftUI
 /// fails a Release build that contains any of them.
 enum BetaExperiment: String, CaseIterable, Identifiable {
     case captureLab
+    case sendDiagnostics
 
     var id: String { rawValue }
 
     var title: LocalizedStringKey {
         switch self {
         case .captureLab: "Capture lab"
+        case .sendDiagnostics: "Send diagnostics"
         }
     }
 }

@@ -40,6 +40,12 @@ public static class BodySizeLimits
     public const long ImportBytes = 8L * 1024 * 1024 + 1024 * 1024;
 
 
+    /// <summary>
+    /// A debug case (docs/API.md "Debug cases"): the largest legal case plus 1 MB
+    /// of multipart envelope, from the same constants the service enforces.
+    /// </summary>
+    public const long CaseBytes = Cases.CaseOptions.MaxTotalBytes + 1024 * 1024;
+
     /// <summary>Everything else (auth, blobs begin/commit, account push-token): tiny bodies.</summary>
     public const long DefaultBytes = 64L * 1024;
 

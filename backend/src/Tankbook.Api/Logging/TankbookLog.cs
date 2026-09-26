@@ -470,6 +470,23 @@ public static class TankbookLog
             ("HasDeviceModel", hasDeviceModel),
             ("HasAccount", hasAccount));
 
+    /// <summary>
+    /// A debug case was accepted (hard rule 9's debug-cases amendment). Shape
+    /// only: the case id, the part count, the byte total and whether an account
+    /// sent it - never a part's name, content or anything read from it.
+    /// </summary>
+    public static void CaseAccepted(ILogger logger, string id, int parts, long totalBytes, bool hasAccount)
+        => Emit(logger, LogLevel.Information, "case.accepted",
+            ("Id", id),
+            ("Parts", parts),
+            ("TotalBytes", totalBytes),
+            ("HasAccount", hasAccount));
+
+    /// <summary>The 30-day case purge dropped some cases. Count only (hard rule 12).</summary>
+    public static void CasePurge(ILogger logger, int purged)
+        => Emit(logger, LogLevel.Information, "case.purge",
+            ("Purged", purged));
+
     /// <summary>Unhandled-exception ERROR line from the exception handler.</summary>
     public static void UnhandledException(ILogger logger, Exception exception, string? endpoint)
         => logger.Log(

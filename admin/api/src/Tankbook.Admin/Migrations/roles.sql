@@ -10,7 +10,7 @@
 
 CREATE ROLE tankbook_admin_ro LOGIN PASSWORD 'change-me-ro';
 GRANT USAGE ON SCHEMA public TO tankbook_admin_ro;
-GRANT SELECT ON accounts, devices, records, blobs, llm_calls TO tankbook_admin_ro;
+GRANT SELECT ON accounts, devices, records, blobs, llm_calls, debug_cases TO tankbook_admin_ro;
 
 CREATE ROLE tankbook_admin_rw LOGIN PASSWORD 'change-me-rw';
 CREATE SCHEMA IF NOT EXISTS admin AUTHORIZATION tankbook_admin_rw;

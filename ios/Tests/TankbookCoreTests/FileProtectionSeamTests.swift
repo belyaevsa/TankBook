@@ -86,6 +86,23 @@ struct FileProtectionSeamTests {
                       entries: entries)
     }
 
+    // MARK: - ScanHistory
+
+    @Test func scanHistoryProtectsItsFoldersAndFiles() throws {
+        let directory = tempDir("fp-scans")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let history = ScanHistory(directory: directory)
+        let entries = try record {
+            history.record(photo: Data([0xFF]), record: Data("{}".utf8), trace: Data("{}".utf8))
+        }
+        assertApplied(to: directory, entries: entries)
+        let scan = try #require(history.recent().first)
+        assertApplied(to: scan.folder, entries: entries)
+        for file in [ScanHistory.photoFile, ScanHistory.recordFile, ScanHistory.traceFile] {
+            assertApplied(to: scan.folder.appendingPathComponent(file), entries: entries)
+        }
+    }
+
     // MARK: - BlobStore
 
     @Test func blobStoreSaveProtectsItsDirectory() throws {

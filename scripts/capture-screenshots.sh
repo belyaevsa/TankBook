@@ -1776,6 +1776,14 @@ CAPTURE_SLEEP=6
 capture PJ.505-capture-verify-pump    en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureFixtureImage "${PJ505_PUMP}" -captureAutoReview -seedFillUpScanPumpCaution
 capture PJ.505-capture-verify-pump-ru ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureFixtureImage "${PJ505_PUMP}" -captureAutoReview -seedFillUpScanPumpCaution
 
+# AD.2: About -> Experiments -> Send diagnostics: what goes (the log's size, the recent
+# scans), and after the send the id to pass on. The send is stubbed; RU is the wrap check
+# for the explainer and the failure lines.
+capture AD.2-send-diagnostics         en -presentScreen about -presentSendDiagnostics -diagnosticsCaseStub sent
+capture AD.2-send-diagnostics-ru      ru -presentScreen about -presentSendDiagnostics -diagnosticsCaseStub sent
+capture AD.2-send-diagnostics-sent    en -presentScreen about -presentSendDiagnostics -diagnosticsCaseStub sent -diagnosticsCaseAutoSend
+capture AD.2-send-diagnostics-sent-ru ru -presentScreen about -presentSendDiagnostics -diagnosticsCaseStub sent -diagnosticsCaseAutoSend
+
 # Merge this run's frames into the manifest. `frames` is the script's record;
 # `legacy` (frames no line can reproduce) is hand-maintained and preserved.
 if [ "${#CAPTURED[@]}" -gt 0 ]; then

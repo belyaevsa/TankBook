@@ -23,6 +23,7 @@ public sealed class AdminFactory(AdminDatabase database) : WebApplicationFactory
     public Dictionary<string, byte[]> Blobs { get; } = new();
 
     public const string BootstrapToken = "test-bootstrap-token";
+    public const string ReadKey = "test-read-key";
     public const string TestHeader = "X-Test-Passkey";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -34,6 +35,8 @@ public sealed class AdminFactory(AdminDatabase database) : WebApplicationFactory
             ["ConnectionStrings:AdminWrite"] = database.AdminWrite,
             ["Admin:BootstrapToken"] = BootstrapToken,
             ["Admin:SignInPermitsPerMinute"] = "1000",
+            ["Admin:ReadKeySha256s:0"] = Convert.ToHexStringLower(
+                System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(ReadKey))),
         }));
         builder.ConfigureServices(services =>
         {

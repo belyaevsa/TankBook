@@ -30,6 +30,7 @@ The list is deliberately short. **Every item not on it must not exist on the dev
 | `deviceId` (issued at sign-in) | Keychain | Same – it must survive reinstall-with-restore but never migrate to another device |
 | Local database (`.sqlite` + WAL/SHM) | App container, **not** Keychain | `FileProtectionType.completeUntilFirstUserAuthentication` on all three files |
 | Attachment renditions and thumbnails | App container | Same protection class |
+| Recent scans (`Application Support/Scans`, the newest five: photo, record, pump trace - `ScanHistory`; builds that carry experiments only) | App container | Same protection class, on the directory, every scan folder and every file |
 | The on-disk log (`Application Support/Logs`, one file per UTC day, kept two days - `FileLogStore`, docs/LOGGING.md §5) | App container | Same protection class, on the directory and every day file. Holds only redacted lines (hard rule 12) |
 | Nothing else | – | – |
 
@@ -420,16 +421,22 @@ Hard rule 9's 2026-09-24 amendment (product owner): the owner debugs the app fro
 actually captured. One internal tool reads three kinds of user content; these are its commitments.
 
 **What it reads.**
-- **Debug cases** - a scan the user chose to send: the photo, the phone's pipeline trace (the
-  stage-by-stage JSON the corpus annotator's pipeline view renders), the LLM exchange as the device
-  saw it, app version and `traceId`. Received by `POST /cases` (additive, hard rule 16), photo
-  through the blob store, trace and exchange in the case row.
+- **Debug cases** - what the user chose to send: the app's redacted log (docs/LOGGING.md §5), the
+  recent scans the device kept (photo, what was read, the pump reader's pipeline trace - the
+  stage-by-stage JSON the corpus annotator's pipeline view renders), app version and build.
+  Received by `POST /v1/cases` (additive, hard rule 16, docs/API.md -> Debug cases): every part
+  goes to the blob store under the sender's prefix (`{owner}/cases/{caseId}/{part}`), and the
+  `debug_cases` row (migration 026) holds only the envelope - part names, content types, sizes.
+  The server never reads a part (hard rule 9).
 - **The LLM call ledger** - rows and prompt renditions, joined to a case by `traceId`.
 - **An account's synced attachments**, by account id.
 
 **Consent and retention.**
-- A case is sent **only by the user's explicit action** - a "Send this scan" action beside the
-  scan's result and in About & feedback - in every build; Tankbook β is the same app. Nothing is
+- A case is sent **only by the user's explicit action** - today "Send diagnostics" under About ->
+  Experiments in builds that carry experiments (AD.11), later a "Send this scan" action beside the
+  scan's result (AD.2) - and never on its own. The scans it can carry are kept on the device first:
+  the newest five captures (`ScanHistory`, `Application Support/Scans`, file-protected like the
+  database), recorded only in builds that carry experiments. Nothing is
   sent automatically, and the standing "help improve scanning" consent does not send by itself.
 - Cases are kept **30 days** (the tombstone/undo number), need no account (stored under the device
   identity like `/import/parse`), and `DELETE /account` purges them with their blobs. The ledger's
@@ -449,6 +456,14 @@ actually captured. One internal tool reads three kinds of user content; these ar
   bootstrap token held in the server's secret store and consumed on use; a later passkey is added
   only from a signed-in session. Sign-in is rate-limited, sessions are short (hours) and bound to a
   secure, HTTP-only, same-site cookie.
+- **The owner's read key (amended 2026-09-26, product owner).** A bearer key held on the owner's
+  machine (`~/.config/tankbook/admin-read.env`, never the repo) reads **one debug case by its id**
+  and nothing else: the key's authentication scheme is named on the case routes alone
+  (`/api/cases/{id}`, `/api/cases/{id}/parts/{name}`), so every other viewer route answers it
+  `401` (`CaseReadTests.TheReadKeyOpensNothingButCases`, proved by mutation). Only its SHA-256 is
+  configured (`Admin:ReadKeySha256s`, from the secret store); each fetch writes an access-log row
+  under `read-key:<first 8 of the hash>`; the case routes are rate-limited. `scripts/case.sh <id>
+  [--stage]` is its one client and writes the case outside the repo (`~/.cache/tankbook/cases/`).
 - The public URL is a surface the tunnel design did not have; what bounds it is the passkey, the
   rate limit, and that nothing on it answers without a session except the sign-in ceremony itself.
 - Lookup is **by case id, `traceId` or account id only** - no list of users, no search over content,

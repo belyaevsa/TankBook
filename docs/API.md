@@ -443,6 +443,30 @@ Account id attached when a bearer token is present; rate-limited per device/IP; 
 
 **Characters, not bytes (corrected 2026-08-31, PJ.20a).** This line read "≤ 4 KB" until the server half was built against the client that had already shipped: `FeedbackPayload.maxTextLength` is 4 000 **characters**, and 4 000 Cyrillic characters is roughly 8 KB of UTF-8. A byte cap of 4 KB would have rejected a legitimate Russian report with a `413` - in an app that ships EN and RU from day one. The body cap is sized to the client's real maximum instead (see the caps table below).
 
+## Debug cases (hard rule 9's debug-cases amendment)
+
+### `POST /v1/cases` – public (bearer optional)
+```
+multipart/form-data, one file field per part:
+  name        ^[a-z0-9][a-z0-9._-]{0,63}$, unique in the case
+  type        text/plain | application/json | image/jpeg | image/png | image/heic
+→ 201 { caseId: "K7Q2M-9XDRA", expiresAt }      // expiresAt: ISO 8601, whole seconds, UTC
+```
+What the user chose to send - the phone sends `manifest.json`, `log.txt` and, per kept scan,
+`scan-N-photo.jpg`, `scan-N-record.json`, `scan-N-trace.json` - stored for **30 days** and read by
+the admin viewer alone (hard rule 9: the server enforces the envelope and never reads a part). The
+`caseId` is ten Crockford base32 characters in two groups of five, drawn from a cryptographic
+source; it is the only way to the case. Signed out, `X-Device-Id` is required (`400` without it)
+and the case is stored under the device; with a bearer it is stored under the account and
+`DELETE /account` purges it. Refusals: `400 payload_invalid` (no parts, a bad or repeated name),
+`413 payload_too_large` (more than 40 parts, a part over 12 MB, a case over 48 MB), `415` (a
+content type outside the list). Logs carry the id, part count, byte total and account presence -
+never a part's name or content (hard rule 12).
+
+**Breaking-change verdict (2026-09-26): additive** - a new endpoint (hard rule 16); nothing an
+existing client sends changes. Checked against build 1783, the newest in TestFlight, which does not
+call it.
+
 ## Import parsing (hard rule 9's named exception)
 
 `POST /import/parse` - **the one endpoint that reads what a field means**, amended into hard rule 9
@@ -774,6 +798,7 @@ Every limit here is a flood guard, chosen so a real user can never hit it – a 
 | `POST /sync/push` | device | 120/min |
 | `POST /blobs/begin` | device | 120/min |
 | `POST /feedback` | device | 10/min |
+| `POST /cases` | device | 5/min |
 
 Per-device limits key on the authenticated device id (the bearer token's `device_id`), falling back to the `X-Device-Id` header, then the IP.
 
@@ -785,6 +810,7 @@ Per-device limits key on the authenticated device id (the bearer token's `device
 | `POST /extract` | 6 MB (4 MB base64 image + envelope) |
 | `POST /import/parse` | 8 MB file + multipart envelope |
 | `POST /feedback` | 17 KB (4 000 characters at 4 bytes worst case + 1 KB envelope) |
+| `POST /cases` | 49 MB (the 48 MB case bound + 1 MB of multipart envelope) |
 | everything else (auth, blobs begin/commit, account push-token) | 64 KB |
 
 The push cap references the same constants the payload validator and sync service enforce, so the transport can never reject a batch the server would otherwise accept (`PRACTICES.md` – a number in two places is a bug).

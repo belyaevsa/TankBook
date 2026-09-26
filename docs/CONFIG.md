@@ -81,6 +81,7 @@ values logged, no secrets in the bundle, location never kept where it is not nee
 
 | Experiment | Since | What it is | Decision pending |
 |---|---|---|---|
+| `sendDiagnostics` - Send diagnostics (About → Experiments) | 2026-09-26 (AD.11) | Sends the app's log and the kept scans as one debug case on the tester's tap and shows the id to pass on (`POST /v1/cases`); while compiled in, each capture's photo, record and pump trace are kept on the device (`ScanRecorder` → `ScanHistory`, the newest five) | promote to every build as AD.2's "Send this scan", or remove |
 | `captureLab` - the Capture lab (About → Experiments) | 2026-09-24 (built as PU.39, DEBUG-only until SH.7) | Shoots one scene under seven camera presets and compares latency, bytes, pixel size and what the reader committed; writes `Documents/CaptureLab/<session>/` with the photos (**GPS stripped** before writing) and `run.json` | promote, or remove, after real-world runs - results so far: `docs/experiments/CAPTURE-LAB.md` |
 
 ## Guardrails on `apiBaseUrl` – the dangerous one

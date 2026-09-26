@@ -1,3 +1,4 @@
+using Tankbook.Api.Cases;
 using Microsoft.Extensions.Options;
 using Tankbook.Api.Blobs;
 using Tankbook.Api.Import;
@@ -24,6 +25,7 @@ public sealed class AccountPurgeService
     private readonly AccountRepository _repository;
     private readonly BlobService _blobs;
     private readonly ImportService _imports;
+    private readonly CaseService _cases;
     private readonly LlmCallPurgeService _llmCalls;
     private readonly OutboxService _outbox;
     private readonly AccountOptions _options;
@@ -35,6 +37,7 @@ public sealed class AccountPurgeService
         AccountRepository repository,
         BlobService blobs,
         ImportService imports,
+        CaseService cases,
         LlmCallPurgeService llmCalls,
         OutboxService outbox,
         IOptions<AccountOptions> options,
@@ -45,6 +48,7 @@ public sealed class AccountPurgeService
         _repository = repository;
         _blobs = blobs;
         _imports = imports;
+        _cases = cases;
         _llmCalls = llmCalls;
         _outbox = outbox;
         _options = options.Value;
@@ -73,6 +77,8 @@ public sealed class AccountPurgeService
             var records = await _repository.CountRecordsAsync(account.Id, cancellationToken);
             var blobs = await _blobs.PurgeAccountAsync(account.Id, cancellationToken);
             await _imports.PurgeAccountAsync(account.Id, cancellationToken);
+            // Debug cases the account sent go with it (hard rule 9's debug-cases amendment).
+            await _cases.PurgeAccountAsync(account.Id, cancellationToken);
             // The call ledger's content (bodies + rendition blobs) is purged too,
             // but the rows survive - per-account cost history outlives the account
             // (docs/SECURITY.md "LLM call ledger").

@@ -58,5 +58,11 @@ public sealed class RateLimitOptions
     /// </summary>
     public int FeedbackPerMinute { get; set; } = 10;
 
+    /// <summary>
+    /// Per-device. A debug case is sent by hand from About, one tap per case;
+    /// 5/min is far above that and keeps a looping client from filling storage.
+    /// </summary>
+    public int CasesPerMinute { get; set; } = 5;
+
     public static readonly TimeSpan Window = TimeSpan.FromMinutes(1);
 }

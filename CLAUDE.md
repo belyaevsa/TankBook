@@ -143,7 +143,11 @@ Conflict rule: if two docs disagree, the more specific one wins (API.md over SYN
    action**, in every build (the beta is the same app); cases are kept **30 days**, require no
    account, and `DELETE /account` purges them; the viewer is a **separate .NET service and React app, not a route of
    the public API** - reachable at its own URL (`admin.tankbook.live`, TLS, product owner
-   2026-09-25) and admitting the owner alone by **passkey** (no password exists) - looks up **by case id, `traceId` or account id only** - no list of users, no
+   2026-09-25) and admitting the owner alone by **passkey** (no password exists) - plus, amended
+   2026-09-26 by the product owner, **one read key the owner holds on their own machine**, which
+   reads a single debug case by its id and opens no other route of the viewer, so a script can fetch
+   what a tester sent (`scripts/case.sh`); only its SHA-256 lives in the secret store, and each of
+   its fetches writes an access-log row like any other look - looks up **by case id, `traceId` or account id only** - no list of users, no
    search over content, no bulk export - and **writes an access-log row for every view**; the
    privacy policy says all of this in both languages before the first case is accepted; and
    **nothing is logged but shape** (hard rule 12 is unchanged - the viewer displays content, the

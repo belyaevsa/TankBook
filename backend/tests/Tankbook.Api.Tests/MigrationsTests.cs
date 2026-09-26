@@ -40,6 +40,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         "delivery_outbox",
         "station_brands",
         "station_brand_pack_state",
+        "debug_cases",
     };
 
     [SkippableFact]
@@ -113,6 +114,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         Assert.DoesNotContain("llm_calls", tables);
         Assert.DoesNotContain("llm_ledger_pending", tables);
         Assert.DoesNotContain("delivery_outbox", tables);
+        Assert.DoesNotContain("debug_cases", tables);
 
         var remaining = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
         Assert.Equal(0, remaining.Single());

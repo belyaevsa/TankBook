@@ -15,6 +15,7 @@ struct AboutView: View {
     @State private var diagnosticsModel: DiagnosticsModel?
     @State private var showsDiagnosticsPreview = false
     @State private var showsCaptureLab = false
+    @State private var showsSendDiagnostics = false
 
     var body: some View {
         ScrollView {
@@ -51,6 +52,11 @@ struct AboutView: View {
             CaptureLabView()
             #endif
         }
+        .sheet(isPresented: $showsSendDiagnostics) {
+            #if EXPERIMENTS
+            DiagnosticsCaseView(model: DiagnosticsCaseModel.make())
+            #endif
+        }
         .task {
             if feedbackModel == nil {
                 feedbackModel = FeedbackService.makeModel()
@@ -71,6 +77,7 @@ struct AboutView: View {
             presentDiagnosticsPreviewIfRequested()
             #if DEBUG
             presentCaptureLabIfRequested()
+            presentSendDiagnosticsIfRequested()
             #endif
         }
     }
@@ -92,6 +99,7 @@ struct AboutView: View {
         Button {
             switch experiment {
             case .captureLab: showsCaptureLab = true
+            case .sendDiagnostics: showsSendDiagnostics = true
             }
         } label: {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
@@ -122,6 +130,18 @@ struct AboutView: View {
         Task {
             try? await Task.sleep(for: .milliseconds(500))
             showsCaptureLab = true
+        }
+    }
+    #endif
+
+    #if DEBUG
+    /// Screenshot seam: `-presentSendDiagnostics` opens the send sheet a beat
+    /// after About appears (`simctl` cannot tap).
+    private func presentSendDiagnosticsIfRequested() {
+        guard ProcessInfo.processInfo.arguments.contains("-presentSendDiagnostics") else { return }
+        Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            showsSendDiagnostics = true
         }
     }
     #endif

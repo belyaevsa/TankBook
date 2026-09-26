@@ -61,6 +61,8 @@ enum CapturePipeline {
         var lines: [OCRLine] = []
         var resolvedSource = source ?? .receipt
         var pumpReading: PumpDisplayCapture.Reading?
+        var pumpDetection: PumpDisplayCapture.Detection?
+        var pumpTrace: Data?
         // Both halves are load-bearing: RV.49's orientation (an in-app photo
         // reaches Vision sideways without it) and RV.48's band provider (the
         // resolution ladder's steps 3 and 4 are dead without it).
@@ -72,13 +74,20 @@ enum CapturePipeline {
                     let classified = await readPumpDisplay(UprightBox(image: upright), reader: reader,
                                                            bandProvider: bandProvider)
                     pumpReading = classified.reading
+                    pumpTrace = classified.traceJSON
                     if pumpReading != nil { resolvedSource = .pump }
                     let detection = classified.detection
+                    pumpDetection = detection
                     AppLog.shared.emit(CaptureClassify(
                         reader: "loaded", display: detection.isPumpDisplay, rows: detection.displayRows,
                         textLines: detection.textLines, widestRow: detection.widestRow, tallestRow: detection.tallestRow,
                         durationMs: Int(Date().timeIntervalSince(classifyStartedAt) * 1000),
                         path: detection.path.rawValue))
+                    // Where a read that was routed as a display stopped - the line
+                    // the classify one cannot give (docs/LOGGING.md -> Capture / OCR).
+                    if detection.isPumpDisplay {
+                        AppLog.shared.emit(CapturePumpRead(classified.summary))
+                    }
                 } else {
                     // The models are missing from the bundle: every frame is a receipt, and
                     // the line says so rather than leaving the pump path silently dead.
@@ -112,6 +121,10 @@ enum CapturePipeline {
             prefill.pumpAlpha = PumpPhotoCapture.outcome(
                 pumpPhotoEnabled: pumpPhotoEnabled, extraction: assembly.extraction).alpha
         }
+        #if EXPERIMENTS
+        ScanRecorder.record(image: image, prefill: prefill, requestedSource: source, resolvedSource: resolvedSource,
+                            detection: pumpDetection, trace: pumpTrace)
+        #endif
         return prefill
     }
 
@@ -131,19 +144,28 @@ enum CapturePipeline {
 
     /// The pump reader, off the main actor: the locator, the classifier and
     /// the law are CPU-bound. The reading is `nil` when the frame is not a
-    /// display; the detection says what was counted either way.
+    /// display; the detection and the stage summary say what was counted
+    /// either way.
     ///
     /// The frame handed here is already upright (`uprightCGImage` bakes the
     /// capture's orientation, RV.49), so the reader's seed is 0 and its search
     /// is the fallback for a display sideways in that frame (PU.53).
     private static func readPumpDisplay(
         _ box: UprightBox, reader: PumpReaderHandle, bandProvider: (any FuelPriceBandProvider)?
-    ) async -> (detection: PumpDisplayCapture.Detection, reading: PumpDisplayCapture.Reading?) {
+    ) async -> PumpDisplayCapture.TracedRun {
         await Task.detached(priority: .userInitiated) {
             let currency: CurrencyCode? = Locale.current.currency.flatMap { CurrencyCode(rawValue: $0.identifier) }
-            return PumpDisplayCapture.classify(
-                image: box.image, reader: reader, currency: currency,
-                priceBand: bandProvider?.currencyBand(currency: currency), rotationCW: 0)
+            // Every build traces the run for the `capture.pumpRead` stage summary; a
+            // build that carries experiments also keeps the whole trace for a debug
+            // case (ScanRecorder). The traced run returns what the plain one does.
+            #if EXPERIMENTS
+            let includeJSON = true
+            #else
+            let includeJSON = false
+            #endif
+            return PumpDisplayCapture.classifyTraced(image: box.image, reader: reader, currency: currency,
+                                                     priceBand: bandProvider?.currencyBand(currency: currency),
+                                                     rotationCW: 0, includeJSON: includeJSON)
         }.value
     }
 

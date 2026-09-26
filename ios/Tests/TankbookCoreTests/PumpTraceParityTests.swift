@@ -66,4 +66,37 @@ struct PumpTraceParityTests {
         }
         #expect(checked == Self.images.count, "a fixture failed to load: \(checked) of \(Self.images.count)")
     }
+
+    @Test("the traced app entry's stage summary agrees with its reading, and its line carries no digit",
+          .enabled(if: modelsPresent, "the bundled pump models"))
+    func summaryAgreesWithTheReading() throws {
+        let model = try PumpSegmentsModel(contentsOf: Self.modelURL)
+        let detector = try PumpRowDetector(contentsOf: Self.detectorURL)
+        let handle = PumpReaderHandle(reader: PumpReader(model: model, detector: detector, deskew: .onRefusal))
+        for name in Self.images.prefix(2) {
+            let url = Self.fixtures.appendingPathComponent(name)
+            let image = try #require(PumpQuadWarp.loadOrientedImage(from: url))
+            let run = PumpDisplayCapture.classifyTraced(image: image, reader: handle, currency: .eur, priceBand: nil,
+                                                        rotationCW: 0, includeJSON: true)
+            #expect(run.traceJSON != nil, "\(name): the full trace was asked for")
+            if let reading = run.reading {
+                #expect(run.summary.committed == reading.law.committedCount, "\(name)")
+                #expect(run.summary.chosen != nil, "\(name)")
+            }
+            #expect(run.summary.attempts > 0)
+            let line = LogRenderer.render(LogLine(timestamp: Date(), level: .info, category: .capture,
+                                                  event: "capture.pumpRead", traceId: nil, deviceId: nil,
+                                                  appVersion: "t", platform: "ios",
+                                                  fields: Redactor.shared.redact(CapturePumpRead(run.summary).fields)))
+            for field in [reading(run)?.total, reading(run)?.liters].compactMap({ $0 }) {
+                #expect(!line.contains(field), "\(name): a read value reached the line: \(line)")
+            }
+        }
+    }
+
+    private func reading(_ run: PumpDisplayCapture.TracedRun) -> (total: String?, liters: String?)? {
+        guard let law = run.reading?.law else { return nil }
+        return (law.total.value.map { "\($0)" }, law.liters.value.map { "\($0)" })
+    }
 }
+

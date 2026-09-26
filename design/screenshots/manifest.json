@@ -1,5 +1,25 @@
 {
   "frames": {
+    "AD.2-send-diagnostics": {
+      "commit": "1df3b1b8",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "AD.2-send-diagnostics-ru": {
+      "commit": "1df3b1b8",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "AD.2-send-diagnostics-sent": {
+      "commit": "1df3b1b8",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "AD.2-send-diagnostics-sent-ru": {
+      "commit": "1df3b1b8",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "OB.3-settings-last-failure": {
       "commit": "04053fd",
       "device": "iPhone 17",

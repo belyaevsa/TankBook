@@ -12,6 +12,7 @@ using Tankbook.Api.Blobs;
 using Tankbook.Api.Catalog;
 using Tankbook.Api.Config;
 using Tankbook.Api.Data;
+using Tankbook.Api.Cases;
 using Tankbook.Api.Feedback;
 using Tankbook.Api.Http;
 using Tankbook.Api.Import;
@@ -61,6 +62,8 @@ builder.Services.Configure<CatalogOptions>(
     builder.Configuration.GetSection(CatalogOptions.SectionName));
 builder.Services.Configure<ImportOptions>(
     builder.Configuration.GetSection(ImportOptions.SectionName));
+builder.Services.Configure<CaseOptions>(
+    builder.Configuration.GetSection(CaseOptions.SectionName));
 builder.Services.Configure<RateLimitOptions>(
     builder.Configuration.GetSection(RateLimitOptions.SectionName));
 
@@ -205,6 +208,17 @@ builder.Services.AddScoped<ImportPurgeService>();
 if (!builder.Environment.IsEnvironment("Testing"))
 {
     builder.Services.AddHostedService<ImportPurgeHostedService>();
+}
+
+// Debug cases (hard rule 9's debug-cases amendment, docs/API.md "Debug cases"):
+// a bundle the user chose to send, stored opaque for 30 days and read only by
+// the admin viewer. The purge timer is registered outside test hosts only.
+builder.Services.AddScoped<CaseRepository>();
+builder.Services.AddScoped<CaseService>();
+builder.Services.AddScoped<CasePurgeService>();
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddHostedService<CasePurgeHostedService>();
 }
 
 // Feedback intake (docs/API.md "Feedback"): a public POST that stores one case.
@@ -583,6 +597,14 @@ auth.MapDelete("/session", AuthEndpoints.SignOut);
 v1.MapPost("/feedback", FeedbackEndpoints.Submit)
     .RequireRateLimiting(RateLimitingSetup.Feedback)
     .WithBodySizeLimit(BodySizeLimits.FeedbackBytes);
+
+// Debug cases (docs/API.md "Debug cases"): public multipart POST, bearer
+// optional; the device identity stands in when signed out. A native client
+// sends no cookies, so the form's anti-forgery metadata is disabled.
+v1.MapPost("/cases", CaseEndpoints.Submit)
+    .DisableAntiforgery()
+    .RequireRateLimiting(RateLimitingSetup.Cases)
+    .WithBodySizeLimit(BodySizeLimits.CaseBytes);
 
 // Sync (docs/API.md Sync, docs/SYNC.md): push and pull over the record stream.
 // Both bearer endpoints; fetching the latest data is pulling from 0.

@@ -663,6 +663,20 @@ the scroll, and the two never overlap.
 
 | **Update required (`.required`, docs/CONFIG.md)** | The non-dismissible update notice replaces the source picker: "This version of Tankbook is out of date – sync, cloud reading and import are paused. Update the app to use them again." The parse (the one server read import needs) is withheld client-side | Update the app (App Store button only when a listing exists). Everything else about import - the review list, the edits, the commit - stays local |
 
+### Send diagnostics (AD.11)
+
+The sheet opens from the Experiments section of About, in builds that carry experiments. Every failure keeps the sheet ready to send again and names the step that fixes it (hard rule 7):
+
+| Condition | Message | Next step |
+|---|---|---|
+| No route to the server | "No connection – connect and send again." | connect, tap Send |
+| `429` | "Sent too often – try again in a minute." | wait, tap Send |
+| `413` | "Too large to send – turn off Recent scans and send again." | turn the toggle off, tap Send |
+| Anything else | "Couldn't send – try again." | tap Send |
+
+Nothing is sent without the tap, and nothing is queued: a case the tester gave up on is simply not
+sent. Monetization never appears here (hard rule 7).
+
 ### About & feedback
 
 The composer (design/screens/About.dc.html "Tell us"): category chips (feature/problem/other), the

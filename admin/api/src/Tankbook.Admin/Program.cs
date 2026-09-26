@@ -1,5 +1,7 @@
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.Extensions.Options;
 using Tankbook.Admin;
 using Tankbook.Admin.Access;
 using Tankbook.Admin.Auth;
@@ -52,7 +54,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             return Task.CompletedTask;
         };
-    });
+    })
+    .AddScheme<AuthenticationSchemeOptions, ReadKeyHandler>(ReadKeyHandler.Scheme, _ => { });
 builder.Services.AddAuthorization();
 
 builder.Services.AddRateLimiter(options =>
@@ -61,6 +64,9 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy(AuthEndpoints.RateLimitPolicy, http => RateLimitPartition.GetFixedWindowLimiter(
         http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = admin.SignInPermitsPerMinute, Window = TimeSpan.FromMinutes(1) }));
+    options.AddPolicy(CaseEndpoints.RateLimitPolicy, http => RateLimitPartition.GetFixedWindowLimiter(
+        http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = admin.CaseReadsPerMinute, Window = TimeSpan.FromMinutes(1) }));
 });
 
 var app = builder.Build();
@@ -93,6 +99,17 @@ app.UseMiddleware<AccessLogMiddleware>();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 AuthEndpoints.Map(app);
+
+// Debug cases by id: the passkey session or the owner's read key. The read key's scheme is
+// named here and nowhere else, so it opens these routes alone - every other /api route
+// authenticates with the default (session) scheme only.
+var sessionScheme = app.Services.GetRequiredService<IOptions<AuthenticationOptions>>().Value.DefaultAuthenticateScheme
+    ?? CookieAuthenticationDefaults.AuthenticationScheme;
+var cases = app.MapGroup("/api/cases")
+    .RequireAuthorization(policy => policy.AddAuthenticationSchemes(sessionScheme, ReadKeyHandler.Scheme)
+        .RequireAuthenticatedUser())
+    .RequireRateLimiting(CaseEndpoints.RateLimitPolicy);
+CaseEndpoints.Map(cases);
 
 var api = app.MapGroup("/api").RequireAuthorization();
 api.MapGet("/me", (HttpContext http) => Results.Ok(new { label = AuthEndpoints.Actor(http.User) }));
