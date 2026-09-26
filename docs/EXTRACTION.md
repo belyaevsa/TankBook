@@ -870,8 +870,10 @@ on the structure OCR ignores:
    what makes the output compose with digit repair: a `9` whose segment `e` is uncertain is a `4`
    *candidate* with a known posterior, not a confident wrong digit, and P2.13's fixed confusion
    table becomes an ordering by posterior.
-4. **Row assignment and decimal recovery** - rows go to total / volume / price by layout and
-   `ExtractionCrossCheck` (`PumpRowAssignment`: the display's tilt - the median top-edge angle of
+4. **Row assignment and decimal recovery** - rows go to total / volume / price by layout alone -
+   geometry, never arithmetic (corrected 2026-09-26: the code never calls `ExtractionCrossCheck`
+   here, and the law never swaps roles to close a triple, `PumpReadingLaw.swift:22`)
+   (`PumpRowAssignment`: the display's tilt - the median top-edge angle of
    the windows, up to 45 degrees - is undone before boxing, and a board's cells must sit beside
    each other, so a tightly stacked price column is never read as a row); the decimal point is recovered as the one placement that satisfies
    `volume × price = total` over the candidate set. Not unique → `nil`, never a guess.
@@ -1047,7 +1049,8 @@ budget; the locator, verifier, assignment and orientation search still use the s
 cell classifier. Seed 1 of PU.77's three was chosen on its train-side validation string accuracy
 (0.875), never on heldout. Swift and the Python reference agree on 252 of 252 heldout strips.
 On the heldout split, scored by the corpus scorer: **live path 62 / 61 -> 117 committed / 116
-correct** (precision 0.991; the one wrong cell is still pump-063's cautioned pair-tier total),
+correct** (`PumpPhotoGate`'s constants now record **119 / 118** of 183 - a later measurement; the
+gate reads precision 0.992, coverage 0.650, both above their floors) (precision 0.991; the one wrong cell is still pump-063's cautioned pair-tier total),
 **photos with every field right 21 -> 40 of 68**; annotated tier **126 / 126 -> 154 / 153** (the
 one wrong cell pump-055's total, cautioned). The non-pump leak battery holds at 6 of 117 routed and
 none committing. The read step costs **2.6 ms per window against 5.5 ms** for the slicer and
@@ -1106,7 +1109,9 @@ in the corpus, and it refuses a fill the user could have logged: total and volum
 What changes: **total + volume may commit without a price.** What replaces the arithmetic as the
 guard is the price the pair IMPLIES - `total / volume` must fall inside the plausible band for the
 currency and fuel (`FuelPriceBand`, already threaded through `PumpReadingLaw.resolve` and unused on
-this path today); outside it the read still abstains, because an implausible implied price is how a
+this path today; **as built** the band is currency-wide - the lowest low and highest high over every
+fuel of that currency, EUR 0.4-3.0 - and the currency is the device locale's, not the photo's,
+`CapturePipeline.swift:142-145`, noted 2026-09-26); outside it the read still abstains, because an implausible implied price is how a
 misread digit shows itself when there is no third number to check against. A price the display DOES
 show, or a board cell near the implied price, becomes a **validation**: agreement raises confidence,
 disagreement is meant to surface as the F2 confirm on the form (hard rule 13 - the app suggests,
@@ -1219,7 +1224,11 @@ running).
 The search input is 96 px high (the read path's own height; 48 px left a 0.7 deg bias on synthetic
 turns). Each result carries three confidence statistics of the criterion curve, kept for the oriented
 detector (PU.76; PU.70, their first consumer, was cut). Nothing on
-the app path changes until row deskew is enabled (PU.67).
+the app path changes until row deskew is enabled (PU.67). **Where the app's angle actually comes
+from (2026-09-26):** RowSeg's rows are oriented minimum-area rectangles, so each quad carries its
+row's angle (its top edge); the strip warp's homography straightens it without rotating the photo,
+and `PumpRowAssignment` undoes the median of those angles (up to 45 deg) before judging layout. The
+Hough estimator runs only in the deskew modes, and the app's reader is built `.off`.
 
 **Each currency's display conventions are measured, and an unmeasured one abstains (PU.74, 2026-09-24,
 `agents/research/PU.74.md`).** A field's decimal placement comes from a per-currency table of the
@@ -1292,6 +1301,38 @@ the object detector it replaced (`DigitRows.mlmodel`) lives with its trainer in
 `ml/pump-reader/detector/` and stays selectable in the annotator and `pump-read`. A trained reader is the second
 non-rule producer of a field after the cloud model, and the same sentence governs both: it
 suggests, it never trusts.
+
+### Display families the reader does not read yet, and the plan (2026-09-26)
+
+**Measured** (`agents/research/PU.90.md`, Kimi K3, with the Capture Lab's Runs 2-3 in
+`docs/experiments/CAPTURE-LAB.md`): two families commit nothing on the live path - and nothing wrong.
+**Dark LCDs with pale segments behind reflective glass** (Alexela and Neste heads, `pump-332`..`335`,
+`339`, `340`, `video-050`) and **TFT screens** whose numbers are rendered text beside an advert
+(Tokheim at Terminal, `pump-337`, `video-051`). Both fail first at the **locator**: fed the owner's hand
+quads, the read and the law get them right (`pump-340` 19.61 / 10.01, the idle heads 0.00, `pump-337`
+72.80 / 35 / 2.080). Neither shipped model saw either family - RowSeg and RowRead were trained before
+batches 11-12. Light-on-dark polarity is not the gap (the emissive LED/VFD heads are light-on-dark and
+read), and the -0.5 EV preset changed nothing.
+
+**Decisions and their order** (product owner, 2026-09-25/26 - TFT screens are in scope):
+1. **Dark LCD: retrain the locator on the corpus's own material first** (PU.91) - the four train stills
+   and an owner-verified sample of `video-050` and the Live records; Live-frame fusion at the locator
+   only if glare still wins after it (PU.94). No polarity normalisation, no renderer work for this
+   family (RowSeg trains on real images only).
+2. **TFT: a family route to on-device Vision OCR with the unchanged law** (PU.92) - Vision reads
+   `pump-337`'s three numbers and labels exactly; advert suppression lands in the same change; the
+   printed labels (`SUMMA`, `LIITRIT`, `€/L`) are a cross-check on roles, never the only source.
+3. **Vision never reads a segment display.** On `pump-339` it read `2999` for 29.99 - the decimal
+   point dropped, the factor-of-ten failure this reader exists to prevent. The route defaults to the
+   segment reader whenever the family is in doubt.
+4. **Before any of it, measure the unguarded path** (PU.93): `CapturePipeline` fills a field the reader
+   refused from the receipt parser (PU.62) with no family check - on a TFT it may commit advert numbers
+   that happen to close.
+5. **The cautioned pair tier on unfamiliar heads is the owner's call** (PU.95): on `pump-339`'s hand quads
+   it committed litres 15.21 for 15.31 under `shownPriceDiffers`.
+
+The plan and the owner's part of it (captures, frame verification, decisions) are in
+`diagnostics/EXTRACTION-PLAN.md` -> "2026-09-26".
 
 ### Model registry
 

@@ -1,8 +1,75 @@
 # The extraction plan: receipts, pumps, and the plumbing between them
 
-Written 2026-09-04 from the day's measurements and seven independent agent analyses
-(`diagnostics/RESEARCH-receipt-options-{qwen,kimi,deepseek}.md` and
-`diagnostics/RESEARCH-pump-{vision,kimi,pro,qwen}.md`).
+*The newest section is first ("2026-09-26"); everything from "Where it stands tonight" down is the
+plan of 2026-09-04 and is history.*
+
+## 2026-09-26 - the pump reader: where it stands, what the owner does, what gets built
+
+### Where it stands
+
+| Measure (68 frozen heldout stills, 183 cells, the corpus scorer) | Now | Gate |
+|---|---|---|
+| Committed / correct | **119 / 118** | - |
+| Precision | **0.992** | >= 0.99 |
+| Coverage | **0.65** | >= 0.60 |
+| Non-pumps routed as a pump / committing a number | 6 of 117 / **0** | 0 committing |
+
+The build clears the pump-mode gate. The mode itself is the remote `pumpPhoto` flag, **off** - until
+it is on, a pump reading reaches Confirm marked alpha. The pipeline and every threshold are described
+stage by stage in the Russian explainer (artifact "Как Tankbook читает колонку") and in
+`docs/EXTRACTION.md` -> "The pump reader".
+
+**What still reads nothing** (`agents/research/PU.90.md`): dark LCDs with pale segments behind
+reflective glass, and TFT screens. Both fail at the locator; the read and the law already handle them
+when the rows are found. Nothing wrong is committed on either - the law refuses.
+
+### What the owner does (the parts no agent can)
+
+1. **Decide - now:**
+   - turn on `pumpPhoto` (the build clears the gate), or keep the alpha framing a while longer;
+   - upload a new beta (`release.sh --upload --beta`): the phone's build still commits the old
+     tenfold-price and swapped-field readings that `HEAD` refuses;
+   - the cautioned no-price tier on unfamiliar heads (PU.95): keep it, keep it but never on a family
+     the locator was not trained on, or drop it.
+2. **Verify frames in the annotator** (PU.91's data): 30-60 frames per record, spread over the fill,
+   from `video-050` and `live-6402`, `6404`, `6405`, `6424`, `6425`; check the reference quads of
+   `video-050` and `video-051` (placed by the orchestrator, unreviewed). A tracker's box is not
+   training data until a human has looked at it.
+3. **Capture:**
+   - **dark-LCD fills, 10-20, from three or more chains**, each with its Live record - two heads
+     today is not a family;
+   - **TFT screens, 5-10, from other chains or countries** - one still today;
+   - the **first fill of each kind goes to `heldout2` whole** (each family has one member there now, an
+     idle display);
+   - **Capture Lab runs** for SH.9 with the next beta: a night pump, a display in glare, a long or
+     faded receipt.
+
+### What gets built, in order
+
+| # | Row | What | Waits on |
+|---|---|---|---|
+| 1 | **PU.93** | Measure the unguarded path: does the receipt parser's fallback (PU.62) commit a TFT or dark-LCD value with no family check? If yes, gate it before anything else ships | nothing |
+| 2 | **PU.91** | Retrain RowSeg with the dark-LCD stills and verified frames; judged on the rotated gate, the heldout floors, and the dark-LCD stills and frames | the owner's frame verification |
+| 3 | **PU.92** | TFT route: display-family statistics -> on-device Vision OCR -> the unchanged law; advert suppression in the same change; labels as a cross-check. Vision never reads a segment display | PU.93; more TFT photos to judge generality |
+| 4 | **PU.94** | Live-frame fusion at the locator (glare moves, digits do not) | only if PU.91 leaves glare as the limit |
+| 5 | **PU.95** | The cautioned pair tier on unfamiliar heads: measure its precision per family, apply the owner's ruling | the owner's decision |
+| - | **SH.10** | Store the 2048 px copy of a capture, not the full photo (reads as well, ~3x smaller) | nothing |
+| - | **SH.9** | Production capture preset (stays `default` until the lab shows a difference) | the owner's lab runs |
+
+### What not to do
+
+- No path where Vision's raw digits pre-fill a field without the law's exact close - the advert's
+  digits and the dropped decimal point are both real, measured outputs.
+- No loosening of the classification floors to let these families through: on `pump-339`/`340` they are
+  the only thing between the user and a price-board cell committed as the total.
+- No tuning against `heldout2` - it is measured when a change is judged, never while one is fitted.
+- No renderer work for the dark-LCD family first: the locator that fails trains on real images only.
+
+---
+
+*The plan of 2026-09-04 follows. Written from the day's measurements and seven independent agent
+analyses (`diagnostics/RESEARCH-receipt-options-{qwen,kimi,deepseek}.md` and
+`diagnostics/RESEARCH-pump-{vision,kimi,pro,qwen}.md`).*
 
 ## Where it stands tonight
 
