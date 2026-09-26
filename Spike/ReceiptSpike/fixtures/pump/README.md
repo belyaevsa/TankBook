@@ -1572,3 +1572,20 @@ Those were discarded, not kept unreviewed; `pump-337`, `338`, `339` and `340` ke
 `pendingWindows` for the owner's hand.
 
 Pump cells 910 → 922 (totals only, macOS 27).
+
+## Added 2026-09-26 (batch 13: Circle K at night, Alexela black LCDs in the rain - 4 stills)
+
+- `pump-342` - the Capture lab's Run 4 `high1080` shot (1080x1920): Circle K Gilbarco Veeder-Root at
+  night, 0110,97 / 0054,69 at 2,029. **heldout2** (night, a lab capture - the rule `pump-336` set).
+  `HEAD` reads it right; the phone committed nothing (`docs/experiments/CAPTURE-LAB.md` -> Run 4).
+- `pump-343` - Circle K Gilbarco at night, tilted ~20 degrees, 0120,38 / 0059,77 at 2,014, with its
+  Live record `live-6432`. The auto-placed boxes put the litres role on the price window; corrected
+  by hand.
+- `pump-344`, `pump-345` - the Alexela black-LCD head (white segments on a blue-backlit panel behind
+  wet glass, `EUR/1L` beside the board), idle at 0.00 / 0.00 with a three-grade board 2.059 / 1.949
+  / 1.889; 344 in rain, 345 wider at night. Board cells boxed by hand, total and litres auto-placed
+  (345's total moved to take its last digit). Live records `live-6433`, `live-6434`.
+
+Truth read off the displays; both Circle K triples close (54.69 x 2.029 = 110.97, 59.77 x 2.014 =
+120.38). All train except `pump-342`. No mark moves: the pump class is scored on heldout only (PU.61).
+The running fill `video-052` is in `../pump-live/README.md` -> Batch 13.

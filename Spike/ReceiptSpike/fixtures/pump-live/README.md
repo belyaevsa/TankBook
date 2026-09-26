@@ -470,6 +470,24 @@ board head at Vesse (`pump-338`) and two black-LCD board heads (`pump-339`, `pum
 |---|---|---|---|
 | `video-051-tokheim-terminal-tft-static-display-2080-ee` | 133 (3840x2160, 24 fps, 5.5 s) | Tokheim at Terminal, a **TFT screen** held at 72,80 / 35,00 with the ad cycling behind it; IMG_6421.MOV whole, no audio, no metadata | price `2.080` |
 
+## Batch 13 (2026-09-26, product owner): Circle K at night, Alexela black LCDs in the rain
+
+Three Live records beside three stills, and one 4K clip. **Circle K** (Estonia, night): a Gilbarco
+at 2,014, tilted (`pump-343`). **Alexela** (Estonia, rain and night): the black-LCD head behind
+wet glass - white segments on a blue-backlit panel, `EUR/1L` printed beside the board - idle at
+0.00 with a three-grade board 2.059 / 1.949 / 1.889 (`pump-344`, `pump-345`), and `video-052`, a
+running fill on the same head. All train (owner: "a set of train material for dark LCD").
+
+| live | frames | what | paired still / truth |
+|---|---|---|---|
+| `live-6432` | 68 | Live record of the pump still | `pump-343` |
+| `live-6433` | 38 | Live record of the pump still | `pump-344` |
+| `live-6434` | 33 | Live record of the pump still | `pump-345` |
+
+| video | frames | what | truth |
+|---|---|---|---|
+| `video-052-unknown-alexela-black-lcd-running-display-2059-ee` | 1617 (3840x2160, 24 fps, 67.4 s) | black LCD at Alexela in the rain, **counting up** from ~9.62 / 4.67 to 100.81 / 48.96; hand-held close and shaky, so many frames are motion-blurred or catch the digits mid-change; IMG_6435.MOV whole (only the display is in frame), no audio, no metadata. **Windows not placed yet** - reference quads and tracking are the annotator's (video mode) | price `2.059` (`48.96 x 2.059 = 100.81` closes) |
+
 ## Frames and tracking (2026-09-20)
 
 Two scripts in `ml/pump-reader` turn the records into labelled training frames without a

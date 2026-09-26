@@ -38150,5 +38150,135 @@
    "total": "37.69",
    "unitPrice": "1.929"
   }
+ },
+ "video-050-unknown-alexela-black-lcd-running-display-2079-ee": {
+  "001.jpg": {
+   "liters": "8.96",
+   "source": "owner",
+   "total": "18.63",
+   "unitPrice": "2.079"
+  },
+  "002.jpg": {
+   "liters": "8.96",
+   "source": "owner",
+   "total": "18.63",
+   "unitPrice": "2.079",
+   "via": "copied"
+  },
+  "003.jpg": {
+   "liters": "9.02",
+   "source": "owner",
+   "total": "18.75",
+   "unitPrice": "2.079"
+  },
+  "004.jpg": {
+   "liters": "9.02",
+   "source": "owner",
+   "total": "18.75",
+   "unitPrice": "2.079"
+  },
+  "005.jpg": {
+   "liters": "9.09",
+   "source": "owner",
+   "total": "18.90",
+   "unitPrice": "2.079"
+  },
+  "006.jpg": {
+   "liters": "9.09",
+   "source": "owner",
+   "total": "18.90",
+   "unitPrice": "2.079",
+   "via": "run"
+  },
+  "007.jpg": {
+   "liters": "9,09",
+   "source": "owner",
+   "total": "18.90",
+   "unitPrice": "2.079"
+  },
+  "008.jpg": {
+   "liters": "9.15",
+   "source": "owner",
+   "total": "19.02",
+   "unitPrice": "2.079"
+  },
+  "009.jpg": {
+   "liters": "9.15",
+   "source": "owner",
+   "total": "19.02",
+   "unitPrice": "2.079"
+  },
+  "010.jpg": {
+   "liters": "9.22",
+   "source": "owner",
+   "total": "19.17",
+   "unitPrice": "2.079"
+  },
+  "011.jpg": {
+   "liters": "9.22",
+   "source": "owner",
+   "total": "19.17",
+   "unitPrice": "2.079"
+  },
+  "012.jpg": {
+   "liters": "9.28",
+   "source": "owner",
+   "total": "19.37",
+   "unitPrice": "2.079"
+  },
+  "013.jpg": {
+   "liters": "9.29",
+   "source": "owner",
+   "total": "19.31",
+   "unitPrice": "2.079"
+  },
+  "014.jpg": {
+   "liters": "9.29",
+   "source": "owner",
+   "total": "19.31",
+   "unitPrice": "2.079"
+  },
+  "015.jpg": {
+   "liters": "9.36",
+   "source": "owner",
+   "total": "19.46",
+   "unitPrice": "2.079"
+  },
+  "018.jpg": {
+   "liters": "9.42",
+   "source": "owner",
+   "total": "19.58",
+   "unitPrice": "2.079"
+  },
+  "022.jpg": {
+   "liters": "9.56",
+   "source": "owner",
+   "total": "19.88",
+   "unitPrice": "2.079"
+  },
+  "146.jpg": {
+   "liters": "1.299",
+   "source": "arithmetic",
+   "total": "2.692",
+   "unitPrice": "2.079"
+  },
+  "386.jpg": {
+   "liters": "1.962",
+   "source": "arithmetic",
+   "total": "4.079",
+   "unitPrice": "2.079"
+  },
+  "391.jpg": {
+   "liters": "1.976",
+   "source": "arithmetic",
+   "total": "4.100",
+   "unitPrice": "2.079"
+  },
+  "416.jpg": {
+   "liters": "20.45",
+   "source": "arithmetic",
+   "total": "42.52",
+   "unitPrice": "2.079"
+  }
  }
 }

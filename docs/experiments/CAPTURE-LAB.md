@@ -90,3 +90,34 @@ the fill in the corpus as `pump-339` (29,99 / 15,31, no transaction price), thro
   evidence yet for moving production off `default`** (SH.9).
 - GPS absent from every photo, as in Run 1.
 
+
+## Run 4 – 2026-09-26, a Circle K Gilbarco at night
+
+One pump run on the iPhone 12 mini, the same seven presets (`capture-lab/2026-09-26-195459-pump-night.json`):
+a Circle K Gilbarco Veeder-Root at night, 0110,97 / 0054,69 at 2,029 - a dark-on-light LCD, the
+display family the reader reads best. The `high1080` shot is in the corpus as `pump-342`
+(heldout2, the rule `pump-336` set).
+
+| Preset | Capture ms | Pipeline ms | Bytes | Phone build | `HEAD`, currency `EUR` |
+|---|---|---|---|---|---|
+| default | 466 | 1496 | 2.43 MB | nothing (3 rows found, fast path) | right 110.97 / 54.69 / 2.029 |
+| quality | 625 | 1270 | 2.53 MB | nothing | right |
+| speed | 490 | 1072 | 1.49 MB | nothing | right |
+| metered | 574 | 1150 | 2.78 MB | nothing | right |
+| locked | 487 | 1620 | 2.84 MB | nothing | right |
+| zoom2x | 498 | 1614 | 1.79 MB | nothing | right |
+| high1080 | 747 | 499 | 0.43 MB | nothing | right |
+
+`HEAD` = 5311547b, `pump-read` from the tree.
+
+**What it showed.**
+- **The phone found the display and all three rows on every shot and committed nothing; `HEAD`
+  reads all seven right.** The same image under another currency reproduces the phone: `USD` and
+  no currency refuse `currencyUnmeasured`, `RUB` `nothingClosed`, `GBP` `cellCountImpossible`. The
+  capture path passes `Locale.current.currency` to the reader (`CapturePipeline.swift`), so a phone
+  whose region is not a euro country refuses every pump photo whatever its quality. The log does
+  not record which currency the phone passed, so this is the leading explanation, not a
+  measurement - the lab now needs to log it (filed with the currency fix).
+- **Night is not the problem on this head**: every preset reads at `HEAD`, including `speed`
+  (1.49 MB) and `high1080` (0.43 MB).
+- GPS absent from every photo, as in Runs 1-3.

@@ -561,6 +561,11 @@ enum PostSweepCorpusAdditions {
             "pump-339-unknown-neste-black-lcd-pump3-2999-1531l-board-ee.jpg",
             "pump-340-unknown-neste-black-lcd-pump4-1961-1001l-board-ee.jpg",
             "pump-341-unknown-voltera-yellow-lcd-idle-1219-ee.jpg",
+            // 2026-09-26, batch 13: Circle K at night, Alexela black LCDs in the rain.
+            "pump-342-gilbarco-circlek-11097-5469l-2029-night-high1080-ee.jpg",
+            "pump-343-gilbarco-circlek-12038-5977l-2014-night-tilted-ee.jpg",
+            "pump-344-unknown-alexela-black-lcd-idle-board-2059-rain-ee.jpg",
+            "pump-345-unknown-alexela-black-lcd-idle-board-2059-night-wide-ee.jpg",
         ],
         "screenshots": [
             // 2026-09-14: an OFD-rendered Lukoil AI-100 e-receipt. Declared,
