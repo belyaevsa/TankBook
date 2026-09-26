@@ -1,8 +1,8 @@
 import Foundation
 
 /// The opt-in "Attach diagnostics" bundle from docs/LOGGING.md §5: the last 24 h
-/// of the app's own INFO+ entries (breadcrumb ring, plus the OSLog window when
-/// the store is readable), run through the same redactor, alongside app/device
+/// of the app's own INFO+ entries (the on-disk log, `FileLogStore`, merged with
+/// the breadcrumb ring), run through the same redactor, alongside app/device
 /// metadata, the persisted sync state and per-table DB row counts. No UI here -
 /// this is the data assembly only. The user previews exactly `rendered()` before
 /// anything leaves the device (§5: never silent).
@@ -17,14 +17,14 @@ public struct DiagnosticsBundle: Sendable, Equatable {
     public let platform: String
     public let deviceId: String?
     /// The redacted breadcrumb-ring lines, oldest first. The ring is the
-    /// in-memory fallback that covers what OSLog may have dropped; every line
+    /// in-memory fallback for lines the on-disk log could not keep; every line
     /// was rendered by `LogRenderer` with sensitive values masked.
     public let breadcrumbs: [String]
-    /// The redacted 24 h OSLog window, oldest first. Every line was re-scrubbed
-    /// by `OSLogTextRedactor` before it was held, exactly as the ring lines
-    /// were - no line is trusted because OSLog produced it (hard rule 12).
+    /// The redacted 24 h window of the on-disk log, oldest first. Every line
+    /// was re-scrubbed by `OSLogTextRedactor` before it was held, exactly as
+    /// the ring lines were - no stored line is trusted (hard rule 12).
     public let osLogLines: [String]
-    /// Whether the 24 h OSLog window was readable. `unavailable` is a degraded
+    /// Whether the 24 h log window was readable. `unavailable` is a degraded
     /// bundle, not an error: the ring is the fallback and the marker tells
     /// support a quiet device (`ok lines=0`) from a missing capability.
     public let logStore: LogStoreState
@@ -79,8 +79,7 @@ public struct DiagnosticsBundle: Sendable, Equatable {
         }
         lines.append("breadcrumbCount=\(breadcrumbs.count)")
         lines.append("--- log ---")
-        lines.append(contentsOf: breadcrumbs)
-        lines.append(contentsOf: osLogLines)
+        lines.append(contentsOf: Self.mergedLog(breadcrumbs: breadcrumbs, stored: osLogLines))
         if let sync {
             lines.append("--- sync ---")
             if let lastSuccessAt = sync.lastSuccessAt {
@@ -108,13 +107,25 @@ public struct DiagnosticsBundle: Sendable, Equatable {
         return lines.joined(separator: "\n")
     }
 
+    /// The ring and the stored log carry the same emitted lines, so they are
+    /// merged: each line once, in time order. Every line starts with its
+    /// fixed-width UTC timestamp, so text order is time order.
+    static func mergedLog(breadcrumbs: [String], stored: [String]) -> [String] {
+        var seen = Set<String>()
+        var merged: [String] = []
+        for line in stored + breadcrumbs where seen.insert(line).inserted {
+            merged.append(line)
+        }
+        return merged.sorted()
+    }
+
     /// UTF-8 data of `rendered()`.
     public var data: Data { Data(rendered().utf8) }
 }
 
-/// The device's 24 h OSLog window state in the bundle: `ok` with the number of
-/// collected lines, or `unavailable` when reading failed (permissions, simulator,
-/// an unreadable store). A readable-but-silent store is `ok lines=0` - that is
+/// The device's 24 h log window state in the bundle: `ok` with the number of
+/// collected lines, or `unavailable` when reading failed (an unreadable
+/// directory). A readable-but-silent store is `ok lines=0` - that is
 /// how support tells a quiet device from a missing capability.
 public enum LogStoreState: Sendable, Equatable {
     case ok(lineCount: Int)
@@ -142,7 +153,7 @@ public struct DiagnosticsSyncSummary: Sendable, Equatable {
 
 public enum DiagnosticsExport {
     /// Assembles a bundle from a log instance's breadcrumb ring and the current
-    /// log context, without reading OSLog (the factory the ring-only callers and
+    /// log context, without reading the stored log (the factory the ring-only callers and
     /// tests use; the log window is left `unavailable`). Every line is
     /// re-rendered with the same redactor, so the bundle contains no
     /// Sensitive/Never value even if a breadcrumb was recorded in a debug build.
@@ -170,13 +181,13 @@ public enum DiagnosticsExport {
     }
 
     /// The full assembly behind About's "Attach diagnostics" (docs/LOGGING.md
-    /// §5): the breadcrumb ring merged with the last 24 h of this app's own
-    /// OSLog window, plus the sync summary and the row counts. When `osLog` is
-    /// nil or its read throws, the bundle degrades to the ring alone and marks
-    /// `logStore=unavailable` - a degraded bundle, never an error. Every
-    /// collected OSLog line is re-scrubbed by the OSLog redactor before it is
-    /// held, exactly as the ring lines are: a line is never trusted because
-    /// OSLog produced it (docs/LOGGING.md §1).
+    /// §5): the breadcrumb ring merged with the last 24 h of the stored log
+    /// (`FileLogStore` in the app), plus the sync summary and the row counts.
+    /// When `osLog` is nil or its read throws, the bundle degrades to the ring
+    /// alone and marks `logStore=unavailable` - a degraded bundle, never an
+    /// error. Every stored line is re-scrubbed by `OSLogTextRedactor` before it
+    /// is held, exactly as the ring lines are: a line is never trusted because
+    /// it was read back from storage (docs/LOGGING.md §1).
     public static func collect(log: TankbookLog,
                                context: LogContext,
                                osLog: (any OSLogEntryReading)?,
@@ -189,8 +200,8 @@ public enum DiagnosticsExport {
     }
 
     /// Assembles a bundle from already-rendered ring lines (the snapshot is
-    /// taken by the caller so the OSLog read can run off the main actor). Same
-    /// contract as `collect(log:...)`: the collected OSLog lines are re-scrubbed
+    /// taken by the caller so the stored-log read can run off the main actor).
+    /// Same contract as `collect(log:...)`: the stored lines are re-scrubbed
     /// before they are held, and an unreadable store degrades to the ring.
     public static func assemble(breadcrumbLines: [String],
                                 context: LogContext,
@@ -206,7 +217,7 @@ public enum DiagnosticsExport {
                 let entries = try osLog.readInfoPlus(
                     subsystem: DiagnosticsLogConstants.subsystem,
                     since: now.addingTimeInterval(-DiagnosticsLogConstants.logWindow),
-                    limit: DiagnosticsLogConstants.osLogEntryCap)
+                    limit: DiagnosticsLogConstants.logEntryCap)
                 osLogLines = entries.map { OSLogTextRedactor.redact($0.text) }
                 logStore = .ok(lineCount: osLogLines.count)
             } catch {

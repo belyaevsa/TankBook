@@ -30,6 +30,7 @@ The list is deliberately short. **Every item not on it must not exist on the dev
 | `deviceId` (issued at sign-in) | Keychain | Same – it must survive reinstall-with-restore but never migrate to another device |
 | Local database (`.sqlite` + WAL/SHM) | App container, **not** Keychain | `FileProtectionType.completeUntilFirstUserAuthentication` on all three files |
 | Attachment renditions and thumbnails | App container | Same protection class |
+| The on-disk log (`Application Support/Logs`, one file per UTC day, kept two days - `FileLogStore`, docs/LOGGING.md §5) | App container | Same protection class, on the directory and every day file. Holds only redacted lines (hard rule 12) |
 | Nothing else | – | – |
 
 **Why `AfterFirstUnlock…` and not `WhenUnlocked`:** background sync and silent APNs nudges (`NOTIFICATIONS.md`) run while the phone is locked; `WhenUnlocked` would break them after every reboot. `AfterFirstUnlock` keeps the data encrypted until the user has unlocked once since boot, which is the correct trade for a background-syncing app.

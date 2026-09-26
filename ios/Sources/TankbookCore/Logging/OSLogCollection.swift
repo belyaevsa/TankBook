@@ -1,12 +1,10 @@
 import Foundation
-import OSLog
-import os
 
 /// The collected-log constants (docs/LOGGING.md §5 and docs/PRACTICES.md §6,
 /// tier C - compiled constant, one definition, named).
 public enum DiagnosticsLogConstants {
     /// The `live.belyaev.tankbook` subsystem every OSLog line rides
-    /// (docs/LOGGING.md §4) - the exact predicate the diagnostics window reads.
+    /// (docs/LOGGING.md §4).
     public static let subsystem = "live.belyaev.tankbook"
 
     /// The §5 window: the last 24 h of INFO+ entries. A compiled constant with
@@ -15,17 +13,25 @@ public enum DiagnosticsLogConstants {
     /// tuning, and a change is a review + doc change, never a config edit).
     public static let logWindow: TimeInterval = 24 * 60 * 60
 
-    /// The most OSLog lines the bundle may hold. Compiled: it bounds the text a
-    /// user previews and shares, so it must not grow silently with tuning, and
-    /// it keeps the export O(1) in bundle size, not O(entries) (docs/LOGGING.md
-    /// §7 volume discipline). The ring is capped at ~50 on top of this.
-    public static let osLogEntryCap = 200
+    /// The most log lines the bundle may hold. Compiled: it bounds the text a
+    /// user previews and sends, so it must not grow silently with tuning, and
+    /// it keeps the export bounded in size, not O(entries) (docs/LOGGING.md
+    /// §7 volume discipline).
+    public static let logEntryCap = 5_000
+
+    /// How long a day file of the on-disk log (`FileLogStore`) is kept: two
+    /// days, so the 24 h window is always whole whatever the time of day.
+    public static let fileRetention: TimeInterval = 2 * 24 * 60 * 60
+
+    /// The most bytes one day file may grow to. A day past it keeps its first
+    /// lines and drops the rest rather than grow the device's storage.
+    public static let fileDayByteCap = 4 * 1_024 * 1_024
 }
 
-/// One entry collected from the unified log: when it happened and the text
-/// OSLog persisted for it. The text is the sink's own rendered line; it is NOT
+/// One entry read back from the stored log: when it happened and the text that
+/// was kept for it. The text is the sink's own rendered line; it is NOT
 /// trusted as redacted - `OSLogTextRedactor` re-scrubs it before the bundle
-/// holds it (docs/LOGGING.md §1: never trust a line because OSLog produced it).
+/// holds it (docs/LOGGING.md §1: never trust a line because storage held it).
 public struct OSLogCollectedEntry: Sendable, Equatable {
     public let date: Date
     public let text: String
@@ -36,53 +42,18 @@ public struct OSLogCollectedEntry: Sendable, Equatable {
     }
 }
 
-/// The seam between the collector and the unified log, so the 24 h window is
+/// The seam between the collector and the stored log, so the 24 h window is
 /// deterministic under test (docs/TESTING.md: mock the boundary, don't boot the
-/// world). The production reader is `OSLogStoreEntryReader`; L1 drives this
-/// protocol's throw and content directly.
+/// world). The production reader is `FileLogStore`; L1 drives this protocol's
+/// throw and content directly.
 public protocol OSLogEntryReading: Sendable {
     /// This app's own INFO+ entries under `subsystem` dated at or after `since`,
     /// newest-capped at `limit`, returned oldest-first. Throws when the store is
-    /// unavailable (permissions, simulator, a private store) - the caller treats
-    /// that as a degraded bundle, never an error.
+    /// unreadable - the caller treats that as a degraded bundle, never an error.
     func readInfoPlus(subsystem: String, since: Date, limit: Int) throws -> [OSLogCollectedEntry]
 }
 
-/// Reads the unified log for the current process's own entries
-/// (docs/LOGGING.md §4-§5). `OSLogStore` reaches only what this process logged,
-/// which is exactly the `live.belyaev.tankbook` subsystem - the app logs only
-/// through the `TankbookLog` facade, so the subsystem is the correct predicate.
-/// May legitimately fail (a simulator, tightened permissions): the collector
-/// degrades to the breadcrumb ring and marks `logStore=unavailable`.
-public struct OSLogStoreEntryReader: OSLogEntryReading {
-    public init() {}
-
-    public func readInfoPlus(subsystem: String, since: Date, limit: Int) throws -> [OSLogCollectedEntry] {
-        let store = try OSLogStore(scope: .currentProcessIdentifier)
-        let start = store.position(date: since)
-        var matched: [OSLogCollectedEntry] = []
-        // `.reverse` enumerates newest-first back to the window start, so the
-        // cap keeps the newest `limit` lines and the array is reversed to
-        // chronological order at the end. The position is a bound, not an exact
-        // cursor, so each entry is also date-filtered against the window.
-        let entries = try store.getEntries(with: [.reverse], at: start, matching: nil)
-        for entry in entries {
-            guard let log = entry as? OSLogEntryLog else { continue }
-            guard log.subsystem == subsystem else { continue }
-            guard log.date >= since else { continue }
-            guard Self.acceptedLevels.contains(log.level) else { continue }
-            matched.append(OSLogCollectedEntry(date: log.date, text: log.composedMessage))
-            if matched.count >= limit { break }
-        }
-        return matched.reversed()
-    }
-
-    /// INFO+ only, docs/LOGGING.md §5. `debug` is not persisted by default and
-    /// is excluded anyway - the diagnostics bundle is a §5 INFO+ surface.
-    private static let acceptedLevels: Set<OSLogEntryLog.Level> = [.info, .notice, .error, .fault]
-}
-
-/// Re-scrubs a collected OSLog line before the bundle holds it
+/// Re-scrubs a stored log line before the bundle holds it
 /// (docs/LOGGING.md §1, hard rule 12). The sink normally only ever persists
 /// already-redacted text, so this is a no-op on a clean line - but a debug
 /// reveal build or a future sink bug could persist a real Sensitive value, and
@@ -91,8 +62,8 @@ public struct OSLogStoreEntryReader: OSLogEntryReading {
 /// field whose name is a known Sensitive carrier is masked here - the belt and
 /// braces behind the sink's own guarantee. A value that contains spaces leaks
 /// as trailing space-split words that no text-based scrubber can attribute;
-/// that is accepted because the real defense is the sink (a value only reaches
-/// OSLog text at all in a debug reveal build).
+/// that is accepted because the real defense is the sink (the file sink never
+/// reveals a Sensitive value, in any build).
 public enum OSLogTextRedactor {
     /// Field names under which a Sensitive-class value can ride in this app's
     /// typed events (docs/LOGGING.md §1 examples; the `LogEvents`/test

@@ -9,7 +9,7 @@ import UIKit
 /// The bundle is assembled OFF the main actor: the only repository touch - the
 /// row counts - is done here on the caller's actor, then the ring snapshot, the
 /// sync summary and the counts are handed to `DiagnosticsExport.assemble`, which
-/// runs the OSLog read on a detached task. Nothing domain-shaped is read: the
+/// reads the on-disk log (`AppLog.fileStore`) on a detached task. Nothing domain-shaped is read: the
 /// summary is the persisted `lastSuccessAt`/`lastFailure` (kind + code +
 /// traceId), the counts are `fetchDirtyRows`/`flaggedEntryCount` tallies, the
 /// row counts are `COUNT(*)` numbers (hard rule 12).
@@ -69,7 +69,7 @@ enum DiagnosticsService {
         let bundle = await Task.detached(priority: .userInitiated) {
             DiagnosticsExport.assemble(breadcrumbLines: crumbLines,
                                        context: context,
-                                       osLog: OSLogStoreEntryReader(),
+                                       osLog: AppLog.fileStore,
                                        sync: sync,
                                        rowCounts: counts,
                                        build: build)

@@ -72,6 +72,20 @@ struct FileProtectionSeamTests {
         }
     }
 
+    // MARK: - FileLogStore
+
+    @Test func fileLogStoreProtectsItsDirectoryAndDayFile() throws {
+        let directory = tempDir("fp-log")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let now = Date()
+        let entries = try record {
+            FileLogStore(directory: directory).append("\(LogRenderer.timestamp(now)) INFO [ui] event=fp", at: now)
+        }
+        assertApplied(to: directory, entries: entries)
+        assertApplied(to: directory.appendingPathComponent("tankbook-\(FileLogStore.dayName(now)).log"),
+                      entries: entries)
+    }
+
     // MARK: - BlobStore
 
     @Test func blobStoreSaveProtectsItsDirectory() throws {

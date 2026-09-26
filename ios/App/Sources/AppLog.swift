@@ -3,14 +3,24 @@ import TankbookCore
 
 /// The app's one logging facade (docs/LOGGING.md §4-§5). Every view logs
 /// through this instance, built from `TankbookLog.makeDefault`, so every line
-/// rides the `live.belyaev.tankbook` subsystem that the diagnostics export
-/// reads. A raw `os.Logger` is invisible to that export (docs/LOGGING.md §5),
+/// rides the `live.belyaev.tankbook` subsystem and is kept in the on-disk log
+/// the diagnostics export reads. A raw `os.Logger` is invisible to that export (docs/LOGGING.md §5),
 /// which is why constructing one outside Logging/ is a SwiftLint error.
 ///
 /// `deviceId` comes from the Keychain session (docs/SECURITY.md) when a session
 /// exists, else it stays nil - Safe either way, and the facade still emits.
 enum AppLog {
-    static let shared = TankbookLog.makeDefault(deviceId: Self.deviceId())
+    static let shared = TankbookLog.makeDefault(sink: Self.sink(), deviceId: Self.deviceId())
+
+    /// The on-disk log the diagnostics bundle reads (docs/LOGGING.md §5). Nil
+    /// only when Application Support cannot be resolved; the unified log and
+    /// the breadcrumb ring still carry every line then.
+    static let fileStore = FileLogStore.standard()
+
+    private static func sink() -> any LogSink {
+        guard let fileStore else { return OSLogSink() }
+        return TeeSink([OSLogSink(), FileLogSink(store: fileStore)])
+    }
 
     /// Emits a typed app error. `operation` is a stable code (e.g. `home.load`);
     /// the error's rendered message is classified Sensitive and never reaches a
