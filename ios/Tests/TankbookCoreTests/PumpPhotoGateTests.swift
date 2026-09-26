@@ -46,10 +46,16 @@ struct PumpPhotoGateTests {
                 == (PumpPhotoGate.readerPrecision >= 0.99 && PumpPhotoGate.readerCoverage >= 0.60))
     }
 
-    @Test("the gate is a ceiling: the bundled config keeps pump photo off until the owner turns it on")
-    func bundledFlagIsOff() throws {
+    /// The owner turned pump photo on (2026-09-26). The bundled flag may say on
+    /// only while the build's own measured accuracy clears the gate - a retrain
+    /// that dropped below it fails here until the flag is turned back off.
+    @Test("the bundled flag is on only while the build clears the gate")
+    func bundledFlagIsOnOnlyUnderTheGate() throws {
         let flag = try ConfigDefaults.bundledAppConfig().flags["pumpPhoto"]
-        #expect(flag?.enabled == false)
+        #expect(flag?.enabled == true)
+        #expect(PumpPhotoGate.violation(flagEnabled: flag?.enabled ?? false,
+                                        precision: PumpPhotoGate.readerPrecision,
+                                        coverage: PumpPhotoGate.readerCoverage) == nil)
     }
 }
 

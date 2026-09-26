@@ -10,5 +10,5 @@
   "minSchemaVersion": 1,
   "referencePacks": { "rates": 1, "catalog": 1 },
   "rolloutSalt": "tankbook-baseline-rollout-salt",
-  "flags": { "pumpPhoto": { "enabled": false, "rolloutPercent": 0 } }
+  "flags": { "pumpPhoto": { "enabled": true, "rolloutPercent": 100 } }
 }

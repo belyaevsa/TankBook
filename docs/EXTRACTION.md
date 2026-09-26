@@ -1302,6 +1302,19 @@ the object detector it replaced (`DigitRows.mlmodel`) lives with its trainer in
 non-rule producer of a field after the cloud model, and the same sentence governs both: it
 suggests, it never trusts.
 
+### Pump photo is on (product owner, 2026-09-26)
+
+**The ship decision (PU.6):** with the reader at 119 committed / 118 correct of 183 heldout cells
+(precision 0.992 >= 0.99, coverage 0.65 >= 0.60), the owner turned `pumpPhoto` on. It ships in the
+**bundled default** (`Config.default.json`: enabled, rollout 100 %), because the server has no
+publish path for a remote config document yet (`ConfigPublishService` has no caller) and its baseline
+document carries no `flags` key, so the bundled value is what every build reads. `ConfigStore.isEnabled`
+still caps it at `PumpPhotoGate.allowsPumpPhoto`: a build whose measured accuracy falls below the gate
+reads the flag off whatever the file says, and `PumpPhotoGateTests.bundledFlagIsOnOnlyUnderTheGate`
+fails until the flag is turned back off. What changes for the user: the Confirm sheet stops framing a
+pump reading as alpha, and a fuel car's capture caption reads "Receipts and pump displays are detected
+automatically" (PJ.12b). A rollback is a new build, or a remote document once a publish path exists.
+
 ### Display families the reader does not read yet, and the plan (2026-09-26)
 
 **Measured** (`agents/research/PU.90.md`, Kimi K3, with the Capture Lab's Runs 2-3 in

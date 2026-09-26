@@ -1585,6 +1585,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },
+    "PU.6-capture-pump-on": {
+      "commit": "f7bc29d9",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PU.6-capture-pump-on-ru": {
+      "commit": "f7bc29d9",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "RV.10-date-picker-open": {
       "commit": "3611237",
       "device": "iPhone 17",

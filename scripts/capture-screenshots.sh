@@ -349,6 +349,8 @@ capture P2.1-capture-phev-ru       ru -presentScreen capture -cameraStatus autho
 # cannot tap a shutter. RU is the wrap check for the longer fault copy.
 capture RV.223-capture-fault       en -presentScreen capture -cameraStatus authorized -captureAutoFault
 capture RV.223-capture-fault-ru    ru -presentScreen capture -cameraStatus authorized -captureAutoFault
+capture PU.6-capture-pump-on        en -presentScreen capture -cameraStatus authorized
+capture PU.6-capture-pump-on-ru     ru -presentScreen capture -cameraStatus authorized
 
 # RV.226: a camera blocked by device policy (parental controls, MDM) gets its own
 # card state: it says why and names the manual door only, because Settings has no

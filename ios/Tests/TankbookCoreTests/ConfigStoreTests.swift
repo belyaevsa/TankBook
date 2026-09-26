@@ -188,8 +188,8 @@ private func cacheFileURL(directory: URL) -> URL {
     #expect(store.current.tier3CloudFallback)
     #expect(store.current.minSchemaVersion == 1)
     #expect(store.current.maintenance == nil)
-    // The bundled pump-photo flag is off, so the app is usable without rollout.
-    #expect(store.isEnabled(.pumpPhoto) == false)
+    // The bundled pump-photo flag reads through the accuracy gate.
+    #expect(store.isEnabled(.pumpPhoto) == PumpPhotoGate.allowsPumpPhoto)
 }
 
 // MARK: - 2 and 3. Tampered document / signature rejected ON READ
@@ -500,16 +500,21 @@ private func cacheFileURL(directory: URL) -> URL {
 
 // MARK: - P2.7: the pump-photo accuracy gate is not remotely flippable
 
-@Test func pumpPhotoShipsOffInTheBundledDefault() throws {
+/// The owner turned pump photo on (2026-09-26) once the reader cleared the gate:
+/// the bundled default ships it on for everyone, and the store reads it on only
+/// because `PumpPhotoGate.allowsPumpPhoto` holds - a build whose measured
+/// accuracy fell below the gate would read it off whatever this file says.
+@Test func pumpPhotoShipsOnInTheBundledDefaultUnderTheGate() throws {
     let directory = tempDirectory()
     defer { try? FileManager.default.removeItem(at: directory) }
 
     let bundled = try ConfigDefaults.bundledAppConfig()
-    #expect(bundled.flags["pumpPhoto"]?.enabled == false,
-            "the bundled default must ship pumpPhoto off")
+    #expect(bundled.flags["pumpPhoto"]?.enabled == true)
+    #expect(bundled.flags["pumpPhoto"]?.rolloutPercent == 100)
 
     let store = makeStore(bundled: bundled, directory: directory)
-    #expect(store.isEnabled(.pumpPhoto) == false)
+    #expect(store.isEnabled(.pumpPhoto) == PumpPhotoGate.allowsPumpPhoto)
+    #expect(PumpPhotoGate.allowsPumpPhoto, "the flag ships on only because the build clears the gate")
 }
 
 @Test func remoteConfigCannotEnablePumpPhotoBeyondTheGate() throws {

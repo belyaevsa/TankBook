@@ -116,13 +116,14 @@ final class CaptureUITests: XCTestCase {
                       "Type it must present the manual form")
     }
 
-    // MARK: - P2.7 / PU.29 pump photo, below the gate
+    // MARK: - P2.7 / PU.29 / PU.6 pump photo, on
 
-    /// Below the pump-photo gate the reading is still offered - a head start
-    /// the user edits (hard rules 13 and 15) - and the sheet says so with the
-    /// alpha notice (decision 7, docs/EXTRACTION.md). No failure message; the
-    /// form is savable, so it is never a dead end.
-    func testPumpCaptureBelowTheGatePrefillsWithTheAlphaNotice() {
+    /// Pump photo is on (owner, 2026-09-26; the reader clears the gate): the
+    /// reading pre-fills as an ordinary head start the user edits (hard rules
+    /// 13 and 15), with no alpha notice. The alpha framing a build below the
+    /// gate would show is pinned at the unit level (`PumpPhotoCaptureTests`,
+    /// `CaptureVerifyNotice`). The form is savable, so it is never a dead end.
+    func testPumpCapturePrefillsWithoutTheAlphaNoticeWhilePumpPhotoIsOn() {
         let app = launch(args: ["-homeResetDatabase", "-seedVehicleForUITests",
                                 "-presentScreen", "capture", "-cameraStatus", "authorized",
                                 "-seedPumpCapture"])
@@ -136,11 +137,11 @@ final class CaptureUITests: XCTestCase {
         XCTAssertTrue(total.waitForExistence(timeout: 5))
         // The seeded reading (pump-007's triple) pre-fills the form.
         XCTAssertFalse((total.value as? String)?.isEmpty ?? true,
-                       "a below-the-gate pump capture pre-fills the reading")
-        // And the sheet frames it as alpha.
-        XCTAssertTrue(app.otherElements["confirmPumpAlphaNotice"].waitForExistence(timeout: 5)
+                       "a pump capture pre-fills the reading")
+        // And the sheet does not frame it as alpha.
+        XCTAssertFalse(app.otherElements["confirmPumpAlphaNotice"].waitForExistence(timeout: 3)
                         || app.staticTexts["confirmPumpAlphaNotice"].exists,
-                      "the alpha notice must accompany a below-the-gate pump reading")
+                       "no alpha notice while pump photo is on")
 
         // Savable, so it is never a dead end.
         let save = app.buttons["manualFillUpSaveButton"]
@@ -648,12 +649,14 @@ extension CaptureUITests {
 /// renders", which it always does. These assert WHICH sentence renders.
 @MainActor
 extension CaptureUITests {
-    func testICECaptionDoesNotClaimPumpWhileTheGateFails() {
+    /// Pump photo ships on (owner, 2026-09-26) because the reader clears the
+    /// accuracy gate, so a fuel car's caption names pump displays.
+    func testICECaptionClaimsPumpDisplaysWhilePumpPhotoIsOn() {
         let app = captureApp("authorized", ["-powertrain", "ice", "-pumpTipSeen"])
-        XCTAssertTrue(app.staticTexts["Receipts are detected automatically"].waitForExistence(timeout: 5),
-                      "ICE must read 'Receipts are detected automatically' while the gate fails")
-        XCTAssertFalse(app.staticTexts["Receipts and pump displays are detected automatically"].exists,
-                       "the pump claim must not render while the gate fails")
+        XCTAssertTrue(app.staticTexts["Receipts and pump displays are detected automatically"].waitForExistence(timeout: 5),
+                      "ICE must name pump displays while pump photo is on")
+        XCTAssertFalse(app.staticTexts["Receipts are detected automatically"].exists,
+                       "the receipts-only caption is for a build where pump photo is off")
     }
 
     func testEVCaptionNeverClaimsPumpDetection() {
@@ -672,7 +675,7 @@ extension CaptureUITests {
                       "the first capture session must name the pump display")
         first.terminate()
         let second = captureApp("authorized", ["-powertrain", "ice"])
-        XCTAssertTrue(second.staticTexts["Receipts are detected automatically"].waitForExistence(timeout: 5),
+        XCTAssertTrue(second.staticTexts["Receipts and pump displays are detected automatically"].waitForExistence(timeout: 5),
                       "a later capture session reads the ordinary caption")
         XCTAssertFalse(second.staticTexts["No receipt? Shoot the pump display"].exists,
                        "the tip is shown once, never again")

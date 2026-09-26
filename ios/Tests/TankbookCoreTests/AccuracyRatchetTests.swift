@@ -286,10 +286,13 @@ struct CorpusAccuracyGateTests {
         #expect(scored.committedCorrect == PumpPhotoGate.measuredCommittedCorrect,
                 Comment(stringLiteral: "measured committed-correct \(PumpPhotoGate.measuredCommittedCorrect) "
                     + "must match the live \(scored.committedCorrect)"))
+        // The shipped flag is judged against the READER's measured accuracy - the
+        // numbers `PumpPhotoGate.allowsPumpPhoto` gates on - not this rules-parser
+        // score, which is not what a pump photo is read with (PU.61).
         let shipped = try ConfigDefaults.bundledAppConfig().flags["pumpPhoto"]?.enabled ?? false
         #expect(PumpPhotoGate.violation(flagEnabled: shipped,
-                                        precision: scored.precision,
-                                        coverage: scored.coverage) == nil,
+                                        precision: PumpPhotoGate.readerPrecision,
+                                        coverage: PumpPhotoGate.readerCoverage) == nil,
                 Comment(stringLiteral: "the pump flag must stay off while precision is below "
                     + "\(PumpPhotoGate.precisionThreshold) or coverage below \(PumpPhotoGate.coverageFloor)"))
     }
