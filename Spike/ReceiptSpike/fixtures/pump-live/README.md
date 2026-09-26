@@ -486,7 +486,7 @@ running fill on the same head. All train (owner: "a set of train material for da
 
 | video | frames | what | truth |
 |---|---|---|---|
-| `video-052-unknown-alexela-black-lcd-running-display-2059-ee` | 1617 (3840x2160, 24 fps, 67.4 s) | black LCD at Alexela in the rain, **counting up** from ~9.62 / 4.67 to 100.81 / 48.96; hand-held close and shaky, so many frames are motion-blurred or catch the digits mid-change; IMG_6435.MOV whole (only the display is in frame), no audio, no metadata. **Windows not placed yet** - reference quads and tracking are the annotator's (video mode) | price `2.059` (`48.96 x 2.059 = 100.81` closes) |
+| `video-052-unknown-alexela-black-lcd-running-display-2059-ee` | 1617 (3840x2160, 24 fps, 67.4 s) | black LCD at Alexela in the rain, **counting up** from ~9.62 / 4.67 to 100.81 / 48.96, the camera moving along the head; **the segments are often doubled** - a second, offset copy of the digits while the labels printed on the glass (`EUR`, `LIITRIT`) and the QR sticker stay sharp, also after the count stops (frame 1612), so it is the display, not the camera: most likely the LCD ghosting in the wet cover glass at an angle; raindrops on the glass on top. Hard material for exactly the condition the reader fails on; IMG_6435.MOV whole (only the display is in frame), no audio, no metadata. **Windows not placed yet** - reference quads and tracking are the annotator's (video mode) | price `2.059` (`48.96 x 2.059 = 100.81` closes) |
 
 ## Frames and tracking (2026-09-20)
 
