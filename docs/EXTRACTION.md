@@ -1383,6 +1383,20 @@ Measured 2026-09-27: on the heldout live path the committed count is unchanged, 
 **26 fields that were empty now reach the form warned, and 18 of them are right.** Those 26 are the
 price of never hiding a read. They arrive under the warning, never as a silent fact, and the
 line is printed as `warned` by the live report.
+
+**Warned reads are accepted (product owner, 2026-09-27).** Measured on the iOS 27 simulator through
+the composite (`PumpCompositeArmsTests`, `PUMP_ARMS=1`), the heldout set now fills 147 cells and
+136 are right: 0.925, against the 99 % J4 promises. The 11 contradicted cells are three known ones
+(`pump-031` a receipt discount, `pump-106` a truncating display, `pump-063` a cautioned pair) and
+**eight warned reads, all on segment LCDs, none on a TFT screen** - the heldout set holds no TFT -
+among them role shifts (`pump-104`: the price read as litres and the litres as the total;
+`pump-120`: the total as the price; `pump-169`: the price as litres), a tenfold shift (`pump-208`:
+9.707 L for 97.07) and single-digit misreads (`pump-055`, `pump-089`). The owner accepted them as
+they are: they reach the form under the "don't multiply up" warning, never as a silent fact, and
+the logic is to be improved later (PU.105). **So the 99 % promise counts closed reads** - what the
+law committed, the numbers `PumpPhotoGate.allowsPumpPhoto` decides on (121 of 122 on the heldout
+live path) - and a warned read is judged by the user against the photo, not by the gate.
+`PumpPhotoGate`'s composite constants record the whole: 147 / 136 of 186.
 **Two guards, from case 02412-PM1N2's TFT shot.** There the seven-segment reader guessed at a
 screen's artwork (30909 L, cells under 1 nat), and that guess would have overridden the rules
 arm's correct 35.00 / 72.80 / 2.080:

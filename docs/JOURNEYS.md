@@ -174,7 +174,10 @@ pre-filled**, and the verify screen shows an amber warning that the numbers don'
 checking against the photo. It never falls back to *Couldn't read*, which is kept for a photo
 where no digits were read at all. The motivating case: a car set to roubles at an Estonian pump
 read 32.64 / 15.33 / 2.129 correctly, and the user got "Couldn't read" because the law refused
-under RUB (case 02412-PM1N2).
+under RUB (case 02412-PM1N2). **The 99 % promise counts closed reads (product owner, 2026-09-27):** a warned
+read is shown for the user to check against the photo and is not counted by the gate; on the
+heldout set eight of them are wrong today, all segment LCDs, and improving them is PU.105
+(`docs/EXTRACTION.md` -> "Warned reads are accepted").
 
 **One chain, one station (RV.115 + RV.180, shipped 2026-09-18).** A station has a **brand** (the
 chain) and a **name** (the site's full printed line). The brand is matched once, when the station is

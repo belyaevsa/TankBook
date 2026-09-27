@@ -15,10 +15,15 @@ enum PumpReaderTestSupport {
         .deletingLastPathComponent() // ios
         .deletingLastPathComponent() // repo root
 
-    static let windowsURL = repoRoot
-        .appendingPathComponent("Spike/ReceiptSpike/fixtures/pump/windows.json")
-    static let pumpFixturesRoot = repoRoot
-        .appendingPathComponent("Spike/ReceiptSpike/fixtures/pump")
+    static let windowsURL = pumpFixturesRoot.appendingPathComponent("windows.json")
+    /// The pump corpus; `PUMP_FIXTURES_DIR=<path>` measures a copy of it instead
+    /// (the same files, the images re-encoded, say) without touching the corpus.
+    static let pumpFixturesRoot: URL = {
+        if let path = ProcessInfo.processInfo.environment["PUMP_FIXTURES_DIR"], !path.isEmpty {
+            return URL(fileURLWithPath: path, isDirectory: true)
+        }
+        return repoRoot.appendingPathComponent("Spike/ReceiptSpike/fixtures/pump")
+    }()
     static let outRoot = repoRoot
         .appendingPathComponent("ios/.build/pump-reader-out")
 

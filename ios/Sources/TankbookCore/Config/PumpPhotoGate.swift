@@ -36,24 +36,27 @@ public enum PumpPhotoGate {
     /// (liters, unitPrice, total - blanks skipped). `fuelKind` is never scored for a
     /// pump (the spec forbids inferring it) and `currency` is reported
     /// separately, never in the gate.
-    public static let measuredCommittedCorrect: Int = 120
+    public static let measuredCommittedCorrect: Int = 136
 
     /// Numeric cells the parser committed to at build time (the coverage
     /// numerator). A cell it abstained on - a correct refusal or an honest
     /// miss - is not committed.
     ///
-    /// Committed exceeds `measuredCommittedCorrect` by cells of two kinds: where
+    /// The composite counts every value that reaches the form, including a read
+    /// no currency closes, which is pre-filled under the "don't multiply up"
+    /// warning (docs/EXTRACTION.md -> "Warned reads are accepted"). Committed
+    /// exceeds `measuredCommittedCorrect` by cells of three kinds: where
     /// `expected.csv` scores the paper against a display that shows something
-    /// else (a receipt discount, a display that truncates the total the law
-    /// derives exactly), and the pair tier's totals committed with the
-    /// shown-price caution. `PumpCompositeArmsTests` (`PUMP_ARMS=1`) names each
-    /// one. The composite is a record here; `allowsPumpPhoto` decides on the
-    /// reader's own heldout numbers below.
-    public static let measuredCommitted: Int = 123
+    /// else (a receipt discount, a truncating display), the pair tier's totals
+    /// committed with the shown-price caution, and those warned reads.
+    /// `PumpCompositeArmsTests` (`PUMP_ARMS=1`) names each one. The composite is
+    /// a record here; `allowsPumpPhoto` decides on the reader's own heldout
+    /// numbers below, which count closed reads only.
+    public static let measuredCommitted: Int = 147
 
     /// Numeric cells the parser resolved correctly at build time (recall, kept
     /// for legibility - the gate no longer runs on it).
-    public static let measuredNumericHits: Int = 120
+    public static let measuredNumericHits: Int = 136
 
     /// The numeric cells the pump corpus scores (B1). Not one per fixture x 3: blank
     /// numeric cells stay skipped (glare on a total, the two idle pumps have no
