@@ -225,6 +225,40 @@ private struct EchoTransport: TankbookHTTPTransport {
     #expect(!text.contains("64.20"))
 }
 
+private struct FailingTransport: TankbookHTTPTransport {
+    let error: any Error
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse { throw error }
+}
+
+/// A request that fails in transport still gets its `net.response`: status 0,
+/// its duration, and the failure's code - and the error still reaches the caller.
+@Test(arguments: [
+    (URLError(.timedOut) as any Error, "timeout"),
+    (URLError(.cancelled) as any Error, "cancelled"),
+    (CancellationError() as any Error, "cancelled"),
+    (URLError(.notConnectedToInternet) as any Error, "offline"),
+    (URLError(.cannotFindHost) as any Error, "unreachable"),
+    (URLError(.serverCertificateUntrusted) as any Error, "tls"),
+    (URLError(.badServerResponse) as any Error, "transport")
+])
+func aTransportFailureStillLogsItsResponse(error: any Error, code: String) async {
+    let sink = InMemorySink()
+    let request = TankbookHTTPRequest(
+        url: URL(string: "https://api.example.com/v1/rates/pack?from=2026-09-01&to=2026-09-27")!,
+        method: "GET", headers: ["X-Tankbook-Trace": UUID.v7().uuidString.lowercased()], body: nil)
+    let transport = LoggingHTTPTransport(inner: FailingTransport(error: error), log: makeLog(sink: sink))
+
+    await #expect(throws: (any Error).self) { try await transport.execute(request) }
+
+    let responses = sink.all().filter { $0.event == "net.response" }
+    #expect(responses.count == 1)
+    let text = sink.rendered().joined(separator: "\n")
+    #expect(text.contains("status=0"))
+    #expect(text.contains("errorCode=\(code)"))
+    #expect(text.contains("durationMs="))
+    #expect(!text.contains("2026-09-01"), "the query never reaches the log")
+}
+
 // MARK: - Confirm commit: userCorrected true when edited, false when not (OB.2)
 
 private func makeExtraction() -> FuelExtraction {

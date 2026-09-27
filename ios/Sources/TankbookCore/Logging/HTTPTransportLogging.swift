@@ -26,9 +26,10 @@ import os
 ///
 /// `attempt` counts how many times this exact path+method has already been
 /// executed under the same trace id - the number a doubled-upload diagnosis
-/// reads first. A transport error (a refused connection, a timeout) throws out
-/// of `execute`, so no `net.response` exists for it: the request is on the
-/// log, and the owner layer narrates the failure class.
+/// reads first. A request that fails in transport (a timeout, a cancellation,
+/// no network, the app suspended mid-request) still gets its `net.response`:
+/// `status` 0, the time it took, and a `TransportFailure` code, and the error
+/// is rethrown unchanged.
 public struct LoggingHTTPTransport: TankbookHTTPTransport, Sendable {
     private let inner: any TankbookHTTPTransport
     private let log: TankbookLog
@@ -57,7 +58,19 @@ public struct LoggingHTTPTransport: TankbookHTTPTransport, Sendable {
                             requestBytes: requestBytes),
                  traceId: traceId)
 
-        let response = try await inner.execute(request)
+        let response: TankbookHTTPResponse
+        do {
+            response = try await inner.execute(request)
+        } catch {
+            log.emit(NetResponse(
+                endpoint: endpoint,
+                status: 0,
+                durationMs: Int(Date().timeIntervalSince(startedAt) * 1000),
+                requestBytes: requestBytes,
+                errorCode: TransportFailure(error).rawValue),
+                traceId: traceId)
+            throw error
+        }
 
         // OB.3: on a failure the line carries the server's `code` member from
         // the problem+json body (docs/LOGGING.md §4 promises `errorCode`; the
@@ -81,5 +94,34 @@ public struct LoggingHTTPTransport: TankbookHTTPTransport, Sendable {
             errorCode: errorCode),
             traceId: traceId)
         return response
+    }
+}
+
+/// Why a request got no HTTP response, as the closed set `net.response`'s
+/// `errorCode` carries with `status` 0 (docs/LOGGING.md §4). A code, never the
+/// error's description, which can carry a URL (hard rule 12).
+public enum TransportFailure: String, Sendable {
+    case timeout
+    case cancelled
+    case offline
+    case unreachable
+    case tls
+    case transport
+
+    public init(_ error: any Error) {
+        if error is CancellationError { self = .cancelled; return }
+        guard let urlError = error as? URLError else { self = .transport; return }
+        switch urlError.code {
+        case .timedOut: self = .timeout
+        case .cancelled: self = .cancelled
+        case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed, .internationalRoamingOff:
+            self = .offline
+        case .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed:
+            self = .unreachable
+        case .secureConnectionFailed, .serverCertificateUntrusted, .serverCertificateHasBadDate,
+             .serverCertificateNotYetValid, .serverCertificateHasUnknownRoot, .clientCertificateRejected:
+            self = .tls
+        default: self = .transport
+        }
     }
 }
