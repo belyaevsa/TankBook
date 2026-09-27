@@ -1323,6 +1323,23 @@ the object detector it replaced (`DigitRows.mlmodel`) lives with its trainer in
 non-rule producer of a field after the cloud model, and the same sentence governs both: it
 suggests, it never trusts.
 
+### A display the reader refused falls to the receipt path (PU.93, 2026-09-27)
+
+When the reader finds no display, or finds one and the law closes nothing, the photo is parsed as a
+receipt - with no check that it is one. On the display families the reader does not read yet that
+path committed confident wrong values, measured over every dark-LCD and TFT still and tracked
+frame (`PumpFamilyFallthroughTests`): a **1.0 L** on about 255 dark-LCD photos, because the label
+`EUR/1L` / `HIND/1L` ("price per 1 L") matched the lone-volume rule; **2079 L** and **6 L** from OCR
+debris beside an `L`; and a Neste **board cell** under `HIND/1L` taken as the price. Three rules
+in `FuelExtractor` close it, each with a test that fails without it: a per-unit denominator
+(`/1L`, `/L`, `/л`, `/литр`) is removed before a line is searched for a volume; the lone-volume
+rule takes only a number written with decimals (a dispensed volume is printed to the centilitre);
+and a price with no total and no volume commits nothing. After them the dark LCD commits nothing
+wrong (332 photos empty) and the TFT screen reads 50 of 51 right through the rules arm - Vision
+reads rendered digits well, which is PU.92's premise. A blunter rule - no lone field at all
+without a total - was measured and rejected: replaying the iOS 27 OCR of all 98 receipts showed it
+costs `receipt-096`'s right `Quantite = 34,63 L` on a ticket cropped above its total.
+
 ### The currency the reader is given (PU.98, 2026-09-26)
 
 The law's decimal conventions and the price band are chosen by currency, so the currency decides

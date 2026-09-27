@@ -13,7 +13,7 @@ import Testing
 /// family, so this lists every value either route commits, with its verdict.
 ///
 /// Opt-in (`PUMP_FAMILIES=1`, `PUMP_FAMILY_STRIDE=<n>` samples every n-th
-/// frame): it OCRs every still and tracked frame of these families, and the
+/// frame, `PUMP_FAMILY_FRAMES=video-050/337.jpg,...` runs only those frames): it OCRs every still and tracked frame of these families, and the
 /// rules arm's numbers are those of the Vision runtime it runs on.
 @Suite("Pump family fallthrough", .pumpFixturesPresent,
        .enabled(if: ProcessInfo.processInfo.environment["PUMP_FAMILIES"] == "1", "PUMP_FAMILIES=1"))
@@ -84,7 +84,7 @@ struct PumpFamilyFallthroughTests {
                 guard let value else { continue }
                 fields.append("\(name)=\(value)" + (fromReader == nil ? "(rules)" : "(reader)"))
             }
-            if verdict == "WRONG" {
+            if verdict == "WRONG" || verdict == "unjudged" {
                 for line in lines { print("PU93 OCR \(item.label)\t\(line.text)") }
             }
             print("PU93\t\(item.family)\t\(item.label)\t\(route)\t\(verdict)\t\(fields.joined(separator: " "))")
@@ -156,8 +156,12 @@ struct PumpFamilyFallthroughTests {
         for (family, record, want) in records {
             let dir = frames.appendingPathComponent(record)
             let names = ((try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? [])
-                .filter { $0.hasSuffix(".jpg") }.sorted()
-            for (index, name) in names.enumerated() where index % stride == 0 {
+                // Numbered frames only: `sheet.jpg` is the tracker's contact sheet.
+                .filter { $0.wholeMatch(of: /\d+\.jpg/) != nil }.sorted()
+            let only = Set((ProcessInfo.processInfo.environment["PUMP_FAMILY_FRAMES"] ?? "")
+                .split(separator: ",").map(String.init))
+            for (index, name) in names.enumerated()
+            where only.isEmpty ? index % stride == 0 : only.contains("\(record.prefix(9))/\(name)") {
                 items.append(Item(family: family, label: "\(record.prefix(9))/\(name)",
                                   url: dir.appendingPathComponent(name), truth: want))
             }

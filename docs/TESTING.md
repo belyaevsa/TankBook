@@ -578,7 +578,11 @@ How it runs:
    `RV56TotalPropertyTests`, `ScreenshotCrossCheckTests` - and prints each suite's result; name
    suites to run fewer. It forwards every `VISION_*` and `PUMP_*` variable into the simulator
    (`VISION_REWRITE_DUMPS=1` re-records the expense dumps, `VISION_DUMP=<fixtures>` writes what Vision
-   reads on them to `ios/.build/vision-dump/`, `PUMP_ARMS=1` the pump composite arms). It sets
+   reads on them to `ios/.build/vision-dump/` - each line's box and text, `receipts/*` for a whole
+   class - so an extractor change can be replayed on macOS against the measured runtime's text in
+   seconds before the 15-minute suite confirms it; `PUMP_ARMS=1` the pump composite arms,
+   `PUMP_FAMILIES=1` the capture path over the dark-LCD and TFT families, `PUMP_CURRENCY_SWEEP=1`
+   the law under every measured currency). It sets
    `VISION_SERIAL=1`: `TestOCR` then reads one photo at a time, as a phone does - in the simulator
    concurrent requests read some receipts differently from a lone one (`receipt-083` read alone is
    identical every time; inside the parallel suite it varied run to run), and a mark taken under that

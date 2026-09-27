@@ -77,6 +77,11 @@ public struct FuelExtractor: Sendable {
             if volumeContradictedByCorroboratedTotal(lines, liters: result.liters, price: price, total: result.total) {
                 result.liters = nil
             }
+            // A price alone - no total, no volume - has nothing to be checked
+            // against, and on a pump display the reader refused it is a board
+            // cell under a per-unit label (`HIND/1L` over a grade board), not the
+            // price paid (PU.93).
+            if result.total == nil, result.liters == nil { price = nil }
             // Money is born Decimal here (P2.2b); RV.282 guards pick the price.
             result.unitPrice = reconciledUnitPrice(
                 price, liters: result.liters, total: result.total, in: lines
@@ -330,9 +335,16 @@ public struct FuelExtractor: Sendable {
         var volume: Double?
         var price: Double?
         for (index, line) in lines.enumerated() {
-            if volume == nil, line.text.firstMatch(of: /[xXхХ*·×]/) == nil, line.text.hasVolumeMarker,
-               !line.text.isUnitLegend,
-               let value = NumberScanner.numbers(in: line.text).first {
+            // A per-unit label (`EUR/1L`, `Цена/л`) says what a price is per; it is
+            // removed before the line is searched for a volume.
+            // The volume is taken only as a number written with decimals: a
+            // dispensed volume is printed to the centilitre (`34,63 L`), while an
+            // integer beside an `L` on a pump photo is a price or OCR debris
+            // glued to a label (`2079 L`, `6L02`).
+            let text = line.text.withoutPerUnitDenominator
+            if volume == nil, text.firstMatch(of: /[xXхХ*·×]/) == nil, text.hasVolumeMarker,
+               !text.isUnitLegend, text.firstMatch(of: /\d[.,]\d/) != nil,
+               let value = NumberScanner.numbers(in: text).first {
                 volume = value
             }
             // A quantity label/header states the volume with its value beside
@@ -635,6 +647,13 @@ extension String {
     var hasVolumeMarker: Bool {
         firstMatch(of: /\d\s*[лЛL](?:ИТР?|итр?)?(?!\p{L})/) != nil
             || firstMatch(of: /(?:^|[^\p{L}])[лЛL]\s*\d/) != nil
+    }
+
+    /// The line with any per-unit denominator removed - `EUR/1L`, `HIND/1L`,
+    /// `€/L`, `Цена/л`, `руб/литр`: the unit a price is quoted per, which carries
+    /// a litre marker (and often a `1`) without naming a quantity.
+    var withoutPerUnitDenominator: String {
+        replacing(/[\/]\s*(?:1\s*)?(?:[лЛL](?:ИТР[А-Я]*|итр[а-я]*|ITRE|itre)?)(?!\p{L})/, with: " ")
     }
 
     /// A unit-conversion legend - `1 ЕД. = 1 ЛИТР ДЛЯ НЕФТЕПРОДУКТОВ`, `1 ЕД. = 1 М3
