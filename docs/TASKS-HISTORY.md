@@ -140,3 +140,124 @@ the standing rule that a report is not a gate:
 | `RV.176+PR.28` | 198 orphans audited, all given lines | True, but **138 of those lines were never run** - their seeds were inferred. A wrong line is worse than none: the check goes green on a line EXISTING, not on it reproducing the frame. Filed as `RV.194` |
 
 **Three of the four were caught by opening a screenshot**, which no agent can do.
+
+## Rows moved out of `TASKS.md` on 2026-09-27
+
+*The owner asked for the backlog to be cleaned: every closed row (`[x]` done, `[cut]`) moved to `TASKS-DONE.md` under the
+section it was filed in (111 rows). This is their ledger. **Worker** is what the row itself records - its `Routing` note is
+the plan written when it was filed, not proof of who ran it - except the six the orchestrator closed in this session, which are
+known, and the AD rows, which the owner had built in the session rather than dispatched. The closing date is the last dated close marker in the row, blank where it names none.*
+
+| Task | Status | Closed | Worker |
+|---|---|---|---|
+| `SH.8` | done |  | routed: the orchestrator |
+| `PJ.501` | done | 2026-09-26 | not recorded in the row |
+| `PJ.502` | done | 2026-09-26 | not recorded in the row |
+| `PJ.504` | done | 2026-09-26 | not recorded in the row |
+| `PJ.505` | done |  | not recorded in the row |
+| `PJ.506` | done |  | not recorded in the row |
+| `DC.1` | done |  | not recorded in the row |
+| `RV.179` | done | 2026-09-19 | not recorded in the row |
+| `RV.114` | done | 2026-09-19 | not recorded in the row |
+| `RV.288` | done | 2026-09-19 | not recorded in the row |
+| `RV.292` | done | 2026-09-19 | not recorded in the row |
+| `RV.302` | done | 2026-09-23 | not recorded in the row |
+| `RV.303` | done | 2026-09-22 | not recorded in the row |
+| `RV.301` | done | 2026-09-24 | routed: DeepSeek `v4.1-flash` (the cause is pinned in the row); review Codex `gpt-6-sol` |
+| `RV.304` | done |  | not recorded in the row |
+| `RV.305` | done |  | not recorded in the row |
+| `RV.306` | done | 2026-09-25 | routed: DeepSeek `v4-pro` (mechanical); review Codex `gpt-6-sol` |
+| `RV.307` | done |  | not recorded in the row |
+| `PU.1` | done | 2026-09-19 | not recorded in the row |
+| `PU.2` | done | 2026-09-19 | not recorded in the row |
+| `PU.3` | done | 2026-09-19 | not recorded in the row |
+| `PU.4` | cut | 2026-09-24 | not recorded in the row |
+| `PU.5` | cut | 2026-09-24 | not recorded in the row |
+| `PU.7` | done | 2026-09-19 | not recorded in the row |
+| `PU.8` | done | 2026-09-19 | not recorded in the row |
+| `PU.9` | done | 2026-09-19 | not recorded in the row |
+| `PU.10` | done | 2026-09-19 | not recorded in the row |
+| `PU.16` | done | 2026-09-19 | not recorded in the row |
+| `PU.17` | done | 2026-09-19 | not recorded in the row |
+| `PU.18` | done | 2026-09-19 | not recorded in the row |
+| `PU.19` | done | 2026-09-21 | not recorded in the row |
+| `PU.20` | done | 2026-09-19 | not recorded in the row |
+| `PU.27` | done | 2026-09-19 | not recorded in the row |
+| `PU.28` | done | 2026-09-19 | not recorded in the row |
+| `PU.21` | done | 2026-09-19 | not recorded in the row |
+| `PU.22` | done | 2026-09-19 | not recorded in the row |
+| `PU.23` | done | 2026-09-19 | not recorded in the row |
+| `PU.24` | done | 2026-09-21 | not recorded in the row |
+| `PU.29` | done | 2026-09-19 | not recorded in the row |
+| `PU.30` | done | 2026-09-20 | not recorded in the row |
+| `PU.31` | done | 2026-09-20 | not recorded in the row |
+| `PU.33` | done | 2026-09-20 | not recorded in the row |
+| `PU.34` | cut | 2026-09-24 | not recorded in the row |
+| `PU.35` | done | 2026-09-21 | not recorded in the row |
+| `PU.37` | done | 2026-09-21 | not recorded in the row |
+| `PU.38` | done | 2026-09-21 | not recorded in the row |
+| `PU.39` | done | 2026-09-21 | not recorded in the row |
+| `PU.42` | done | 2026-09-22 | not recorded in the row |
+| `PU.43` | done |  | not recorded in the row |
+| `PU.44` | done |  | not recorded in the row |
+| `PU.45` | done |  | not recorded in the row |
+| `PU.46` | done |  | not recorded in the row |
+| `PU.47` | done |  | not recorded in the row |
+| `PU.48` | cut | 2026-09-24 | not recorded in the row |
+| `PU.49` | done | 2026-09-26 | not recorded in the row |
+| `PU.50` | done |  | not recorded in the row |
+| `PU.51` | done |  | not recorded in the row |
+| `PU.53` | done | 2026-09-22 | not recorded in the row |
+| `PU.54` | cut | 2026-09-24 | not recorded in the row |
+| `PU.55` | cut | 2026-09-24 | not recorded in the row |
+| `PU.57` | done | 2026-09-22 | not recorded in the row |
+| `PU.58` | cut |  | not recorded in the row |
+| `PU.60` | done | 2026-09-22 | not recorded in the row |
+| `PU.61` | done | 2026-09-27 | orchestrator (Claude, the 2026-09-26/27 session), not dispatched |
+| `PU.62` | done | 2026-09-22 | not recorded in the row |
+| `PU.63` | done | 2026-09-23 | not recorded in the row |
+| `PJ.500` | done | 2026-09-23 | not recorded in the row |
+| `PU.64` | done |  | not recorded in the row |
+| `PU.65` | cut | 2026-09-24 | not recorded in the row |
+| `PU.66` | cut | 2026-09-24 | not recorded in the row |
+| `PU.67` | cut | 2026-09-24 | not recorded in the row |
+| `PU.68` | done |  | not recorded in the row |
+| `PU.78` | done | 2026-09-24 | not recorded in the row |
+| `PU.81` | cut | 2026-09-24 | not recorded in the row |
+| `PU.79` | done |  | not recorded in the row |
+| `PU.80` | done | 2026-09-23 | not recorded in the row |
+| `PU.69` | done |  | not recorded in the row |
+| `PU.70` | cut | 2026-09-24 | not recorded in the row |
+| `PU.71` | cut | 2026-09-24 | not recorded in the row |
+| `PU.72` | done | 2026-09-24 | not recorded in the row |
+| `PU.73` | done |  | not recorded in the row |
+| `PU.74` | done |  | not recorded in the row |
+| `PU.76` | done | 2026-09-25 | routed: research note and the spike's review Qwen 3.8 max (the most valuable and vaguest open research - the method ch |
+| `PU.82` | done |  | routed: DeepSeek `v4.1-flash` (a data change); review Codex `gpt-6-sol` |
+| `PU.83` | done | 2026-09-24 | routed: DeepSeek `v4.1-flash` (tooling); review Codex `gpt-6-sol` |
+| `PU.84` | done | 2026-09-26 | routed: a light research note DeepSeek `v4.1-flash` (PU.73's note already measured the ceiling); build by the orchestr |
+| `PU.85` | done |  | not recorded in the row |
+| `PU.86` | done | 2026-09-25 | not recorded in the row |
+| `PU.89` | done | 2026-09-25 | not recorded in the row |
+| `PU.93` | done | 2026-09-27 | orchestrator (Claude, the 2026-09-26/27 session), not dispatched |
+| `PU.88` | done | 2026-09-25 | not recorded in the row |
+| `PU.87` | done | 2026-09-25 | not recorded in the row |
+| `PU.6` | done | 2026-09-27 | orchestrator (Claude, the 2026-09-26/27 session), not dispatched |
+| `PU.96` | done | 2026-09-27 | orchestrator (Claude, the 2026-09-26/27 session), not dispatched |
+| `PU.98` | done | 2026-09-26 | orchestrator (Claude, the 2026-09-26/27 session), not dispatched |
+| `PU.99` | done | 2026-09-27 | orchestrator (Claude, the 2026-09-26/27 session), not dispatched |
+| `PU.100` | done | 2026-09-27 | routed: the orchestrator |
+| `AD.1` | done |  | orchestrator (Claude session; owner 2026-09-24: "don't dispatch this work to opencode, do it by yourself") |
+| `AD.3` | done |  | orchestrator (Claude session; owner 2026-09-24: "don't dispatch this work to opencode, do it by yourself") |
+| `DC.2` | done |  | not recorded in the row |
+| `DC.3` | done |  | not recorded in the row |
+| `PU.97` | done |  | not recorded in the row |
+| `RV.309` | done |  | not recorded in the row |
+| `RV.310` | done |  | not recorded in the row |
+| `AD.10` | done |  | orchestrator (Claude session; owner 2026-09-24: "don't dispatch this work to opencode, do it by yourself") |
+| `AD.11` | done |  | orchestrator (Claude session; owner 2026-09-24: "don't dispatch this work to opencode, do it by yourself") |
+| `AD.13` | done |  | orchestrator (Claude session; owner 2026-09-24: "don't dispatch this work to opencode, do it by yourself") |
+| `AD.14` | done |  | orchestrator (Claude session; owner 2026-09-24: "don't dispatch this work to opencode, do it by yourself") |
+| `AD.4` | done |  | orchestrator (Claude session; owner 2026-09-24: "don't dispatch this work to opencode, do it by yourself") |
+| `AD.5` | done |  | orchestrator (Claude session; owner 2026-09-24: "don't dispatch this work to opencode, do it by yourself") |
+| `AD.6` | done |  | orchestrator (Claude session; owner 2026-09-24: "don't dispatch this work to opencode, do it by yourself") |
