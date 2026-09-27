@@ -144,6 +144,19 @@ struct PumpCompositeArmsTests {
                 }
             }
         }
+        // The gate's own call (no wall-clock cap): every committed cell the
+        // corpus contradicts, which is what `PumpPhotoGate.measuredCommitted`
+        // exceeds `measuredCommittedCorrect` by.
+        for name in names {
+            guard let r = noBudget[name], let want = expected[name] else { continue }
+            for c in [Cell(field: "liters", value: r.liters, truth: want.liters),
+                      Cell(field: "unitPrice", value: r.unitPrice, truth: want.unitPrice),
+                      Cell(field: "total", value: r.total, truth: want.total)] {
+                if let value = c.value, let truth = c.truth, abs(value - truth) >= CorpusScorer.tolerance {
+                    print("  WRONG no-budget \(name.prefix(8)) \(c.field) got \(value) want \(truth)")
+                }
+            }
+        }
         for name in names {
             guard let a = noBudget[name], let f = floor[name] else { continue }
             let app = [a.liters, a.unitPrice, a.total].compactMap { $0 }.count

@@ -42,11 +42,13 @@ public enum PumpPhotoGate {
     /// numerator). A cell it abstained on - a correct refusal or an honest
     /// miss - is not committed.
     ///
-    /// Committed exceeds `measuredCommittedCorrect` by the cells `expected.csv`
-    /// scores against the paper where the display differs (pump-031's receipt
-    /// discount) and the pair tier's cautioned totals; the composite is a
-    /// record here, and `allowsPumpPhoto` decides on the reader's own heldout
-    /// numbers below.
+    /// Committed exceeds `measuredCommittedCorrect` by cells of two kinds: where
+    /// `expected.csv` scores the paper against a display that shows something
+    /// else (a receipt discount, a display that truncates the total the law
+    /// derives exactly), and the pair tier's totals committed with the
+    /// shown-price caution. `PumpCompositeArmsTests` (`PUMP_ARMS=1`) names each
+    /// one. The composite is a record here; `allowsPumpPhoto` decides on the
+    /// reader's own heldout numbers below.
     public static let measuredCommitted: Int = 123
 
     /// Numeric cells the parser resolved correctly at build time (recall, kept
