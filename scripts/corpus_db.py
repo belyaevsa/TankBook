@@ -1575,12 +1575,28 @@ def build(with_s3: bool = False) -> Path:
     return import_corpus(with_s3)
 
 
+def open_elsewhere(target: Path) -> str | None:
+    """Why `import` must not replace `target` now, or None. `import` swaps in a
+    freshly built file; a writer that still holds the old file's write-ahead log
+    (the annotator, most often) then replays that log into the new file and
+    corrupts it. A live WAL connection keeps `<db>-wal`; a clean close removes it."""
+    wal = Path(str(target) + "-wal")
+    if wal.exists() and wal.stat().st_size > 0:
+        return (f"{target.name} is open in another process ({wal.name} exists) - most often the annotator "
+                "(tools/pump-annotate/server.py). Stop it, then import; replacing the database under an open "
+                "write-ahead log corrupts it. If nothing is running, the log is a crashed writer's: move it aside.")
+    return None
+
+
 def main() -> int:
     args = sys.argv[1:]
     if not args or args[0] not in ("import", "build", "dump", "check", "import-readings", "sql"):
         print(__doc__)
         return 2
     if args[0] in ("import", "build"):
+        if reason := open_elsewhere(DB):
+            print(reason, file=sys.stderr)
+            return 1
         import_corpus(with_s3="--s3" in args)
         with sqlite3.connect(DB) as con:
             counts = {t: con.execute(f"select count(*) from {t}").fetchone()[0]

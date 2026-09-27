@@ -1149,3 +1149,14 @@ in the hand, 1080x1920, EXIF-stripped. An `EXTRA SOODUS -0,21 EUR` line is infor
 `KOKKU` is 30,02, the display's total. The phone read every preset right. Paired with `pump-336`.
 
 Receipt cells 463 → 468, stations 82 → 83 (totals only, macOS 27).
+
+## Added 2026-09-27 (batch 14 - 3 receipts)
+
+- `receipt-099` - Circle K Tammisaare, `95 miles` pump 1, 46,81 L x 1,884 EUR/L = 88,19 EUR; an
+  `EXTRA SOODUS -0,70` line is informational (the fuel line and `KOKKU` both print 88,19). No pump
+  still of this fill.
+- `receipt-100`, `receipt-101` - Olerex Peetri, `DIISLIKÜTUS` 10,90 L x 2,039 = 22,23 EUR: the same
+  paper photographed upright and **sideways**, both the pair of `pump-355`/`356` (`CorpusPairTests`).
+
+Measured on the iOS 27 simulator: receipts 348/468 -> 357/483 (9 of the 15 new cells read), stations
+44/83 -> 45/86.

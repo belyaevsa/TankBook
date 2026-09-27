@@ -146,6 +146,11 @@ enum PostSweepCorpusAdditions {
             // 2026-09-25: the Capture lab's first run, high1080 preset, the
             // paper half of pump-336, held sideways.
             "receipt-098-circlek-sikupilli-db0-pump8-1400l-2144-extra-soodus-sideways-high1080-pair-ee.jpg",
+            // 2026-09-27, batch 14: Circle K Tammisaare and the Olerex Peetri pair (the same
+            // paper upright and sideways).
+            "receipt-099-circlek-tammisaare-95miles-pump1-4681l-1884-extra-soodus-ee.jpg",
+            "receipt-100-olerex-peetri-diesel-1090l-2039-pair-ee.jpg",
+            "receipt-101-olerex-peetri-diesel-1090l-2039-pair-sideways-ee.jpg",
         ],
         "pump": pump,
         "screenshots": [

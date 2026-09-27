@@ -63,7 +63,12 @@ private let matchedPairs: [MatchedPair] = [
     // The Capture lab's first run (2026-09-25), its high1080 preset: 1080x1920,
     // the smallest frame the lab captures. The paper's EXTRA SOODUS line is
     // informational; the paid total is the display's.
-    MatchedPair(pump: "pump-336", receipt: "receipt-098")
+    MatchedPair(pump: "pump-336", receipt: "receipt-098"),
+    // A Tokheim TFT screen at Olerex Peetri (2026-09-27): two stills of the display and
+    // the same paper photographed upright and sideways.
+    MatchedPair(pump: "pump-355", receipt: "receipt-100"),
+    MatchedPair(pump: "pump-356", receipt: "receipt-100"),
+    MatchedPair(pump: "pump-355", receipt: "receipt-101")
 ]
 
 @Suite("Matched pump/receipt pairs (RV.114)")

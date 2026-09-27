@@ -1,0 +1,43 @@
+0.00
+0.58
+3.00
+2.42
+_____
+004TXK
+2610058030
+0,
+Teine Maksejaam
+0 päev (-a) 03:01
+27-09-2026 14:59:59
+27-09-2026 11:58:43
+----
+150, Tallinn
+PAN.
+Tere tulemast!
+Loomaaia parkla
+27-09-2026 15:00:13
+VIIPEMAKSE KVIITING
+Külastage meid jälle!
+tee
+Summa:
+Ehitajate tee 150 Tallinn EST
+Ehitajate
+AL: DEBIT MASTERCARD
+Liikmenumber: 2434207
+AID:A0000000041010
+Loomaaia parkla 3
+Parkimise kestvus
+Parkimise algus:
+Sốiduki number:
+Parkimise löpp:
+Kaupmehe ID
+Terminal ID
+Tšeki number:
+MasterCard
+Maksejaam:
+Kviitung
+Ilma KM-ta
+Makstud:
+KM 24.0%
+Aeg
+Summa:

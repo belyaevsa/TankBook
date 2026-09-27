@@ -422,5 +422,17 @@ extension PostSweepCorpusAdditions {
         "pump-343-gilbarco-circlek-12038-5977l-2014-night-tilted-ee.jpg",
         "pump-344-unknown-alexela-black-lcd-idle-board-2059-rain-ee.jpg",
         "pump-345-unknown-alexela-black-lcd-idle-board-2059-night-wide-ee.jpg",
+        // 2026-09-27, batch 14: Circle K Tammisaare Gilbarcos, Tokheim TFT screens at Olerex Peetri.
+        "pump-346-gilbarco-circlek-4123-2017l-2044-pump1-ee.jpg",
+        "pump-347-gilbarco-circlek-3800-2001l-pump6-price-glare-ee.jpg",
+        "pump-348-gilbarco-circlek-4599-2422l-1899-pump4-ee.jpg",
+        "pump-349-gilbarco-circlek-9208-4505l-2044-pump2-ee.jpg",
+        "pump-350-gilbarco-circlek-9208-4505l-2044-pump2-second-angle-ee.jpg",
+        "pump-351-gilbarco-circlek-4127-2019l-2044-pump1-ee.jpg",
+        "pump-352-gilbarco-circlek-4088-2000l-2044-pump3-preset-ee.jpg",
+        "pump-353-gilbarco-circlek-7001-3425l-2044-pump5-washed-price-ee.jpg",
+        "pump-354-tokheim-olerex-tft-4119-2020l-2039-pump4-ee.jpg",
+        "pump-355-tokheim-olerex-peetri-tft-2223-1090l-2039-pump3-pair-ee.jpg",
+        "pump-356-tokheim-olerex-peetri-tft-2223-1090l-2039-pump3-pair-second-angle-ee.jpg",
     ]
 }

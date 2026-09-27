@@ -1589,3 +1589,21 @@ Pump cells 910 → 922 (totals only, macOS 27).
 Truth read off the displays; both Circle K triples close (54.69 x 2.029 = 110.97, 59.77 x 2.014 =
 120.38). All train except `pump-342`. No mark moves: the pump class is scored on heldout only (PU.61).
 The running fill `video-052` is in `../pump-live/README.md` -> Batch 13.
+
+## Added 2026-09-27 (batch 14: Circle K Tammisaare Gilbarcos, Tokheim TFT screens at Olerex Peetri - 11 stills)
+
+- `pump-346`..`353` - Circle K Tammisaare, Gilbarco Veeder-Root heads in daylight: pump 1 twice
+  (41,23 / 20,17 and 41,27 / 20,19 at 2,044), pump 6 (38,00 / 20,01, the price window washed out -
+  unitPrice blank), pump 4 (45,99 / 24,22 at 1,899), pump 2 (92,08 / 45,05 at 2,044, two angles),
+  pump 3 (a 20,00 L preset, 40,88) and pump 5 (70,01 / 34,25; the price window washed, read as
+  2,044 and marked partial). Every triple closes. The live path read eight of them whole when the
+  boxes were auto-placed; `pump-346`'s price box was drawn by hand.
+- `pump-354`..`356` - Tokheim **TFT** screens at Olerex Peetri, diesel: pump 4 (41,19 / 20,20 at
+  2,039) and pump 3 (22,23 / 10,90 at 2,039, two angles - the pair of `receipt-100`/`101`, and the
+  fill `video-053` counts up to). The locator framed the advert (the `OLEREX` logo as the total);
+  all three drawn by hand.
+
+**Split** (owner: "some unique ... to the heldout"): `pump-349`/`350` (one Circle K fill, both
+angles) and `pump-354` (the Tokheim fill with no other capture) are **heldout2**; the rest train.
+The second Tokheim fill stays train because `video-053` shows the same fill and video frames are
+train. Boxes unreviewed (the owner's check). No mark moves (pump is scored on heldout only).

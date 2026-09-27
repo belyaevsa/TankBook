@@ -144,3 +144,9 @@ Three more parts documents the same day:
   discount as the total.
 
 Class cells: 44 → 54 (four + four + two), totals only.
+
+## Added 2026-09-27 (batch 14)
+
+- `parking-loomaaia-tallinn-ee.jpg` / `.txt` - a Tallinn Zoo car park ticket (Loomaaia parkla),
+  3,00 EUR with 24 % VAT, dated 27-09-2026; the `.txt` is the iOS 27 Vision dump
+  (`VISION_REWRITE_DUMPS=1`). Truth `parking` / 3.00 / EUR / 2026-09-27. Class 50/54 -> 52/58.

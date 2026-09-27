@@ -488,6 +488,35 @@ running fill on the same head. All train (owner: "a set of train material for da
 |---|---|---|---|
 | `video-052-unknown-alexela-black-lcd-running-display-2059-ee` | 1617 (3840x2160, 24 fps, 67.4 s) | black LCD at Alexela in the rain, **counting up** from ~9.62 / 4.67 to 100.81 / 48.96, the camera moving along the head; **the segments are often doubled** - a second, offset copy of the digits while the labels printed on the glass (`EUR`, `LIITRIT`) and the QR sticker stay sharp, also after the count stops (frame 1612), so it is the display, not the camera: most likely the LCD ghosting in the wet cover glass at an angle; raindrops on the glass on top. Hard material for exactly the condition the reader fails on; IMG_6435.MOV whole (only the display is in frame), no audio, no metadata. Reference quads placed by the orchestrator on frame 1612 (after the count stopped, the ghosted total boxed whole), unreviewed; `pump_reader.track --videos` kept 1561 of 1617 frames | price `2.059` (`48.96 x 2.059 = 100.81` closes) |
 
+## Batch 14 (2026-09-27, product owner): Circle K Tammisaare Gilbarcos, Tokheim TFT screens at Olerex Peetri
+
+Fourteen Live records beside their stills, and one 4K clip. **Circle K Tammisaare** (Estonia, day): eight Gilbarco
+Veeder-Root stills over five pumps at 2,044 / 1,899, and the receipt of a fill no still shows. **Olerex Peetri**:
+two Tokheim **TFT** heads (pump 4 at 41,19 / 20,20; pump 3 at 22,23 / 10,90 with its receipt, two angles of each), and
+`video-053`, pump 3 counting up to that fill. heldout2: `pump-349`/`350` (one Circle K fill, both angles) and `pump-354` (a
+Tokheim fill with no other capture); the rest train.
+
+| live | frames | what | paired still / truth |
+|---|---|---|---|
+| `live-6445` | 70 | Live record of the pump still | `pump-346` |
+| `live-6446` | 70 | Live record of the receipt | `receipt-099` |
+| `live-6447` | 49 | Live record of the pump still | `pump-347` |
+| `live-6448` | 71 | Live record of the pump still | `pump-348` |
+| `live-6449` | 46 | Live record of the pump still (heldout2) | `pump-349` |
+| `live-6450` | 67 | Live record of the pump still | `pump-351` |
+| `live-6451` | 71 | Live record of the pump still (heldout2) | `pump-350` |
+| `live-6452` | 64 | Live record of the pump still | `pump-352` |
+| `live-6453` | 68 | Live record of the pump still | `pump-353` |
+| `live-6455` | 78 | Live record of the pump still (heldout2) | `pump-354` |
+| `live-6457` | 63 | Live record of the pump still | `pump-355` |
+| `live-6458` | 68 | Live record of the pump still | `pump-356` |
+| `live-6459` | 79 | Live record of the receipt | `receipt-101` |
+| `live-6460` | 77 | Live record of the receipt | `receipt-100` |
+
+| video | frames | what | truth |
+|---|---|---|---|
+| `video-053-tokheim-olerex-peetri-tft-running-display-2039-ee` | 464 (3840x2160, 24 fps, 19.3 s) | Tokheim **TFT** at Olerex Peetri, pump 3 diesel, **counting up** behind a cycling advert, from a blank field to about 22.1 - the fill of `pump-355`/`356` and `receipt-100`/`101` (22.23 / 10.90), the clip stops just before the end; IMG_6456.MOV whole, no audio, no metadata. Reference quads placed by the orchestrator on frame 450 (21,96 / 10,77), unreviewed | price `2.039` |
+
 ## Frames and tracking (2026-09-20)
 
 Two scripts in `ml/pump-reader` turn the records into labelled training frames without a

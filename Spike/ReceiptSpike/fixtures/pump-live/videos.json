@@ -15380,5 +15380,77 @@
   ],
   "reviewed": false,
   "note": "IMG_6435.MOV whole - black LCD at Alexela in the rain, running fill at 2,059 ending 100.81 / 48.96; the digits ghost in the wet cover glass; reference quads placed by the orchestrator on frame 1612 (after the count stopped), unreviewed"
+ },
+ "video-053-tokheim-olerex-peetri-tft-running-display-2039-ee": {
+  "reference": "450.jpg",
+  "currency": "EUR",
+  "unitPrice": "2.039",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.529,
+      0.398
+     ],
+     [
+      0.682,
+      0.339
+     ],
+     [
+      0.691,
+      0.401
+     ],
+     [
+      0.54,
+      0.459
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.54,
+      0.463
+     ],
+     [
+      0.691,
+      0.403
+     ],
+     [
+      0.7,
+      0.465
+     ],
+     [
+      0.5485,
+      0.531
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.3505,
+      0.574
+     ],
+     [
+      0.3985,
+      0.56
+     ],
+     [
+      0.4015,
+      0.6
+     ],
+     [
+      0.3535,
+      0.616
+     ]
+    ]
+   }
+  ],
+  "reviewed": false,
+  "note": "IMG_6456.MOV whole - Tokheim TFT at Olerex Peetri, pump 3 diesel, counting up at 2,039 behind a cycling advert; the fill of pump-355/356 and receipt-100/101 (22.23 / 10.90), the clip stops just before the end; reference quads placed by the orchestrator on frame 450 (21,96 / 10,77), unreviewed"
  }
 }

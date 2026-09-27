@@ -490,3 +490,23 @@ def test_a_video_imported_without_anchors_still_returns_the_ones_saved_later(tmp
     v = cdb.video("video-999")
     assert [a["frame"] for a in v.get("anchors", [])] == ["040.jpg"], v
     assert v["anchors"][0]["windows"][0]["quad"] == q
+
+
+def test_import_refuses_while_another_writer_holds_the_log(tmp_path):
+    """A second process with the database open in WAL mode keeps `<db>-wal`;
+    replacing the file under it corrupts the database (2026-09-27)."""
+    db = tmp_path / "corpus.sqlite"
+    sqlite3.connect(db).close()
+    assert cdb.open_elsewhere(db) is None
+    holder = sqlite3.connect(db)
+    holder.execute("pragma journal_mode=wal")
+    holder.execute("create table t (x)")
+    holder.execute("insert into t values (1)")
+    holder.commit()
+    try:
+        reason = cdb.open_elsewhere(db)
+        assert reason is not None and "annotator" in reason
+    finally:
+        holder.close()
+    assert cdb.open_elsewhere(db) is None
+

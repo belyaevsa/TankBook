@@ -1,8 +1,8 @@
 {
   "_note_2026_09_26": "Re-recorded on the measured runtime, the iOS 27 simulator (docs/TESTING.md -> runtime-specific; scripts/vision-suites.sh, one OCR at a time). Every earlier mark was a macOS 26 measurement. Recorded after RV.307 fixed the iOS 27 reads that committed a wrong value (receipt-025 printed fuel line, receipt-057 occluded price, receipt-062 unit legend, receipt-083 outvoted volume, two expense totals) and receipt-080/081's corpus rows were corrected (litres and price swapped). The pump class is scored on the heldout split only since PU.61 (186 cells, the composite with the row reader, no wall-clock cap). Two serial runs on this tree agreed exactly.",
   "receipts": {
-    "hits": 348,
-    "total": 468
+    "hits": 357,
+    "total": 483
   },
   "pump": {
     "hits": 120,
@@ -19,12 +19,12 @@
     "total": 45
   },
   "expenses": {
-    "hits": 50,
-    "total": 54
+    "hits": 52,
+    "total": 58
   },
   "stations": {
-    "hits": 44,
-    "total": 83
+    "hits": 45,
+    "total": 86
   },
   "_note_2026_09_19": "Two Circle K Sikupilli pairs, EXIF stripped (pump-115/116, receipt-074/075: 15.17 x 1.979 = 30.02 and 27.86 x 1.979 = 55.13, 98 miles+), with Live records and two 4K angle-and-flicker videos in pump-live/ (the tankbook-corpus bucket). Totals only: receipts +10, pump +6. The hit and commit marks are NOT re-measured - this machine is macOS 27 and the marks are macOS 26 measurements (docs/TESTING.md -> runtime-specific); the next macOS 26 run records what the parser reads on the four new documents. Until then the marks are a floor the new cells can only raise.",
   "_note_stations_2026_09_19": "RV.179: the receipts' station column scored as its own class - 59 asserted cells (the oracle is the fixture filename, cross-checked against the OCR text; the 14 blanks and their reasons are in receipts/stations.md), scored by whether the extractor's station line contains the paper's brand as normalised tokens (StationBrandMatcher.normalisedTokens). MEASURED ON macOS 27 (the only runtime on hand), the one mark in this file that is not a macOS 26 number: 29/59 before the matcher learned to read a Latin look-alike inside a Cyrillic word (`PН-Тверь`), 31/59 after. The 28 misses are real - the extractor offers a cashier line, an address, a card-terminal fragment or a fiscal label where the paper prints the chain on another line (receipt-007 `ЛУКОНЛ-СЕВЕРО-ЗАПАДНЕФТЕПРОДУКТ`, an OCR misspelling; receipt-003 `ОООКРЫМ ОИЛ`, the legal form glued on) - the class's first honest number, 53%, with a named miss list printed by stationMarkIncludesAMiss. The first run on macOS 26 re-records it: a higher count passes the ratchet and moves the mark, a lower one is a red to read as the runtime, exactly as docs/TESTING.md says of every other mark.",
@@ -52,5 +52,6 @@
   "_note_2026_09_24": "Batch 11 (product owner, 2026-09-24): three night stills of Circle K Gilbarco Veeder-Root heads (pump-329..331; 329/330 heldout2) and four Alexela stills (pump-332..335: three idle black LCDs, one CNG pump per kg with a dead-segment price LCD; 335 heldout2). 18 asserted cells, pump total 889 -> 907, totals only: measured on macOS 27, so hits 53 / committed 56 / committed-correct 53 stand until the measured runtime (macOS 26) runs.",
   "_note_2026_09_25": "The Capture lab's first run as a corpus pair, its high1080 preset (1080x1920): pump-336 (Circle K Sikupilli Gilbarco, 0030,02 / 0014,00 at 2,144, heldout2) and receipt-098 (the paper half, sideways, an informational EXTRA SOODUS line). Totals only: pump 907 -> 910, receipts 463 -> 468, stations 82 -> 83 (macOS 27; the marks' hits stand until macOS 26 runs).",
   "_note_2026_09_25b": "Batch 12: pump-337 (Tokheim at Terminal, a TFT screen - rendered digits, not segments), pump-338 (Dresser Wayne board head, Neste Vesse), pump-339/340 (Neste black-LCD board heads), pump-341 (Voltera yellow LCD, idle at 1.219). 12 asserted cells, pump 910 -> 922, totals only (macOS 27).",
-  "_note_2026_09_26c": "Batch 13 (product owner, 2026-09-26): pump-342 (the Capture lab's night run, high1080, Circle K Gilbarco 0110,97 / 0054,69 at 2,029, heldout2), pump-343 (Circle K Gilbarco at night, tilted, 120.38 / 59.77 at 2.014), pump-344/345 (Alexela black LCD in the rain, idle 0.00 with a 2.059 / 1.949 / 1.889 board). No mark moves: the pump class is scored on the heldout split only (PU.61), and these are train and heldout2."
+  "_note_2026_09_26c": "Batch 13 (product owner, 2026-09-26): pump-342 (the Capture lab's night run, high1080, Circle K Gilbarco 0110,97 / 0054,69 at 2,029, heldout2), pump-343 (Circle K Gilbarco at night, tilted, 120.38 / 59.77 at 2.014), pump-344/345 (Alexela black LCD in the rain, idle 0.00 with a 2.059 / 1.949 / 1.889 board). No mark moves: the pump class is scored on the heldout split only (PU.61), and these are train and heldout2.",
+  "_note_2026_09_27": "Batch 14 (product owner, 2026-09-27), measured on the iOS 27 simulator (scripts/vision-suites.sh): receipt-099 (Circle K Tammisaare, 95 miles 46.81 L at 1.884, EXTRA SOODUS line), receipt-100/101 (Olerex Peetri, diesel 10.90 L at 2.039, the same paper upright and sideways, the pair of pump-355/356), and the expense parking-loomaaia-tallinn-ee (3.00 EUR parking, dump written by VISION_REWRITE_DUMPS). Receipts 348/468 -> 357/483 (9 of the 15 new cells read; through compression 345 -> 354), stations 44/83 -> 45/86, expenses 50/54 -> 52/58; no old cell lost. Pump stills pump-346..356 are train and heldout2 and move no mark. The pump mark and PumpPhotoGate's composite constants are NOT re-recorded here: PU.100 (59764327, same day) moved the heldout composite 123/120 -> 147/136 by showing unclosed reads with a warning, and whether those count against the gate is the owner's call."
 }
