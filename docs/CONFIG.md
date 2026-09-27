@@ -197,6 +197,27 @@ screen ever waits on a response to decide what to draw. The three shapes:
    - **A `304` advances the window too.** "The server answered and nothing changed" is a *successful check*: `fetchedAt` is recorded (and persisted) exactly as on a `200`, so a string of unchanged configs does not quietly defeat the 6-hour window by never advancing it. The window spaces out *checks*, not just *changes*.
    - **Concurrent refreshes collapse to one fetch.** Two triggers for one logical foreground event - the launch `.task` and the launch `.active` transition, which the app now owns as a single automatic pass - used to fire two `GET /v1/config/` (two `499`s with matched durations in the production log). A refresh that starts while one is on the wire joins the in-flight fetch instead of opening a second request. This is a control-flow dedupe, never a throttle: a refresh that starts after the in-flight one finished still fetches (subject to the 6-hour window).
 - **Push nudge (optional accelerator):** the existing silent APNs channel (`NOTIFICATIONS.md`) gains a `config: true` hint so an urgent change – a kill switch during an incident – propagates in minutes rather than hours. Silent pushes need no user permission, but they are unreliable and only reach registered devices, so **the system must be correct with push disabled entirely**. Never make a nudge the only path.
+- **Publishing a document (PU.96).** An operator action on the production host, never an HTTP
+  route: the API binary's `--publish-config <file>` mode runs `ConfigPublishService` - JSON Schema,
+  version strictly above the highest published (rollback protection), sign with
+  `Config:SigningKey`, insert - prints the outcome and exits **0** published, **1** refused (the
+  refusal kind is printed: `SchemaValidationFailed`, `VersionNotMonotonic`, `InvalidDocument`,
+  `SigningKeyNotConfigured`), **2** no readable file. It runs after the startup secrets guard, so
+  a host still on the placeholder key refuses instead of signing. The live container already holds
+  the key and the database connection:
+
+  ```
+  docker ps --filter name=tankbook-api --format '{{.Names}}'     # the live colour, e.g. tankbook-api-blue
+  docker cp config-v2.json tankbook-api-blue:/tmp/config-v2.json
+  docker exec tankbook-api-blue dotnet Tankbook.Api.dll --publish-config /tmp/config-v2.json
+  ```
+
+  Start from the served document (`GET /v1/config`), raise `version`, set a fresh `issuedAt` and a
+  `notAfter`, change only the keys that should change (the override is per key), and publish.
+  Devices take it on their next config poll - the 6-hour foreground window above, or at once on a
+  user-initiated refresh. Rolling back a change is publishing a **newer** version with the old
+  values; a lower version is refused by design. `aPublishedDocumentTurnsTheBundledPumpPhotoOff`
+  (`ConfigStoreTests`) is the device half: a signed document turns the bundled pump-photo flag off.
 - **Never at launch-blocking time.** Config fetch is background and asynchronous; the UI never waits on it. A cold start with no cached config uses bundled defaults immediately.
 - **Launch counts as a foreground event**, so the update requirement is evaluated on every cold start - but it is evaluated **against the resolved snapshot the app already holds** (live, else cache, else bundled), not against the fetch in flight. The notice therefore appears instantly on a launch with a cached document and never at all on a first launch offline, and no screen has ever waited for a response to decide what to draw.
 

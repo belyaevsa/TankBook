@@ -536,6 +536,28 @@ private func cacheFileURL(directory: URL) -> URL {
             "a 100% rollout reads on exactly when the accuracy gate allows it")
 }
 
+/// The incident path PU.96 exists for: pump photo ships ON in the bundled
+/// default, and a signed remote document published with `--publish-config`
+/// turns it OFF on the next poll - no build.
+@Test func aPublishedDocumentTurnsTheBundledPumpPhotoOff() async throws {
+    let directory = tempDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    let onData = makeDocument(apiBaseURL: "https://api.tankbook.live",
+                              flags: "{\"pumpPhoto\":{\"enabled\":true,\"rolloutPercent\":100}}")
+    let onDoc = try ConfigDocument.parse(onData)
+    let bundled = AppConfig(document: onDoc, apiBaseURL: onDoc.apiBaseURL!)
+    let off = makeDocument(version: 7, apiBaseURL: "https://api.tankbook.live",
+                           flags: "{\"pumpPhoto\":{\"enabled\":false,\"rolloutPercent\":0}}")
+    let store = makeStore(bundled: bundled, directory: directory,
+                          fetcher: successFetcher(document: off, signature: sign(off)))
+    #expect(store.isEnabled(.pumpPhoto) == PumpPhotoGate.allowsPumpPhoto, "on from the bundle, under the gate")
+
+    await store.refresh()
+
+    #expect(store.isEnabled(.pumpPhoto) == false, "the published document turns it off")
+}
+
 // MARK: - 15. Key coverage
 
 @Test func everyRemoteConfigurableKeyMapsToAnAppConfigField() async {

@@ -440,6 +440,16 @@ if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("
     }
 }
 
+// `dotnet Tankbook.Api.dll --publish-config <file>`: sign and publish a config
+// document, then exit (docs/CONFIG.md -> Delivery). After the secrets guard, so
+// a host with the placeholder signing key refuses rather than signing with a
+// key anyone reading this repo can reproduce.
+if (Tankbook.Api.Config.ConfigPublishCommand.IsRequested(args, out var publishPath))
+{
+    return await Tankbook.Api.Config.ConfigPublishCommand.RunAsync(
+        app.Services, publishPath, Console.Out, Console.Error, CancellationToken.None);
+}
+
 // Trace correlation + the per-request line must wrap everything below so every
 // log line for this request carries the traceId (docs/LOGGING.md §2).
 app.UseMiddleware<TraceCorrelationMiddleware>();
@@ -653,8 +663,9 @@ outbox.MapDelete("/{id:guid}", OutboxEndpoints.Ack);
 
 app.Run();
 
-// Top-level statements return an int because the --migrate path above exits with
-// one; the normal serving path only reaches here after app.Run() returns.
+// Top-level statements return an int because the --migrate and --publish-config
+// paths above exit with one; the normal serving path only reaches here after
+// app.Run() returns.
 return 0;
 
 static string AssemblyVersion()
