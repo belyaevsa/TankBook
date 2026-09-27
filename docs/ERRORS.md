@@ -273,6 +273,7 @@ said here, above the fields - the entry that follows does not repeat it.
 | A pump pair whose shown price differs (PJ.500) | `warn`: the PJ.500 sentence naming both prices | Check total and litres · Continue |
 | The numbers on screen don't multiply up (F2) | `warn`: "These numbers don't multiply up – check them against the photo." - updates as the user types | Correct a field · Continue (never blocked - hard rule 13) |
 | A pump read whose arithmetic closed under no currency (PU.100) | The same `warn` line, said once, over the digits the reader read - pre-filled, never withheld | Check each field against the photo · Continue |
+| The same, with a number missing (PU.103) | `warn`: "Couldn't check these numbers – type the missing one from the photo." - two numbers cannot disagree, so the don't-multiply-up line would be false | Type the missing number · Continue |
 
 #### The capture review step (RV.5)
 
@@ -673,6 +674,7 @@ The sheet opens from the Experiments section of About, in builds that carry expe
 | No route to the server | "No connection – connect and send again." | connect, tap Send |
 | `429` | "Sent too often – try again in a minute." | wait, tap Send |
 | `413` | "Too large to send – turn off Recent scans and send again." | turn the toggle off, tap Send |
+| iOS ended the background time mid-upload (RV.313) | "The send stopped when the app left the screen – send again." | stay on the screen, tap Send |
 | Anything else | "Couldn't send – try again." | tap Send |
 
 Nothing is sent without the tap, and nothing is queued: a case the tester gave up on is simply not

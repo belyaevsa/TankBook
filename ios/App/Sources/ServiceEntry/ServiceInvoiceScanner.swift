@@ -110,6 +110,11 @@ enum ServiceInvoiceScanner {
         return linesByPage
     }
 
+    /// A page as it is stored and synced: the rendition, never the full capture.
+    static func storedPageData(_ image: UIImage) -> Data {
+        image.jpegData(compressionQuality: 1).flatMap { try? AttachmentRendition.storedPhoto(from: $0) } ?? Data()
+    }
+
     private static func persistPages(repository: TankbookRepository,
                                      images: [UIImage],
                                      linesByPage: [[OCRLine]],
@@ -119,7 +124,7 @@ enum ServiceInvoiceScanner {
         for (index, image) in images.enumerated() {
             let lines = linesByPage[index]
             let ocrText = lines.isEmpty ? nil : lines.map(\.text).joined(separator: "\n")
-            let jpeg = image.jpegData(compressionQuality: 0.8) ?? Data()
+            let jpeg = storedPageData(image)
             guard let attachment = try? store.addPage(
                 imageData: jpeg, ocrText: ocrText, extractedTimestamp: extractedTimestamp) else {
                 continue

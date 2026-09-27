@@ -44,6 +44,12 @@ struct CaptureVerifyNoticeTests {
                         crossCheck: .mismatch(field: .total)) == [.numbersDisagree])
     }
 
+    @Test("an unclosed pump read with a number missing says it could not check them, not that they disagree")
+    func unclosedPairSaysUnchecked() {
+        let pair = FuelExtraction(liters: 35.06, total: Decimal(string: "67.98"))
+        #expect(resolve(.pumpPhoto, extraction: pair, caution: .unclosed) == [.pumpUnchecked])
+    }
+
     @Test("a receipt read in full says nothing")
     func cleanReceipt() {
         #expect(resolve(extraction: FuelExtraction(liters: 42.3, unitPrice: 1.679, total: 71.02),

@@ -319,3 +319,29 @@ private func longEdge(of jpeg: Data) -> (width: Int, height: Int) {
     #expect(await unconstrained.ensureBlobCommitted(for: attachment) == .committed)
     #expect(orderLog.recorded.contains("put"))
 }
+
+/// SH.10: a stored photo is the rendition - long edge at most 2048, JPEG - and
+/// keeps its EXIF orientation, so a camera photo stored sideways-with-a-tag
+/// still displays upright.
+@Test func storedPhotoIsTheRenditionAndKeepsItsOrientation() throws {
+    let width = 4032, height = 3024
+    let context = try #require(CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+                                         space: CGColorSpaceCreateDeviceRGB(),
+                                         bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+    context.setFillColor(gray: 0.4, alpha: 1)
+    context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+    let image = try #require(context.makeImage())
+    let source = NSMutableData()
+    let destination = try #require(CGImageDestinationCreateWithData(source, "public.jpeg" as CFString, 1, nil))
+    CGImageDestinationAddImage(destination, image, [kCGImagePropertyOrientation: 6] as CFDictionary)
+    #expect(CGImageDestinationFinalize(destination))
+
+    let stored = try AttachmentRendition.storedPhoto(from: source as Data)
+
+    let decoded = try #require(CGImageSourceCreateWithData(stored as CFData, nil))
+    let properties = try #require(CGImageSourceCopyPropertiesAtIndex(decoded, 0, nil) as? [CFString: Any])
+    #expect(properties[kCGImagePropertyPixelWidth] as? Int == 2048)
+    #expect(properties[kCGImagePropertyPixelHeight] as? Int == 1536)
+    #expect(properties[kCGImagePropertyOrientation] as? Int == 6, "the orientation tag survives the rescale")
+    #expect(stored.count < (source as Data).count)
+}

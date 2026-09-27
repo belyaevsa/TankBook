@@ -270,6 +270,40 @@ extension FuelExtractor {
         return false
     }
 
+    /// Whether a labelled total nothing else checks is a single read that a
+    /// larger, repeated amount contradicts - a misread digit ("08,19 EUR" for a
+    /// grand total the receipt prints three times as 88,19) that would
+    /// otherwise reach the form silently, so the total abstains (hard rule 13).
+    func loneReadIsOutvoted(_ total: Double, labelReads: Int, in lines: [OCRLine]) -> Bool {
+        !isCorroboratedTotal(total, labelReads: labelReads, in: lines) && hasRepeatedLargerAmount(than: total, in: lines)
+    }
+
+    /// Whether the receipt prints some money value larger than `value` on two
+    /// or more standalone lines - the grand total's own repetitions (line
+    /// total, card slip) outvoting a lone read of it. VAT and its base are
+    /// always below the total, so they never count against it. Vision splits
+    /// some amounts at the decimal mark (`88, 19`); those count as the amount.
+    func hasRepeatedLargerAmount(than value: Double, in lines: [OCRLine]) -> Bool {
+        let fuelText = OperandPair.fuelOperandIndex(in: lines).map { lines[$0].text }
+        let tolerance = max(0.02, value * 0.005)
+        var counts: [(value: Double, count: Int)] = []
+        for line in ReceiptNoiseFilter.candidateLines(lines) where line.text != fuelText {
+            let text = line.text.replacingOccurrences(of: #"(\d)([,.]) (\d{2})\b"#, with: "$1$2$3",
+                                                      options: .regularExpression)
+            guard NumberScanner.isValueLine(text),
+                  !NumberScanner.isSubtractionLine(text),
+                  !NumberScanner.isNegativeAmount(text),
+                  let candidate = NumberScanner.value(in: text),
+                  candidate > value + tolerance else { continue }
+            if let index = counts.firstIndex(where: { abs($0.value - candidate) <= tolerance }) {
+                counts[index].count += 1
+            } else {
+                counts.append((candidate, 1))
+            }
+        }
+        return counts.contains { $0.count >= 2 }
+    }
+
     func pairedValue(forLabelAt index: Int, in lines: [OCRLine]) -> Double? {
         let label = lines[index]
         // Same-baseline value to the right (the reading-order fix: Vision emits

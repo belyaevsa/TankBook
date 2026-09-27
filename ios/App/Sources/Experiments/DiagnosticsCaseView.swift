@@ -183,6 +183,7 @@ struct DiagnosticsCaseView: View {
         case .offline: "No connection – connect and send again."
         case .rateLimited: "Sent too often – try again in a minute."
         case .tooLarge: "Too large to send – turn off Recent scans and send again."
+        case .interrupted: "The send stopped when the app left the screen – send again."
         case .failed: "Couldn't send – try again."
         }
     }

@@ -98,6 +98,9 @@ public enum DebugCaseError: Error, Sendable, Equatable {
     case rateLimited
     /// `413`: the case is too large; send it without the scans.
     case tooLarge
+    /// iOS ended the app's background time before the upload finished: send
+    /// again with the app open.
+    case interrupted
     /// Anything else, including a response that was not the expected JSON.
     case failed(status: Int?)
 }

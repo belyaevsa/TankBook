@@ -31,7 +31,8 @@ enum ReceiptAttachmentWriter {
     static func write(id: AttachmentID, image: UIImage, ocrLines: [OCRLine],
                       extraction: FuelExtraction,
                       pipeline: String = ScannedSavePlanner.onDevicePipeline) throws -> Attachment {
-        guard let jpeg = image.jpegData(compressionQuality: 0.8) else {
+        guard let full = image.jpegData(compressionQuality: 1),
+              let jpeg = try? AttachmentRendition.storedPhoto(from: full) else {
             throw ReceiptAttachmentError.notEncodable
         }
         let (sha256, relativePath) = try VehiclePhotoStore.save(jpeg, id: id)

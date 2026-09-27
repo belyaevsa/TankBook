@@ -243,6 +243,23 @@
         }
       }
     },
+    "The send stopped when the app left the screen – send again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The send stopped when the app left the screen – send again."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отправка прервалась, когда приложение ушло с экрана – отправьте снова."
+          }
+        }
+      }
+    },
     "No connection – connect and send again.": {
       "extractionState": "manual",
       "localizations": {
@@ -547,6 +564,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Чтение"
+          }
+        }
+      }
+    },
+    "Couldn't check these numbers – type the missing one from the photo." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't check these numbers – type the missing one from the photo."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось проверить числа – введите недостающее с фото."
           }
         }
       }

@@ -16,6 +16,9 @@ public enum CaptureVerifyNotice: Equatable, Sendable {
     case pumpPriceDiffers(shown: Decimal, implied: Decimal)
     /// The three numbers on the screen do not multiply up.
     case numbersDisagree
+    /// A pump read the arithmetic checked nothing on, with a field missing:
+    /// the numbers shown could not be checked, and the empty one is to type.
+    case pumpUnchecked
 
     /// The notices for one verify screen, most important first. Nothing is
     /// said while recognition is still running (`reading`), and a pump alpha
@@ -36,10 +39,13 @@ public enum CaptureVerifyNotice: Equatable, Sendable {
         if case .shownPriceDiffers(let shown, let implied)? = pumpCaution {
             out.append(.pumpPriceDiffers(shown: shown, implied: implied))
         }
-        // An unclosed pump read is the same warning as a form whose numbers do
-        // not multiply up, said once.
-        if case .mismatch? = crossCheck { out.append(.numbersDisagree) } else if pumpCaution == .unclosed {
+        // An unclosed pump read with all three numbers is the same warning as a
+        // form whose numbers do not multiply up, said once. With a number
+        // missing there is nothing to disagree with, only nothing checked.
+        if case .mismatch? = crossCheck {
             out.append(.numbersDisagree)
+        } else if pumpCaution == .unclosed {
+            out.append(extraction?.readsAllThree == true ? .numbersDisagree : .pumpUnchecked)
         }
         return out
     }

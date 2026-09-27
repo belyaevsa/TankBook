@@ -1782,6 +1782,10 @@ PU100_PUMP="${PWD}/Spike/ReceiptSpike/fixtures/pump/pump-342-gilbarco-circlek-11
 capture PU.100-capture-verify-unclosed    en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureFixtureImage "${PU100_PUMP}" -captureAutoReview -seedFillUpScanPumpUnclosed
 capture PU.100-capture-verify-unclosed-ru ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureFixtureImage "${PU100_PUMP}" -captureAutoReview -seedFillUpScanPumpUnclosed
 
+# PU.103: an unclosed read with no total - the couldn't-check line, not "don't multiply up".
+capture PU.103-capture-verify-unchecked    en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureFixtureImage "${PU100_PUMP}" -captureAutoReview -seedFillUpScanPumpUncheckedPair
+capture PU.103-capture-verify-unchecked-ru ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureFixtureImage "${PU100_PUMP}" -captureAutoReview -seedFillUpScanPumpUncheckedPair
+
 # AD.2: About -> Experiments -> Send diagnostics: what goes (the log's size, the recent
 # scans), and after the send the id to pass on. The send is stubbed; RU is the wrap check
 # for the explainer and the failure lines.
@@ -1793,6 +1797,9 @@ capture AD.14-send-diagnostics-sending-ru ru -presentScreen about -presentSendDi
 CAPTURE_SLEEP=6
 capture AD.2-send-diagnostics-sent    en -presentScreen about -presentSendDiagnostics -diagnosticsCaseStub sent -diagnosticsCaseAutoSend
 capture AD.2-send-diagnostics-sent-ru ru -presentScreen about -presentSendDiagnostics -diagnosticsCaseStub sent -diagnosticsCaseAutoSend
+# RV.313: iOS ended the background time mid-upload - the send says so and stays ready to send again.
+capture RV.313-send-diagnostics-interrupted    en -presentScreen about -presentSendDiagnostics -diagnosticsCaseStub interrupted -diagnosticsCaseAutoSend
+capture RV.313-send-diagnostics-interrupted-ru ru -presentScreen about -presentSendDiagnostics -diagnosticsCaseStub interrupted -diagnosticsCaseAutoSend
 
 # Merge this run's frames into the manifest. `frames` is the script's record;
 # `legacy` (frames no line can reproduce) is hand-maintained and preserved.

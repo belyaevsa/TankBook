@@ -121,6 +121,9 @@ struct CaptureVerifyView: View {
         case .numbersDisagree:
             warn(Text("These numbers don't multiply up – check them against the photo."),
                  identifier: "captureVerifyDisagree")
+        case .pumpUnchecked:
+            warn(Text("Couldn't check these numbers – type the missing one from the photo."),
+                 identifier: "captureVerifyUnchecked")
         }
     }
 

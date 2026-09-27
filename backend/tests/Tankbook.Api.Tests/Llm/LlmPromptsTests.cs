@@ -69,4 +69,30 @@ public class LlmPromptsTests
         Assert.Contains("unitPrice", prompt, StringComparison.Ordinal);
         Assert.Contains("fuelKind", prompt, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// RV.289: a pump display is its own document. The prompt names the three
+    /// numbers and where they sit, the leading-zero padding and the comma
+    /// decimal, keeps grade price boards out of the price, and forbids deriving
+    /// a number; a display prints no date, station or vendor, so none is asked for.
+    /// </summary>
+    [Fact]
+    public void PumpPromptNamesTheDisplayLayoutAndAsksForNoReceiptFields()
+    {
+        var prompt = LlmPrompts.SystemPrompt("pump", new ExtractHints("EUR", "et", null));
+
+        Assert.Contains("Allowed field names: total, volume, unitPrice, currency.", prompt, StringComparison.Ordinal);
+        Assert.Contains("leading zeros are padding (0032,64 is 32.64)", prompt, StringComparison.Ordinal);
+        Assert.Contains("usually the top and largest row", prompt, StringComparison.Ordinal);
+        Assert.Contains("price boards, not the transaction", prompt, StringComparison.Ordinal);
+        Assert.Contains("never compute one from the other two", prompt, StringComparison.Ordinal);
+        foreach (var receiptField in new[] { "date", "station", "vendor", "fuelKind" })
+        {
+            Assert.DoesNotContain(receiptField, prompt, StringComparison.Ordinal);
+        }
+
+        // The receipt prompt is untouched by the pump instruction.
+        Assert.DoesNotContain("seven-segment", LlmPrompts.SystemPrompt("receipt", new ExtractHints(null, null, null)),
+            StringComparison.Ordinal);
+    }
 }

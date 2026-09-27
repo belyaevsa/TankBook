@@ -225,6 +225,12 @@ targets:
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Tankbook.app/Tankbook"
         BUNDLE_LOADER: "$(TEST_HOST)"
         GENERATE_INFOPLIST_FILE: YES
+      configs:
+        # The tests run against the Debug app, which compiles its experiments;
+        # without the same condition a test of an experiment compiles to nothing
+        # and the bundle reports it as never having existed.
+        debug:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) EXPERIMENTS"
 
 schemes:
   Tankbook:

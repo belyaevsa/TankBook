@@ -81,6 +81,10 @@ public struct FuelExtraction: Sendable, Equatable, Codable {
             fromExtraction: liters, fractionDigits: ConfirmFormat.fractionDigits(for: .volume)) ?? 0
         return volume * unitPrice
     }
+
+    /// Whether litres, unit price and total are all present - the three the
+    /// arithmetic can check against each other.
+    public var readsAllThree: Bool { liters != nil && unitPrice != nil && total != nil }
 }
 
 /// The input class the extractor is pointed at. Fuel kind is read only from

@@ -250,7 +250,8 @@ func writeReceiptPhoto(id: AttachmentID,
                        extraction: ExtractionMeta?,
                        repository: TankbookRepository) throws {
     guard let source, let sourceImage = source.sourceImage else { return }
-    guard let jpeg = sourceImage.jpegData(compressionQuality: 0.8) else {
+    guard let full = sourceImage.jpegData(compressionQuality: 1),
+          let jpeg = try? AttachmentRendition.storedPhoto(from: full) else {
         throw ReceiptAttachmentError.notEncodable
     }
     let (sha256, relativePath) = try VehiclePhotoStore.save(jpeg, id: id)

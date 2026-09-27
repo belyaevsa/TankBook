@@ -407,6 +407,7 @@ public struct FuelExtractor: Sendable {
                abs(product - total) > max(0.02, total * 0.005) {
                 return totalDecimal(product)
             }
+            if loneReadIsOutvoted(total, labelReads: read.labelReads, in: lines) { return nil }
             return totalDecimal(total)
         }
         let tolerance = max(0.02, total * 0.005)

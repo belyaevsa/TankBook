@@ -45,6 +45,7 @@ internal static class LlmPrompts
                "{ \"fields\": [ { \"name\": string, \"value\": number|string, \"confidence\": 0..1 } ] }. " +
                $"Allowed field names: {AllowedFields(kind, lineItems)}. " +
                (lineItems ? LineItemInstruction : string.Empty) +
+               (kind == "pump" ? PumpInstruction : string.Empty) +
                "A field you cannot read is omitted, never guessed. Request context: " + hintsJson;
     }
 
@@ -55,6 +56,22 @@ internal static class LlmPrompts
         => pageCount > 1
             ? $"Extract the fields from these {pageCount} pages of {Document(kind)}, read in order, as the JSON object described."
             : $"Extract the fields from this image of {Document(kind)} as the JSON object described.";
+
+    /// <summary>
+    /// A dispenser's display is not a receipt: three numbers on seven-segment
+    /// cells, padded with leading zeros, the amount usually above the volume,
+    /// the unit price on its own small display, and grade price boards beside
+    /// them that are not the transaction. Without it the model reads the
+    /// litres row as the amount and drops the leading-zero digits.
+    /// </summary>
+    private const string PumpInstruction =
+        "The display shows the transaction as up to three numbers: total (the amount paid, usually the top and " +
+        "largest row, marked with the currency sign or SUMMA, СУММА), volume (the litres, usually the row below it, " +
+        "marked L, LIITRIT, ЛИТРЫ) and unitPrice (the price per litre on its own smaller display, marked €/L, HIND, " +
+        "ЦЕНА). Digits are seven-segment: leading zeros are padding (0032,64 is 32.64) and a comma or a lit dot is " +
+        "the decimal mark. Small displays listing the prices of several fuel grades are price boards, not the " +
+        "transaction: take unitPrice from them only when the pump marks one as its own price. Read each number " +
+        "digit by digit and never compute one from the other two. ";
 
     private const string LineItemInstruction =
         "Each billed line is one item: lineItem[n].title (the printed text), lineItem[n].amount (that line's total), " +
@@ -111,6 +128,7 @@ internal static class LlmPrompts
             "vendor, total, date, currency, lineItem[n].title, lineItem[n].category, lineItem[n].amount",
         "invoice" => "vendor, total, date, currency",
         "expense" => "total, date, currency, vendor, category",
+        "pump" => "total, volume, unitPrice, currency",
         _ => "total, volume, unitPrice, date, station, fuelKind, energy, currency, vendor",
     };
 }

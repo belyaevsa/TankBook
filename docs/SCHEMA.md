@@ -1275,4 +1275,4 @@ Everything else is decided:
 
 1. **Persistence layer** – decided (Aug 23, 2026): **GRDB**. Full SQL and explicit migrations for the sync client's `syncState`/SCN bookkeeping and the segment-recompute queries; GRDB's observation drives SwiftUI. SwiftData rejected: CloudKit-oriented sync hooks (we run our own engine), young, weaker background-access control.
 2. ~~Blob placement~~ – decided: S3-compatible object storage with presigned URLs (`SYNC.md`, blob pipeline).
-3. ~~Attachment sync size policy~~ – decided: sync rendition ≤ 2048 px JPEG (~200–600 KB) + inline ~5 KB thumbnail in the record payload; full-res original stays on the capturing device. PDFs pass through, 10 MB cap (`SYNC.md`).
+3. ~~Attachment sync size policy~~ – decided: sync rendition ≤ 2048 px JPEG (~200–600 KB) + inline ~5 KB thumbnail in the record payload; the device stores that same rendition, not the full-res original (SH.10, 2026-09-27; attachments stored before then keep their full-size file). PDFs pass through, 10 MB cap (`SYNC.md`).

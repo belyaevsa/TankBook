@@ -106,6 +106,16 @@ final class CaptureVerifyUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["captureVerifyNothingRead"].exists, "numbers were read, so no admission")
     }
 
+    /// An unclosed read with no total has nothing to disagree with: the line
+    /// says the numbers could not be checked and names the empty one to type.
+    func testAnUnclosedReadMissingAFieldSaysItCouldNotCheck() {
+        let app = shoot("-seedFillUpScanPumpUncheckedPair")
+        XCTAssertTrue(app.descendants(matching: .any)["captureVerifyUnchecked"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.descendants(matching: .any)["captureVerifyDisagree"].exists,
+                       "two numbers cannot fail to multiply up")
+        waitForValue(app, "captureVerifyVolumeField", "54.69")
+    }
+
     private func labelled(_ app: XCUIApplication, _ fragment: String) -> XCUIElement {
         app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", fragment)).firstMatch
     }

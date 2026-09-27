@@ -616,6 +616,13 @@ line items are the device's deterministic split (JOURNEYS J7), and `expense` ask
 `total, date, currency, vendor, category` and never a fuel field. The server still reads no meaning –
 it forwards a field NAME list (hard rule 9).
 
+**Breaking-change review (RV.289, 2026-09-27): compatible.** `pump` gets its own prompt: it names the
+display's three numbers and where they sit, the leading-zero padding and the comma decimal, keeps
+grade price boards out of the unit price, and asks for `total, volume, unitPrice, currency` only - a
+dispenser prints no date, station or vendor. The request and response shapes are unchanged. Every
+field was already optional ("a field you cannot read is omitted"), so a client that sends `pump`,
+checked against build 1368, gets fewer optional members and never a new one.
+
 **Multi-page invoices (PJ.301, shipped 2026-09-18; decided 2026-09-15, product owner).** `kind:
 "invoice"` accepts `images: [<base64 ≤ 4 MB each>...]` as an alternative to `image` - **all pages
 of one invoice in one call**, because line items span pages and the total sits on the last.

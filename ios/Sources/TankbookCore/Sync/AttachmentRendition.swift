@@ -41,6 +41,16 @@ public enum AttachmentRendition {
         }
     }
 
+    /// The bytes a captured photo is stored as - and, because the blob source
+    /// uploads the stored file as it is, the bytes that sync: the rendition, a
+    /// JPEG with its long edge at most `maxLongEdge` at `renditionQuality`.
+    /// Measured to read as well as the full-size capture on the receipt corpus
+    /// and the heldout pumps (`StoredRenditionAccuracyTests`). Pass the photo at
+    /// full quality: this is the one lossy step.
+    public static func storedPhoto(from data: Data) throws -> Data {
+        try jpeg(data: data, longEdge: maxLongEdge, quality: renditionQuality).data
+    }
+
     /// A base64 JPEG thumbnail (~`thumbnailLongEdge` px), or nil for a PDF
     /// (rendered as a glyph, not a photo chip).
     public static func thumbnailBase64(for data: Data, kind: AttachmentKind) throws -> String? {
@@ -53,6 +63,9 @@ public enum AttachmentRendition {
 
     /// Decodes `data`, scales so the long edge is at most `longEdge` (never
     /// upscaling an image already under it), and re-encodes as JPEG at `quality`.
+    /// The source's EXIF orientation is carried to the output: the pixels are
+    /// scaled as stored, so without the tag a camera photo (stored sideways
+    /// with orientation 6) would come out sideways.
     static func jpeg(data: Data, longEdge: Int, quality: Double) throws -> (data: Data, contentType: String) {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
               let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
@@ -83,7 +96,11 @@ public enum AttachmentRendition {
         guard let destination = CGImageDestinationCreateWithData(output, "public.jpeg" as CFString, 1, nil) else {
             throw Error.unreadableImage
         }
-        let options: [CFString: Any] = [kCGImageDestinationLossyCompressionQuality: quality]
+        var options: [CFString: Any] = [kCGImageDestinationLossyCompressionQuality: quality]
+        let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+        if let orientation = properties?[kCGImagePropertyOrientation] {
+            options[kCGImagePropertyOrientation] = orientation
+        }
         CGImageDestinationAddImage(destination, scaled, options as CFDictionary)
         guard CGImageDestinationFinalize(destination) else { throw Error.unreadableImage }
         return (output as Data, "image/jpeg")

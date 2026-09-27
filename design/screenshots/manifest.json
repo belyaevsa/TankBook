@@ -1586,12 +1586,22 @@
       "runtime": "iOS.26.5"
     },
     "PU.100-capture-verify-unclosed": {
-      "commit": "24bad522",
+      "commit": "4d24a142",
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },
     "PU.100-capture-verify-unclosed-ru": {
-      "commit": "24bad522",
+      "commit": "4d24a142",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PU.103-capture-verify-unchecked": {
+      "commit": "4d24a142",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PU.103-capture-verify-unchecked-ru": {
+      "commit": "4d24a142",
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },
@@ -2842,6 +2852,16 @@
     },
     "RV.298-expense-reminder-doors-ru": {
       "commit": "d2deafb2",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.313-send-diagnostics-interrupted": {
+      "commit": "4d24a142",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.313-send-diagnostics-interrupted-ru": {
+      "commit": "4d24a142",
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },

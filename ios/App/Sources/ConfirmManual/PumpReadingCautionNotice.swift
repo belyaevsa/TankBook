@@ -7,6 +7,9 @@ import TankbookCore
 /// is attention, and the words carry the meaning (hard rule 5).
 struct PumpReadingCautionNotice: View {
     let caution: PumpReadingCaution?
+    /// Whether all three numbers are filled: an unclosed read with one missing
+    /// has nothing to disagree with, only nothing checked.
+    var complete = true
 
     var body: some View {
         if let message {
@@ -32,7 +35,9 @@ struct PumpReadingCautionNotice: View {
         case .shownPriceDiffers(let shown, let implied):
             return L10n.pumpShownPriceDiffersMessage(shown: Self.price(shown), implied: Self.price(implied))
         case .unclosed:
-            return String(localized: "These numbers don't multiply up – check them against the photo.")
+            return complete
+                ? String(localized: "These numbers don't multiply up – check them against the photo.")
+                : String(localized: "Couldn't check these numbers – type the missing one from the photo.")
         case nil:
             return nil
         }
