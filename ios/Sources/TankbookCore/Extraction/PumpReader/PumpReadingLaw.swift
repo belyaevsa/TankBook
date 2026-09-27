@@ -50,66 +50,6 @@ public enum PumpReadingLaw {
     /// a missed mark never blocks the arithmetic.
     static let decimalMarkPenalty = 4.0
 
-    /// The bundled price bands, for the currencies the capture was not given
-    /// a band for.
-    static let bundledBands: FuelPriceBandPack? = try? FuelPriceBandStore.bundledPack()
-
-    /// The reading the app shows (docs/EXTRACTION.md -> "Currency supports the
-    /// read and never blocks it"): the law under `currency` first; when that
-    /// commits nothing, under every other measured currency, taking the
-    /// values most of the closing currencies agree on (a tie goes to
-    /// `PumpDisplayConventions.measuredCurrencies` order); when nothing closes
-    /// anywhere, `currency`'s abstention carrying the top read as
-    /// `unclosed`, under the `.unclosed` caution.
-    public static func resolveAcrossCurrencies(
-        windows: [PumpLocatedWindow],
-        currency: CurrencyCode?,
-        priceBand: FuelPriceBand? = nil
-    ) -> PumpDisplayReading {
-        let own = resolve(windows: windows, currency: currency, priceBand: priceBand)
-        if own.committedCount > 0 { return own.closed(under: currency) }
-        var groups: [(key: String, readings: [PumpDisplayReading])] = []
-        for other in PumpDisplayConventions.measuredCurrencies where other != currency {
-            let reading = resolve(windows: windows, currency: other,
-                                  priceBand: bundledBands?.currencyBand(currency: other))
-            guard reading.committedCount > 0 else { continue }
-            let key = [reading.liters, reading.unitPrice, reading.total]
-                .map { $0.value.map { "\($0)" } ?? "-" }.joined(separator: "|")
-            let closed = reading.closed(under: other)
-            if let index = groups.firstIndex(where: { $0.key == key }) {
-                groups[index].readings.append(closed)
-            } else {
-                groups.append((key, [closed]))
-            }
-        }
-        // `max(by:)` returns the last of equal maxima; the first group formed wins a tie.
-        if let best = groups.reversed().max(by: { $0.readings.count < $1.readings.count }) {
-            return best.readings[0]
-        }
-        guard own.reason != .litersAllZero, let top = topRead(windows, currency: currency) else { return own }
-        return PumpDisplayReading(liters: own.liters, unitPrice: own.unitPrice, total: own.total,
-                                  reason: own.reason, caution: .unclosed, unclosed: top)
-    }
-
-    /// Each transaction window's top digits at its most likely decimal
-    /// placement: the cell the classifier marked, else the currency's first
-    /// convention (the euro row for a currency with none). Nil when no
-    /// transaction window has a readable row.
-    static func topRead(_ windows: [PumpLocatedWindow], currency: CurrencyCode?) -> PumpUnclosedRead? {
-        var conventions = PumpDisplayConventions.forCurrency(currency)
-        if !conventions.isMeasured { conventions = .forCurrency(CurrencyCode(rawValue: "EUR")) }
-        func value(_ field: PumpField) -> Decimal? {
-            guard let window = windows.first(where: { $0.field == field }),
-                  !window.cells.isEmpty, window.cells.count <= maxCells else { return nil }
-            let integer = window.cells.reduce(0) { $0 * 10 + $1.top.digit }
-            let decimals = window.cells.firstIndex(where: \.decimalPoint).map { window.cells.count - 1 - $0 }
-                ?? conventions.decimals(field, cells: window.cells.count).first ?? 0
-            return Decimal(integer) / pow(Decimal(10), decimals)
-        }
-        let read = PumpUnclosedRead(liters: value(.liters), unitPrice: value(.unitPrice), total: value(.total))
-        return read.liters == nil && read.unitPrice == nil && read.total == nil ? nil : read
-    }
-
     public static func resolve(
         windows: [PumpLocatedWindow],
         currency: CurrencyCode?,

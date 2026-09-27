@@ -81,13 +81,33 @@ the device and the simulator disagree, which is a finding in itself:
 ```
 (cd ios && swift build --product pump-read)
 echo '{"currency":"<trace .currency>"}' | ios/.build/debug/pump-read ~/.cache/tankbook/cases/<id>/scan-N-photo.jpg \
-  | jq -c '{appCommitted, abstainReason, rowTexts}'
+  | jq -c '{appCommitted, appUnclosed, abstainReason, rowTexts}'
 ```
 
+Read `appUnclosed` beside `appCommitted`. `appCommitted` is what the form gets, and since PU.100
+that includes an unclosed top read, which reaches the form under a warning without being
+committed. To replay the phone's own windows through the reader and the law instead of the
+detector, pass them in the request:
+`jq -c '{currency:"RUB", windows:[.attempts[0].reads[]|{field,quad}]}' scan-N-trace.json | ios/.build/debug/pump-read <photo>`.
 Run it from the repo root, because the default model paths are relative (`ios/App/Resources/*.mlpackage`).
 Pass the trace's currency to reproduce the phone. Pass the display's currency to see whether the
 currency was the only thing wrong. If the phone's `build` differs from `HEAD`, say so. The
 fix may already be in.
+
+## 4b. Receipt scans
+
+A receipt scan has no trace. Its record carries the phone's OCR lines, so replay those lines
+through the parser on this tree:
+
+```
+cd ios && CASE_DIR=~/.cache/tankbook/cases/<id> swift test --filter CaseReceiptReplay
+```
+
+A case often holds several shots of one receipt taken seconds apart, and the shots that disagree
+are the finding. Read which line Vision misread in the shot that went wrong (`ocrLines`,
+confidence 1.0 does not mean right), then check whether the cross-check could have caught it. A
+wrong field under `crossCheck notApplicable` reaches the form silently. That is F2, the worst
+kind (case 6JFJ1-4JRYX, RV.311).
 
 ## 5. Report and file
 

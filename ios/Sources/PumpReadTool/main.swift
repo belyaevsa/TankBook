@@ -259,10 +259,13 @@ if let windows = request.windows, !windows.isEmpty {
         }.joined()
         return ["field": read.field.rawValue, "cells": cells, "text": text, "sliced": cellQuads[read.field.rawValue] ?? []]
     }
-    let law = PumpReadingLaw.resolve(windows: reads.map { PumpLocatedWindow(field: $0.field, cells: $0.cells) },
-                                     currency: currency, priceBand: priceBand)
+    let law = PumpReadingLaw.resolveAcrossCurrencies(
+        windows: reads.map { PumpLocatedWindow(field: $0.field, cells: $0.cells) },
+        currency: currency, priceBand: priceBand)
     reply["committed"] = committed(law)
     reply["abstainReason"] = law.reason?.rawValue ?? NSNull()
+    reply["closedUnder"] = law.closedUnder?.rawValue ?? NSNull()
+    reply["unclosed"] = law.unclosed != nil
 } else {
     // Stage timings ride along so the annotator (and a latency question) can
     // see where the live path spends its time.
@@ -336,8 +339,9 @@ if let windows = request.windows, !windows.isEmpty {
     let readsTimed = try? timed("read") { try reader.read(image: upright, windows: assigned) }
     if let readsTimed {
         _ = timed("law") {
-            PumpReadingLaw.resolve(windows: readsTimed.map { PumpLocatedWindow(field: $0.field, cells: $0.cells) },
-                                   currency: currency, priceBand: priceBand)
+            PumpReadingLaw.resolveAcrossCurrencies(
+                windows: readsTimed.map { PumpLocatedWindow(field: $0.field, cells: $0.cells) },
+                currency: currency, priceBand: priceBand)
         }
         reply["cellsPerRow"] = readsTimed.map { $0.cells.count }
     }
@@ -363,7 +367,10 @@ if let windows = request.windows, !windows.isEmpty {
         if let total = appFields?.total { appCommitted["total"] = "\(total)" }
         if let liters = appFields?.liters { appCommitted["liters"] = "\(liters)" }
         if let price = appFields?.unitPrice { appCommitted["unitPrice"] = "\(price)" }
+        // The extraction carries an unclosed top read too; `appUnclosed` says
+        // these fields reach the form under the warning, not committed.
         reply["appCommitted"] = appCommitted
+        reply["appUnclosed"] = app.reading?.law.unclosed != nil
         // Whether the app would take this frame down the pump path at all: a
         // reading, even an empty one, routes the capture as a pump photo.
         reply["appRoutedAsPump"] = app.reading != nil

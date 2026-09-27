@@ -68,6 +68,7 @@ enum CapturePipeline {
         var pumpReading: PumpDisplayCapture.Reading?
         var pumpDetection: PumpDisplayCapture.Detection?
         var pumpTrace: Data?
+        var rulesExtraction = FuelExtraction()
         // Both halves are load-bearing: RV.49's orientation (an in-app photo
         // reaches Vision sideways without it) and RV.48's band provider (the
         // resolution ladder's steps 3 and 4 are dead without it).
@@ -102,6 +103,7 @@ enum CapturePipeline {
                 }
             }
             (assembly, lines) = await recognize(box: box, source: resolvedSource, bandProvider: bandProvider)
+            rulesExtraction = assembly.extraction
             if let pumpReading {
                 // The reader's fields over the rules arm's (`composed`), and the
                 // crops point at the display windows.
@@ -122,7 +124,8 @@ enum CapturePipeline {
             pipelineDurationMs: Int(Date().timeIntervalSince(startedAt) * 1000))
         if resolvedSource == .pump {
             prefill.provenance = .pumpPhoto
-            prefill.pumpCaution = pumpReading?.law.caution
+            prefill.pumpCaution = Self.formCaution(pumpReading?.law.caution, rules: rulesExtraction,
+                                                   form: assembly.extraction)
             prefill.displayRotationCW = pumpReading?.rotationCW ?? 0
             prefill.pumpAlpha = PumpPhotoCapture.outcome(
                 pumpPhotoEnabled: pumpPhotoEnabled, extraction: assembly.extraction).alpha
@@ -134,15 +137,34 @@ enum CapturePipeline {
         return prefill
     }
 
-    /// The pump reader's fields - committed, or the unclosed top read - win over
-    /// the rules arm's; a field the
+    /// The caution the form shows. An unclosed read warns only when one of its
+    /// unchecked numbers reached the form; when the rules arm filled every
+    /// field it did not leave empty, there is nothing unchecked to warn about.
+    static func formCaution(_ caution: PumpReadingCaution?, rules: FuelExtraction,
+                            form: FuelExtraction) -> PumpReadingCaution? {
+        guard caution == .unclosed else { return caution }
+        let fromReader = (rules.liters == nil && form.liters != nil)
+            || (rules.unitPrice == nil && form.unitPrice != nil)
+            || (rules.total == nil && form.total != nil)
+        return fromReader ? .unclosed : nil
+    }
+
+    /// The pump reader's committed fields win over the rules arm's; a field the
     /// reader abstained on falls through to what the rules read
     /// (docs/EXTRACTION.md -> "The rules arm behind the reader stays") - except
     /// a cautioned pair's price, which is left for the user: the rules arm
-    /// could supply the very board price the law refused to take as paid.
+    /// could supply the very board price the law refused to take as paid. An
+    /// unclosed top read is checked by nothing, so the rules arm's fields win
+    /// over it and it fills only what the rules arm left empty.
     static func composed(rules: FuelExtraction, reader: FuelExtraction,
                          caution: PumpReadingCaution?) -> FuelExtraction {
         var out = rules
+        if caution == .unclosed {
+            out.liters = rules.liters ?? reader.liters
+            out.unitPrice = rules.unitPrice ?? reader.unitPrice
+            out.total = rules.total ?? reader.total
+            return out
+        }
         out.liters = reader.liters ?? rules.liters
         if case .shownPriceDiffers? = caution {
             out.unitPrice = reader.unitPrice

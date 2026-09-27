@@ -1380,9 +1380,18 @@ display-printed currency is not a signal yet (PU.101), because the pump reader r
 rules arm's OCR, which is where that marker is read.
 Measured 2026-09-27: on the heldout live path the committed count is unchanged, pinned by
 `PumpReaderPipelineTests.livePath` on the iOS 27 simulator (120 committed, 119 right on the Mac).
-**29 fields that were empty now reach the form warned, and 18 of them are right.** Those 29 are the
+**26 fields that were empty now reach the form warned, and 18 of them are right.** Those 26 are the
 price of never hiding a read. They arrive under the warning, never as a silent fact, and the
 line is printed as `warned` by the live report.
+**Two guards, from case 02412-PM1N2's TFT shot.** There the seven-segment reader guessed at a
+screen's artwork (30909 L, cells under 1 nat), and that guess would have overridden the rules
+arm's correct 35.00 / 72.80 / 2.080:
+1. An unclosed field is handed over only when every cell has at least `unclosedMinMargin` (2
+   nats) and the value is one a fill can show (litres 0.5-500, a total of at least 1). This took
+   the warned count from 29 to 26, dropping 3 wrong fields and no right one.
+2. The rules arm's fields win over an unclosed read, and the warning shows only when one of the
+   reader's unchecked numbers actually reached the form (`CapturePipeline.composed`,
+   `formCaution`).
 
 **Why the currency cannot simply be dropped (PU.99, measured 2026-09-27).** The law run over every
 reviewed still under all fifteen measured currencies: 247 of 344 stills read the same whatever the

@@ -4,7 +4,8 @@ import TankbookCore
 
 /// How the pump reader's fields and the rules arm's are composed for Confirm.
 /// The reader wins where it committed; the rules arm fills a field the reader
-/// abstained on - except a cautioned pair's price, which stays for the user.
+/// abstained on - except a cautioned pair's price, which stays for the user -
+/// and wins over an unclosed top read, which nothing checked.
 final class CapturePipelineCompositionTests: XCTestCase {
     private let rules = FuelExtraction(liters: 30.0, unitPrice: Decimal(string: "1.919"),
                                        total: Decimal(string: "57.57"))
@@ -23,5 +24,26 @@ final class CapturePipelineCompositionTests: XCTestCase {
         let out = CapturePipeline.composed(rules: rules, reader: pair, caution: nil)
         XCTAssertEqual(out.unitPrice, Decimal(string: "1.919"))
         XCTAssertEqual(out.liters, 30.21, "the reader's committed field wins")
+    }
+
+    /// A TFT screen the seven-segment reader guesses at, which the rules arm
+    /// reads right: the rules arm's fields stand, and no warning is raised.
+    func testTheRulesArmWinsOverAnUnclosedRead() {
+        let guessed = FuelExtraction(liters: 309.09, unitPrice: Decimal(string: "72.1"), total: Decimal(string: "5.6"))
+        let out = CapturePipeline.composed(rules: rules, reader: guessed, caution: .unclosed)
+        XCTAssertEqual(out.liters, 30.0)
+        XCTAssertEqual(out.unitPrice, Decimal(string: "1.919"))
+        XCTAssertEqual(out.total, Decimal(string: "57.57"))
+        XCTAssertNil(CapturePipeline.formCaution(.unclosed, rules: rules, form: out))
+    }
+
+    /// Where the rules arm read nothing, the unclosed read fills the form and warns.
+    func testAnUnclosedReadFillsWhatTheRulesArmLeftEmptyAndWarns() {
+        let empty = FuelExtraction(currency: .eur)
+        let top = FuelExtraction(liters: 35.06, total: Decimal(string: "67.98"))
+        let out = CapturePipeline.composed(rules: empty, reader: top, caution: .unclosed)
+        XCTAssertEqual(out.liters, 35.06)
+        XCTAssertEqual(out.total, Decimal(string: "67.98"))
+        XCTAssertEqual(CapturePipeline.formCaution(.unclosed, rules: empty, form: out), .unclosed)
     }
 }

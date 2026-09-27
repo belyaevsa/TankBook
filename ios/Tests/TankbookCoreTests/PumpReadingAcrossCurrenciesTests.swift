@@ -61,6 +61,16 @@ struct PumpReadingAcrossCurrenciesTests {
                                         total: Decimal(string: "40.00")))
     }
 
+    @Test("a window the reader is unsure of, or a value no fill shows, is not handed to the form")
+    func unsureOrImplausibleTopReadIsDropped() {
+        var windows = Self.windows(liters: "30909.00", price: "2.129", total: "0040.00")
+        windows[2] = PumpReadingLawTests.window(.total, "0040.00", ranked: [4, 9], at: 2)
+        let top = PumpReadingLaw.resolveAcrossCurrencies(windows: windows, currency: Self.eur).unclosed
+        #expect(top?.liters == nil, "30909 L is no fill")
+        #expect(top?.total == nil, "a cell one nat from its runner-up is a guess")
+        #expect(top?.unitPrice == Decimal(string: "2.129"))
+    }
+
     @Test("an idle pump hands nothing to the form")
     func idlePumpHasNoTopRead() {
         let windows = Self.windows(liters: "0000.00", price: "2.129", total: "0000.00")
