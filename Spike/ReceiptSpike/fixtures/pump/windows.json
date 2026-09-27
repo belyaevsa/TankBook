@@ -41189,6 +41189,7 @@
     "zoom": 1.8489212927999994
    }
   ],
+  "reviewed": true,
   "tracking": "ok"
  },
  "pump-331-gilbarco-circlek-3264-1533l-2129-night-ee.jpg": {
@@ -41916,7 +41917,7 @@
     "placedBy": "auto"
    }
   ],
-  "reviewed": false
+  "reviewed": true
  },
  "pump-337-tokheim-terminal-tft-screen-7280-3500l-2080-ee.jpg": {
   "windows": [
@@ -42594,8 +42595,8 @@
     "text": "2,014",
     "quad": [
      [
-      0.3584,
-      0.5372
+      0.3729,
+      0.5347
      ],
      [
       0.5368,
@@ -42606,34 +42607,36 @@
       0.5456
      ],
      [
-      0.3819,
-      0.5902
+      0.3927,
+      0.5815
      ]
     ],
-    "placedBy": "hand"
+    "placedBy": "hand",
+    "zoom": 0.438
    },
    {
     "field": "liters",
     "text": "0059,77",
     "quad": [
      [
-      0.22,
-      0.385
+      0.2146,
+      0.3875
      ],
      [
-      0.533,
-      0.318
+      0.5312,
+      0.2984
      ],
      [
-      0.544,
-      0.372
+      0.551,
+      0.3624
      ],
      [
-      0.237,
-      0.44
+      0.2414,
+      0.4457
      ]
     ],
-    "placedBy": "hand"
+    "placedBy": "hand",
+    "zoom": 0.438
    }
   ],
   "reviewed": true

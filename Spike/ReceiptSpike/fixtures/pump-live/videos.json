@@ -15308,5 +15308,77 @@
   ],
   "reviewed": false,
   "note": "IMG_6421.MOV whole - Tokheim at Terminal, Estonia, a TFT screen held at 72,80 / 35,00, 2,080; reference quads placed by the orchestrator on frame 066, unreviewed"
+ },
+ "video-052-unknown-alexela-black-lcd-running-display-2059-ee": {
+  "reference": "1612.jpg",
+  "currency": "EUR",
+  "unitPrice": "2.059",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.491,
+      0.237
+     ],
+     [
+      0.648,
+      0.237
+     ],
+     [
+      0.648,
+      0.373
+     ],
+     [
+      0.491,
+      0.373
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.5,
+      0.393
+     ],
+     [
+      0.639,
+      0.393
+     ],
+     [
+      0.639,
+      0.5
+     ],
+     [
+      0.5,
+      0.5
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.67,
+      0.234
+     ],
+     [
+      0.759,
+      0.234
+     ],
+     [
+      0.759,
+      0.304
+     ],
+     [
+      0.67,
+      0.304
+     ]
+    ]
+   }
+  ],
+  "reviewed": false,
+  "note": "IMG_6435.MOV whole - black LCD at Alexela in the rain, running fill at 2,059 ending 100.81 / 48.96; the digits ghost in the wet cover glass; reference quads placed by the orchestrator on frame 1612 (after the count stopped), unreviewed"
  }
 }
