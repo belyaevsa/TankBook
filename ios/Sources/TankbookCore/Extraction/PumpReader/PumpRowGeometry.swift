@@ -30,7 +30,21 @@ enum PumpRowGeometry {
     struct Verdict {
         let kept: Bool
         let reasons: [Reason]
+        /// Failed exactly one rule, by no more than that rule's borderline
+        /// margin: the reading of a row that sits on a limit flips with a
+        /// re-encode of the same photo (agents/research/KNIFE-EDGE.md), so such
+        /// a row is offered to the law at a lower rank instead of dropped.
+        var borderline = false
     }
+
+    /// How far past its limit a rule may be failed and the row still be
+    /// offered as borderline. Measured on the four re-encode flips of the
+    /// knife-edge study: pitch 1.271, nine cells, a blank run of two, four
+    /// implied decimals - each one step or a few percent past its limit.
+    static let borderlinePitchToBand: CGFloat = 1.35
+    static let borderlineCells = PumpReadingLaw.maxCells + 1
+    static let borderlineInteriorBlankRun = 2
+    static let borderlineDecimalPlaces = 4
 
     /// A display row shows the transaction fields' digit counts and no more
     /// (`PumpReadingLaw.maxCells`); fewer than `minimumVerifiedCells` cells is
@@ -79,27 +93,35 @@ enum PumpRowGeometry {
         guard let first = nonBlank.first else {
             return Verdict(kept: false, reasons: [.cellCount])
         }
+        var withinMargin = true
         if nonBlank.count < minimumCells || nonBlank.count > maximumCells {
             reasons.append(.cellCount)
+            withinMargin = withinMargin && nonBlank.count == borderlineCells
         }
         let cellWidth = first.rect.width
         let bandHeight = first.rect.height
         let pitchToBand = bandHeight > 0 ? cellWidth / bandHeight : 0
         if pitchToBand < minimumPitchToBand || pitchToBand > maximumPitchToBand {
             reasons.append(.pitch)
+            withinMargin = withinMargin && pitchToBand > maximumPitchToBand && pitchToBand <= borderlinePitchToBand
         }
         let bandFraction = stripHeight > 0 ? bandHeight / CGFloat(stripHeight) : 0
         if bandFraction < minimumInkBandFraction || bandFraction > maximumInkBandFraction {
             reasons.append(.inkBand)
+            withinMargin = false
         }
         if let mark = cells.firstIndex(where: { $0.hasDecimalPoint }),
            cells.count - 1 - mark > maximumDecimalPlaces {
             reasons.append(.decimalMark)
+            withinMargin = withinMargin && cells.count - 1 - mark == borderlineDecimalPlaces
         }
-        if maximumInteriorBlankRun(in: cells) > Self.maximumInteriorBlankRun {
+        let blankRun = maximumInteriorBlankRun(in: cells)
+        if blankRun > Self.maximumInteriorBlankRun {
             reasons.append(.blankLayout)
+            withinMargin = withinMargin && blankRun == borderlineInteriorBlankRun
         }
-        return Verdict(kept: reasons.isEmpty, reasons: reasons)
+        return Verdict(kept: reasons.isEmpty, reasons: reasons,
+                       borderline: reasons.count == 1 && withinMargin)
     }
 
     /// The longest run of blanks that is neither leading nor trailing - the

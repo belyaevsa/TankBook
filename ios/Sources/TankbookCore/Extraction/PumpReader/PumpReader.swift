@@ -349,6 +349,10 @@ struct PumpReader {
         let meanMargin: Double
         let kept: Bool
         var detected: Bool = false
+        /// A detected row that failed one geometry rule by a borderline margin
+        /// (`PumpRowGeometry.Verdict.borderline`): offered after every kept
+        /// row, never in place of one.
+        var borderline: Bool = false
         /// Why a candidate was not kept, for the annotator and the diagnostics.
         /// Nothing reads it back to decide: `kept` is the verdict.
         var dropReasons: [String] = []
@@ -372,10 +376,12 @@ struct PumpReader {
     /// The kept verdicts, one per row: `verify` without the judging, for a
     /// caller that already holds the verdicts.
     static func verified(from verdicts: [Verdict]) -> [VerifiedWindow] {
-        let kept = verdicts.filter(\.kept)
         // Best version of each row first: more cells read with a wider margin
-        // on a taller strip is the fuller window, not a fragment of it.
-        let ranked = kept.sorted { Self.strength($0) > Self.strength($1) }
+        // on a taller strip is the fuller window, not a fragment of it. A
+        // borderline row ranks after every kept one, so it can only fill a row
+        // the kept ones left empty, never displace or duplicate one.
+        let ranked = verdicts.filter(\.kept).sorted { Self.strength($0) > Self.strength($1) }
+            + verdicts.filter { !$0.kept && $0.borderline }.sorted { Self.strength($0) > Self.strength($1) }
         var out: [VerifiedWindow] = []
         for verdict in ranked {
             let duplicate = out.contains { existing in
@@ -475,9 +481,13 @@ struct PumpReader {
                                           cellAspect: cellAspect)
             }
             let kept = geometry.kept && shaped && !keypad
+            // Only the detector's rows may be borderline: a Vision proposal is
+            // text by default and keeps the strict rules.
+            let borderline = !kept && geometry.borderline && shaped && !keypad && candidate.detected
             let reasons = geometry.reasons.map(\.rawValue) + (shaped ? [] : ["tooWide"]) + (keypad ? ["keypad"] : [])
             out.append(Verdict(quad: quad, heightFraction: heightFraction, cells: cells.count, meanMargin: mean, kept: kept,
-                               detected: candidate.detected, dropReasons: reasons))
+                               detected: candidate.detected, borderline: borderline,
+                               dropReasons: reasons + (borderline ? ["borderline"] : [])))
             trace?.judged(out[out.count - 1], strip: stripRGB, cells: sliced.fullCells)
         }
         return out

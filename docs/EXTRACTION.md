@@ -894,7 +894,11 @@ request, never in the headline; a board is a different display family (distance 
 dot-matrix) and no journey promises reading it. (2) **Capture is a Live Photo**: the product
 owner shares HEIC files with the Live record, so the reader may assume several frames of the
 panel at inference and fuse per cell (glare and reflections move, digits do not); the corpus
-intake keeps the Live record. (3) **Synthetic geometry may be calibrated on the corpus's
+intake keeps the Live record. **Amended 2026-09-27 (product owner): the reader relies on a single shot.**
+*"Live photos won't exist on android later, so we should rely only on single-shot photos."* No
+reading may depend on a second frame: the app reads the one photo (it already does - `PumpFrameFusion`
+has no caller in the app), and Live-frame fusion is not a direction (PU.94 cut). The corpus still
+keeps the Live records, as training and measurement material only. (3) **Synthetic geometry may be calibrated on the corpus's
 aggregate shape statistics** (cell aspect, phase, digit mix, comma rate - from `slices.json`
 rects and `windows.json` strings), never on pixels or per-fixture labels; the gate stays on all
 114. (4) The locator question - whether a tap-to-frame crop is an acceptable v1 - is open. (5)
@@ -1049,8 +1053,8 @@ budget; the locator, verifier, assignment and orientation search still use the s
 cell classifier. Seed 1 of PU.77's three was chosen on its train-side validation string accuracy
 (0.875), never on heldout. Swift and the Python reference agree on 252 of 252 heldout strips.
 On the heldout split, scored by the corpus scorer: **live path 62 / 61 -> 117 committed / 116
-correct** (`PumpPhotoGate`'s constants now record **122 / 121** of 183 - later measurements, the
-last PU.97's board pair fallback; the gate reads precision 0.992, coverage 0.667, both above their
+correct** (`PumpPhotoGate`'s constants now record **128 / 127** of 183 - later measurements, the
+last PU.106's borderline rows; the gate reads precision 0.992, coverage 0.699, both above their
 floors) (precision 0.991; the one wrong cell is still pump-063's cautioned pair-tier total),
 **photos with every field right 21 -> 40 of 68**; annotated tier **126 / 126 -> 154 / 153** (the
 one wrong cell pump-055's total, cautioned). The non-pump leak battery holds at 6 of 117 routed and
@@ -1394,9 +1398,26 @@ among them role shifts (`pump-104`: the price read as litres and the litres as t
 9.707 L for 97.07) and single-digit misreads (`pump-055`, `pump-089`). The owner accepted them as
 they are: they reach the form under the "don't multiply up" warning, never as a silent fact, and
 the logic is to be improved later (PU.105). **So the 99 % promise counts closed reads** - what the
-law committed, the numbers `PumpPhotoGate.allowsPumpPhoto` decides on (121 of 122 on the heldout
-live path) - and a warned read is judged by the user against the photo, not by the gate.
-`PumpPhotoGate`'s composite constants record the whole: 147 / 136 of 186.
+law committed, the numbers `PumpPhotoGate.allowsPumpPhoto` decides on (127 of 128 on the heldout
+live path since PU.106) - and a warned read is judged by the user against the photo, not by the gate.
+`PumpPhotoGate`'s composite constants record the whole: 152 / 141 of 186 since PU.106.
+
+**A row on a limit is offered, not dropped (PU.106, 2026-09-27).** The same photo, re-encoded, read
+differently on four of 21 photos that exist both as the phone's HEIC and as JPEG
+(`agents/research/KNIFE-EDGE.md`). It is the image, not timing: repeated reads are bit-identical
+and all four take the fast path, where the wall-clock budget is never read. In each, one row sits a
+hair from a geometry verifier limit - pitch-to-band 1.271 against 1.25, nine cells against eight,
+an interior blank run of two against one, a mark implying four decimals against three - and a
+re-encode moves it across, so the row is dropped and the rows below it shift roles. The row locator
+is stable (confidence moves by at most 0.0004). **Now**: a row the detector found that fails
+exactly one rule by one step (`PumpRowGeometry.borderline*`) is offered after every kept row
+(`PumpReader.verified(from:)`), never displacing or duplicating one; Vision's proposals keep the
+strict rules, and the law still decides what commits. Measured: two of the four flippers read
+alike in every variant; on the heldout set the reader's closed reads rose 122 / 121 -> 128 / 127
+(iOS 27 simulator) and the composite 147 / 136 -> 152 / 141 with the same eleven contradicted
+cells - no new wrong value, closed or warned. The limits themselves are unchanged: they were
+measured to keep receipt text and keypad rows out, and a junk row admitted to the column shifts
+every role after it.
 **Two guards, from case 02412-PM1N2's TFT shot.** There the seven-segment reader guessed at a
 screen's artwork (30909 L, cells under 1 nat), and that guess would have overridden the rules
 arm's correct 35.00 / 72.80 / 2.080:
@@ -1447,8 +1468,9 @@ read), and the -0.5 EV preset changed nothing.
 
 **Decisions and their order** (product owner, 2026-09-25/26 - TFT screens are in scope):
 1. **Dark LCD: retrain the locator on the corpus's own material first** (PU.91) - the four train stills
-   and an owner-verified sample of `video-050` and the Live records; Live-frame fusion at the locator
-   only if glare still wins after it (PU.94). No polarity normalisation, no renderer work for this
+   and an owner-verified sample of `video-050` and the Live records. Live-frame fusion at the locator
+   was the fallback (PU.94) and is cut: the reader relies on a single shot (decision 2, amended
+   2026-09-27). No polarity normalisation, no renderer work for this
    family (RowSeg trains on real images only).
 2. **TFT: a family route to on-device Vision OCR with the unchanged law** (PU.92) - Vision reads
    `pump-337`'s three numbers and labels exactly; advert suppression lands in the same change; the
