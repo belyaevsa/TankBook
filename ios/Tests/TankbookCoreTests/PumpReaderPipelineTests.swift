@@ -544,6 +544,10 @@ extension PumpReaderPipelineTests {
         /// the silent kind. A cautioned wrong cell (`shownPriceDiffers`, the
         /// pair tier's shown-price band) arrives on Confirm flagged.
         var wrongUncautioned = 0
+        /// Cells nothing closed on whose unclosed top read went to the form
+        /// under the don't-multiply-up warning, and how many of those were right.
+        var warned = 0
+        var warnedCorrect = 0
         var perHead: [String: (committed: Int, correct: Int)] = [:]
         var seconds = 0.0
         /// Photos that committed at least one scored cell, and of those the
@@ -612,7 +616,10 @@ extension PumpReaderPipelineTests {
             for cell in cells {
                 guard let wantValue = cell.want else { continue }
                 m.numericTotal += 1; fixtureTotal += 1
-                guard let got = cell.reading.value.map({ NSDecimalNumber(decimal: $0).doubleValue }) else { continue }
+                guard let got = cell.reading.value.map({ NSDecimalNumber(decimal: $0).doubleValue }) else {
+                    Self.scoreWarned(&m, reading.unclosed, cell.field, want: wantValue)
+                    continue
+                }
                 m.committed += 1; fixtureCommitted += 1
                 m.perHead[head, default: (0, 0)].committed += 1
                 let derived: Bool = { if case .derived? = cell.reading.provenance { return true }; return false }()
@@ -637,6 +644,23 @@ extension PumpReaderPipelineTests {
         return m
     }
 
+    /// Scores an abstained cell's unclosed top read, the value the form got under the warning.
+    fileprivate static func scoreWarned(_ measurement: inout LiveMeasurement, _ top: PumpUnclosedRead?,
+                                        _ field: PumpField, want: Double) {
+        let value: Decimal?
+        switch field {
+        case .liters: value = top?.liters
+        case .unitPrice: value = top?.unitPrice
+        case .total: value = top?.total
+        case .board: value = nil
+        }
+        guard let value else { return }
+        measurement.warned += 1
+        if abs(NSDecimalNumber(decimal: value).doubleValue - want) < CorpusScorer.tolerance {
+            measurement.warnedCorrect += 1
+        }
+    }
+
     fileprivate func report(_ label: String, _ m: LiveMeasurement) {
         print("\(label): committed \(m.committed), correct \(m.committedCorrect), "
               + "precision \(String(format: "%.3f", m.precision)), "
@@ -644,6 +668,7 @@ extension PumpReaderPipelineTests {
               + "of \(m.numericTotal); photos with every field right \(m.fixturesAllRight)/\(m.fixturesScored); "
               + "\(String(format: "%.1f", m.seconds))s")
         print("  " + PumpPrecisionBounds.precisionLine(correct: m.committedCorrect, committed: m.committed))
+        print("  warned (unclosed top read, not committed): \(m.warnedCorrect)/\(m.warned) right")
         let photoLower = PumpPrecisionBounds.wilson(m.photosCommitting - m.photosWrong, m.photosCommitting,
                                                     z: PumpPrecisionBounds.z95OneSided).lower
         print("  photos: \(m.photosCommitting) committing, \(m.photosWrong) with a wrong cell; "

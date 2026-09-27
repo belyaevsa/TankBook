@@ -164,6 +164,18 @@ receipt parser in silence. The photo's kind is recorded on the attachment (`pipe
 so the backend ledger records it. The locator is automatic (decision 8); a tap-to-frame crop is
 not the v1 answer.
 
+**Currency never hides the numbers (PU.100, product owner 2026-09-27).** The reader shows what it
+read, whatever currency the car, the phone or the pump uses. Currency only **supports** the read:
+the car's home currency, a currency printed on the display (`€/L`, `EUR`, `руб`, when there is
+one, which is not always), and the phone's region help pick where the decimal point goes. None of
+them can block a reading. When the three numbers work out (`volume × price = total`), they are
+pre-filled with or without a currency. When they don't work out, the numbers read are **still
+pre-filled**, and the verify screen shows an amber warning that the numbers don't add up and need
+checking against the photo. It never falls back to *Couldn't read*, which is kept for a photo
+where no digits were read at all. The motivating case: a car set to roubles at an Estonian pump
+read 32.64 / 15.33 / 2.129 correctly, and the user got "Couldn't read" because the law refused
+under RUB (case 02412-PM1N2).
+
 **One chain, one station (RV.115 + RV.180, shipped 2026-09-18).** A station has a **brand** (the
 chain) and a **name** (the site's full printed line). The brand is matched once, when the station is
 minted - from a typed name, a scanned station line or an imported column - against the station brand

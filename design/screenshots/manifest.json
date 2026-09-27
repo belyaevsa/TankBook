@@ -1585,6 +1585,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "PU.100-capture-verify-unclosed": {
+      "commit": "24bad522",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PU.100-capture-verify-unclosed-ru": {
+      "commit": "24bad522",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "PU.29-confirm-pump-alpha": {
       "commit": "c96f35e2",
       "device": "iPhone 17",

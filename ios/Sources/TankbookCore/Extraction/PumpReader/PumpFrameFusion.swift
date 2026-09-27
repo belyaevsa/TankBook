@@ -71,7 +71,7 @@ extension PumpReader {
         where S.Element == PumpTrackedFrame {
         let reads = try readFused(still: still, windows: windows, frames: frames,
                                   stride: stride, mode: mode)
-        return PumpReadingLaw.resolve(
+        return PumpReadingLaw.resolveAcrossCurrencies(
             windows: reads.map { PumpLocatedWindow(field: $0.field, cells: $0.cells) },
             currency: currency, priceBand: priceBand)
     }

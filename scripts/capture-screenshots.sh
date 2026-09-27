@@ -1776,6 +1776,12 @@ CAPTURE_SLEEP=6
 capture PJ.505-capture-verify-pump    en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureFixtureImage "${PJ505_PUMP}" -captureAutoReview -seedFillUpScanPumpCaution
 capture PJ.505-capture-verify-pump-ru ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureFixtureImage "${PJ505_PUMP}" -captureAutoReview -seedFillUpScanPumpCaution
 
+# PU.100: a pump read nothing closed on - the numbers pre-filled under the don't-multiply-up warning,
+# never "Couldn't read".
+PU100_PUMP="${PWD}/Spike/ReceiptSpike/fixtures/pump/pump-342-gilbarco-circlek-11097-5469l-2029-night-high1080-ee.jpg"
+capture PU.100-capture-verify-unclosed    en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureFixtureImage "${PU100_PUMP}" -captureAutoReview -seedFillUpScanPumpUnclosed
+capture PU.100-capture-verify-unclosed-ru ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureFixtureImage "${PU100_PUMP}" -captureAutoReview -seedFillUpScanPumpUnclosed
+
 # AD.2: About -> Experiments -> Send diagnostics: what goes (the log's size, the recent
 # scans), and after the send the id to pass on. The send is stubbed; RU is the wrap check
 # for the explainer and the failure lines.

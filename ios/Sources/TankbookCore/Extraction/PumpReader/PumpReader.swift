@@ -487,7 +487,7 @@ struct PumpReader {
     func resolve(image: PumpRGBImage, windows: [Window], currency: CurrencyCode?,
                  priceBand: FuelPriceBand?, trace: PumpTrace? = nil) throws -> PumpDisplayReading {
         let reads = try read(image: image, windows: windows, trace: trace)
-        let law = PumpReadingLaw.resolve(windows: reads.map { PumpLocatedWindow(field: $0.field, cells: $0.cells) },
+        let law = PumpReadingLaw.resolveAcrossCurrencies(windows: reads.map { PumpLocatedWindow(field: $0.field, cells: $0.cells) },
                                          currency: currency, priceBand: priceBand)
         trace?.current?.law = law
         return law

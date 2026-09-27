@@ -134,7 +134,8 @@ enum CapturePipeline {
         return prefill
     }
 
-    /// The pump reader's committed fields win over the rules arm's; a field the
+    /// The pump reader's fields - committed, or the unclosed top read - win over
+    /// the rules arm's; a field the
     /// reader abstained on falls through to what the rules read
     /// (docs/EXTRACTION.md -> "The rules arm behind the reader stays") - except
     /// a cautioned pair's price, which is left for the user: the rules arm
@@ -143,7 +144,11 @@ enum CapturePipeline {
                          caution: PumpReadingCaution?) -> FuelExtraction {
         var out = rules
         out.liters = reader.liters ?? rules.liters
-        out.unitPrice = reader.unitPrice ?? (caution == nil ? rules.unitPrice : nil)
+        if case .shownPriceDiffers? = caution {
+            out.unitPrice = reader.unitPrice
+        } else {
+            out.unitPrice = reader.unitPrice ?? rules.unitPrice
+        }
         out.total = reader.total ?? rules.total
         return out
     }

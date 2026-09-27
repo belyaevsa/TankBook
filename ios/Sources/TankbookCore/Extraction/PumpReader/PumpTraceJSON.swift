@@ -111,9 +111,19 @@ enum PumpTraceJSON {
     }
 
     private static func lawJSON(_ law: PumpDisplayReading) -> [String: Any] {
-        ["total": fieldJSON(law.total), "liters": fieldJSON(law.liters), "unitPrice": fieldJSON(law.unitPrice),
-         "reason": law.reason?.rawValue ?? NSNull(), "caution": law.caution.map { "\($0)" } ?? NSNull(),
-         "committed": law.committedCount]
+        var json: [String: Any] = [
+            "total": fieldJSON(law.total), "liters": fieldJSON(law.liters), "unitPrice": fieldJSON(law.unitPrice),
+            "reason": law.reason?.rawValue ?? NSNull(), "caution": law.caution.map { "\($0)" } ?? NSNull(),
+            "committed": law.committedCount
+        ]
+        json["closedUnder"] = law.closedUnder?.rawValue ?? NSNull()
+        json["unclosed"] = law.unclosed.map(unclosedJSON) ?? NSNull()
+        return json
+    }
+
+    private static func unclosedJSON(_ top: PumpUnclosedRead) -> [String: Any] {
+        func text(_ value: Decimal?) -> Any { value.map { "\($0)" } ?? NSNull() }
+        return ["liters": text(top.liters), "unitPrice": text(top.unitPrice), "total": text(top.total)]
     }
 
     private static func detectionJSON(_ detection: PumpDisplayCapture.Detection) -> [String: Any] {
@@ -138,6 +148,10 @@ public struct PumpReadSummary: Sendable, Equatable {
     public var skippedReads: [String] = []
     public var lawReason: String?
     public var committed = 0
+    /// The currency the committed fields closed under, and whether an
+    /// unclosed top read went to the form instead.
+    public var closedUnder: String?
+    public var unclosed = false
     public var budgetHit = false
 
     public init() {}
@@ -160,6 +174,8 @@ public struct PumpReadSummary: Sendable, Equatable {
         skippedReads = attempt.reads.compactMap(\.skipped)
         lawReason = attempt.law?.reason?.rawValue
         committed = attempt.law?.committedCount ?? 0
+        closedUnder = attempt.law?.closedUnder?.rawValue
+        unclosed = attempt.law?.unclosed != nil
         budgetHit = attempt.budgetHit
     }
 }

@@ -36,7 +36,11 @@ public enum CaptureVerifyNotice: Equatable, Sendable {
         if case .shownPriceDiffers(let shown, let implied)? = pumpCaution {
             out.append(.pumpPriceDiffers(shown: shown, implied: implied))
         }
-        if case .mismatch? = crossCheck { out.append(.numbersDisagree) }
+        // An unclosed pump read is the same warning as a form whose numbers do
+        // not multiply up, said once.
+        if case .mismatch? = crossCheck { out.append(.numbersDisagree) } else if pumpCaution == .unclosed {
+            out.append(.numbersDisagree)
+        }
         return out
     }
 }

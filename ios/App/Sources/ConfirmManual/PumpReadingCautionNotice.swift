@@ -1,8 +1,8 @@
 import SwiftUI
 import TankbookCore
 
-/// Decision 11 (docs/EXTRACTION.md): a pump reading the law committed without being
-/// able to check it fully. The fields stay pre-filled and editable (hard rule 13);
+/// Decision 11 (docs/EXTRACTION.md): a pump reading the law could not check fully -
+/// committed under a caution, or handed over unclosed. The fields stay pre-filled and editable (hard rule 13);
 /// this line says what went unchecked and what to look at (hard rule 7). Amber
 /// is attention, and the words carry the meaning (hard rule 5).
 struct PumpReadingCautionNotice: View {
@@ -31,6 +31,8 @@ struct PumpReadingCautionNotice: View {
         switch caution {
         case .shownPriceDiffers(let shown, let implied):
             return L10n.pumpShownPriceDiffersMessage(shown: Self.price(shown), implied: Self.price(implied))
+        case .unclosed:
+            return String(localized: "These numbers don't multiply up – check them against the photo.")
         case nil:
             return nil
         }

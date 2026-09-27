@@ -272,6 +272,7 @@ said here, above the fields - the entry that follows does not repeat it.
 | A pump reading below the gate or with the owner's flag off | `warn`: "Read from the pump display – this is in alpha. Check every field before saving." | Check each field against the photo · Continue |
 | A pump pair whose shown price differs (PJ.500) | `warn`: the PJ.500 sentence naming both prices | Check total and litres · Continue |
 | The numbers on screen don't multiply up (F2) | `warn`: "These numbers don't multiply up – check them against the photo." - updates as the user types | Correct a field · Continue (never blocked - hard rule 13) |
+| A pump read whose arithmetic closed under no currency (PU.100) | The same `warn` line, said once, over the digits the reader read - pre-filled, never withheld | Check each field against the photo · Continue |
 
 #### The capture review step (RV.5)
 

@@ -21,6 +21,9 @@ import TankbookCore
 ///   was read: the verify screen's admission.
 /// - `-seedFillUpScanPumpCaution` - a pump pair whose shown price differs from
 ///   the one it implies, read in alpha: both notices on the verify screen.
+/// - `-seedFillUpScanPumpUnclosed` - a pump read nothing closed on (litres and
+///   price, no total to check them): the numbers pre-filled under the
+///   don't-multiply-up warning, which only the `.unclosed` caution raises here.
 enum FillUpScanTestSeed {
     static func extraction(from arguments: [String]) -> FuelExtraction? {
         if arguments.contains("-seedFillUpScan") {
@@ -37,6 +40,9 @@ enum FillUpScanTestSeed {
         if arguments.contains("-seedFillUpScanPumpCaution") {
             return FuelExtraction(liters: 11.88, total: Decimal(string: "20.02"), currency: .eur)
         }
+        if arguments.contains("-seedFillUpScanPumpUnclosed") {
+            return FuelExtraction(liters: 54.69, unitPrice: Decimal(string: "2.029"), currency: .eur)
+        }
         return nil
     }
 
@@ -51,6 +57,11 @@ enum FillUpScanTestSeed {
             prefill.pumpAlpha = true
             prefill.pumpCaution = .shownPriceDiffers(shown: Decimal(string: "1.759")!,
                                                      implied: Decimal(string: "1.685")!)
+        }
+        if arguments.contains("-seedFillUpScanPumpUnclosed") {
+            prefill.provenance = .pumpPhoto
+            prefill.pumpAlpha = true
+            prefill.pumpCaution = .unclosed
         }
     }
 }

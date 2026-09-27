@@ -375,11 +375,11 @@ public enum PumpDisplayCapture {
         return (decision.detection, seedReading)
     }
 
-    /// Whether a reading committed any field. A display the law could not close
-    /// on reads nothing, which is what sends the search after it.
+    /// Whether the law committed any field. A display the law could not close
+    /// on sends the search after it, even though its extraction carries the
+    /// unclosed top read.
     private static func commits(_ reading: Reading?) -> Bool {
-        guard let extraction = reading?.extraction else { return false }
-        return extraction.liters != nil || extraction.unitPrice != nil || extraction.total != nil
+        (reading?.law.committedCount ?? 0) > 0
     }
 
     /// The read for an accepted decision: the decision's own verified windows
@@ -423,10 +423,13 @@ public enum PumpDisplayCapture {
         }
         guard let reading = try? reader.resolve(image: rgb, windows: windows, currency: currency,
                                                 priceBand: priceBand, trace: trace) else { return nil }
+        // A reading nothing closed hands its top read to the form, under the
+        // `.unclosed` caution the verify screen warns with.
+        let top = reading.unclosed
         var extraction = FuelExtraction(
-            liters: reading.liters.value.map { NSDecimalNumber(decimal: $0).doubleValue },
-            unitPrice: reading.unitPrice.value,
-            total: reading.total.value,
+            liters: (reading.liters.value ?? top?.liters).map { NSDecimalNumber(decimal: $0).doubleValue },
+            unitPrice: reading.unitPrice.value ?? top?.unitPrice,
+            total: reading.total.value ?? top?.total,
             currency: currency)
         extraction.crossCheck = reading.committedCount == 3 ? .lock : .notApplicable
         return Reading(detection: detection, extraction: extraction, law: reading, cropRects: rects,

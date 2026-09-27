@@ -95,6 +95,17 @@ final class CaptureVerifyUITests: XCTestCase {
         XCTAssertFalse(labelled(app, "Read from the pump display").exists, "the entry does not repeat the alpha notice")
     }
 
+    /// A pump read nothing closed on still shows its numbers, under the
+    /// warning to check them - never "Couldn't read".
+    func testAPumpReadNothingClosedOnShowsItsNumbersWithAWarning() {
+        let app = shoot("-seedFillUpScanPumpUnclosed")
+        XCTAssertTrue(app.descendants(matching: .any)["captureVerifyDisagree"].waitForExistence(timeout: 10),
+                      "the unclosed read carries the don't-multiply-up warning")
+        waitForValue(app, "captureVerifyVolumeField", "54.69")
+        waitForValue(app, "captureVerifyPriceField", "2.029")
+        XCTAssertFalse(app.staticTexts["captureVerifyNothingRead"].exists, "numbers were read, so no admission")
+    }
+
     private func labelled(_ app: XCUIApplication, _ fragment: String) -> XCUIElement {
         app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", fragment)).firstMatch
     }

@@ -654,6 +654,11 @@ function renderLaw(view, trace, truth, a) {
     }
     if (law.reason) html += `<p style="color:${WARN}">refused: <b>${esc(law.reason)}</b></p>`;
     if (law.caution) html += `<p style="color:${WARN}">caution: ${esc(law.caution)}</p>`;
+    if (law.closedUnder && law.closedUnder !== trace.currency) html += `<p style="color:${WARN}">closed under <b>${esc(law.closedUnder)}</b>, not the ${esc(trace.currency || 'no')} currency the reader was given</p>`;
+    if (law.unclosed) {
+      const u = law.unclosed;
+      html += `<p style="color:${WARN}">nothing closed - the form gets the top read with a warning: <span class="mono">${esc(u.liters ?? '–')} L · ${esc(u.unitPrice ?? '–')} /L · ${esc(u.total ?? '–')}</span></p>`;
+    }
   }
   html += '<h3 style="margin:16px 0 6px">Every attempt</h3>';
   (trace.attempts || []).forEach((x, i) => {

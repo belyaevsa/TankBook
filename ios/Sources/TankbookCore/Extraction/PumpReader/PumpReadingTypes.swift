@@ -61,13 +61,35 @@ public enum PumpAbstentionReason: String, Sendable, Equatable, Codable {
     case cellCountImpossible
 }
 
-/// What the form must say about a committed reading the law could not fully
-/// check (decision 11, docs/EXTRACTION.md). Not a refusal - the fields commit - and
-/// never a verdict: the form shows it beside the pre-filled fields.
+/// What the form must say about a reading the law could not fully check
+/// (decision 11, docs/EXTRACTION.md). Never a verdict: the form shows it beside
+/// the pre-filled fields.
 public enum PumpReadingCaution: Sendable, Equatable {
     /// The display shows a price that differs from the one the pair implies -
     /// a discount, or a misread. Both numbers go to the form.
     case shownPriceDiffers(shown: Decimal, implied: Decimal)
+    /// Nothing closed under any measured currency: the fields carry the top
+    /// read of each window, unchecked by the arithmetic
+    /// (`PumpDisplayReading.unclosed`). The form shows them with a warning
+    /// to check against the photo.
+    case unclosed
+}
+
+/// The top read of each transaction window when no triple closed - what the
+/// display most likely shows, handed to the form as a warned head start
+/// (docs/EXTRACTION.md -> "Currency supports the read and never blocks it").
+/// Never counted as committed: every caller that retries on "nothing
+/// committed" (orientation, deskew, levelling) keeps retrying.
+public struct PumpUnclosedRead: Sendable, Equatable {
+    public let liters: Decimal?
+    public let unitPrice: Decimal?
+    public let total: Decimal?
+
+    public init(liters: Decimal?, unitPrice: Decimal?, total: Decimal?) {
+        self.liters = liters
+        self.unitPrice = unitPrice
+        self.total = total
+    }
 }
 
 /// One digit hypothesis for one cell, ranked by the constrained decode.
@@ -170,8 +192,14 @@ public struct PumpDisplayReading: Sendable, Equatable {
     public let unitPrice: PumpFieldReading
     public let total: PumpFieldReading
     public let reason: PumpAbstentionReason?
-    /// Set on a committed reading the form must qualify; nil otherwise.
+    /// Set on a reading the form must qualify; nil otherwise.
     public let caution: PumpReadingCaution?
+    /// The currency whose conventions the committed fields closed under; nil
+    /// when nothing committed.
+    public let closedUnder: CurrencyCode?
+    /// The top read when nothing committed, with `caution == .unclosed`; nil
+    /// on a committed reading and when no transaction digit was read.
+    public let unclosed: PumpUnclosedRead?
 
     /// The reason-less default, for construction only; every law verdict that
     /// commits nothing uses `abstained(_:)` and names its branch.
@@ -179,17 +207,26 @@ public struct PumpDisplayReading: Sendable, Equatable {
         liters: .abstained, unitPrice: .abstained, total: .abstained, reason: nil)
 
     public init(liters: PumpFieldReading, unitPrice: PumpFieldReading, total: PumpFieldReading,
-                reason: PumpAbstentionReason? = nil, caution: PumpReadingCaution? = nil) {
+                reason: PumpAbstentionReason? = nil, caution: PumpReadingCaution? = nil,
+                closedUnder: CurrencyCode? = nil, unclosed: PumpUnclosedRead? = nil) {
         self.liters = liters
         self.unitPrice = unitPrice
         self.total = total
         self.reason = reason
         self.caution = caution
+        self.closedUnder = closedUnder
+        self.unclosed = unclosed
     }
 
     /// A reading that committed nothing, with the reason every field shares.
     public static func abstained(_ reason: PumpAbstentionReason) -> PumpDisplayReading {
         PumpDisplayReading(liters: .abstained, unitPrice: .abstained, total: .abstained, reason: reason)
+    }
+
+    /// The same reading, stamped with the currency it closed under.
+    func closed(under currency: CurrencyCode?) -> PumpDisplayReading {
+        PumpDisplayReading(liters: liters, unitPrice: unitPrice, total: total, reason: reason, caution: caution,
+                           closedUnder: currency, unclosed: nil)
     }
 
     public var committedCount: Int {
@@ -301,6 +338,12 @@ public struct PumpDisplayConventions: Sendable, Equatable {
         "SEK": row([2], [2], [2]),
         "TMT": row([2], [2], [2], truncated: [1])
     ]
+
+    /// Every currency with a measured row, in a fixed order: the order the
+    /// cross-currency search breaks a tie in (`PumpReadingLaw.resolveAcrossCurrencies`).
+    public static let measuredCurrencies: [CurrencyCode] = [
+        "EUR", "RUB", "KZT", "GBP", "AUD", "BYN", "KGS", "BGN", "BRL", "ISK", "NOK", "PHP", "PLN", "SEK", "TMT"
+    ].compactMap { CurrencyCode(rawValue: $0) }
 
     public static func forCurrency(_ currency: CurrencyCode?) -> PumpDisplayConventions {
         currency.flatMap { table[$0.rawValue] } ?? unmeasured

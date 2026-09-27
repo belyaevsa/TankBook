@@ -1350,10 +1350,39 @@ the region by omission). Until this change it passed `Locale.current`'s currency
 phone, region Russia, gave the reader RUB at Estonian pumps, and the reader refused every euro
 display - Capture Lab Run 4 found all three rows on seven shots and committed nothing, while the
 same photos read right under EUR (`docs/experiments/CAPTURE-LAB.md` -> Run 4). The Capture Lab
-logs the currency it read under. **Open**: a car whose home currency differs from where it fills
-(a euro car at a Russian pump) still reads under the home currency and refuses; whether the law
-may try a second currency is the owner's call, because a close under the wrong currency is a
-confident wrong value.
+logs the currency it read under. A car whose home currency differs from where it fills (a rouble
+car at an Estonian pump, case 02412-PM1N2) reads under the home currency and refuses. The next
+paragraph ends that.
+
+**Currency supports the read and never blocks it (PU.100, product owner 2026-09-27).** *"Display
+won't have 100% of time a currency, so it's just a supportive data, but not blocking. And still, if
+data received, math works (without a currency), show it. If math failed, put the numbers but with
+a warning on the review screen."* This reverses the PU.99 recommendation below. The currency stops
+being a gate and becomes a **ranking signal**: the car's home currency, the currency the display
+prints (when it prints one) and the region each rank the decimal placements and the price band,
+and none of them can make the reader commit nothing. A triple that closes is committed with or
+without a currency. When the currencies' closes disagree on the decade (PU.99's 21 conflicting
+stills), the signals pick. When nothing closes, the reader's top read of each field is still
+handed to Confirm, under a caution the verify screen shows as an amber warning. Only a frame with
+no digits read at all reaches *Couldn't read*. What PU.99 measured still holds: the arithmetic
+does not pin the decade, so the signals do that job, and an unclosed read is a warned head start,
+never a silent fact (hard rules 13 and 15).
+**Built (PU.100)**: `PumpReadingLaw.resolveAcrossCurrencies` is what the still and video paths
+call. It runs the law under the given currency (the car's, else the region's). When that commits
+nothing, it runs the law under every measured currency with that currency's bundled band and
+takes the values most closing currencies agree on, breaking a tie by
+`PumpDisplayConventions.measuredCurrencies` order. The reading is stamped `closedUnder`. When
+nothing closes, the abstention carries `unclosed`: each window's top digits, placed at the mark
+the classifier saw or at the currency's first convention. `PumpDisplayCapture` fills the
+extraction from it, and the verify screen shows the don't-multiply-up warning. An unclosed read
+never counts as committed, so the orientation, deskew and levelling retries still run. The
+display-printed currency is not a signal yet (PU.101), because the pump reader runs before the
+rules arm's OCR, which is where that marker is read.
+Measured 2026-09-27: on the heldout live path the committed count is unchanged, pinned by
+`PumpReaderPipelineTests.livePath` on the iOS 27 simulator (120 committed, 119 right on the Mac).
+**29 fields that were empty now reach the form warned, and 18 of them are right.** Those 29 are the
+price of never hiding a read. They arrive under the warning, never as a silent fact, and the
+line is printed as `warned` by the live report.
 
 **Why the currency cannot simply be dropped (PU.99, measured 2026-09-27).** The law run over every
 reviewed still under all fifteen measured currencies: 247 of 344 stills read the same whatever the
@@ -1364,7 +1393,8 @@ against each other, never their decade; the currency's conventions and band are 
 Committing only where every currency agrees made no new wrong cell (787 / 786 against 812 / 811)
 but lost 25 right ones, and it weakens with each currency added. So the currency stays a gate, and
 the work is its source: the car, then the currency the display prints (the Vision text already
-reads `€/L`, `EUR`, `руб`), then the region - never "any currency that closes".
+reads `€/L`, `EUR`, `руб`), then the region - never "any currency that closes". *(Superseded as
+a gate by PU.100 above. The ranking order and the decade risk stand.)*
 
 ### Pump photo is on (product owner, 2026-09-26)
 

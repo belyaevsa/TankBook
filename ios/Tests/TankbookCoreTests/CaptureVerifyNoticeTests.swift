@@ -36,6 +36,14 @@ struct CaptureVerifyNoticeTests {
         #expect(notices == [.pumpAlpha, .pumpPriceDiffers(shown: 1.919, implied: 1.839), .numbersDisagree])
     }
 
+    @Test("an unclosed pump read shows its numbers with the don't-multiply-up warning, said once")
+    func unclosedPumpReadWarns() {
+        let read = FuelExtraction(liters: 15.33, unitPrice: 2.129, total: 40)
+        #expect(resolve(.pumpPhoto, extraction: read, caution: .unclosed) == [.numbersDisagree])
+        #expect(resolve(.pumpPhoto, extraction: read, caution: .unclosed,
+                        crossCheck: .mismatch(field: .total)) == [.numbersDisagree])
+    }
+
     @Test("a receipt read in full says nothing")
     func cleanReceipt() {
         #expect(resolve(extraction: FuelExtraction(liters: 42.3, unitPrice: 1.679, total: 71.02),
