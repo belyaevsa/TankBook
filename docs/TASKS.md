@@ -622,6 +622,7 @@ dispatch ledger moved to `docs/TASKS-HISTORY.md`.*
 | RV.311 | (J3 receipt capture; F2 scan recognised WRONG data) The receipt parser pre-fills a grand total | `[x]` | TASKS-DONE.md · RV · Reviewer bugs (first TestFlight build, 2026-09-02/03) |
 | RV.289 | (J4 pump display through the cloud; F2) The pump kind shares the receipt prompt and the model m | `[x]` | TASKS-DONE.md · RV · Reviewer bugs (first TestFlight build, 2026-09-02/03) |
 | RV.313 | (F1 "Send this scan" report stage; F2 report stage; AD.11) A diagnostics send dies when the app | `[x]` | TASKS-DONE.md · RV · Reviewer bugs (first TestFlight build, 2026-09-02/03) |
+| RV.316 | no-scenario: a Settings control that did nothing The Appearance row showed "Dark" with a chevro | `[x]` | TASKS-DONE.md · RV · Reviewer bugs (first TestFlight build, 2026-09-02/03) |
 | PU.49 | ~~The glyph cell is cut at the digit band, so a hanging comma is outside the classifier's crop | `[cut]` | TASKS-DONE.md · PU · Pump reader – a trained seven-segment reader, not OCR (2026-09-18) |
 | PU.1 | ml/pump-reader/ on Python 3.12, 9 tests (the orchestrator added test_profiles_differ_geometry.p | `[x]` | TASKS-DONE.md · PU · Pump reader – a trained seven-segment reader, not OCR (2026-09-18) |
 | PU.2 | 114 fixtures, 456 windows (342 transaction fields + 114 board cells), authored by the orchestra | `[x]` | TASKS-DONE.md · PU · Pump reader – a trained seven-segment reader, not OCR (2026-09-18) |
