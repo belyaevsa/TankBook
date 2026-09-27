@@ -468,6 +468,15 @@ actually captured. One internal tool reads three kinds of user content; these ar
   configured (`Admin:ReadKeySha256s`, from the secret store); each fetch writes an access-log row
   under `read-key:<first 8 of the hash>`; the case routes are rate-limited. `scripts/case.sh <id>
   [--stage]` is its one client and writes the case outside the repo (`~/.cache/tankbook/cases/`).
+- **The owner's storage fetch (amended 2026-09-27, product owner).** While the viewer is not
+  deployed (AD.8), the owner's own Yandex Cloud credentials (`yc`, on the owner's machine, never a
+  service or a key in the repo) read **one case's parts by its id** straight from `tankbook-blobs`:
+  *"admin doesn't work... download directly from storage using yc"*. `scripts/case-yc.sh <id>` is
+  the one client. It lists the owner prefixes to find `<owner>/cases/<id>/` (the owner is not in
+  the id), downloads that folder only, and writes it outside the repo, like `case.sh`. It reads
+  nothing else. It writes **no access-log row**: the bucket's own access logging is the only record
+  of this path. That gap is the reason it is the owner's personal route and not a second viewer.
+  It ends when AD.8 ships, and then `case.sh` is the route again.
 - The public URL is a surface the tunnel design did not have; what bounds it is the passkey, the
   rate limit, and that nothing on it answers without a session except the sign-in ceremony itself.
 - Lookup is **by case id, `traceId` or account id only** - no list of users, no search over content,

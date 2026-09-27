@@ -11,6 +11,15 @@ decisions.
 
 ---
 
+## 2026-09-27 · A pasted debug case id is fetched from the bucket with yc and walked by the `debug-case` skill
+
+| | |
+|---|---|
+| **Commits** | this change (`scripts/case-yc.sh`, `.claude/skills/debug-case/SKILL.md`) |
+| **Reason** | The owner pasted case `02412-PM1N2`, and `scripts/case.sh` had nowhere to go: the admin viewer (AD.8) is not deployed and the read key is not provisioned. Product owner: *"add a skill how to process the id. Admin doesn't work... download directly from storage using yc"*. |
+| **Evidence** | The case was complete in `tankbook-blobs` 17 s after upload (API log `case.stored`, 06:29:05), while the orchestrator had told the owner to wait. Walking its trace found the cause in minutes: every digit read right, and the law refused under the car's RUB. That became PU.100. |
+| **What changed** | A pasted case id loads the `debug-case` skill: fetch with `case-yc.sh`, pick the newest scan, check the trace's `currency` first, walk the stages in order, re-run the photo with `pump-read`, and file a `PU` row. Hard rule 9 and `docs/SECURITY.md` record the route and its missing access log. |
+
 ## 2026-09-26 · The OCR accuracy suites are measured in the iOS 27 simulator
 
 | | |
