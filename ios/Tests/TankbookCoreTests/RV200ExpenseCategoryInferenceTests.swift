@@ -84,7 +84,7 @@ struct RV200ExpenseCategoryInferenceTests {
     @Test("every expense fixture infers the category its filename oracle names")
     func everyFixtureMatchesItsFilenameOracle() throws {
         let rows = try Self.expectedRows()
-        #expect(rows.count == 19, "the expense fixture set changed size: \(rows.count)")
+        #expect(rows.count == 20, "the expense fixture set changed size: \(rows.count)")
         for row in rows {
             let inferred = try Self.infer(row.filename)
             if Self.declaredMisses.keys.contains(row.filename) {

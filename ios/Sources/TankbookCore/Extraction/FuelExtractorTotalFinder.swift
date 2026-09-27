@@ -357,11 +357,14 @@ extension FuelExtractor {
     }
 
     func adjacentValue(_ line: OCRLine) -> Double? {
+        // A percentage is a rate, never an amount: `KM 24.0%` beside `Makstud:`
+        // is the VAT rate, and `=2380.00 НДС 5%` still offers its 2380.00.
+        let text = line.text.replacing(/\d+(?:[.,]\d+)?\s*%/, with: "")
         // Both predicates, for the reason given at the other call site.
-        guard NumberScanner.isValueLine(line.text),
-              !NumberScanner.isSubtractionLine(line.text),
-              !NumberScanner.isNegativeAmount(line.text) else { return nil }
-        return NumberScanner.value(in: line.text)
+        guard NumberScanner.isValueLine(text),
+              !NumberScanner.isSubtractionLine(text),
+              !NumberScanner.isNegativeAmount(text) else { return nil }
+        return NumberScanner.value(in: text)
     }
 
     /// The total-finder's mode, with a deterministic, deliberate tie-break.

@@ -19,6 +19,7 @@ private struct SlowGatewayTransport: GatewayExtractTransport {
     let cancelled = CancellationFlag()
 
     func extract(_ request: GatewayExtractRequest) async throws -> GatewayExtraction {
+        guard delay > .zero else { return extraction }
         do {
             try await Task.sleep(for: delay)
         } catch {
@@ -92,21 +93,20 @@ struct GatewayBudgetTests {
 
     @Test("an answer within the budget is delivered without firing the budget")
     func answerWithinBudgetIsDelivered() async throws {
+        // The answer is ready at once, so it needs no timer to resume. The claim
+        // is "an answer that arrives inside the budget is delivered and the
+        // budget never fires"; `budgetIsThreeSeconds` pins the 3 s rule itself.
+        // A timed answer raced the scheduler instead: `wait` runs the work and
+        // the deadline as two tasks, and while the corpus suites hold every
+        // cooperative thread neither sleep resumes until both have expired, so
+        // whichever the pool picked first won - a 50 ms answer lost to a 60 s
+        // deadline after 123 s. An answer with no sleep completes as soon as it
+        // is scheduled; the deadline still has to wait out its full timeout.
         let transport = SlowGatewayTransport(
-            delay: .milliseconds(50),
+            delay: .zero,
             extraction: Self.fixture()
         )
         let task = Task { try await transport.extract(.init(kind: "receipt", imageJPEG: Data())) }
-        // A GENEROUS budget on purpose. What this test claims is "an answer that
-        // arrives inside the budget is delivered and the budget never fires" -
-        // the number is incidental, and `budgetIsThreeSeconds` pins the real 3 s
-        // product rule on its own. With `.seconds(3)` here the assertion raced
-        // the scheduler instead: `wait` runs the work and the deadline as two
-        // detached tasks, and under a saturated machine (this suite's corpus
-        // tests peg every core for ~29 s) a 50 ms sleep is not scheduled within
-        // 3 s, so the deadline won and the test reported a budget failure that
-        // was really machine load. It went red five times on 2026-08-29 and
-        // twice consistently once the suite passed 950 tests.
         let outcome = try await GatewayWaiter.wait(task, timeout: .seconds(60))
         guard case .answered(let extraction) = outcome else {
             Issue.record("a 50 ms answer must arrive within the 3 s budget")
