@@ -602,6 +602,40 @@
         }
       }
     },
+    "Light" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Light"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Светлая"
+          }
+        }
+      }
+    },
+    "Match the system" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Match the system"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Как в системе"
+          }
+        }
+      }
+    },
     "Turn the photo" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -631,7 +665,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Обновите приложение или отредактируйте, чтобы повторить"
+            "value": "Обновите приложение или отредактируйте их, чтобы повторить"
           }
         }
       }

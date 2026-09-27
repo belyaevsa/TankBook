@@ -273,7 +273,9 @@ struct AppRootView: View {
             .accessibilityHidden(!isActive)
     }
 
-    var body: some View {
+    var body: some View { rootContent.modifier(AppearanceScheme()) }
+
+    private var rootContent: some View {
         Group {
             if showWelcome {
                 // Onboarding owns the screen until a car exists or a session

@@ -681,6 +681,9 @@ alias_shot P4.7-restore-empty-ru RV.260-empty-restore-doors-ru
 # runs 20-30% longer and short strings expand.
 capture P4.9b-settings-guest      en -presentScreen settings -seedSettingsGuest
 capture P4.9b-settings-guest-ru   ru -presentScreen settings -seedSettingsGuest
+# RV.316: Appearance is a control - the whole app pinned to Light, the row saying so.
+capture RV.316-settings-appearance-light    en -presentScreen settings -seedSettingsGuest -tankbook.appearance light
+capture RV.316-settings-appearance-light-ru ru -presentScreen settings -seedSettingsGuest -tankbook.appearance light
 capture P4.9b-settings-synced     en -presentScreen settings -seedSettingsSynced
 capture P4.9b-settings-synced-ru  ru -presentScreen settings -seedSettingsSynced
 capture P4.9b-settings-pending    en -presentScreen settings -seedSettingsPending

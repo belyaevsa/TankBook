@@ -2781,9 +2781,9 @@
       "runtime": "iOS.26.5"
     },
     "RV.284-settings-rejected-ru": {
-      "commit": "be44dc4c",
+      "commit": "d751a330",
       "device": "iPhone 17",
-      "runtime": "iOS.26.5"
+      "runtime": "iOS.27.0"
     },
     "RV.288-inbox-does-not-add-up": {
       "commit": "b7a05b9c",
@@ -2862,6 +2862,16 @@
     },
     "RV.313-send-diagnostics-interrupted-ru": {
       "commit": "4d24a142",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.316-settings-appearance-light": {
+      "commit": "d751a330",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.316-settings-appearance-light-ru": {
+      "commit": "d751a330",
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },

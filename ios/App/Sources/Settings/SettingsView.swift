@@ -24,6 +24,7 @@ struct SettingsView: View {
     @State private var isExporting = false
     @State private var exportFailure: ExportFailure?
     @State private var showsLanguagePicker = false
+    @AppStorage(AppearancePreference.storageKey) private var appearance = AppearancePreference.system
     @State private var languageStore = LanguagePreferenceStore()
     @State private var selectedLanguage: String?
 
@@ -266,7 +267,7 @@ struct SettingsView: View {
 
     private var preferencesCard: some View {
         VStack(spacing: 0) {
-            valueRow("Appearance", value: "Dark", identifier: "settingsAppearanceRow")
+            AppearanceRow(selection: $appearance)
             CardDivider()
             languageRow
             CardDivider()

@@ -58,6 +58,30 @@ final class SettingsUITests: XCTestCase {
                       "the guest account card offers sign-in")
     }
 
+    /// The Appearance row is a control, not a label: it opens a menu of Match
+    /// the system / Dark / Light, the choice shows on the row, and it survives a
+    /// relaunch. It used to be a static "Dark" with a chevron that did nothing.
+    func testAppearanceRowChangesTheThemeAndRemembersIt() {
+        let app = launchSettings(seed: "-seedSettingsGuest")
+        let row = app.buttons["settingsAppearanceRow"]
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+        let light = app.buttons["Light"]
+        XCTAssertTrue(light.waitForExistence(timeout: 5), "the row opens the theme menu")
+        light.tap()
+        XCTAssertEqual(app.staticTexts["settingsAppearanceValue"].label, "Light")
+
+        let relaunched = launchSettings(seed: "-seedSettingsGuest")
+        let value = relaunched.staticTexts["settingsAppearanceValue"]
+        XCTAssertTrue(value.waitForExistence(timeout: 10))
+        XCTAssertEqual(value.label, "Light", "the choice survives a relaunch")
+
+        // Leave the device on the default for the tests that follow.
+        relaunched.buttons["settingsAppearanceRow"].tap()
+        relaunched.buttons["Match the system"].tap()
+        XCTAssertEqual(relaunched.staticTexts["settingsAppearanceValue"].label, "Match the system")
+    }
+
     func testSyncedShowsReassuranceStatus() {
         let app = launchSettings(seed: "-seedSettingsSynced")
         let status = syncStatus(app)
