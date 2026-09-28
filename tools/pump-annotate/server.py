@@ -1146,6 +1146,10 @@ class Handler(SimpleHTTPRequestHandler):
         # text corrections above cover only what the reader pre-filled).
         corrections += corpus_db.window_corrections(name, before.get("windows", []), entry.get("windows", []))
         corrections += corpus_db.negative_corrections(name, before.get("negatives", []), entry.get("negatives", []))
+        # A moved or resized window is the operator's, whoever proposed it -
+        # also when the page did not stamp it (the ledger rows above still name
+        # the proposer).
+        corpus_db.mark_edited_hand(before.get("windows", []), entry.get("windows", []))
         # Decision 9: a heldout still measures only once reviewed, so editing a
         # reviewed heldout entry's windows clears reviewed - a changed heldout
         # still never measures silently. Identical windows keep it.

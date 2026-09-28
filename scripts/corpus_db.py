@@ -1118,20 +1118,14 @@ def save_video_anchor(stem: str, frame: str, windows: list[dict],
         return [r["frame"] for r in con.execute("select distinct frame from video_anchors where stem = ? order by ord", (stem,))]
 
 
-def window_corrections(still: str, before: list[dict], after: list[dict]) -> list[dict]:
-    """The ledger rows a still's save owes for its windows: a moved quad (`quad`),
-    a window that was not there (`add`) and one that is gone (`delete`). Windows
-    pair by field and, among same-field ones (a board has several), by the best
-    overlap; a pair below `PAIR_IOU` is an add and a delete, not a move, because a
-    quad dragged across the face is a different window. `proposedBy` names who
-    placed the quad being changed (`placedBy`: auto, reader, tracker, template)
-    or `operator` for a hand-drawn one."""
+def pair_windows(before: list[dict], after: list[dict]) -> list[tuple[int, int, float]]:
+    """(before index, after index, IoU) for each window a save kept: same field
+    and, among same-field ones (a board has several), the best overlap. A pair
+    below `PAIR_IOU` is not a pair - a quad dragged across the face is a
+    different window."""
     PAIR_IOU = 0.2
-    who = lambda w: "operator" if w.get("placedBy", "hand") == "hand" else w.get("placedBy")
-    shape = lambda w: {"field": w.get("field"), "quad": w.get("quad"), "text": w.get("text", "")}
     unmatched_after = list(range(len(after)))
-    matched_before: set[int] = set()
-    rows: list[dict] = []
+    pairs = []
     for i, w in enumerate(before):
         best, best_iou = None, PAIR_IOU
         for j in unmatched_after:
@@ -1140,13 +1134,43 @@ def window_corrections(still: str, before: list[dict], after: list[dict]) -> lis
             iou = quad_iou(w["quad"], after[j]["quad"])
             if iou > best_iou:
                 best, best_iou = j, iou
-        if best is None:
-            continue
-        unmatched_after.remove(best)
-        matched_before.add(i)
-        if after[best]["quad"] != w["quad"]:
+        if best is not None:
+            unmatched_after.remove(best)
+            pairs.append((i, best, best_iou))
+    return pairs
+
+
+def mark_edited_hand(before: list[dict], after: list[dict]) -> int:
+    """A kept window whose quad the save moved or resized becomes the
+    operator's (`placedBy: hand`), whoever proposed it; its `zoom` stays what
+    the page sent. Returns how many windows it re-stamped."""
+    stamped = 0
+    for i, j, _ in pair_windows(before, after):
+        if after[j]["quad"] != before[i]["quad"] and after[j].get("placedBy") != "hand":
+            after[j]["placedBy"] = "hand"
+            stamped += 1
+    return stamped
+
+
+def window_corrections(still: str, before: list[dict], after: list[dict]) -> list[dict]:
+    """The ledger rows a still's save owes for its windows: a moved quad (`quad`),
+    a window that was not there (`add`) and one that is gone (`delete`). Windows
+    pair by field and, among same-field ones (a board has several), by the best
+    overlap; a pair below `PAIR_IOU` is an add and a delete, not a move, because a
+    quad dragged across the face is a different window. `proposedBy` names who
+    placed the quad being changed (`placedBy`: auto, reader, tracker, template)
+    or `operator` for a hand-drawn one."""
+    who = lambda w: "operator" if w.get("placedBy", "hand") == "hand" else w.get("placedBy")
+    shape = lambda w: {"field": w.get("field"), "quad": w.get("quad"), "text": w.get("text", "")}
+    pairs = pair_windows(before, after)
+    matched_before = {i for i, _, _ in pairs}
+    unmatched_after = [j for j in range(len(after)) if j not in {j for _, j, _ in pairs}]
+    rows: list[dict] = []
+    for i, j, iou in pairs:
+        w = before[i]
+        if after[j]["quad"] != w["quad"]:
             rows.append({"kind": "quad", "still": still, "field": w["field"], "proposedBy": who(w),
-                         "proposed": w["quad"], "final": after[best]["quad"], "iou": best_iou})
+                         "proposed": w["quad"], "final": after[j]["quad"], "iou": iou})
     for i, w in enumerate(before):
         if i not in matched_before:
             rows.append({"kind": "delete", "still": still, "field": w.get("field"), "proposedBy": who(w),

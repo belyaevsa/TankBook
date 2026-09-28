@@ -417,6 +417,26 @@ def test_window_corrections_record_moves_adds_and_deletes() -> None:
     assert cdb.window_corrections("pump-999.jpg", before, before) == []
 
 
+def test_a_moved_or_resized_window_becomes_hand() -> None:
+    q = lambda x0, y0, x1, y1: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
+    before = [
+        {"field": "total", "quad": q(0.1, 0.1, 0.5, 0.2), "placedBy": "auto"},
+        {"field": "liters", "quad": q(0.1, 0.3, 0.5, 0.4), "placedBy": "reader"},
+        {"field": "unitPrice", "quad": q(0.1, 0.5, 0.3, 0.55), "placedBy": "auto"},
+    ]
+    after = [
+        {"field": "total", "quad": q(0.12, 0.1, 0.52, 0.2), "placedBy": "auto", "zoom": 2.0},  # moved
+        {"field": "liters", "quad": q(0.1, 0.3, 0.55, 0.42), "placedBy": "reader"},              # resized
+        {"field": "unitPrice", "quad": q(0.1, 0.5, 0.3, 0.55), "placedBy": "auto"},              # untouched
+    ]
+    assert cdb.mark_edited_hand(before, after) == 2
+    assert [w["placedBy"] for w in after] == ["hand", "hand", "auto"]
+    assert after[0]["zoom"] == 2.0
+    # The ledger still names who proposed the quad the operator changed.
+    moved = [r for r in cdb.window_corrections("pump-999.jpg", before, after) if r["kind"] == "quad"]
+    assert sorted(r["proposedBy"] for r in moved) == ["auto", "reader"]
+
+
 def test_negatives_round_trip_and_ledger(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     q = lambda x0, y0, x1, y1: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
     before = [{"quad": q(0.7, 0.1, 0.9, 0.2), "source": "operator", "reason": "totem"}]

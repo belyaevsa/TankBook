@@ -472,6 +472,11 @@ the ml venv runs it); the converted images are cached under
   written by the page, stored by `clean_entry` and the `windows` table, and
   shown on the card as `hand @1.4x`. A `▶ read` pre-fill that only changes text
   leaves them alone; the reader's auto-placed pump-244..pump-281 batch is `auto`.
+  A window whose quad you move, resize or turn - by mouse or by the arrow keys - is
+  yours: the page stamps it `hand`, and the server's save does the same for any kept
+  window whose quad changed (`corpus_db.mark_edited_hand`), so an auto or reader box
+  you corrected never stays labelled as the machine's. The correction ledger still
+  names who proposed the quad you changed.
 - `Save` (`⌘S`) writes the entry as rows in `fixtures/corpus.sqlite`
   (`scripts/corpus_db.py`) through the database, dumped; the database is
   committed with the files. `Check` runs

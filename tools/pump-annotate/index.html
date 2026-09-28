@@ -2483,6 +2483,7 @@ document.addEventListener('keydown', e => {
       w.quad = w.quad.map(q => { const p = toDisp(q); return toImg([p[0] + dx, p[1] + dy]).map(v => Math.round(v * 10000) / 10000); });
     }
     if (frameMode && isVideo) frameQuadsEdited = true;
+    markHand(sel);
     touch(); renderWins(); draw(); liveSlice();
     return;
   }
