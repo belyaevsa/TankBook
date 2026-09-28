@@ -461,7 +461,7 @@ and split on the device.
 **Success metric:** ≥50% of service records carry an attachment; reminder acceptance rate ≥60%.
 
 ### J7b · Parts, tires, consumables
-**Status: implemented 2026-09-13** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J7b-2026-09-13b)
+**Status: unreviewed** (was implemented 2026-09-13, REVIEW-SCENARIO-J7b-2026-09-13b; cleared 2026-09-28 by RV.330, which adds the tire set's life below)
 **Trigger:** a filter ordered online, brake pads bought on sale, a winter tire set – purchased *now*, installed *later* (or never; the car is sold with the shelf).
 
 | Stage | Doing | Notes |
@@ -478,6 +478,16 @@ auto-create (hard rule 13). It is the one `.tires` offer there is: a tire line i
 cadence, and a live `.tires` reminder on the car suppresses a second. The user stops the season the
 way any reminder stops - **Dismiss** (keeps the row with a reason, feeds the anomaly logic) or
 **Delete** (a tombstone with the 30-day undo) from the row's own menu.
+
+**[v1.x] The tire set's life (RV.330, product owner 2026-09-28).** A set is more than a name and a
+total. Its Garage screen lists **every stint** - the swap that mounted it, the date, the km that stint
+covered and the running total - derived from the tire-swap service records, never stored. When the
+set is created (or edited later) the user may give the tires' **make, model, size, production week,
+tread-life rating and new tread depth**; at each swap the form offers a **condition reading** - tread
+depth measured and a note on wear or damage - so the set's history shows how the tires aged. All of
+it is optional and the user's to change (hard rule 13). Later, the tread trend against the legal and
+seasonal minimum becomes a suggestion to buy new tires - offered where the set lives, never in an
+error surface.
 
 **Fallbacks:** part logged without a receipt → plain manual expense, one field + price. User skips the shelf entirely and just types parts inside service records → works fine, the shelf is an optimization, never a gate. Tire mileage without logged swaps → unavailable, shown as "–", never estimated.
 
