@@ -193,20 +193,6 @@ enum PumpPanelLocator {
         return PumpGrayscale(width: width, height: height, pixels: out)
     }
 
-    static func rotateClockwise90(_ gray: PumpGrayscale) -> PumpGrayscale {
-        let w = gray.width
-        let h = gray.height
-        var out = [Float](repeating: 0, count: w * h)
-        for y in 0..<h {
-            for x in 0..<w {
-                let nx = h - 1 - y
-                let ny = x
-                out[ny * h + nx] = gray.pixels[y * w + x]
-            }
-        }
-        return PumpGrayscale(width: h, height: w, pixels: out)
-    }
-
     static func boxBlur(_ values: [Float], width: Int, height: Int, radius: Int) -> [Float] {
         var out = [Float](repeating: 0, count: width * height)
         let r = max(1, radius)

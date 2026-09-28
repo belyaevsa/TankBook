@@ -90,6 +90,7 @@ struct ReminderFormView: View {
         }
         .navigationTitle(isEditing ? "Edit reminder" : "New reminder")
         .navigationBarTitleDisplayMode(.inline)
+        .discardGuardedBack(isDirty: form.hasEdits())
         .task { await load() }
     }
 

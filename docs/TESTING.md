@@ -411,6 +411,19 @@ direction, are covered by `scripts/tests/check-screenshot-manifest.test.sh` (14 
 trees, no simulator). **Legacy is a narrow exception, not a dumping ground**: every entry carries a
 reason and the check prints the whole list on each run, so growth is visible.
 
+### The unused-declaration analyzer (RV.130)
+
+`scripts/analyze.sh` does a clean app build and runs SwiftLint's compiler-backed
+`unused_declaration` analyzer over its log. CI runs it after the app build, and it fails on
+any finding missing from `.swiftlint-analyzer-baseline.json`. The baseline is not a list of
+dead code. It holds declarations only the package tests, the app tests or `pump-read` read
+(this build does not compile them), and the analyzer's blind spots: a property wrapper read
+only through `$`, an AVFoundation delegate method, `@UIApplicationDelegateAdaptor`.
+Proven on 2026-09-28 by planting an unused declaration (the step failed) and removing it (the
+step passed). After deleting dead code, re-record the baseline with
+`scripts/analyze.sh --write-baseline`. Never re-record it to swallow a new finding; delete
+the declaration or wire it.
+
 ## When the FULL UI suite runs, and when it does not (standing rule, 2026-08-29)
 
 **Per task: only the UI tests that cover what the task touched. The full suite runs at PHASE

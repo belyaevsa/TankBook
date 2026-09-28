@@ -449,22 +449,3 @@ extension ImportCandidate {
                                title: title)
     }
 }
-
-/// Resolves the `dateFormat` question's answer to the candidate set the
-/// preview and the commit should read (PJ.10). The wire carries the M/D
-/// reading; choosing the flip reading re-dates the ambiguous rows, anything
-/// else leaves the candidates as the server sent them. One place for the
-/// decision so the preview, the review list and the commit cannot disagree
-/// about which dates a file carries (F6a).
-public enum ImportDateFormat {
-    public static func candidates(for parse: ImportParseResponse,
-                                  answer: String?) -> [ImportCandidate] {
-        guard let answer,
-              let ambiguity = parse.ambiguities.first(where: { $0.kind == "dateFormat" }),
-              ambiguity.options.count == 2,
-              answer == ambiguity.options[1] else {
-            return parse.candidates
-        }
-        return parse.reDatingAsDMY().candidates
-    }
-}

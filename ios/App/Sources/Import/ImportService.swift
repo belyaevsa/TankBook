@@ -135,10 +135,6 @@ enum TargetCar: Equatable {
         }
     }
 
-    /// The new-car name, as the user chose it (from the file's vehicle, or the
-    /// format name).
-    var newName: String { vehicleValue.name }
-
     /// Builds the synthesized car a new-car destination lands in. `homeCurrency`
     /// is REQUIRED: the import's answer (the file's declared currency, or the
     /// user's choice for a file with none) is a value the user set, so a factory

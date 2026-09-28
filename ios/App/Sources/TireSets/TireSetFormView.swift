@@ -45,6 +45,7 @@ struct TireSetFormView: View {
         .scrollDismissesKeyboard(.immediately)
         .background(Theme.Palette.midnight)
         .safeAreaInset(edge: .bottom) { saveBar }
+        .discardGuardedBack(isDirty: form.hasEdits())
         .navigationTitle(isEditing ? "Edit tire set" : "New tire set")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }

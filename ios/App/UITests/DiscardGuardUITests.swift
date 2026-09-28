@@ -44,4 +44,57 @@ final class DiscardGuardUITests: XCTestCase {
         XCTAssertFalse(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.alerts["Discard changes?"].exists)
     }
+
+    // MARK: - Pushed forms: back navigation asks too
+
+    /// Opens a form the way a user does: from its list, so back has a screen
+    /// to return to.
+    private func open(_ arguments: [String], newButton: String) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase"] + arguments
+        app.launch()
+        let button = app.buttons[newButton]
+        XCTAssertTrue(button.waitForExistence(timeout: 10), "\(newButton) never appeared")
+        button.tap()
+        return app
+    }
+
+    /// A typed tyre-set name: back asks first, Keep editing keeps the name in
+    /// the field, Discard leaves. With nothing typed, back is the plain one.
+    func testATypedTyreSetNameAsksBeforeGoingBack() {
+        let app = open(["-seedTireSets", "-presentScreen", "tireSets"], newButton: "tireSetsNewSetButton")
+        let name = app.textFields["tireSetNameField"]
+        XCTAssertTrue(name.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["formBackButton"].exists, "an untouched form keeps the system back")
+        name.tap()
+        name.typeText("Winter Nokian")
+
+        app.buttons["formBackButton"].tap()
+        XCTAssertTrue(app.alerts["Discard changes?"].waitForExistence(timeout: 5))
+        app.buttons["Keep editing"].tap()
+        XCTAssertEqual(name.value as? String, "Winter Nokian", "Keep editing keeps the typed name")
+
+        app.buttons["formBackButton"].tap()
+        app.buttons["Discard"].tap()
+        XCTAssertFalse(name.waitForExistence(timeout: 3), "Discard leaves the form")
+    }
+
+    /// The reminder form hides the tab bar, so back is its only way out - and a
+    /// typed title makes it ask.
+    func testATypedReminderTitleAsksBeforeGoingBack() {
+        let app = open(["-presentScreen", "reminders", "-seedReminders"], newButton: "remindersNewReminderButton")
+        let title = app.textFields["reminderFormTitleField"]
+        XCTAssertTrue(title.waitForExistence(timeout: 10))
+        title.tap()
+        title.typeText("Oil change")
+
+        app.buttons["formBackButton"].tap()
+        XCTAssertTrue(app.alerts["Discard changes?"].waitForExistence(timeout: 5))
+        app.buttons["Keep editing"].tap()
+        XCTAssertEqual(title.value as? String, "Oil change")
+
+        app.buttons["formBackButton"].tap()
+        app.buttons["Discard"].tap()
+        XCTAssertFalse(title.waitForExistence(timeout: 3))
+    }
 }

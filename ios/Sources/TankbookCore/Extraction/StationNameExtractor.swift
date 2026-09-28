@@ -130,7 +130,11 @@ public enum StationNameExtractor {
         // bank header on a mixed receipt (receipt-009) and the garble over
         // НЕФТЬМАГИСТРАЛЬ (receipt-012).
         "БАНКОВСКИЙ", "СВЯТОЙ ИСТОЧНИК", "DИЛDПОE", "ОКРУГ",
-        "ПО НАЛОГУ", "СУКМА"
+        "ПО НАЛОГУ", "СУКМА",
+        // A comment field holds whatever the seller typed - on a tyre-shop
+        // invoice, the car's plate (`Kommentaar: 004TXK`) - never the station.
+        "KOMMENTAAR", "MÄRKUS", "COMMENT", "КОММЕНТАРИ", "ПРИМЕЧАНИ",
+        "KÄIBEMAKS", "KAIBEMAKS"
     ]
 
     private static func isFurniture(_ text: String) -> Bool {

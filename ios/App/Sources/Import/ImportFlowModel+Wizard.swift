@@ -23,8 +23,6 @@ extension ImportFlowModel {
 
     var hasDateFormatQuestion: Bool { dateFormatAmbiguity != nil }
 
-    var dateFormatAnswered: Bool { dateFormatAnswer != nil }
-
     /// Whether the commit may proceed: every F6 question is answered. A
     /// `dateFormat` question unanswered would commit the file under the
     /// parser's guess (docs/JOURNEYS.md J2's stats-poisoning misread), and a

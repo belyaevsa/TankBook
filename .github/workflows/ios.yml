@@ -76,3 +76,9 @@ jobs:
           xcodebuild -project Tankbook.xcodeproj -scheme Tankbook
           -destination 'generic/platform=iOS Simulator'
           CODE_SIGNING_ALLOWED=NO build
+
+      # SwiftLint's compiler-backed analyzer: fails on an unused declaration
+      # that is not in .swiftlint-analyzer-baseline.json (RV.130). Its own
+      # clean build, because the analyzer reads the compiler log.
+      - name: Unused declarations (analyzer)
+        run: bash scripts/analyze.sh

@@ -318,7 +318,8 @@ struct ManualFillUpNumbersCard: View {
                 Rectangle().fill(color).frame(height: 1.5)
                     .scaleEffect(x: locked ? 1 : 0.12, anchor: .leading)
             }
-            .animation(reduceMotion ? nil : .spring(duration: 0.45), value: locked)
+            .animation(ConfirmLockAnimation.shouldAnimate(reduceMotion: reduceMotion) ? .spring(duration: 0.45) : nil,
+                       value: locked)
             .accessibilityIdentifier(locked ? "manualFillUpCheckLineLocked" : "manualFillUpCheckLine")
             .padding(.horizontal, Theme.Spacing.cardPadding)
             .onChange(of: locked) { _, isLocked in

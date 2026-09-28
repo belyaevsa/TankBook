@@ -66,11 +66,9 @@ enum TrendsFormat {
 // MARK: - Empty states
 
 /// The "no car yet" Trends (design: the same truth as Home - logging needs a
-/// car, so this is the Add-car path, not an empty dashboard). The Add car route
-/// is a pushed link, the Type-it escape a sheet, so navigation never dead-ends.
+/// car, so this is the Add-car path, not an empty dashboard). Its one door is
+/// Add car, a pushed link; there is nothing to type without a car.
 struct TrendsNoCarLayout: View {
-    let presentSheet: (SheetRoute) -> Void
-
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 8) {

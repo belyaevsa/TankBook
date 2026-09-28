@@ -116,8 +116,6 @@ enum SignInTestSeed {
         }
     }
 
-    static func stubAuthService() -> any AuthService { StubAuthService() }
-
     static func stubRestoreProvider() -> any RestoreProviding {
         let outcome: RestoreOutcome
         switch scenario() {

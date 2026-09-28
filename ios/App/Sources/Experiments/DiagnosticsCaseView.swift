@@ -190,13 +190,8 @@ struct DiagnosticsCaseView: View {
 
     private var logPreview: some View {
         ScrollView {
-            Text(verbatim: model.logText)
-                .font(.system(.caption2, design: .monospaced))
-                .foregroundStyle(Theme.Palette.ink)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            LogTextView(text: model.logText, identifier: "diagnosticsCaseLogText")
                 .padding(Theme.Spacing.screenMargin)
-                .accessibilityIdentifier("diagnosticsCaseLogText")
         }
         .background(Theme.Palette.midnight)
         .navigationTitle("Log")

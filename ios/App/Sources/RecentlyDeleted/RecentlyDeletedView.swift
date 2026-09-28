@@ -36,11 +36,6 @@ struct RecentlyDeletedView: View {
     @State private var showPurgeConfirm = false
     @State private var didLoad = false
 
-    private var hasAnythingToDelete: Bool {
-        !deletedVehicles.isEmpty || !deleted.isEmpty || !deletedReminders.isEmpty
-            || !syncOverwritten.isEmpty
-    }
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {

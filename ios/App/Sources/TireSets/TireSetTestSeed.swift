@@ -108,14 +108,5 @@ enum TireSetTestSeed {
             photo: nil, archived: false, paceLimitKmPerDay: 1500,
             initialOdometer: initialOdometer)
     }
-
-    /// The tire set the ServiceEntry Tires-mode screenshot pre-selects (the
-    /// winter set, so the mount screenshot shows the derived 18 400 km lineage).
-    @MainActor
-    static func firstTireSetID() -> UUID? {
-        guard let repository = try? AppStore.repository(),
-              let vehicle = (try? repository.liveVehicles())?.first else { return nil }
-        return (try? repository.liveTireSets(forVehicle: vehicle.id))?.first?.id
-    }
 }
 #endif

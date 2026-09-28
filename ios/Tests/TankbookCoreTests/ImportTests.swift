@@ -463,13 +463,20 @@ struct ImportDateFormatQuestionTests {
         #expect(parse.canCommit(dateFormatAnswer: nil, currencyAnswer: nil) == true)
     }
 
+    /// The candidates the app shows and commits: `ImportBatchMerge.merge`, the
+    /// path `ImportFlowModel.syncMergedParse` runs, over a one-file pick.
+    private static func merged(_ parse: ImportParseResponse, answer: String?) -> [ImportCandidate] {
+        ImportBatchMerge.merge(files: [ImportParsedFile(parse: parse, rawLines: [:])],
+                               dateFormatAnswer: answer)?.parse.candidates ?? []
+    }
+
     @Test func answeringDMYFlipsTheAmbiguousDatesAndLeavesUnambiguousOnes() {
         // 2026-08-09: day 9 <= 12, genuinely ambiguous - under D/M it is
         // 2026-09-08. 2026-08-24: day 24 > 12, unambiguous, must not move.
         // The test asserts the DATES, never the flag (a flag-only test is the
         // whole defect PJ.10 exists to close).
         let parse = Self.parse(dates: ["2026-08-09T00:00:00Z", "2026-08-24T00:00:00Z"])
-        let resolved = ImportDateFormat.candidates(for: parse, answer: "D/M/YYYY")
+        let resolved = Self.merged(parse, answer: "D/M/YYYY")
         #expect(resolved.count == 2)
         #expect(Self.utcComponents(resolved[0].date) == (2026, 9, 8),
                 "2026-08-09 under M/D reads 2026-09-08 under D/M; got \(resolved[0].date)")
@@ -479,14 +486,14 @@ struct ImportDateFormatQuestionTests {
 
     @Test func answeringMDYKeepsTheWireReading() {
         let parse = Self.parse(dates: ["2026-08-09T00:00:00Z"])
-        let resolved = ImportDateFormat.candidates(for: parse, answer: "M/D/YYYY")
+        let resolved = Self.merged(parse, answer: "M/D/YYYY")
         #expect(resolved[0].date == parse.candidates[0].date,
                 "the M/D reading is what the wire already carries")
     }
 
     @Test func anUnansweredQuestionLeavesTheCandidatesUntouched() {
         let parse = Self.parse(dates: ["2026-08-09T00:00:00Z"])
-        let resolved = ImportDateFormat.candidates(for: parse, answer: nil)
+        let resolved = Self.merged(parse, answer: nil)
         #expect(resolved[0].date == parse.candidates[0].date)
     }
 }

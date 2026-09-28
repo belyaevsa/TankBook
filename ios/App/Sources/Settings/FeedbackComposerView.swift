@@ -163,6 +163,7 @@ struct FeedbackComposerView: View {
             }
             .tint(Theme.Palette.taillight)
             .accessibilityIdentifier("feedbackConsentToggle")
+            .id(AboutScrollAnchor.consentID)
             Text(L10n.feedbackConsentDetail)
                 .font(.caption2)
                 .foregroundStyle(Theme.Palette.inkSoft)

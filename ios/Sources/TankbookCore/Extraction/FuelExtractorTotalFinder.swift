@@ -69,21 +69,6 @@ extension FuelExtractor {
 
     // MARK: - The total finder's helpers
 
-    /// The discounted total: when the labelled total minus a printed discount
-    /// equals another label-paired candidate, the charged figure is the
-    /// discounted one. A discount is the list price minus the charged price, so
-    /// `total - discount == charged`; a match within half a cent is exact for
-    /// the corpus's two-decimal money.
-    func discountedTotal(of total: Double, candidates: [Double], lines: [OCRLine]) -> Double? {
-        for discount in ExtractionCrossCheck.discountLines(in: lines) {
-            let amount = NSDecimalNumber(decimal: discount).doubleValue
-            for candidate in candidates where abs((total - amount) - candidate) < 0.005 {
-                return candidate
-            }
-        }
-        return nil
-    }
-
     /// Whether a resolved unit price is really a printed discount: the price
     /// contradicts the product by more than the cross-check tolerance AND its
     /// magnitude equals a discount line the document prints. The money sibling

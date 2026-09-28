@@ -46,12 +46,6 @@ extension ImportFlowModel {
         !carPlan.isEmpty && carPlan.allSatisfy(\.isDecided) && canConfirm && !didConfirm
     }
 
-    /// True while at least one source car still lacks a destination - the
-    /// mapping screen's hint state (Continue stays disabled).
-    var carsGateHasUndecided: Bool {
-        carPlan.contains { !$0.isDecided }
-    }
-
     // MARK: - Decisions
 
     /// Records the user's destination choice for one source car and reclassifies

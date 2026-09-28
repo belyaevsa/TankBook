@@ -274,32 +274,3 @@ extension FuelKind {
         }
     }
 }
-
-extension DistanceUnit {
-    var labelKey: LocalizedStringKey {
-        switch self {
-        case .km: "km"
-        case .mi: "mi"
-        }
-    }
-}
-
-extension VolumeUnit {
-    var labelKey: LocalizedStringKey {
-        switch self {
-        case .l: "L"
-        case .galUS, .galUK: "gal"
-        }
-    }
-}
-
-extension ConsumptionUnit {
-    var labelKey: LocalizedStringKey {
-        switch self {
-        case .lPer100: "L/100km"
-        case .mpgUS: "MPG"
-        case .mpgUK: "MPG"
-        case .kmPerL: "km/L"
-        }
-    }
-}

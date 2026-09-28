@@ -204,6 +204,12 @@ public extension ExtractionCrossCheck {
         return values
     }
 
+    /// How far above the label a discount's value may sit and still share its
+    /// baseline, and how far below it may sit - one printed row, in Vision's
+    /// normalised coordinates.
+    static let discountBaselineWindow: CGFloat = 0.012
+    static let discountBelowWindow: CGFloat = 0.03
+
     private static func discountValue(for label: OCRLine, at index: Int,
                                       in lines: [OCRLine]) -> Decimal? {
         // The label line itself carries the amount ("You saved 1.01 EUR",
@@ -211,22 +217,30 @@ public extension ExtractionCrossCheck {
         if let value = NumberScanner.value(in: label.text) {
             return ConfirmFormat.decimal(fromExtraction: value, fractionDigits: 2)
         }
-        // Same-baseline value: Circle K rows print `1.01 EUR  Discount` with
-        // the value beside the label. Only meaningful with real geometry; a
-        // text-line convenience array has `.zero` boxes and would pair
-        // everything with the first value.
+        // A signed value on the label's baseline or just below it wins: a
+        // discount prints as a subtraction (`-0,96 EUR`). Vision splits Circle
+        // K's fuel block into one-token lines, where the unsigned unit price
+        // `2,024` shares the label's baseline and its own `-0,96 EUR` sits 0.016
+        // below, so an unsigned baseline value is taken only when no signed one
+        // is there (a charging app prints `Discount 2.39` unsigned beside its
+        // label). Only meaningful with real geometry; a text-line array has
+        // `.zero` boxes.
         if label.boundingBox != .zero {
-            var best: (distance: CGFloat, value: Double)?
+            var signed: (distance: CGFloat, value: Double)?
+            var unsigned: (distance: CGFloat, value: Double)?
             for (otherIndex, line) in lines.enumerated() where otherIndex != index {
-                guard abs(line.midY - label.midY) < 0.012,
+                let below = label.midY - line.midY
+                guard below > -discountBaselineWindow, below <= discountBelowWindow,
                       NumberScanner.isValueLine(line.text),
                       let value = NumberScanner.value(in: line.text) else { continue }
-                let distance = abs(line.boundingBox.midX - label.boundingBox.midX)
-                if best == nil || distance < best!.distance {
-                    best = (distance, value)
+                let distance = abs(line.boundingBox.midX - label.boundingBox.midX) + abs(below)
+                if NumberScanner.isSubtractionLine(line.text) || NumberScanner.isNegativeAmount(line.text) {
+                    if signed == nil || distance < signed!.distance { signed = (distance, value) }
+                } else if abs(below) < discountBaselineWindow {
+                    if unsigned == nil || distance < unsigned!.distance { unsigned = (distance, value) }
                 }
             }
-            if let best {
+            if let best = signed ?? unsigned {
                 return ConfirmFormat.decimal(fromExtraction: best.value, fractionDigits: 2)
             }
         }

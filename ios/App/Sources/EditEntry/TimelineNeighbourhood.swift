@@ -43,11 +43,6 @@ struct TimelineNeighbourhood: Equatable {
     let previous: Neighbour?
     /// The immediate next neighbour, nil when the entry is the newest.
     let next: Neighbour?
-    /// The point immediately before the offending one, when one exists.
-    var previousPoint: Point? {
-        guard let index = offendingIndex, index > 0 else { return nil }
-        return points[index - 1]
-    }
 
     /// The offending point's position in `points`.
     var offendingIndex: Int? {

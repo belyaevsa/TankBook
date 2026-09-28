@@ -26,22 +26,24 @@ final class CaptureUITests: XCTestCase {
     // MARK: - F8: denied permission
 
     /// Scroll a number field clear of the keyboard and the pinned save bar, then
-    /// tap it. `app.scrollViews.firstMatch` is the screen BEHIND a presented
-    /// sheet, so the drag must target the hittable one, anchored above the bar -
-    /// a swipe starting lower is eaten by the keyboard.
+    /// tap it. The drag is anchored in window points just above the save bar:
+    /// the scroll views of the screens behind a presented sheet still report
+    /// themselves hittable, so a point taken as a fraction of "the hittable
+    /// scroll view" can land on the save bar or the keyboard, and a drag that
+    /// starts on either scrolls nothing.
     @discardableResult
     private func focusNumberField(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
         let field = app.textFields[identifier]
         XCTAssertTrue(field.waitForExistence(timeout: 10), "\(identifier) never appeared")
         let bar = app.buttons["manualFillUpSaveButton"]
+        let window = app.windows.firstMatch
         var scrolls = 0
         while scrolls < 8 {
-            let barTop = bar.exists ? bar.frame.minY : app.windows.firstMatch.frame.maxY
+            let barTop = bar.exists ? bar.frame.minY : window.frame.maxY
             if field.isHittable && field.frame.maxY < barTop - 8 { break }
-            guard let scroll = app.scrollViews.allElementsBoundByIndex.first(where: { $0.isHittable })
-            else { break }
-            let from = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
-            let to = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
+            let origin = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0))
+            let from = origin.withOffset(CGVector(dx: 0, dy: barTop - 24))
+            let to = origin.withOffset(CGVector(dx: 0, dy: max(barTop - 224, 140)))
             from.press(forDuration: 0.05, thenDragTo: to)
             scrolls += 1
         }

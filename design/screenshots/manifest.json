@@ -61,14 +61,14 @@
       "runtime": "iOS.26.5"
     },
     "OB.4-diagnostics-preview": {
-      "commit": "fe1592f",
+      "commit": "81212e0c",
       "device": "iPhone 17",
-      "runtime": "iOS.26.5"
+      "runtime": "iOS.27.0"
     },
     "OB.4-diagnostics-preview-ru": {
-      "commit": "fe1592f",
+      "commit": "81212e0c",
       "device": "iPhone 17",
-      "runtime": "iOS.26.5"
+      "runtime": "iOS.27.0"
     },
     "P1.1-shell-dark": {
       "commit": "a52fc86c",
@@ -2065,6 +2065,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.175-about-consents-xl": {
+      "commit": "81212e0c",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.175-about-consents-xl-ru": {
+      "commit": "81212e0c",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "RV.177-home-currency-change": {
       "commit": "e4766fb",
       "device": "iPhone 17",
@@ -2076,14 +2086,14 @@
       "runtime": "iOS.26.5"
     },
     "RV.181-diagnostics-share": {
-      "commit": "4c424a22",
+      "commit": "81212e0c",
       "device": "iPhone 17",
-      "runtime": "iOS.26.5"
+      "runtime": "iOS.27.0"
     },
     "RV.181-diagnostics-share-ru": {
-      "commit": "4c424a22",
+      "commit": "81212e0c",
       "device": "iPhone 17",
-      "runtime": "iOS.26.5"
+      "runtime": "iOS.27.0"
     },
     "RV.182-catalog-fill-tank": {
       "commit": "dff5366",

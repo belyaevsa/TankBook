@@ -18,28 +18,33 @@ struct AboutView: View {
     @State private var showsSendDiagnostics = false
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 12) {
-                identityCard
-                #if EXPERIMENTS
-                experimentsSection
-                #endif
-                if config.requirement == .recommended {
-                    UpdateRecommendedRow()
-                }
-                if let diagnosticsModel {
-                    DiagnosticsSection(model: diagnosticsModel) {
-                        showsDiagnosticsPreview = true
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 12) {
+                    identityCard
+                    #if EXPERIMENTS
+                    experimentsSection
+                    #endif
+                    if config.requirement == .recommended {
+                        UpdateRecommendedRow()
                     }
+                    if let diagnosticsModel {
+                        DiagnosticsSection(model: diagnosticsModel) {
+                            showsDiagnosticsPreview = true
+                        }
+                    }
+                    if let feedbackModel {
+                        FeedbackComposerView(model: feedbackModel)
+                    }
+                    footer
                 }
-                if let feedbackModel {
-                    FeedbackComposerView(model: feedbackModel)
-                }
-                footer
+                .padding(.horizontal, Theme.Spacing.screenMargin)
+                .padding(.top, 8)
+                .padding(.bottom, 32)
             }
-            .padding(.horizontal, Theme.Spacing.screenMargin)
-            .padding(.top, 8)
-            .padding(.bottom, 32)
+            #if DEBUG
+            .onAppear { scrollToConsentIfRequested(proxy) }
+            #endif
         }
         .background(Theme.Palette.midnight)
         .sheet(isPresented: $showsDiagnosticsPreview) {
@@ -220,3 +225,24 @@ struct AboutView: View {
         }
     }
 }
+
+/// Scroll targets inside About.
+enum AboutScrollAnchor {
+    /// The feedback consent switch under its "Before you send" eyebrow.
+    static let consentID = "aboutFeedbackConsent"
+}
+
+#if DEBUG
+extension AboutView {
+    /// Screenshot hook: `-aboutScrollToConsent` parks About at the feedback
+    /// consent, which sits below the fold at large Dynamic Type sizes, so
+    /// `simctl` can photograph it without a scroll. The composer renders after
+    /// the async load, so the scroll waits for it.
+    func scrollToConsentIfRequested(_ proxy: ScrollViewProxy) {
+        guard ProcessInfo.processInfo.arguments.contains("-aboutScrollToConsent") else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            proxy.scrollTo(AboutScrollAnchor.consentID, anchor: .center)
+        }
+    }
+}
+#endif

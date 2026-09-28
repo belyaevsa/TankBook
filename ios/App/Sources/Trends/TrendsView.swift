@@ -80,7 +80,7 @@ struct TrendsView: View {
     @ViewBuilder
     private var content: some View {
         if vehicle == nil {
-            TrendsNoCarLayout(presentSheet: presentSheet)
+            TrendsNoCarLayout()
         } else if let stats {
             fullLayout(stats)
         }

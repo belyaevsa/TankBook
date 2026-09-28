@@ -29,17 +29,63 @@ final class SignInFlowTests: XCTestCase {
 
     private func makeFlow(
         arrivedViaRestore: Bool,
-        outcomes: [RestoreOutcome]
+        outcomes: [RestoreOutcome],
+        localHasData: Bool = false,
+        restore: ScriptedRestoreProvider? = nil
     ) -> SignInFlow {
         SignInFlow(
             arrivedViaRestore: arrivedViaRestore,
             idTokenProvider: StubIdentityProvider(),
             authService: StubAuthService(),
             sessionStore: InMemorySessionStore(),
-            restoreProvider: ScriptedRestoreProvider(outcomes),
-            localHasData: { false },
+            restoreProvider: restore ?? ScriptedRestoreProvider(outcomes),
+            localHasData: { localHasData },
             firstPush: SignInFirstPush { _ in }
         )
+    }
+
+    // MARK: - J11a's precedence, on the live path
+
+    /// A populated local log uploads and is never pulled over: the restore is
+    /// not even asked, whatever the intent.
+    func testALocalLogUploadsAndNeverRestores() async throws {
+        let restore = ScriptedRestoreProvider([.empty])
+        let flow = makeFlow(arrivedViaRestore: true, outcomes: [], localHasData: true, restore: restore)
+        var finished = false
+        flow.onFinished = { finished = true }
+
+        flow.startSignIn(provider: .apple)
+
+        let deadline = Date().addingTimeInterval(5)
+        while !finished && Date() < deadline { try? await Task.sleep(nanoseconds: 5_000_000) }
+        XCTAssertTrue(finished, "the upload path finishes the sign-in")
+        let calls = await restore.calls
+        XCTAssertEqual(calls, 0, "a local log is never replaced by a pull")
+    }
+
+    /// An account with data restores.
+    func testAnAccountWithDataRestores() async throws {
+        let stats = try RestoreStats.compute(repository: TankbookRepository(database: TankbookDatabase.inMemory()))
+        let flow = makeFlow(arrivedViaRestore: false, outcomes: [.restored(stats)])
+
+        flow.startSignIn(provider: .apple)
+
+        let deadline = Date().addingTimeInterval(5)
+        while Date() < deadline {
+            if case .restoring = flow.phase { return }
+            try? await Task.sleep(nanoseconds: 5_000_000)
+        }
+        XCTFail("expected the Restoring phase, got \(flow.phase)")
+    }
+
+    /// An empty account the user did not arrive expecting data from is simply
+    /// empty - never the wrong-provider question.
+    func testAnEmptyAccountWithoutRestoreIntentIsNotTheWrongProviderQuestion() async throws {
+        let flow = makeFlow(arrivedViaRestore: false, outcomes: [.empty])
+
+        flow.startSignIn(provider: .apple)
+
+        await waitForPhase(flow, .emptyRestore)
     }
 
     /// Polls the phase the flow's own tasks move it through. The flow drives
@@ -133,12 +179,14 @@ final class SignInFlowTests: XCTestCase {
 /// the switch and the second attempt.
 private actor ScriptedRestoreProvider: RestoreProviding {
     private var outcomes: [RestoreOutcome]
+    private(set) var calls = 0
 
     init(_ outcomes: [RestoreOutcome]) {
         self.outcomes = outcomes
     }
 
     func restore(accountId: String) async -> RestoreOutcome {
+        calls += 1
         guard !outcomes.isEmpty else { return .empty }
         return outcomes.removeFirst()
     }

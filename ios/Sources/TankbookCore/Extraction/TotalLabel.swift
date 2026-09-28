@@ -13,7 +13,11 @@ enum TotalLabel {
         // `NETO` is the Estonian net figure, not the charged amount. On the
         // Tallinn Airport parking tickets it prints beside `TASU`/`MAKSTUD`
         // (the fee and what was paid) and must never be read as the total.
-        "NETO"
+        "NETO",
+        // Estonian net totals: `Summa kokku km-ta` / `ilma KM` is the sum
+        // WITHOUT VAT, and `Tasumistingimus` is the payment terms - its `TASU`
+        // prefix is the parking-fee word, which is how it paired a value.
+        "KM-TA", "ILMA KM", "TASUMISTINGIMUS"
     ]
     // `СУММА` is here in BOTH scripts on purpose. The Latin `SUMMA` is the
     // Estonian label; the Cyrillic `СУММА` is the Russian one. The two strings
@@ -41,7 +45,10 @@ enum TotalLabel {
     // never matches: the two are different letter sequences, exactly as the
     // Cyrillic/Latin pair above is. Checked before `primary` because
     // `СУММА ДОКУМЕНТА` contains the `СУММА` stem.
-    private static let document = ["СУММА ДОКУМЕНТА", "НА СУММУ"]
+    // `ARVE SUMMA` is the Estonian invoice total, printed beside a `Summa kokku
+    // km-ta` net and a `Tasuda` due amount (0.00 once paid by card), which
+    // would otherwise tie with it as three primary reads.
+    private static let document = ["СУММА ДОКУМЕНТА", "НА СУММУ", "ARVE SUMMA"]
 
     static func classify(_ text: String) -> Kind? {
         let upper = text.uppercased()

@@ -352,6 +352,25 @@ final class AboutUITests: XCTestCase {
     /// toggle label beside the switch is exactly where a longer type scale
     /// clips - must render with its heading above the switch and the full label
     /// intact.
+    /// RV.175: `-aboutScrollToConsent` parks About with the feedback consent -
+    /// the eyebrow AND the switch it heads - inside the window at XL, where it
+    /// otherwise sits below the fold. Asserted by frame, never `isHittable`.
+    func testAboutScrollHookParksTheConsentInViewAtXL() {
+        let app = launch(["-presentScreen", "about", "-feedbackConsentReset", "-diagnosticsConsentOn",
+                          "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryXL",
+                          "-aboutScrollToConsent"])
+        let toggle = app.switches["feedbackConsentToggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 10))
+        let header = app.descendants(matching: .any)["feedbackConsentHeader"]
+        let window = app.windows.firstMatch.frame
+        let deadline = Date().addingTimeInterval(8)
+        while !(window.contains(toggle.frame) && window.contains(header.frame)) && Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+        }
+        XCTAssertTrue(window.contains(toggle.frame), "the consent switch is in the window")
+        XCTAssertTrue(window.contains(header.frame), "its \"Before you send\" eyebrow is in the window")
+    }
+
     func testRV159ConsentBlockRendersAtXLInEnglish() {
         let app = launch(["-presentScreen", "about",
                           "-feedbackConsentReset", "-diagnosticsConsentOn",
