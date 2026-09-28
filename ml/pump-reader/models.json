@@ -32,6 +32,22 @@
    "benchmark": "rotated gate median IoU 0.861, recall@0.7 0.885, false rows/photo 0.088, 65/68 photos every row; 26.5-29.8 ms Mac Release; 0.91 M params, 1.8 MB"
   },
   {
+   "id": "rowseg-seg-r2",
+   "role": "row locator: seg-r1 retrained with the dark-display material (PU.91 round 2)",
+   "status": "refused",
+   "row": "PU.91",
+   "files": [
+    "ml/pump-reader/.out/seg-r2/segnet.pt",
+    "ml/pump-reader/.out/seg-r2/heldout-quads.json",
+    "ml/pump-reader/.out/seg-r2/RowSeg.mlpackage",
+    "ml/pump-reader/.out/seg-r2/disagreements.json",
+    "ml/pump-reader/.out/seg-r2.log",
+    "ml/pump-reader/.out/seg-r2-eval.log"
+   ],
+   "trainedOn": "284 train stills + 288 owner-verified frames + 128 negatives, hand quads; 30 000 steps",
+   "benchmark": "rotated gate median IoU 0.857, recall@0.7 0.889, false rows/photo 0.074; dark heldout2 recall@0.7 19/27 (seg-r1 15/27); app path heldout 135/186 (seg-r1 141), live 130/127 (0.977) - refused"
+  },
+  {
    "id": "rowread-pu89",
    "role": "row reader: CRNN + CTC over a 32 px strip, reads a whole number window as a sequence (Core ML, float32, flexible width)",
    "status": "shipped",
