@@ -132,7 +132,7 @@ a = "Nothing right now – Tankbook is free while we finish. Three things stay t
 
 [[faq]]
 q = "I have years of data in another app."
-a = "Import works review-first: your file is parsed into candidate rows, you review and edit every one, and only you commit them. My Fuel Manager CSV is supported today; more formats may follow."
+a = "Import works review-first: your file is parsed into candidate rows, you review and edit every one, and only you commit them. CSV exports from My Fuel Manager and Drivvo are supported today; more formats may follow."
 
 [[faq]]
 q = "I drive a petrol car and an EV."
