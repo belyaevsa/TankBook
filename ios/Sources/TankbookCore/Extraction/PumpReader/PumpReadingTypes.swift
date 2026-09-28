@@ -309,7 +309,7 @@ public struct PumpDisplayConventions: Sendable, Equatable {
     // re-derives these sets on every run. Cell counts are audited only where
     // the currency has three or more stills.
     private static let table: [String: PumpDisplayConventions] = [
-        "EUR": row([2], [3], [2], cells: ([3, 4, 6], [2, 4], [3, 4, 5, 6])),
+        "EUR": row([2], [3], [2], cells: ([3, 4, 5, 6], [2, 4], [3, 4, 5, 6])),
         // Some RN heads show the price to one decimal (`68,3`); the band keeps
         // `683,0` from passing as a price.
         // A one-decimal RUB total (`2499,8`) is displayed by some heads, but the
