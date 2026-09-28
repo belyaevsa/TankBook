@@ -467,6 +467,18 @@ offers **Scan a page** and **Choose from Photos** side by side. The mode chip an
 are one mapping for both doors (`CaptureMode.manualEntryForm`), so "Type it" and "Use this" cannot
 disagree.
 
+**An invoice shot in Fill-up mode (RV.319, 2026-09-28).** Capture opens on Fill-up, so the natural
+move - open Capture, shoot the invoice - used to read it as a fuel receipt and land an empty fill-up
+form. Now the verify screen says what it looks like - "This looks like a service invoice, not a fuel
+receipt" - and offers **Open as service** and **Open as expense**, the photo carried over to that
+form's own reading. It is a suggestion: Continue still makes a fill-up of it (hard rule 13), and a
+document with any fuel evidence is never offered anything.
+
+**The invoice is read as a table (RV.320, 2026-09-28).** An invoice whose lines are net of tax adds
+its tax as a line of its own, so the lines add up to what was paid; the payable total wins over a
+section's subtotal; the vendor is never a comment field. The cloud reading of every page still runs
+beside the local split as before.
+
 **Success metric:** ≥50% of service records carry an attachment; reminder acceptance rate ≥60%.
 
 ### J7b · Parts, tires, consumables

@@ -172,6 +172,33 @@ final class CapturePipelineUITests: XCTestCase {
         XCTAssertTrue(app.buttons["serviceEntryAddPageScan"].exists)
     }
 
+    /// RV.319: an invoice shot in Fill-up mode is not left as an empty fill-up.
+    /// The verify screen says it looks like a service invoice and "Open as
+    /// service" takes the photo to the service form.
+    func testInvoiceInFillUpModeOffersTheServiceForm() {
+        let fixture = fixturesRoot + "/service/service-004-tireman-peterburi-tyre-change-storage-pdf-ee.png"
+        let app = launch(args: ["-homeResetDatabase", "-seedVehicleForUITests",
+                                "-presentScreen", "capture", "-cameraStatus", "authorized",
+                                "-captureFixtureImage", fixture])
+        openCapture(app)
+
+        let photos = app.buttons["capturePhotosButton"]
+        XCTAssertTrue(photos.waitForExistence(timeout: 10))
+        photos.tap()
+
+        let notice = app.staticTexts["captureVerifyNotFuel"]
+        XCTAssertTrue(notice.waitForExistence(timeout: 30),
+                      "an invoice in Fill-up mode must be named as not a fuel receipt")
+        XCTAssertTrue(app.buttons["captureVerifyOpenAsExpense"].exists)
+        let openAsService = app.buttons["captureVerifyOpenAsService"]
+        XCTAssertTrue(openAsService.exists)
+        openAsService.tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["serviceEntryPageStrip"].waitForExistence(timeout: 15),
+                      "Open as service must land the photo on the service form")
+        XCTAssertFalse(app.textFields["manualFillUpLitersField"].exists)
+    }
+
     /// RV.12: saving a captured entry must LEAVE capture. The capture screen is
     /// a modal over the tab the user was on, and the Confirm sheet's own
     /// `dismiss()` only uncovers the camera again - so a completed entry looked

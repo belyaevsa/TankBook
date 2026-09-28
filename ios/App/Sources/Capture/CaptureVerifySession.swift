@@ -15,6 +15,9 @@ final class CaptureVerifySession: Identifiable {
     let image: UIImage
     let volumeUnit: VolumeUnit
     private(set) var prefill: ConfirmPrefill?
+    /// The form the photo reads as when it is not a fuel document
+    /// (`CaptureDocumentHint`), computed once when recognition returns.
+    private(set) var documentHint: CaptureEntryForm?
     private(set) var reading = true
     var form = CaptureVerifyForm()
     /// Quarter turns the user added with the rotate control.
@@ -38,6 +41,9 @@ final class CaptureVerifySession: Identifiable {
             let result = await recognize()
             guard !Task.isCancelled else { return }
             prefill = result
+            if result.provenance != .pumpPhoto {
+                documentHint = CaptureDocumentHint.suggestedForm(lines: result.ocrLines, extraction: result.extraction)
+            }
             form.applyRecognition(result, volumeUnit: volumeUnit)
             reading = false
             onReady?()
@@ -68,7 +74,7 @@ final class CaptureVerifySession: Identifiable {
             provenance: prefill?.provenance ?? .receiptScan, hasPhoto: true,
             extraction: prefill?.extraction, pumpAlpha: prefill?.pumpAlpha ?? false,
             pumpCaution: prefill?.pumpCaution, crossCheck: form.crossCheck(volumeUnit: volumeUnit),
-            reading: reading)
+            reading: reading, documentHint: documentHint)
     }
 
     /// What Confirm opens with: the recognition as it came, the photo, and the

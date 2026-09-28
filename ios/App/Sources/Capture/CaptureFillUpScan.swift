@@ -78,7 +78,28 @@ extension CaptureView {
                 #endif
                 session.cancel()
                 reviewSubject = nil
-            })
+            },
+            onOpenAs: { form in openAs(form, image: session.image) })
+    }
+
+    /// RV.319: the verify screen's "Open as service / expense" - the photo
+    /// goes to that form's own scan path, with its own reading and cloud
+    /// call, exactly as if it had been captured in that mode.
+    private func openAs(_ form: CaptureEntryForm, image: UIImage) {
+        reviewSubject = nil
+        switch form {
+        case .service:
+            mode = .service
+            scanServiceInvoice([image])
+        case .expense:
+            mode = .expense
+            Task {
+                try? await Task.sleep(for: Self.coverDismissBeat)
+                await acceptExpenseScan(image)
+            }
+        case .fillUp:
+            break
+        }
     }
 }
 
