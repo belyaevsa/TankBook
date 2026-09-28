@@ -24,6 +24,8 @@ public final class ScanHistory: Sendable {
     public static let photoFile = "photo.jpg"
     public static let recordFile = "record.json"
     public static let traceFile = "trace.json"
+    /// How the scanned entry ended (`ScanOutcome`), written when it does.
+    public static let outcomeFile = "outcome.json"
 
     public let directory: URL
     private let lock = OSAllocatedUnfairLock()
@@ -41,16 +43,22 @@ public final class ScanHistory: Sendable {
 
     /// Keeps one scan and drops the oldest past `capacity`. A write that fails
     /// is dropped: recording never fails the capture.
-    public func record(photo: Data, record: Data, trace: Data?, at date: Date = Date()) {
+    /// The folder a scan recorded at `date` with `id` is kept in - known before
+    /// the write, so the entry that scan opens can find it for its outcome.
+    public func folder(at date: Date, id: String) -> URL {
+        let stamp = LogRenderer.timestamp(date).replacingOccurrences(of: ":", with: "-")
+        return directory.appendingPathComponent("scan-\(stamp)-\(id.prefix(8))", isDirectory: true)
+    }
+
+    public func record(photo: Data, record: Data, trace: Data?, at date: Date = Date(),
+                       id: String = UUID().uuidString) {
         lock.withLock {
             let manager = FileManager.default
             if !manager.fileExists(atPath: directory.path) {
                 try? manager.createDirectory(at: directory, withIntermediateDirectories: true)
             }
             FileProtection.protect(directory)
-            let stamp = LogRenderer.timestamp(date).replacingOccurrences(of: ":", with: "-")
-            let folder = directory.appendingPathComponent("scan-\(stamp)-\(UUID().uuidString.prefix(8))",
-                                                          isDirectory: true)
+            let folder = self.folder(at: date, id: id)
             guard (try? manager.createDirectory(at: folder, withIntermediateDirectories: true)) != nil else { return }
             FileProtection.protect(folder)
             var files: [(String, Data)] = [(Self.photoFile, photo), (Self.recordFile, record)]
@@ -63,6 +71,18 @@ public final class ScanHistory: Sendable {
             }
             for old in folders().dropLast(Self.capacity) {
                 try? manager.removeItem(at: old)
+            }
+        }
+    }
+
+    /// Writes a scan's outcome beside it; a scan already dropped past
+    /// `capacity`, or a failed write, is ignored - recording never fails the save.
+    public func recordOutcome(_ data: Data, in folder: URL) {
+        lock.withLock {
+            guard FileManager.default.fileExists(atPath: folder.path) else { return }
+            let url = folder.appendingPathComponent(Self.outcomeFile)
+            if (try? data.write(to: url, options: .atomic)) != nil {
+                FileProtection.protect(url)
             }
         }
     }
@@ -102,6 +122,8 @@ public struct ScanRecord: Sendable {
     public var detection: PumpDisplayCapture.Detection?
     public var pumpRotationCW: Int?
     public var build: String?
+    /// Each pump field's pre-fill kind (`ScanOutcome.prefillKinds`).
+    public var prefillKinds: [String: ScanPrefillKind]?
 
     public init(capturedAt: Date, requestedSource: ExtractionSource?, resolvedSource: ExtractionSource,
                 provenance: String, durationMs: Int, extraction: FuelExtraction) {
@@ -124,6 +146,9 @@ public struct ScanRecord: Sendable {
             "build": build ?? NSNull(),
             "pumpRotationCW": pumpRotationCW ?? NSNull()
         ]
+        if let prefillKinds {
+            record["prefillKinds"] = prefillKinds.mapValues(\.rawValue)
+        }
         if let detection {
             record["detection"] = ["display": detection.isPumpDisplay, "rows": detection.displayRows,
                                    "textLines": detection.textLines, "widestRow": Double(detection.widestRow),

@@ -29,6 +29,11 @@ final class CaptureLabRunner {
     /// crash.
     private(set) var message: LocalizedStringKey?
 
+    /// The name the Files app shows the app's folder under.
+    private static var appDisplayName: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Tankbook"
+    }
+
     private let store: CaptureLabLogStore
 
     init(store: CaptureLabLogStore = CaptureLabLogStore(root: CaptureLabLogStore.defaultRoot)) {
@@ -85,6 +90,11 @@ final class CaptureLabRunner {
                 results: collected)
             if (try? store.write(log, to: directory)) != nil {
                 sessionDirectory = directory
+                // The build that carries the lab exposes Documents to the Files
+                // app (project.yml -> "Files access for experiment builds"), so
+                // the run is already there; Share stays for sending it on.
+                let folder = directory.lastPathComponent
+                message = "Saved to Files: On My iPhone › \(Self.appDisplayName) › CaptureLab › \(folder)"
             }
         }
         isRunning = false

@@ -61,6 +61,21 @@ targets:
           /usr/libexec/PlistBuddy -c "Delete :TankbookBuildCommit" "$PLIST" >/dev/null 2>&1 || true
           /usr/libexec/PlistBuddy -c "Add :TankbookBuildCommit string $SHA" "$PLIST"
         basedOnDependencyAnalysis: false
+      # The Capture Lab saves each run to Documents/CaptureLab; in the builds that
+      # carry experiments (Debug, Beta) the Files app shows that folder under
+      # On My iPhone, so a run needs no share sheet. The store build keeps both
+      # keys false (the Info.plist below): Documents holds only lab runs, but the
+      # store app has no lab and no reason to expose a folder.
+      - name: Files access for experiment builds
+        script: |
+          PLIST="$TARGET_BUILD_DIR/$INFOPLIST_PATH"
+          [ -f "$PLIST" ] || exit 0
+          case "$CONFIGURATION" in
+            Debug|Beta)
+              /usr/libexec/PlistBuddy -c "Set :UIFileSharingEnabled true" "$PLIST"
+              /usr/libexec/PlistBuddy -c "Set :LSSupportsOpeningDocumentsInPlace true" "$PLIST" ;;
+          esac
+        basedOnDependencyAnalysis: false
     info:
       path: ios/App/Info.plist
       properties:
@@ -96,7 +111,12 @@ targets:
             LSItemContentTypes:
               - public.comma-separated-values-text
               - public.plain-text
+        # Files access to the app's Documents folder - which holds only the
+        # Capture Lab's runs (CaptureLabLogStore); the database, logs and scans
+        # live in Application Support - is off here and turned on for the builds
+        # that carry experiments by the "Files access" build phase below.
         LSSupportsOpeningDocumentsInPlace: false
+        UIFileSharingEnabled: false
         # Google sign-in's iOS client id (SH.4). A PUBLIC identifier, not a
         # secret - docs/SECURITY.md says so explicitly, and hard rule 11 is
         # about keys, not identities. Unset here on purpose: until SH.1

@@ -20,7 +20,7 @@ public struct DebugCasePart: Sendable, Equatable {
 /// previewed; the server stores it opaque (hard rule 9).
 public enum DebugCase {
     /// The parts, in order: the manifest, the log, then each scan's photo,
-    /// record and trace (`scan-1-...` is the oldest).
+    /// record, trace and outcome (`scan-1-...` is the oldest).
     public static func parts(log: String, scans: [ScanHistory.Entry], app: String, build: String?,
                              now: Date = Date()) -> [DebugCasePart] {
         var parts: [DebugCasePart] = []
@@ -30,7 +30,8 @@ public enum DebugCase {
             var names: [String] = []
             for (file, contentType) in [(ScanHistory.photoFile, "image/jpeg"),
                                         (ScanHistory.recordFile, "application/json"),
-                                        (ScanHistory.traceFile, "application/json")] {
+                                        (ScanHistory.traceFile, "application/json"),
+                                        (ScanHistory.outcomeFile, "application/json")] {
                 guard scan.files.contains(file),
                       let data = try? Data(contentsOf: scan.folder.appendingPathComponent(file)) else { continue }
                 let name = "scan-\(index + 1)-\(file)"

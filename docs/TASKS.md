@@ -140,6 +140,8 @@ dispatch ledger moved to `docs/TASKS-HISTORY.md`.*
 | PR.35 | AppleGoogleIdTokenVerifier verified an identity token's signature and never its aud or iss - an | `[x]` | TASKS-DONE.md · Launch triage (2026-08-29) – what v1 needs, what waits |
 | SH.1 | DEPLOYED AND VERIFIED 2026-09-02, two clauses outstanding | `[x]` | TASKS-DONE.md · Launch triage (2026-08-29) – what v1 needs, what waits |
 | SH.8 | no-scenario: the owner's measurement tool (the captureLab beta experiment) The lab's shutter si | `[x]` | TASKS-DONE.md · Launch triage (2026-08-29) – what v1 needs, what waits |
+| SH.11 | no-scenario: the owner's measurement of real fills (the beta) The scan outcome: how often a clo | `[x]` | TASKS-DONE.md · Launch triage (2026-08-29) – what v1 needs, what waits |
+| SH.12 | no-scenario: the owner's measurement tool (the captureLab beta experiment) Capture Lab runs lan | `[x]` | TASKS-DONE.md · Launch triage (2026-08-29) – what v1 needs, what waits |
 | SH.10 | (J3 receipt capture; J4 pump display photo) The phone keeps the 2048 px copy of a capture, not | `[x]` | TASKS-DONE.md · Launch triage (2026-08-29) – what v1 needs, what waits |
 | P0.1 | iOS scaffold: SwiftPM package TankbookCore (all pure logic + persistence), SwiftLint, CI workfl | `[x]` | TASKS-DONE.md · P0 · Foundations |
 | P0.2 | Design tokens: design/tokens.json extracted from DESIGN.md → generated Theme.swift (script, not | `[x]` | TASKS-DONE.md · P0 · Foundations |

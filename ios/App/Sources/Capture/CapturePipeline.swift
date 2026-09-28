@@ -131,8 +131,13 @@ enum CapturePipeline {
                 pumpPhotoEnabled: pumpPhotoEnabled, extraction: assembly.extraction).alpha
         }
         #if EXPERIMENTS
-        ScanRecorder.record(image: image, prefill: prefill, requestedSource: source, resolvedSource: resolvedSource,
-                            detection: pumpDetection, trace: pumpTrace)
+        if resolvedSource == .pump {
+            prefill.scanKinds = ScanOutcome.prefillKinds(reader: pumpReading?.extraction, rules: rulesExtraction,
+                                                         form: assembly.extraction, caution: pumpReading?.law.caution)
+        }
+        prefill.scanFolder = ScanRecorder.record(image: image, prefill: prefill, requestedSource: source,
+                                                 resolvedSource: resolvedSource, detection: pumpDetection,
+                                                 trace: pumpTrace)
         #endif
         return prefill
     }

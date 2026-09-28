@@ -59,6 +59,12 @@ struct ConfirmPrefill {
     /// The clockwise quarter turn a pump display was read at, so the verify
     /// screen shows the photo with its digits upright. Zero for a receipt.
     var displayRotationCW: Int = 0
+    /// Where the beta keeps this scan, and each pump field's pre-fill kind, so
+    /// the entry's save, discard or re-take is recorded beside it
+    /// (`ScanRecorder.recordOutcome`). Nil and empty outside the builds that
+    /// carry experiments.
+    var scanFolder: URL?
+    var scanKinds: [String: ScanPrefillKind] = [:]
     /// P2.5: the extraction's currency is uncertain - the sheet must ask, never
     /// silently convert (docs/ERRORS.md -> Confirm). False by default; the real
     /// OCR-confidence signal lands with the Foundation-models work (P2.8).

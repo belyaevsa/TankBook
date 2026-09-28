@@ -19290,6 +19290,23 @@
         }
       }
     },
+    "Saved to Files: On My iPhone › %@ › CaptureLab › %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved to Files: On My iPhone › %@ › CaptureLab › %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранено в «Файлы»: На iPhone › %@ › CaptureLab › %@"
+          }
+        }
+      }
+    },
     "The camera is not available.": {
       "extractionState": "manual",
       "localizations": {

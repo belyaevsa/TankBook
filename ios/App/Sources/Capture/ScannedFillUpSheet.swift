@@ -56,15 +56,21 @@ struct ScannedFillUpSheet: View {
     /// tabs or covers. Never called for a cancel or a save that threw.
     var onSaved: () -> Void = {}
     @State private var hasUnsavedChanges = false
+    /// Whether the entry was saved, so a dismissal records the beta's scan
+    /// outcome as discarded (`ScanRecorder.recordOutcome`).
+    @State private var didSave = false
 
     var body: some View {
         DiscardAwareSheet(policy: .askBeforeDiscarding, hasUnsavedChanges: $hasUnsavedChanges) {
             ManualFillUpView(prefill: prefill,
                              hasUnsavedChanges: $hasUnsavedChanges,
-                             onSaved: onSaved)
+                             onSaved: { didSave = true; onSaved() })
                 .navigationTitle("Manual fill-up")
                 .navigationBarTitleDisplayMode(.inline)
         }
+        #if EXPERIMENTS
+        .onDisappear { if !didSave { ScanRecorder.recordOutcome(prefill, result: .discarded) } }
+        #endif
     }
 }
 

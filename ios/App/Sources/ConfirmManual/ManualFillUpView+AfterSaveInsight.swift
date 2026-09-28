@@ -12,6 +12,10 @@ extension ManualFillUpView {
     /// the presenter's `.task`, so without it Home shows the pre-save state.
     func postAfterSaveNotices(saved: FillUp, vehicle: Vehicle, repository: TankbookRepository,
                               receiptWrite: ReceiptWriteOutcome) {
+        #if EXPERIMENTS
+        ScanRecorder.recordOutcome(prefill, result: .saved, saved: ScanSavedValues(
+            liters: saved.volumeL, unitPrice: saved.unitPrice, total: saved.money?.amount))
+        #endif
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         if let insight = afterSaveInsight(for: saved, vehicle: vehicle, repository: repository) {
             toastCenter.show(AfterSaveInsightMessage.text(for: insight, vehicle: vehicle))

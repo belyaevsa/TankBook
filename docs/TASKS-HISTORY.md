@@ -263,3 +263,5 @@ known, and the AD rows, which the owner had built in the session rather than dis
 | `AD.6` | done |  | orchestrator (Claude session; owner 2026-09-24: "don't dispatch this work to opencode, do it by yourself") |
 | `PU.94` | cut | 2026-09-27 | not built; cut by the owner (single-shot only) |
 | `PU.106` | done | 2026-09-27 | orchestrator (Claude session), from the Kimi K3 research note `agents/research/KNIFE-EDGE.md` |
+| `SH.11` | done | 2026-09-28 | orchestrator (Claude session), not dispatched |
+| `SH.12` | done | 2026-09-28 | orchestrator (Claude session), not dispatched |

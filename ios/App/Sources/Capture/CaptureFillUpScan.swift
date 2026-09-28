@@ -73,6 +73,9 @@ extension CaptureView {
                 }
             },
             onRetake: {
+                #if EXPERIMENTS
+                ScanRecorder.recordOutcome(session.prefill, result: .retaken)
+                #endif
                 session.cancel()
                 reviewSubject = nil
             })
