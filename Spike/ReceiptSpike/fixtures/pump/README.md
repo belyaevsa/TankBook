@@ -1620,3 +1620,23 @@ train. Boxes unreviewed (the owner's check). No mark moves (pump is scored on he
 
 **Split:** all train (nothing the heldout sets lack: Circle K Gilbarco in daylight is well
 covered). No mark moves (pump is scored on heldout only).
+
+## Added 2026-09-28 (batch 16: Circle K Peterburi - a truck-lane LCD and Gilbarcos - 8 stills)
+
+- `pump-360`..`363` - Circle K Peterburi tee (Tallinn), the **truck lane**: a Dresser Wayne LCD
+  behind reflective glass that prints its numbers with a dot (`132.12` / `60.08` / `2.199`), two
+  fills at two angles each. `pump-360` has a van and the sky reflected over the digits (the locator
+  found only a wrong litres box, all three drawn by hand, litres and price marked partial);
+  `pump-361` is the same fill from closer (price drawn by hand); `pump-362` is 444,60 / 203,57 at
+  2,184 with the owner's hand and phone reflected across the total (all three hand-drawn and
+  partial); `pump-363` the same fill head-on, which the reader reads whole.
+- `pump-364`..`367` - Gilbarco Veeder-Root heads on the car lanes: pump 4 (110,08 / 50,75 at 2,169,
+  the total glare-washed and misread `011006`, price drawn by hand), a 20,46 / 9,37 fill with the
+  price window washed out by glare (window kept, text empty, unitPrice blank), pump 13 at 410,00 L
+  (899,54 at 2,194, read whole) and an **AdBlue** head (29,77 / 31,04) whose price window is blank
+  (no window, unitPrice blank).
+- Eight Live records beside them (`pump-live/README.md` → Batch 16), 577 frames tracked.
+
+**Split:** `pump-362`/`363` (the 203 L truck fill, both angles - a make and a decimal convention
+the heldout sets lack) are **heldout2**; the rest train, so the classifier sees the dot-decimal LCD
+too. Boxes unreviewed (the owner's check). No mark moves (pump is scored on heldout only).

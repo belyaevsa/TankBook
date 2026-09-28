@@ -439,5 +439,15 @@ extension PostSweepCorpusAdditions {
         "pump-357-gilbarco-circlek-petrooleumi-1954-940l-2079-pump5-ee.jpg",
         "pump-358-gilbarco-circlek-petrooleumi-1196-571l-2094-pump6-ee.jpg",
         "pump-359-gilbarco-circlek-petrooleumi-16548-7198l-2299-pump2-pair-ee.jpg",
+        // 2026-09-28, batch 16: Circle K Peterburi - a truck-lane LCD behind reflective glass
+        // (two fills, two angles each) and four Gilbarco heads, one of them AdBlue.
+        "pump-360-trucklane-lcd-circlek-peterburi-13212-6008l-2199-reflection-ee.jpg",
+        "pump-361-trucklane-lcd-circlek-peterburi-13212-6008l-2199-second-angle-ee.jpg",
+        "pump-362-trucklane-lcd-circlek-peterburi-44460-20357l-2184-cropped-reflection-ee.jpg",
+        "pump-363-trucklane-lcd-circlek-peterburi-44460-20357l-2184-ee.jpg",
+        "pump-364-gilbarco-circlek-peterburi-11008-5075l-2169-pump4-ee.jpg",
+        "pump-365-gilbarco-circlek-peterburi-2046-937l-price-glare-ee.jpg",
+        "pump-366-gilbarco-circlek-peterburi-89954-41000l-2194-pump13-ee.jpg",
+        "pump-367-gilbarco-circlek-peterburi-adblue-2977-3104l-ee.jpg",
     ]
 }

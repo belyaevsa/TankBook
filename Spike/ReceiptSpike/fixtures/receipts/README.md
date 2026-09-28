@@ -1170,3 +1170,19 @@ Measured on the iOS 27 simulator: receipts 348/468 -> 357/483 (9 of the 15 new c
 
 Measured on the iOS 27 simulator on a copy of the committed tree: receipts 357/483 -> 365/493
 (8 of the 10 new cells read; through compression 354 -> 363), stations 45/86 -> 47/88.
+
+## Added 2026-09-28 (the Capture lab's second run and batch 16 - 5 receipts)
+
+- `receipt-104`..`106` - one Circle K Peterburi paper (`D BO miles` pump 2, 41,61 L x 2,184 EUR/L =
+  90,87 EUR) from the Capture lab's second run (`docs/experiments/CAPTURE-LAB.md`): the `default`
+  preset (4032x3024), `zoom2x` (the left edge and the sum column cut off, so the total and the
+  brand are not on the paper photographed - both cells blank, `stations.md` says why) and
+  `high1080`. The other four presets are near-copies of `default` and stay out. No pump still of
+  this fill.
+- `receipt-107` - Circle K Peterburi, diesel 8,02 L x 2,169 = 17,39 EUR, with an informational
+  `EXTRA SOODUS` line; `receipt-108` - diesel 32,19 L x 2,184 = 70,30 EUR. Both have a Live record
+  (`pump-live/README.md` → Batch 16) and no pump still.
+
+Measured on the iOS 27 simulator: receipts 365/493 -> 385/517 (20 of the 24 new cells read; through
+compression 363 -> 380), stations 47/88 -> 50/92 - `receipt-106` reads a garbled street line as the
+station.

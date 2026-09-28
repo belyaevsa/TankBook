@@ -7,7 +7,7 @@ paper before any station extractor existed, cross-checked against the OCR text (
 INPUT, never its output). Where the two cannot agree the cell is empty and the reason is here - a
 blank for any other reason is a miss hiding, which is the RV.161 trap.
 
-Asserted: 88 of 103 receipts (the 2026-09-21/22 eleven all assert; of the 2026-09-22 French batch, seven assert; the 2026-09-25 Capture lab receipt asserts; the 2026-09-27 three - Circle K and the Olerex pair - assert; the 2026-09-28 two Circle K papers assert). Blank, with the reason:
+Asserted: 92 of 108 receipts (the 2026-09-21/22 eleven all assert; of the 2026-09-22 French batch, seven assert; the 2026-09-25 Capture lab receipt asserts; the 2026-09-27 three - Circle K and the Olerex pair - assert; the 2026-09-28 two Circle K papers assert; of the later 2026-09-28 five Circle K Peterburi papers, four assert). Blank, with the reason:
 
 | fixture | why the cell is blank |
 |---|---|
@@ -26,6 +26,7 @@ Asserted: 88 of 103 receipts (the 2026-09-21/22 eleven all assert; of the 2026-0
 | `receipt-053-gpn-tver-95-ru.jpg` | brand not legible in the OCR text (the filename names it, the read does not carry it on any line) |
 | `receipt-057-gpn-valday-95-occluded-ru.jpg` | brand not legible in the OCR text (the filename names it, the read does not carry it on any line) |
 | `receipt-096-unknown-gazole-3463l-1843-no-total-cropped-fr.jpg` | the photo is cropped above the header: no station name is on the paper that was photographed, only `TICKET CLIENT A CONSERVER` |
+| `receipt-105-circlek-peterburi-diesel-4161l-2184-zoom2x-total-cut-ee.jpg` | the Capture lab's 2x zoom cuts the left edge: the header reads `rcle K Peterburi`, so the brand is not on the paper that was photographed |
 
 `receipt-006` (`ИП Гридяева А.В.`) and `receipt-043` (`ООО "Артемовск-Газсервис"`) are single
 stations, not chains, and the filename names them - asserted as `gridyaeva` and

@@ -517,6 +517,26 @@ Tokheim fill with no other capture); the rest train.
 |---|---|---|---|
 | `video-053-tokheim-olerex-peetri-tft-running-display-2039-ee` | 464 (3840x2160, 24 fps, 19.3 s) | Tokheim **TFT** at Olerex Peetri, pump 3 diesel, **counting up** behind a cycling advert, from a blank field to about 22.1 - the fill of `pump-355`/`356` and `receipt-100`/`101` (22.23 / 10.90), the clip stops just before the end; IMG_6456.MOV whole, no audio, no metadata. Reference quads placed by the orchestrator on frame 450 (21,96 / 10,77), unreviewed | price `2.039` |
 
+## Batch 16 (2026-09-28, product owner): Circle K Peterburi - a truck-lane LCD, Gilbarcos and their paper
+
+Ten Live records beside their stills. **Circle K Peterburi tee** (Tallinn, day): a truck-lane LCD behind reflective glass
+(132,12 / 60,08 at 2,199 twice; 444,60 / 203,57 at 2,184 twice), four Gilbarco Veeder-Root heads (pump 4, a glare-washed
+price window, pump 13 at 410 L, an AdBlue head with a blank price window) and two receipts of fills no still shows.
+heldout2: `pump-362`/`363` (the 203 L truck fill, both angles); the rest train. No pairs.
+
+| live | frames | what | paired still / truth |
+|---|---|---|---|
+| `live-6468` | 88 | Live record of the receipt | `receipt-107` |
+| `live-6469` | 89 | Live record of the pump still | `pump-360` |
+| `live-6470` | 75 | Live record of the pump still (heldout2) | `pump-362` |
+| `live-6471` | 76 | Live record of the pump still (heldout2) | `pump-363` |
+| `live-6472` | 89 | Live record of the pump still | `pump-361` |
+| `live-6473` | 89 | Live record of the pump still | `pump-364` |
+| `live-6474` | 66 | Live record of the pump still | `pump-365` |
+| `live-6475` | 80 | Live record of the receipt | `receipt-108` |
+| `live-6476` | 65 | Live record of the pump still | `pump-366` |
+| `live-6477` | 48 | Live record of the pump still | `pump-367` |
+
 ## Frames and tracking (2026-09-20)
 
 Two scripts in `ml/pump-reader` turn the records into labelled training frames without a

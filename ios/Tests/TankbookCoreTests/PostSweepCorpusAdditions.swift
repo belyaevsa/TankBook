@@ -155,6 +155,13 @@ enum PostSweepCorpusAdditions {
             // again indoors, crumpled, at 1080x1920.
             "receipt-102-circlek-petrooleumi-diesel-7198l-2299-pair-ee.jpg",
             "receipt-103-circlek-tammisaare-95miles-4681l-1884-second-shot-crumpled-ee.jpg",
+            // 2026-09-28: the Capture lab's second run (one Circle K Peterburi receipt at the
+            // default, zoom2x and high1080 presets), then batch 16's two Circle K Peterburi receipts.
+            "receipt-104-circlek-peterburi-diesel-4161l-2184-ee.jpg",
+            "receipt-105-circlek-peterburi-diesel-4161l-2184-zoom2x-total-cut-ee.jpg",
+            "receipt-106-circlek-peterburi-diesel-4161l-2184-1080p-ee.jpg",
+            "receipt-107-circlek-peterburi-diesel-802l-2169-extra-soodus-ee.jpg",
+            "receipt-108-circlek-peterburi-diesel-3219l-2184-ee.jpg",
         ],
         "pump": pump,
         "screenshots": [
