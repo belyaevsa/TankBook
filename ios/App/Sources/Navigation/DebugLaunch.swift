@@ -50,6 +50,8 @@ enum DebugLaunch {
         "vehicleDetail": .vehicleDetail(nil),
         "tireSets": .tireSets,
         "tireSetForm": .tireSetForm(nil),
+        // The seeded set's own screen with its history (`-seedTireSetHistory`).
+        "tireSetHistory": .tireSetForm(TireSetTestSeed.historySetID),
         // PJ.25: the pushed Garage door to the parts shelf. The bare
         // `partsShelf` name above resolves to the nested SHEET pose first (the
         // P3.2 screenshot shows that door); this pose pushes the Route that the

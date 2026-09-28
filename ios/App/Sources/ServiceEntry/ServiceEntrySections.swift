@@ -100,14 +100,16 @@ struct ServiceEntryModeRow: View {
 
 // MARK: - Tire set picker (P3.3)
 
-/// The Tires mode's one decision: which set went on. Selecting a set mounts it
+/// The Tires mode's decision: which set went on. Selecting a set mounts it
 /// (sets `tireSetId`), which makes the odometer required (P3.1a's rule - the
-/// span anchors on it). When the car has no sets yet, the card names the next
-/// step (add one in the Garage) rather than blocking (hard rule 7).
+/// span anchors on it), and offers the optional condition reading of the
+/// tires going on. When the car has no sets yet, the card names the next step
+/// (add one in the Garage) rather than blocking (hard rule 7).
 struct ServiceEntryTireSetCard: View {
     let tireSets: [TireSet]
     let selectedID: UUID?
     let onSelect: (UUID) -> Void
+    @Binding var form: ServiceEntryFormState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -143,6 +145,17 @@ struct ServiceEntryTireSetCard: View {
                     }
                 }
                 .accessibilityIdentifier("serviceEntryTireSetPicker")
+                if selectedID != nil {
+                    Divider().overlay(Theme.Palette.hairline).padding(.vertical, 8)
+                    Text("Condition at this swap")
+                        .font(.caption2)
+                        .textCase(.uppercase)
+                        .tracking(1.0)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                        .padding(.bottom, 4)
+                    TireReadingFields(depth: $form.readingDepth, note: $form.readingNote,
+                                      depthInvalid: form.tireReading == .invalid)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

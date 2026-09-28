@@ -164,7 +164,13 @@ public struct TireSetRow: FetchableRecord, PersistableRecord {
             deletedAt: envelope.deletedAt,
             vehicleId: vehicleId,
             name: row["name"],
-            purchaseExpenseId: decodeOptionalUUID(row, column: "purchaseExpenseId"))
+            purchaseExpenseId: decodeOptionalUUID(row, column: "purchaseExpenseId"),
+            make: row["make"],
+            model: row["model"],
+            size: row["size"],
+            productionWeek: row["productionWeek"],
+            treadwear: row["treadwear"],
+            newTreadDepthMm: row["newTreadDepthMm"])
         (syncState, syncScn) = decodeSync(row)
     }
 
@@ -174,6 +180,12 @@ public struct TireSetRow: FetchableRecord, PersistableRecord {
         container["vehicleId"] = tireSet.vehicleId.uuidString
         container["name"] = tireSet.name
         container["purchaseExpenseId"] = tireSet.purchaseExpenseId?.uuidString
+        container["make"] = tireSet.make
+        container["model"] = tireSet.model
+        container["size"] = tireSet.size
+        container["productionWeek"] = tireSet.productionWeek
+        container["treadwear"] = tireSet.treadwear
+        container["newTreadDepthMm"] = tireSet.newTreadDepthMm
     }
 }
 

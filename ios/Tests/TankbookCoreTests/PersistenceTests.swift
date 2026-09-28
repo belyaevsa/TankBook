@@ -408,6 +408,40 @@ private func makeExpense(id: UUID = UUID.v7(), vehicleId: UUID, date: Date = tim
     #expect(try repo.liveTireSets(forVehicle: vehicleId) == [tireSet])
 }
 
+@Test func tireSetPropertiesAndTheSwapReadingRoundTrip() throws {
+    let repo = try makeRepository()
+    let vehicleId = UUID.v7()
+    try repo.upsertVehicle(makeVehicle(id: vehicleId))
+    let tireSet = TireSet(
+        id: UUID.v7(), createdAt: timestamp, updatedAt: timestamp, deletedAt: nil,
+        vehicleId: vehicleId, name: "Winter Nokian", purchaseExpenseId: nil,
+        make: "Nokian", model: "Hakkapeliitta 10", size: "205/55 R16",
+        productionWeek: "3624", treadwear: 400, newTreadDepthMm: 9.5)
+    try repo.upsertTireSet(tireSet)
+    #expect(try repo.liveTireSets(forVehicle: vehicleId) == [tireSet])
+
+    let swap = ServiceRecord(
+        id: UUID.v7(), createdAt: timestamp, updatedAt: timestamp, vehicleId: vehicleId,
+        date: timestamp, odometer: 41_200, provenance: .manual, tireSetId: tireSet.id,
+        tireReading: TireReading(treadDepthMm: 6.5, note: "even wear"))
+    try repo.upsertServiceRecord(swap)
+    #expect(try repo.serviceRecord(id: swap.id)?.tireReading == TireReading(treadDepthMm: 6.5, note: "even wear"))
+
+    // The history's edit door replaces the reading and leaves the swap otherwise alone.
+    #expect(try repo.setTireReading(TireReading(treadDepthMm: 5.2, note: "  "), onSwap: swap.id))
+    let edited = try #require(try repo.serviceRecord(id: swap.id))
+    #expect(edited.tireReading == TireReading(treadDepthMm: 5.2, note: nil))
+    #expect(edited.odometer == 41_200 && edited.tireSetId == tireSet.id)
+    // Clearing it stores nothing; a record that mounts no set is refused.
+    #expect(try repo.setTireReading(TireReading(), onSwap: swap.id))
+    #expect(try repo.serviceRecord(id: swap.id)?.tireReading == nil)
+    let service = ServiceRecord(
+        id: UUID.v7(), createdAt: timestamp, updatedAt: timestamp, vehicleId: vehicleId,
+        date: timestamp, odometer: 41_300, provenance: .manual)
+    try repo.upsertServiceRecord(service)
+    #expect(try !repo.setTireReading(TireReading(treadDepthMm: 4), onSwap: service.id))
+}
+
 @Test func attachmentCRUDRoundTrip() throws {
     let repo = try makeRepository()
     let attachment = Attachment(

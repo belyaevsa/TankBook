@@ -16,6 +16,9 @@ enum TireSetTestSeed {
     /// mileage the artboard spells for "Winter Nokian".
     static let mountOdometer = 100_530
     static let latestOdometer = 118_930
+    /// The winter set `-seedTireSetHistory` writes, fixed so `-presentScreen
+    /// tireSetHistory` can open its screen directly.
+    static let historySetID = UUID(uuidString: "0199A000-7E57-7000-8000-00000000A330")!
 
     @MainActor
     static func seedIfRequested() {
@@ -23,6 +26,7 @@ enum TireSetTestSeed {
         guard arguments.contains("-seedTireSets")
             || arguments.contains("-seedTireSetsNoOdometer")
             || arguments.contains("-seedServiceEntryTires")
+            || arguments.contains("-seedTireSetHistory")
             || arguments.contains("-homeResetDatabase") else { return }
 
         if arguments.contains("-homeResetDatabase") {
@@ -30,12 +34,15 @@ enum TireSetTestSeed {
         }
         guard arguments.contains("-seedTireSets")
             || arguments.contains("-seedTireSetsNoOdometer")
-            || arguments.contains("-seedServiceEntryTires") else { return }
+            || arguments.contains("-seedServiceEntryTires")
+            || arguments.contains("-seedTireSetHistory") else { return }
         guard let repository = try? AppStore.repository() else { return }
         guard (try? repository.liveVehicles())?.isEmpty != false else { return }
 
         if arguments.contains("-seedTireSetsNoOdometer") {
             seedBare(repository)
+        } else if arguments.contains("-seedTireSetHistory") {
+            seedHistory(repository)
         } else {
             seedFull(repository)
         }
@@ -79,6 +86,52 @@ enum TireSetTestSeed {
             fuelKind: .petrol95, fuelGrade: nil, isFull: true, tankLevelAfterPct: 100,
             stationId: nil, crossCheck: .verified, extraction: nil)
         try? repository.upsertFillUp(fill)
+    }
+
+    /// The set's life: the winter set with its properties, mounted, swapped
+    /// off for summer and mounted again (on the car now), each winter swap
+    /// with a condition reading. Winter: 6 100 km, then the open 18 400 km -
+    /// 24 500 km in total; summer: one closed 12 430 km stint with no reading.
+    private static func seedHistory(_ repository: TankbookRepository) {
+        let now = Date()
+        let vehicle = makeVehicle(initialOdometer: latestOdometer)
+        try? repository.upsertVehicle(vehicle)
+
+        var winter = TireSetDraft(name: "Winter Nokian", make: "Nokian", model: "Hakkapeliitta 10",
+                                  size: "205/55 R16 94T", productionWeek: "3624",
+                                  treadwear: "", newTreadDepth: "9,5")
+            .build(vehicleId: vehicle.id, now: now)
+        winter.id = historySetID
+        let summer = TireSetDraft(name: "Summer Michelin")
+            .build(vehicleId: vehicle.id, now: now.addingTimeInterval(1))
+        try? repository.upsertTireSet(winter)
+        try? repository.upsertTireSet(summer)
+
+        struct Swap { let set: UUID; let daysAgo: Double; let odometer: Int; let reading: TireReading? }
+        let swaps = [
+            Swap(set: winter.id, daysAgo: 420, odometer: 82_000,
+                 reading: TireReading(treadDepthMm: 9.5, note: "New")),
+            Swap(set: summer.id, daysAgo: 240, odometer: 88_100, reading: nil),
+            Swap(set: winter.id, daysAgo: 60, odometer: mountOdometer,
+                 reading: TireReading(treadDepthMm: 7.2, note: "Even wear"))
+        ]
+        for swap in swaps {
+            let date = now.addingTimeInterval(-swap.daysAgo * 86_400)
+            try? repository.upsertServiceRecord(ServiceRecord(
+                id: UUID.v7(), createdAt: date, updatedAt: date, vehicleId: vehicle.id,
+                date: date, odometer: swap.odometer, provenance: .manual,
+                tireSetId: swap.set, tireReading: swap.reading))
+        }
+        let fillDate = now.addingTimeInterval(-10 * 86_400)
+        try? repository.upsertFillUp(FillUp(
+            id: UUID.v7(), createdAt: fillDate, updatedAt: fillDate, deletedAt: nil,
+            vehicleId: vehicle.id, date: fillDate, odometer: latestOdometer,
+            money: Money(amount: Decimal(string: "61.20")!, currency: .eur, homeCurrency: .eur),
+            note: nil, attachments: [], provenance: .manual,
+            conflict: .none, purchaseGroupId: nil,
+            volumeL: 42.5, unitPrice: Decimal(string: "1.44")!,
+            fuelKind: .petrol95, fuelGrade: nil, isFull: true, tankLevelAfterPct: 100,
+            stationId: nil, crossCheck: .verified, extraction: nil))
     }
 
     /// A vehicle with sets but NO odometer anywhere (no fill, no mount, nil

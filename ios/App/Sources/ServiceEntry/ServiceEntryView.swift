@@ -145,7 +145,8 @@ struct ServiceEntryView: View {
                         ServiceEntryTireSetCard(
                             tireSets: tireSets,
                             selectedID: form.tireSetId,
-                            onSelect: { form.tireSetId = $0 })
+                            onSelect: { form.tireSetId = $0 },
+                            form: $form)
                     } else {
                         ServiceEntryHeader(vendor: $form.vendor, totalText: totalText)
                         if readingDoesNotAddUp { ServiceReadingDoesNotAddUpLine() }

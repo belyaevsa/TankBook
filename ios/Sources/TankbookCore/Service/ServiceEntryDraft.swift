@@ -35,6 +35,8 @@ public struct ServiceEntryDraft: Equatable, Sendable {
     /// already honours it so the odometer requirement cannot silently change
     /// when tire sets land.
     public var tireSetId: UUID?
+    /// The mounted set's condition at this swap. Written only with `tireSetId`.
+    public var tireReading: TireReading?
     /// The scanned invoice's pages (P3.1b): captured attachments linked to this
     /// record on save. Empty for the typed path (P3.1a) - a default, so the
     /// typed save path is byte-identical to before.
@@ -50,7 +52,7 @@ public struct ServiceEntryDraft: Equatable, Sendable {
     public init(vendor: String? = nil, items: [ServiceItem], date: Date,
                 odometer: Int? = nil, note: String? = nil, tireSetId: UUID? = nil,
                 attachments: [AttachmentID] = [], provenance: Provenance = .manual,
-                usedParts: [UUID] = []) {
+                usedParts: [UUID] = [], tireReading: TireReading? = nil) {
         self.vendor = vendor
         self.items = items
         self.date = date
@@ -60,6 +62,7 @@ public struct ServiceEntryDraft: Equatable, Sendable {
         self.attachments = attachments
         self.provenance = provenance
         self.usedParts = usedParts
+        self.tireReading = tireReading
     }
 
     /// Whether a service entry can save, as a decision the CREATE screen and the
@@ -73,6 +76,9 @@ public struct ServiceEntryDraft: Equatable, Sendable {
         /// is nothing to save. Refused so the gate is not simply deleted
         /// (RV.214) - a wholly blank `ServiceRecord` never reaches the database.
         case empty
+        /// The swap's tread depth was typed but is not a depth: refuse rather
+        /// than drop what the user typed.
+        case readingInvalid
     }
 
     /// Whether something on the record ANCHORS on the odometer: an item's km
@@ -157,6 +163,7 @@ public struct ServiceEntryDraft: Equatable, Sendable {
             money: money, note: note?.isEmpty == false ? note : nil,
             attachments: attachments, provenance: provenance, conflict: .none,
             purchaseGroupId: nil, vendor: vendor?.isEmpty == false ? vendor : nil,
-            items: items, usedParts: usedParts, tireSetId: tireSetId)
+            items: items, usedParts: usedParts, tireSetId: tireSetId,
+            tireReading: tireSetId == nil ? nil : tireReading)
     }
 }

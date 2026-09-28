@@ -234,6 +234,9 @@ ServiceRecord: EntryCommon {    // work DONE to the car: annual service, repairs
   items: [ServiceItem]          // invoice line items, OCR-split (J7); manual fallback = typed rows
   usedParts: [UUID]             // Expense(.parts) entries installed in this service – links, not costs
   tireSetId: UUID?              // which TireSet went ON, when this includes a tire swap
+  tireReading: TireReading?     // the condition of the set going ON, read at this swap (RV.330);
+                                // meaningful only with tireSetId. Optional, and editable later from
+                                // the set's history (`setTireReading`) - hard rule 13
   // The accepted next-reminder proposal links through `Reminder.sourceEntryId` =
   // this record's id – the SINGLE link, queryable in both directions (local
   // query, hard rule 1). No reverse pointer is stored here (PJ.62/PJ.22): two
@@ -284,12 +287,37 @@ TireSet: Entity {
   purchaseExpenseId: UUID?      // the Expense(.parts) that bought them. Written once by
                                 // "Make this a tire set" on a .parts expense (`TireSetPurchase.makeSet`);
                                 // the set shows its purchase, and a rename keeps the link.
+  // The tires' own properties (RV.330), every one optional, set on the set form and editable
+  // at any time (hard rule 13); a cleared field clears the property:
+  make: String?                 // "Nokian"
+  model: String?                // "Hakkapeliitta 10"
+  size: String?                 // the sidewall size as printed, "205/55 R16 94T"
+  productionWeek: String?       // the DOT date code as printed, week + year: "3624"
+  treadwear: Int?               // UTQG treadwear grade, 1...2000 (`TireMeasure.treadwearRange`)
+  newTreadDepthMm: Double?      // tread depth when new, mm, 0...30 (`TireMeasure.depthRange`)
   // km on this set is DERIVED: sum of odometer spans between ServiceRecords that mounted/unmounted it
   // (tireSetId marks mounting; the next tire-swap record ends the span). Never stored – same rule as segments.
 }
 ```
 
-A set is its own persisted row, not a field of a service record: the Garage's tire-sets screen creates and renames it (`TireSetFormView` -> `upsertTireSet`), and a `ServiceRecord` mounts it by id through `tireSetId`. Its mileage is derived, never stored (`TireMileage`).
+A set is its own persisted row, not a field of a service record: the Garage's tire-sets screen creates and edits it (`TireSetFormView` -> `upsertTireSet`), and a `ServiceRecord` mounts it by id through `tireSetId`. Its mileage is derived, never stored (`TireMileage`).
+
+```swift
+TireReading {                   // stored on the mounting ServiceRecord, never on the set
+  treadDepthMm: Double?         // measured, mm, 0...30
+  note: String?                 // "even wear", "sidewall cut"
+}                               // a reading with neither value is not stored (nil)
+```
+
+**The set's history is derived, never stored** (hard rule 2). `TireMileage.stints` walks the
+car's live swap records in the shared entry order: each record carrying the set's id starts a
+**stint**, and the next swap of any set ends it (a repeated mount of the same set starts a stint of
+its own). A stint carries its mount date, its start and end odometer (the next swap's, or the
+latest known odometer while the set is on the car), its distance (nil when a bounding odometer is
+missing or does not exceed the start - never estimated), the running total of every known stint so
+far, and the reading taken at the mounting swap. The set's mileage is the last stint's running
+total. A typed number that does not parse (a treadwear, a depth) refuses to save with its next
+step rather than being dropped (hard rule 8).
 
 ### Reminder
 

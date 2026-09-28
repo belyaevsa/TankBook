@@ -162,7 +162,8 @@ private func fullyPopulatedServiceRecord() -> ServiceRecord {
                         cost: nil, partNumber: nil, lifetime: nil),
         ],
         usedParts: [UUID(uuidString: "55555555-5555-7555-8555-555555555555")!],
-        tireSetId: UUID(uuidString: "99999999-9999-7999-8999-999999999999")!
+        tireSetId: UUID(uuidString: "99999999-9999-7999-8999-999999999999")!,
+        tireReading: TireReading(treadDepthMm: 6.5, note: "even wear")
     )
 }
 
@@ -223,7 +224,9 @@ private func fullyPopulatedTireSet() -> TireSet {
         createdAt: testTimestamp, updatedAt: testTimestamp, deletedAt: testTimestamp,
         vehicleId: UUID(uuidString: "11111111-1111-7111-8111-111111111111")!,
         name: "Winter Nokian",
-        purchaseExpenseId: UUID(uuidString: "55555555-5555-7555-8555-555555555555")!
+        purchaseExpenseId: UUID(uuidString: "55555555-5555-7555-8555-555555555555")!,
+        make: "Nokian", model: "Hakkapeliitta 10", size: "205/55 R16 94T",
+        productionWeek: "3624", treadwear: 400, newTreadDepthMm: 9.5
     )
 }
 

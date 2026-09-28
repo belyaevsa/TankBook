@@ -163,6 +163,15 @@ as terminal - the cycle stops, the session's tokens are discarded, and the revok
 sign-in - so a compliant client issues no second request for the server to refuse. The client change
 is what ends the ~3-minute post-410 traffic tail seen in production (14:53:10 -> 14:56:04).
 
+**Payload change verdict (RV.330, 2026-09-28): additive.** `tireSet` gains six optional members
+(`make`, `model`, `size`, `productionWeek`, `treadwear`, `newTreadDepthMm`) and `serviceRecord`
+gains an optional `tireReading` object (`docs/SCHEMA.md` -> TireSet). `schemaVersion` stays 1:
+nothing becomes required and no type narrows, so every payload an older client sends still
+validates, and migration 028 refreshes the registry rows in place (`docs/SYNC.md` -> "The schema
+registry lives in the database"). Checked against build 1368 (the store build): its codec keeps the
+keys it does not know byte-identically on decode -> encode (`PayloadContractTests`), so a set or a
+swap it edits and re-pushes does not lose the new members.
+
 **Payload validation** (per-item `rejected` codes, full contract in `SYNC.md` → "Payload contract and versioning"): `payload_invalid` (not an object, >256 KB, bad entityType), `schema_version_unsupported` (newer than the server knows – the *server* needs updating, and the message says so), `payload_schema_violation` (fails the registered JSON Schema; `pointer` names the offending field). A **known** entityType is strictly validated; an **unknown** one with a well-formed envelope is accepted unvalidated, which is what keeps the entity set open for older servers.
 
 ## Attachments (blob pipeline – `SYNC.md`)

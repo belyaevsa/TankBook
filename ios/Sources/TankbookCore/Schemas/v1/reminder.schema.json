@@ -480,6 +480,18 @@
       },
       "type" : "object"
     },
+    "tireReading" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "note" : {
+          "type" : "string"
+        },
+        "treadDepthMm" : {
+          "type" : "number"
+        }
+      },
+      "type" : "object"
+    },
     "units" : {
       "additionalProperties" : true,
       "properties" : {

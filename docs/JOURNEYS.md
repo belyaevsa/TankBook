@@ -505,8 +505,10 @@ total. Its Garage screen lists **every stint** - the swap that mounted it, the d
 covered and the running total - derived from the tire-swap service records, never stored. When the
 set is created (or edited later) the user may give the tires' **make, model, size, production week,
 tread-life rating and new tread depth**; at each swap the form offers a **condition reading** - tread
-depth measured and a note on wear or damage - so the set's history shows how the tires aged. All of
-it is optional and the user's to change (hard rule 13). Later, the tread trend against the legal and
+depth measured and a note on wear or damage - so the set's history shows how the tires aged. The
+reading describes the tires going **on** at that swap, so each stint in the history opens with the
+condition it started from; a reading forgotten at the swap, or mistyped, is added or corrected from
+that stint's row on the set's screen. All of it is optional and the user's to change (hard rule 13). Later, the tread trend against the legal and
 seasonal minimum becomes a suggestion to buy new tires - offered where the set lives, never in an
 error surface.
 

@@ -158,6 +158,10 @@ struct ServiceEntryFormState: Equatable {
     /// The tire set mounted when `mode == .tires` (P3.3). Nil until a set is
     /// chosen; the odometer rule keys off it.
     var tireSetId: UUID?
+    /// The mounted set's condition at this swap, as typed: the tread depth in
+    /// mm and a note. Both optional; written only with a mounted set.
+    var readingDepth = ""
+    var readingNote = ""
     /// The scanned invoice's pages (P3.1b). Empty for the typed path. The files
     /// are written at capture time; removing a page deletes its file.
     var attachments: [AttachmentID] = []
@@ -217,8 +221,10 @@ struct ServiceEntryFormState: Equatable {
     /// applies. A km lifetime with a blank odometer saves.
     var saveReadiness: ServiceEntryDraft.SaveReadiness {
         if mode == .tires {
-            return ServiceEntryDraft.saveReadiness(odometer: odometerValue,
-                                                   tireSetId: tireSetId)
+            let readiness = ServiceEntryDraft.saveReadiness(odometer: odometerValue,
+                                                            tireSetId: tireSetId)
+            if readiness == .ready, tireReading == .invalid { return .readingInvalid }
+            return readiness
         }
         return ServiceEntryDraft.serviceSaveReadiness(
             vendor: vendor,
@@ -239,6 +245,8 @@ struct ServiceEntryFormState: Equatable {
             return L10n.localize("Select a tire set to save")
         case .tires where saveReadiness == .odometerRequired:
             return L10n.localize("Enter the odometer to save")
+        case .tires where saveReadiness == .readingInvalid:
+            return L10n.localize("Tread depth is in mm, like 8.5")
         case .service where saveReadiness == .empty:
             return L10n.localize("Add a vendor or a line item to save")
         default:
@@ -260,7 +268,13 @@ struct ServiceEntryFormState: Equatable {
             tireSetId: tireSetId,
             attachments: attachments,
             provenance: provenance,
-            usedParts: linkedPartIds)
+            usedParts: linkedPartIds,
+            tireReading: mode == .tires ? tireReading.value : nil)
+    }
+
+    /// The typed reading, parsed: blank, a reading, or a depth that is not one.
+    var tireReading: TireMeasure.Parsed<TireReading> {
+        TireReading.from(depth: readingDepth, note: readingNote)
     }
 
     /// Applies a pre-fill as default input the user edits (hard rule 13). The
@@ -303,6 +317,7 @@ struct ServiceEntryFormState: Equatable {
         if !linkedPartIds.isEmpty { return true }
         if mode != initialMode { return true }
         if tireSetId != initialTireSetId { return true }
+        if !readingDepth.isEmpty || !readingNote.isEmpty { return true }
         if OdometerFormat.ungrouped(odometer) != OdometerFormat.ungrouped(initialOdometer) {
             return true
         }

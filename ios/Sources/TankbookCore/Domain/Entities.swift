@@ -280,6 +280,9 @@ public struct ServiceRecord: Entry, Codable, Sendable, Equatable {
     public var items: [ServiceItem]
     public var usedParts: [UUID]
     public var tireSetId: UUID?
+    /// The mounted set's condition at this swap. Meaningful only with
+    /// `tireSetId`.
+    public var tireReading: TireReading?
 
     /// Memberwise initializer, public so the app target can seed a
     /// `ServiceRecord` for UI tests (the same construction blocker that
@@ -290,7 +293,7 @@ public struct ServiceRecord: Entry, Codable, Sendable, Equatable {
                 provenance: Provenance, conflict: ConflictState = .none,
                 purchaseGroupId: UUID? = nil, vendor: String? = nil,
                 items: [ServiceItem] = [], usedParts: [UUID] = [],
-                tireSetId: UUID? = nil,
+                tireSetId: UUID? = nil, tireReading: TireReading? = nil,
                 flagAcceptance: FlagAcceptance? = nil) {
         self.id = id
         self.createdAt = createdAt
@@ -310,6 +313,7 @@ public struct ServiceRecord: Entry, Codable, Sendable, Equatable {
         self.items = items
         self.usedParts = usedParts
         self.tireSetId = tireSetId
+        self.tireReading = tireReading
     }
 }
 
@@ -373,6 +377,39 @@ public struct TireSet: Entity, Codable, Sendable, Equatable {
     public var vehicleId: UUID
     public var name: String
     public var purchaseExpenseId: UUID?
+    /// The tires' own properties (docs/SCHEMA.md -> TireSet). Each is optional
+    /// and the user's to set or change at any time (hard rule 13).
+    public var make: String?
+    public var model: String?
+    /// The sidewall size as printed, e.g. "205/55 R16 91H".
+    public var size: String?
+    /// The DOT date code: production week and year as printed, e.g. "3624".
+    public var productionWeek: String?
+    /// The UTQG treadwear rating, e.g. 400.
+    public var treadwear: Int?
+    /// Tread depth when new, in millimetres.
+    public var newTreadDepthMm: Double?
+}
+
+/// The condition of the tires a swap mounts, read at that swap
+/// (docs/SCHEMA.md -> ServiceRecord.tireReading). Stored on the mounting
+/// `ServiceRecord`, never on the set, so each stint of a set carries the
+/// reading taken when it began.
+public struct TireReading: Codable, Sendable, Equatable {
+    /// Measured tread depth in millimetres.
+    public var treadDepthMm: Double?
+    /// Free text on wear or damage: "even wear", "sidewall cut".
+    public var note: String?
+
+    public init(treadDepthMm: Double? = nil, note: String? = nil) {
+        self.treadDepthMm = treadDepthMm
+        self.note = note
+    }
+
+    /// A reading with neither value says nothing and is not stored.
+    public var isEmpty: Bool {
+        treadDepthMm == nil && (note?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+    }
 }
 
 /// A service reminder (docs/SCHEMA.md, Reminder).

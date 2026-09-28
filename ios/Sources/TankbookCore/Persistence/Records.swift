@@ -412,6 +412,7 @@ public struct ServiceRecordRow: FetchableRecord, PersistableRecord {
             items: [],
             usedParts: try decodeJSON([UUID].self, from: row, column: "usedParts"),
             tireSetId: decodeOptionalUUID(row, column: "tireSetId"),
+            tireReading: try decodeOptionalJSON(TireReading.self, from: row, column: "tireReading"),
             flagAcceptance: common.flagAcceptance)
         (syncState, syncScn) = decodeSync(row)
     }
@@ -422,6 +423,7 @@ public struct ServiceRecordRow: FetchableRecord, PersistableRecord {
         container["vendor"] = service.vendor
         container["usedParts"] = try encodeJSON(service.usedParts)
         container["tireSetId"] = service.tireSetId?.uuidString
+        container["tireReading"] = try service.tireReading.map { try encodeJSON($0) }
     }
 }
 

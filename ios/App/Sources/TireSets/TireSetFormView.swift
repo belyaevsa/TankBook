@@ -6,8 +6,10 @@ import TankbookCore
 /// it derives from the DESIGN.md tokens and the ServiceEntry/Reminder forms it
 /// sits beside - same card metrics, same eyebrow, same underline.
 ///
-/// The one invariant the screen exists for: a tire set with no name is not a
-/// set. Save refuses a blank name and names the next step (hard rule 7).
+/// A tire set with no name is not a set: Save refuses a blank name and names
+/// the next step (hard rule 7). An existing set also shows its history - every
+/// stint derived from the swap records, with the condition read at each swap
+/// (docs/JOURNEYS.md J7b, "The tire set's life").
 struct TireSetFormView: View {
     /// nil = create a new set; otherwise the set being renamed.
     var tireSetID: UUID?
@@ -23,6 +25,8 @@ struct TireSetFormView: View {
     /// rename keeps the link; this only reads the expense's own words back.
     @State private var purchaseExpense: Expense?
     @FocusState private var nameFocused: Bool
+    @State private var stints: [TireMileage.Stint] = []
+    @State private var readingTarget: TireMileage.Stint?
 
     private var isEditing: Bool { tireSetID != nil }
 
@@ -33,8 +37,14 @@ struct TireSetFormView: View {
                     noVehicleCard
                 } else {
                     TireSetNameCard(name: $form.name, focused: $nameFocused)
+                    TireSetSpecsCard(form: $form)
                     if let purchaseExpense {
                         TireSetPurchaseInfoCard(expense: purchaseExpense)
+                    }
+                    if isEditing {
+                        TireSetHistoryCard(stints: stints,
+                                           distanceUnit: vehicle?.units.distance ?? .km,
+                                           onEditReading: { readingTarget = $0 })
                     }
                 }
             }
@@ -49,6 +59,9 @@ struct TireSetFormView: View {
         .navigationTitle(isEditing ? "Edit tire set" : "New tire set")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
+        .sheet(item: $readingTarget) { stint in
+            TireReadingSheet(stint: stint, onSaved: loadHistory)
+        }
     }
 
     // MARK: - Save
@@ -74,8 +87,8 @@ struct TireSetFormView: View {
             .disabled(!saveEnabled)
             .accessibilityIdentifier("tireSetSaveButton")
 
-            if !saveEnabled {
-                Text("Add a name to save")
+            if let hint = form.saveHint {
+                Text(hint)
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.inkSoft)
                     .accessibilityIdentifier("tireSetSaveHint")
@@ -120,6 +133,7 @@ struct TireSetFormView: View {
                     .first { $0.id == tireSetID }
                 if let existing {
                     form = TireSetFormState.from(tireSet: existing)
+                    loadHistory()
                     if let expenseID = existing.purchaseExpenseId,
                        let entry = try repository.liveEntry(id: expenseID) {
                         purchaseExpense = entry as? Expense
@@ -128,6 +142,22 @@ struct TireSetFormView: View {
             }
         } catch {
             AppLog.error(operation: "tireSetForm.load", category: .ui, error: error)
+        }
+    }
+
+    /// Re-derives the stints from the car's swap records (hard rule 2): after
+    /// a reading edit the history shows it with no invalidation.
+    private func loadHistory() {
+        guard let vehicle, let tireSetID else { return }
+        do {
+            let repository = try AppStore.repository()
+            let entries = try repository.liveEntries(forVehicle: vehicle.id)
+            let latest = entries.compactMap(\.odometer).max() ?? vehicle.initialOdometer
+            stints = TireMileage.stints(for: tireSetID,
+                                        records: try repository.liveServiceRecords(forVehicle: vehicle.id),
+                                        latestOdometer: latest)
+        } catch {
+            AppLog.error(operation: "tireSetForm.history", category: .ui, error: error)
         }
     }
 

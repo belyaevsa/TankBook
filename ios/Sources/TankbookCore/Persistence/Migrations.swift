@@ -113,6 +113,22 @@ public enum TankbookMigrations {
                 table.column("returnedAt", .double).notNull()
             }
         }
+        migrator.registerMigration("v12") { db in
+            // The tire set's own properties and the per-swap condition reading
+            // (docs/SCHEMA.md -> TireSet, ServiceRecord.tireReading). All
+            // optional: an existing row reads as "not given".
+            try db.alter(table: TankbookSchema.tireSet) { table in
+                table.add(column: "make", .text)
+                table.add(column: "model", .text)
+                table.add(column: "size", .text)
+                table.add(column: "productionWeek", .text)
+                table.add(column: "treadwear", .integer)
+                table.add(column: "newTreadDepthMm", .double)
+            }
+            try db.alter(table: TankbookSchema.serviceRecord) { table in
+                table.add(column: "tireReading", .text)   // JSON TireReading?
+            }
+        }
         return migrator
     }
 

@@ -13,14 +13,63 @@ import Testing
     private static let setB = UUID(uuidString: "BBBBBBBB-0000-0000-0000-000000000002")!
 
     /// A tire-swap record: a ServiceRecord whose `tireSetId` marks a mounting.
-    private func swap(_ setID: UUID, odo: Int?, day: Int, vehicle: UUID? = nil) -> ServiceRecord {
+    private func swap(_ setID: UUID, odo: Int?, day: Int, vehicle: UUID? = nil,
+                      reading: TireReading? = nil) -> ServiceRecord {
         let date = Date(timeIntervalSince1970: 1_752_000_000 + Double(day) * 86_400)
         return ServiceRecord(
             id: UUID.v7(), createdAt: date, updatedAt: date, deletedAt: nil,
             vehicleId: vehicle ?? UUID.v7(), date: date, odometer: odo,
             money: nil, note: nil, attachments: [], provenance: .manual,
             conflict: .none, purchaseGroupId: nil, vendor: nil, items: [],
-            usedParts: [], tireSetId: setID)
+            usedParts: [], tireSetId: setID, tireReading: reading)
+    }
+
+    // MARK: - The set's history (stints)
+
+    @Test func twoSetsSwappedThreeTimesGiveEachStintItsSpanAndARunningTotal() {
+        // A on 10 000 -> B on 15 000 -> A on 20 000 -> B on 28 000 (open, latest 31 500).
+        let records = [
+            swap(Self.setA, odo: 10_000, day: 1, reading: TireReading(treadDepthMm: 8.0)),
+            swap(Self.setB, odo: 15_000, day: 2),
+            swap(Self.setA, odo: 20_000, day: 3, reading: TireReading(treadDepthMm: 6.5, note: "even")),
+            swap(Self.setB, odo: 28_000, day: 4)
+        ]
+        let latest = 31_500
+
+        let stintsA = TireMileage.stints(for: Self.setA, records: records, latestOdometer: latest)
+        #expect(stintsA.map(\.km) == [5_000, 8_000])
+        #expect(stintsA.map(\.totalKm) == [5_000, 13_000])
+        #expect(stintsA.map(\.startOdometer) == [10_000, 20_000])
+        #expect(stintsA.map(\.endOdometer) == [15_000, 28_000])
+        #expect(stintsA.allSatisfy { !$0.isOnCar })
+        #expect(stintsA.map { $0.reading?.treadDepthMm } == [8.0, 6.5])
+        #expect(stintsA[1].reading?.note == "even")
+
+        let stintsB = TireMileage.stints(for: Self.setB, records: records, latestOdometer: latest)
+        #expect(stintsB.map(\.km) == [5_000, 3_500])
+        #expect(stintsB.map(\.totalKm) == [5_000, 8_500])
+        // The last stint is open: on the car, running to the latest odometer.
+        #expect(stintsB.map(\.isOnCar) == [false, true])
+        #expect(stintsB.last?.endOdometer == 31_500)
+        #expect(stintsB.last?.endDate == nil)
+
+        // The total is the history's last running total.
+        #expect(TireMileage.mileage(for: Self.setA, records: records, latestOdometer: latest) == 13_000)
+        #expect(TireMileage.mileage(for: Self.setB, records: records, latestOdometer: latest) == 8_500)
+    }
+
+    @Test func aStintWithAMissingOdometerIsUnknownAndTheTotalCarriesOn() {
+        // A on 10 000 -> B with no odometer -> A on 20 000 -> B on 24 000.
+        let records = [
+            swap(Self.setA, odo: 10_000, day: 1),
+            swap(Self.setB, odo: nil, day: 2),
+            swap(Self.setA, odo: 20_000, day: 3),
+            swap(Self.setB, odo: 24_000, day: 4)
+        ]
+        let stints = TireMileage.stints(for: Self.setA, records: records, latestOdometer: 24_000)
+        #expect(stints.map(\.km) == [nil, 4_000])
+        #expect(stints.map(\.totalKm) == [nil, 4_000])
+        #expect(TireMileage.stints(for: UUID.v7(), records: records, latestOdometer: 24_000).isEmpty)
     }
 
     // MARK: - Closed spans sum (three swaps across two sets)

@@ -480,6 +480,18 @@
       },
       "type" : "object"
     },
+    "tireReading" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "note" : {
+          "type" : "string"
+        },
+        "treadDepthMm" : {
+          "type" : "number"
+        }
+      },
+      "type" : "object"
+    },
     "units" : {
       "additionalProperties" : true,
       "properties" : {
@@ -540,12 +552,30 @@
       "format" : "uuid",
       "type" : "string"
     },
+    "make" : {
+      "type" : "string"
+    },
+    "model" : {
+      "type" : "string"
+    },
     "name" : {
+      "type" : "string"
+    },
+    "newTreadDepthMm" : {
+      "type" : "number"
+    },
+    "productionWeek" : {
       "type" : "string"
     },
     "purchaseExpenseId" : {
       "format" : "uuid",
       "type" : "string"
+    },
+    "size" : {
+      "type" : "string"
+    },
+    "treadwear" : {
+      "type" : "integer"
     },
     "updatedAt" : {
       "format" : "date-time",

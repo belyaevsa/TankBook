@@ -212,6 +212,11 @@ let serviceItemDef = schemaObject([
     "lifetime": schemaRef("lifetime"),
 ], ["title", "category"])
 
+let tireReadingDef = schemaObject([
+    "treadDepthMm": schemaNumber,
+    "note": schemaString,
+], [])
+
 let fiscalDocumentIdentityDef = schemaObject([
     "fiscalDriveNumber": schemaString,
     "documentNumber": schemaString,
@@ -227,6 +232,7 @@ let allDefs: [String: Any] = [
     "notifications": notificationsDef,
     "localFileRef": localFileRefDef,
     "lifetime": lifetimeDef,
+    "tireReading": tireReadingDef,
     "reminderRecurrence": reminderRecurrenceDef,
     "provenance": provenanceDef,
     "conflictState": conflictStateDef,
@@ -343,6 +349,7 @@ let serviceRecordProperties: [String: Any] = [
     "items": schemaArray(schemaRef("serviceItem")),
     "usedParts": schemaArray(schemaUUID),
     "tireSetId": schemaUUID,
+    "tireReading": schemaRef("tireReading"),
 ]
 
 let expenseProperties: [String: Any] = [
@@ -412,6 +419,12 @@ let tireSetProperties: [String: Any] = [
     "vehicleId": schemaUUID,
     "name": schemaString,
     "purchaseExpenseId": schemaUUID,
+    "make": schemaString,
+    "model": schemaString,
+    "size": schemaString,
+    "productionWeek": schemaString,
+    "treadwear": schemaInteger,
+    "newTreadDepthMm": schemaNumber,
 ]
 
 let attachmentProperties: [String: Any] = [
