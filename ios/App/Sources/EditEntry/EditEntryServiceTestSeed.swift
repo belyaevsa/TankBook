@@ -128,10 +128,13 @@ enum EditEntryServiceTestSeed {
         seedServiceRecord(
             money: Money(amount: Decimal(string: "134.00")!, currency: .eur, homeCurrency: .eur),
             vendor: "Tireman",
-            items: [
-                ServiceItem(title: "T18 18\" 4 rehvi täisvahetus", category: .tires,
-                            cost: Money(amount: Decimal(string: "60.48")!, currency: .eur, homeCurrency: .eur))
-            ],
+            items: [("T18 18\" 4 rehvi täisvahetus", ServiceCategory.tires, "60.48"),
+                    ("SART Rehvitööde kulumaterjalid", .other(""), "3.23"),
+                    ("T0059 Rehvide hoiustamine 1 hooaeg kuni 20\"", .tires, "44.35"),
+                    ("Käibemaks 24%", .other(""), "25.94")].map { title, category, cost in
+                ServiceItem(title: title, category: category,
+                            cost: Money(amount: Decimal(string: cost)!, currency: .eur, homeCurrency: .eur))
+            },
             attachments: pages)
     }
 
