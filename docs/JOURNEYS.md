@@ -330,7 +330,7 @@ captures" metric assumed QR was a capture path; it is not.)
 **Success metric:** % of EV owners logging ≥4 sessions/month; the comparison screen's weekly views.
 
 ### J7 · Service visit
-**Status: implemented 2026-09-13** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J7-2026-09-13)
+**Status: unreviewed** (was implemented 2026-09-13, REVIEW-SCENARIO-J7-2026-09-13; cleared 2026-09-28 by RV.318-320, which change how an invoice gets in and how it is read)
 **Trigger:** leaving the workshop with a multi-page invoice, or DIY oil change in the garage.
 
 **The manual door (RV.61, hard rule 15):** typing is a peer path, never a camera fallback. The same form is reached with no camera from Home's header - "Type it" → its menu → "Service" opens the empty `ServiceEntryView` (odometer pre-filled from the last known value, editable). A capture is a head start, never a gate.
@@ -457,6 +457,15 @@ Take / Keep), a new line is a dimmed "Also on the invoice" card (Add / Dismiss),
 line by the user's row and an unpaired one "New line" (`ERRORS.md` → Service & expenses, Inbox).
 Over the served page cap no cloud call is made and the form says so - every page is still kept
 and split on the device.
+
+**An invoice that is already an image (RV.318, product owner 2026-09-28).** An invoice arrives as a
+PDF, a screenshot or a photo taken earlier as often as it is scanned at the counter. In Service mode
+the Photos button takes one such image through the review step into **the service form**, as a
+one-page scan - the same split, the same persisted page, the same cloud reading as the document
+camera's pages - never the fill-up form the mode chip does not name. On the service form, **Add page**
+offers **Scan a page** and **Choose from Photos** side by side. The mode chip and the form it opens
+are one mapping for both doors (`CaptureMode.manualEntryForm`), so "Type it" and "Use this" cannot
+disagree.
 
 **Success metric:** ≥50% of service records carry an attachment; reminder acceptance rate ≥60%.
 

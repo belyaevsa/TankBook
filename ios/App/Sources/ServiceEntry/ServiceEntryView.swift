@@ -50,6 +50,7 @@ struct ServiceEntryView: View {
     @State var pages: [InvoicePage] = []
     @State var selectedPageIndex = 0
     @State var showDocumentCamera = false
+    @State var showPagePhotoPicker = false
     /// The parts on the shelf and the parts linked into this service (P3.2).
     @State private var shelfParts: [Expense] = []
     @State private var linkedParts: [Expense] = []
@@ -131,6 +132,7 @@ struct ServiceEntryView: View {
                         ServiceEntryPageStrip(pages: pages,
                                               selectedIndex: $selectedPageIndex,
                                               onAddPage: addPage,
+                                              onAddPageFromPhotos: { showPagePhotoPicker = true },
                                               onRemovePage: removePage)
                     }
                     // Both halves of the row: Service/Tires select a mode
@@ -204,6 +206,11 @@ struct ServiceEntryView: View {
                     showDocumentCamera = false
                     handleAddedPages(images)
                 })
+        }
+        .sheet(isPresented: $showPagePhotoPicker) {
+            PhotoPickerView(isPresented: $showPagePhotoPicker) { image in
+                if let image { handleAddedPages([image]) }
+            }
         }
         .sheet(item: $nestedSheet) { route in
             SheetDestinationView(route: route)

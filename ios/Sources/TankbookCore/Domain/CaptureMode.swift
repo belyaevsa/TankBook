@@ -54,9 +54,11 @@ public enum CaptureMode: String, Codable, Sendable, CaseIterable {
         modes(for: powertrain).first ?? .fillUpAuto
     }
 
-    /// The manual entry form "Type it" opens for this mode (hard rule 15 - the
-    /// typed door is a peer of capture and must open the form for the mode the
-    /// user selected, never a fill-up form in Service mode).
+    /// The form this mode opens, by either door: "Type it" opens it empty, and
+    /// an image accepted from the review step (a shutter frame or a Photos
+    /// pick) opens it pre-filled (hard rule 15 - the typed door is a peer of
+    /// capture and both must open the form for the mode the user selected,
+    /// never a fill-up form in Service mode).
     ///
     /// `.charge` deliberately shares the fill-up form: there is no charge entry
     /// form yet (PJ.12 owns the dead Charge chip for EV/PHEV), and the fill-up
@@ -74,7 +76,7 @@ public enum CaptureMode: String, Codable, Sendable, CaseIterable {
     }
 }
 
-/// The manual entry form a capture mode routes "Type it" to
+/// The entry form a capture mode routes "Type it" and an accepted image to
 /// (`CaptureMode.manualEntryForm`). One case per form that exists today; the
 /// app maps a case to the sheet it presents (`SheetRoute`).
 public enum CaptureEntryForm: String, Codable, Sendable, CaseIterable {
