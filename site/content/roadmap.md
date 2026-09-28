@@ -30,8 +30,9 @@ on this page is a promise; the shipped list is the record.
 
 ## Next
 
-- **Pump-display capture** – point the camera at the pump itself, before the receipt prints. It is
-  built to ship, and switched off today: the reading quality is not yet honest enough to turn on.
+- **Pump-display capture** – point the camera at the pump itself, before the receipt prints. It
+  comes in [1.1](/releases/): the numbers it reads are pre-filled for you to check, never saved on
+  their own.
 - **Importers for the apps you are leaving** beyond My Fuel Manager and Drivvo – Fuelio,
   Spritmonitor and the rest – same review-first shape.
 - **CarPlay** – your costs and reminders on the dash.
