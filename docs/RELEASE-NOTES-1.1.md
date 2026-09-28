@@ -2,35 +2,35 @@
 
 ## New
 
-- Photograph a pump display to pre-fill the total, litres and price on your device; check or change the numbers against the photo before saving, or type them from the start. Nothing is saved without you. (PU.6, PU.89, PJ.505)
-- See a warning when a pump reading's three numbers do not add up, or a prompt to type a number the app could not check or read. (PU.100, PU.103, PJ.504)
-- Add a service invoice from Photos, including another page, and review its itemised lines before keeping them. (RV.318, RV.320, PJ.301, PJ.302, PJ.303)
-- See every due reminder on the Log, with its date or distance and a way to open all reminders. (RV.122)
-- See distance, consumption, cost per kilometre and a qualified comparison with the previous month in the Log. (RV.119)
-- See your fill pattern and a qualified estimate of the month's pace where your records support them. (RV.120)
-- Compare fuel prices by station brand in Trends when you have enough entries from two brands. (RV.115, RV.180, PJ.31)
-- Choose Match the system, Dark or Light in Settings. (RV.316)
+- A photo of the pump display can pre-fill the total, litres and price on your phone. Check the figures against the photo before saving, or type them from the start. The photo creates no entry until you save it. (PU.6, PU.89, PJ.505)
+- If the pump figures do not add up, the check screen warns you. It asks for a number it could not read or check. (PU.100, PU.103, PJ.504)
+- Choose a service invoice in Photos, add another page if needed, and check its itemised lines before saving the service entry. (RV.318, RV.320, PJ.301, PJ.302, PJ.303)
+- Due reminders appear in the Log with their date or distance. The full reminder list is one tap away. (RV.122)
+- The Log shows distance, consumption and cost per kilometre. It compares the month with the previous one when the records support a comparison. (RV.119)
+- See how your fill-ups are spaced and an estimate of this month's pace when there are enough records to calculate it. (RV.120)
+- Trends compares fuel prices by station brand once you have enough entries from two brands. (RV.115, RV.180, PJ.31)
+- Settings now offers Match the system, Dark and Light. (RV.316)
 
 ## Better
 
-- Check scanned fill-up numbers beside the photo before opening the entry; zoom, turn or correct the photo and numbers there. (PJ.505, PJ.506)
-- If you photograph an invoice while in Fill-up mode, choose to carry it into Service or Expense instead of starting with an empty fuel entry. (RV.319)
-- Share a CSV from another app straight into the import wizard. (PJ.21)
-- See how many fills support the consumption headline and a comparison arrow only when both periods have enough data. (RV.118, PJ.30)
-- Finish a service or expense reminder by scanning its invoice or receipt, with the reminder details carried into the entry. (PJ.24, RV.298)
-- Keep recent photos ready after a restore or sync, while low power and low data settings are respected. (PJ.35)
+- Before a scanned fill-up opens as an entry, check its figures beside the photo. Zoom or turn the photo, then correct the figures there. (PJ.505, PJ.506)
+- Photograph an invoice in Fill-up mode and you can carry it into Service or Expense instead of opening an empty fuel entry. (RV.319)
+- Share a CSV from another app into the import wizard. (PJ.21)
+- The consumption headline shows how many fills it uses. A comparison arrow appears when both periods have enough data. (RV.118, PJ.30)
+- Scan an invoice or receipt to finish a service or expense reminder. Its details carry into the entry. (PJ.24, RV.298)
+- Recent photos are ready after a restore or sync; the app also respects low power and low data settings. (PJ.35)
 
 ## Fixed
 
-- A service photo chosen from Photos now opens a service entry, not a fill-up. (RV.318)
-- An invoice's VAT or one line amount is less likely to be mistaken for the payable total; table rows and the issuer are read more carefully. (RV.301, RV.305, RV.320)
-- A pump reading that cannot be trusted is no longer silently filled from receipt text; a refused or incomplete read asks you to check it. (PU.93, PU.100, PU.103)
-- Consumption figures now use the car's chosen MPG, km/L or L/100 km unit across Home, Trends and entry feedback. (RV.296)
-- Restoring to a new device no longer stalls when an entry arrives before its car; an interrupted restore explains what arrived and offers Retry. (RV.303, PJ.39)
-- A rejected sync is shown rather than retried forever without explanation. (RV.284)
-- A shop receipt's wheel wash or “free” text no longer makes tyres a car wash or a toll. (RV.304)
+- A service photo selected in Photos opens a service entry rather than a fill-up. (RV.318)
+- Invoice reading is less likely to treat VAT or a line amount as the payable total. It also reads table rows and the issuer more carefully. (RV.301, RV.305, RV.320)
+- An uncertain pump reading no longer borrows a number from receipt text without telling you. If the reading is refused or incomplete, the app asks you to check it. (PU.93, PU.100, PU.103)
+- Home, Trends and entry feedback use the car's chosen consumption unit: MPG, km/L or L/100 km. (RV.296)
+- Restore no longer stalls when an entry reaches a new device before its car. If restore stops partway through, you can see what arrived and tap Retry. (RV.303, PJ.39)
+- The app shows a sync rejected by the server instead of retrying it indefinitely without explanation. (RV.284)
+- A shop receipt's wheel wash or “free” text no longer classifies tyres as a car wash or toll. (RV.304)
 
 ## Owner check
 
-- The rows describe the store build at HEAD, but no release archive was built for this copy pass. Confirm the submitted archive still bundles `pumpPhoto` enabled and the gate allows the path.
-- The service invoice cloud offer needs an account and a working connection; confirm its prominence in What's New for the target market.
+- These rows describe the store build at HEAD; this copy pass did not build a release archive. Check that the submitted archive has `pumpPhoto` enabled and that the gate allows the path.
+- The cloud offer for service invoices needs an account and a working connection. Check how prominently it appears in What's New for the target market.

@@ -10,7 +10,7 @@ hero_sub = "Tankbook is a car cost log. Fuel, charging, service and the rest –
 hero_facts = ["Free", "No account needed", "Export always free"]
 hero_cta_primary = "Open in the App Store"
 hero_cta_secondary = "See what's shipped"
-hero_cta_secondary_url = "/roadmap/"
+hero_cta_secondary_url = "/releases/"
 hero_note = "Free on the App Store, iPhone with iOS 18 or later. No badge, no fake ratings – the mail reaches a human."
 hero_shot = "P1.4-home.png"
 hero_shot_alt = '''Tankbook's Log screen: a Volvo V60 at 123 600 km, average consumption 5.3 L/100km set large, September spend 147 €, and a stream of real entries'''
@@ -55,11 +55,6 @@ power_shot_alt = "A fill-up in Poland: currency chips with PLN selected, total 2
 power_shot_crop = -330
 power_shot_caption = "289.50 zł, kept with its euro value at the Aug 21 rate – the day it happened."
 
-road_eyebrow = "Next"
-road_title = "Pump-display capture – point the camera at the pump itself, before the receipt prints."
-road_text = "Also on the bench: importers from the app you're leaving, and CarPlay. What's shipped, what's next and what we deliberately cut – all on one honest page."
-road_cta = "See the roadmap →"
-road_cta_url = "/roadmap/"
 
 faq_eyebrow = "FAQ"
 faq_title = "Questions, answered straight."
@@ -137,7 +132,7 @@ a = "Nothing right now – Tankbook is free while we finish. Three things stay t
 
 [[faq]]
 q = "I have years of data in another app."
-a = "Import works review-first: your file is parsed into candidate rows, you review and edit every one, and only you commit them. My Fuel Manager CSV is supported today; more formats are on the roadmap."
+a = "Import works review-first: your file is parsed into candidate rows, you review and edit every one, and only you commit them. My Fuel Manager CSV is supported today; more formats may follow."
 
 [[faq]]
 q = "I drive a petrol car and an EV."

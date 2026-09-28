@@ -41,6 +41,6 @@ the file on your phone works.
 
 ## One more thing
 
-Only My Fuel Manager is supported today; other apps are on the roadmap. A file that is not a My
+Only My Fuel Manager is supported today; other apps may follow. A file that is not a My
 Fuel Manager export is turned away rather than mis-read. If your app is missing, the import screen
 offers to take the file so the format can be added.

@@ -52,8 +52,8 @@ Straight from `VISION.md` §1's "genuinely unowned" list, and each is checkable 
 - **Works offline.** No screen is sync-gated (hard rule 1).
 - **Export is always free.** Drivvo paywalls paper reports and its reviews resent it.
 - **The arithmetic cross-check, shown.** Litres x price = total, visible, as trust rather than magic.
-- **Pump-display and dashboard photo capture.** Nobody else attempts it. Ships **off** today
-  (P2.7), so it belongs on a roadmap page, not the hero.
+- **Pump-display photo capture.** Nobody else attempts it. It ships in 1.1 as a head start the user
+  checks (never "automatic"); it belongs on the releases page, not the hero, until 1.1 is on the store.
 - **True multi-currency with historical rates** - the rate on the day of the fill-up, both amounts kept.
 - **Petrol, diesel, hybrid and EV in one history.**
 
@@ -93,8 +93,7 @@ expand worst - the same constraint that broke tab labels in the app will break n
 | `/terms/` | Terms of use | Plain-language; no subscription terms while the Pro tier is deferred |
 | `/support/` | How to get help, and the feedback route | `POST /feedback` is the in-app channel; this page is the out-of-app one. **Required** by App Store review. The address is **`to@belyaev.live`** (product owner, 2026-08-28) - it is also the App Store listing's support contact, so the two must never disagree |
 | `/delete-account/` | How to delete an account and what happens | Apple requires an in-app route **and** a discoverable explanation. Ours is a tombstone: devices learn via `410`, **local data stays local** |
-| `/roadmap/` | What is shipped, what is next, what was deliberately cut | Cheap honesty, and it is where CarPlay and the next importers belong |
-| `/releases/` | Every release, newest first: New / Better / Fixed in plain words | The long form of the App Store's "What's New". Written from `docs/RELEASE-NOTES-<version>.md` (user-visible changes only, no task ids, no beta-only experiments) and the copy rule above; a version not yet on the App Store is headed "in preparation", never dated. Linked from the footer and from the roadmap |
+| `/releases/` | Every release, newest first: New / Better / Fixed in plain words | The long form of the App Store's "What's New". Written from `docs/RELEASE-NOTES-<version>.md` (user-visible changes only, no task ids, no beta-only experiments) and the copy rule above; a version not yet on the App Store is headed "in preparation", never dated. Linked from the footer and from the hero's "See what's shipped". The roadmap page was removed (product owner, 2026-09-28: "remove a roadmap page at all"); `/roadmap/` redirects here |
 | `/import-guide/` | Per-source export guide: where the source app's CSV export lives and what Tankbook does with it (PJ.33) | **Linked from the app's import flow** - the format row's "How to export" and the 422 / not-listed messages carry `helpUrl` from `GET /import/formats`. A link that 404s is worse than no link (hard rule 7), so a `helpUrl` and its page ship in the same change; today it covers My Fuel Manager only, and it must never imply formats that do not exist (P5.4b deferred) |
 | `/press/` | Name, icon, screenshots, one-paragraph description | Saves answering the same email twice |
 | `/404.html` | | |
@@ -117,9 +116,8 @@ newsletter, and any tracking-based personalisation.
 4. **Your data, yours.** No account needed, works offline, export always free, nothing logged that
    is yours. Links to `/privacy/`.
 5. **Every powertrain, every currency.** Petrol/diesel/hybrid/EV; the border story with both amounts.
-6. **Roadmap teaser** -> `/roadmap/`.
-7. **FAQ.** Five to seven real questions, marked up as `FAQPage` structured data.
-8. **Footer.** Legal, support, language switch, and the honest pre-launch status.
+6. **FAQ.** Five to seven real questions, marked up as `FAQPage` structured data.
+7. **Footer.** Legal, support, language switch, and the honest pre-launch status.
 
 **The CTA follows the listing's state.** Before the listing existed a "Download on the App Store"
 badge would have been a lie, so the CTA was a `mailto:` and then *"Join the TestFlight ring"*.
@@ -128,7 +126,7 @@ footer, reading `site.Params.appStoreURL` - set **per language** in `hugo.toml`
 (`/us/app/tankbook-fuel-mileage-log/id6807989868`, `/ru/app/tankbook-топливо-и-расходы/…`), because
 the storefront and the slug differ while the id does not; the buttons never carry a second copy. The Apple mark on the button is a masked SVG in CSS
 (chrome, not content). Still no fake ratings, no invented review quotes; the hero note says the
-mail reaches a human. The pages that said "in testing" (support, roadmap, the footer line) say
+mail reaches a human. The pages that said "in testing" (support, the footer line) say
 "on the App Store" now.
 
 **One caveat on that address, recorded rather than argued.** It is a personal mailbox published on
