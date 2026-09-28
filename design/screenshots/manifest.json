@@ -511,14 +511,14 @@
       "runtime": "iOS.26.5"
     },
     "P4.9b-settings-guest": {
-      "commit": "a52fc86c",
+      "commit": "e60efd2e",
       "device": "iPhone 17",
-      "runtime": "iOS.26.5"
+      "runtime": "iOS.27.0"
     },
     "P4.9b-settings-guest-ru": {
-      "commit": "a52fc86c",
+      "commit": "e60efd2e",
       "device": "iPhone 17",
-      "runtime": "iOS.26.5"
+      "runtime": "iOS.27.0"
     },
     "P4.9b-settings-pending": {
       "commit": "3a2dcdc",
@@ -2866,12 +2866,12 @@
       "runtime": "iOS.27.0"
     },
     "RV.316-settings-appearance-light": {
-      "commit": "d751a330",
+      "commit": "e60efd2e",
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },
     "RV.316-settings-appearance-light-ru": {
-      "commit": "d751a330",
+      "commit": "e60efd2e",
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },
@@ -3126,14 +3126,14 @@
       "runtime": "iOS.26.5"
     },
     "RV.70-settings": {
-      "commit": "a52fc86c",
+      "commit": "e60efd2e",
       "device": "iPhone 17",
-      "runtime": "iOS.26.5"
+      "runtime": "iOS.27.0"
     },
     "RV.70-settings-ru": {
-      "commit": "a52fc86c",
+      "commit": "e60efd2e",
       "device": "iPhone 17",
-      "runtime": "iOS.26.5"
+      "runtime": "iOS.27.0"
     },
     "RV.71-confirm-fuel-mismatch": {
       "commit": "09f0821",

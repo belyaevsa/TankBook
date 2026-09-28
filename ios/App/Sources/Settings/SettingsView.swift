@@ -263,15 +263,13 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Appearance / Language / Notifications
+    // MARK: - Appearance / Language
 
     private var preferencesCard: some View {
         VStack(spacing: 0) {
             AppearanceRow(selection: $appearance)
             CardDivider()
             languageRow
-            CardDivider()
-            valueRow("Notifications", value: "Reminders only", identifier: "settingsNotificationsRow")
         }
         .formCard()
     }
@@ -293,26 +291,6 @@ struct SettingsView: View {
             return LanguageDisplay.name(code)
         }
         return LanguageDisplay.name(LanguageDisplay.currentCode)
-    }
-
-    /// A static value row (its destination screen is another task). The value
-    /// is drawn like the artboard: inkSoft with a trailing chevron.
-    private func valueRow(_ label: LocalizedStringKey, value: LocalizedStringKey,
-                          identifier: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text(label)
-                .font(.subheadline)
-                .foregroundStyle(Theme.Palette.ink)
-            Spacer(minLength: 8)
-            Text(value)
-                .font(.footnote)
-                .foregroundStyle(Theme.Palette.inkSoft)
-            chevron
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier(identifier)
     }
 
     // MARK: - Your data
