@@ -1160,3 +1160,13 @@ Receipt cells 463 → 468, stations 82 → 83 (totals only, macOS 27).
 
 Measured on the iOS 27 simulator: receipts 348/468 -> 357/483 (9 of the 15 new cells read), stations
 44/83 -> 45/86.
+
+## Added 2026-09-28 (batch 15, debug case Q70Z4-SF8JH - 2 receipts)
+
+- `receipt-102` - Circle K Petrooleumi, `D BD miles+` pump 2, 71,98 L x 2,299 EUR/L = 165,48 EUR,
+  held in the hand in low sun; the pair of `pump-359` (`CorpusPairTests`).
+- `receipt-103` - `receipt-099`'s paper shot again the day after, indoors, crumpled and at
+  1080x1920 (the beta's in-app capture); the same fill, a different photo, so not a copy.
+
+Measured on the iOS 27 simulator on a copy of the committed tree: receipts 357/483 -> 365/493
+(8 of the 10 new cells read; through compression 354 -> 363), stations 45/86 -> 47/88.

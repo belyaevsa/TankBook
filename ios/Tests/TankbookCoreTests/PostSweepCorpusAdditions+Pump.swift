@@ -434,5 +434,10 @@ extension PostSweepCorpusAdditions {
         "pump-354-tokheim-olerex-tft-4119-2020l-2039-pump4-ee.jpg",
         "pump-355-tokheim-olerex-peetri-tft-2223-1090l-2039-pump3-pair-ee.jpg",
         "pump-356-tokheim-olerex-peetri-tft-2223-1090l-2039-pump3-pair-second-angle-ee.jpg",
+        // 2026-09-28, batch 15 (debug case Q70Z4-SF8JH): Circle K Petrooleumi Gilbarco heads in
+        // low sun; pump-359 is the pair of receipt-102.
+        "pump-357-gilbarco-circlek-petrooleumi-1954-940l-2079-pump5-ee.jpg",
+        "pump-358-gilbarco-circlek-petrooleumi-1196-571l-2094-pump6-ee.jpg",
+        "pump-359-gilbarco-circlek-petrooleumi-16548-7198l-2299-pump2-pair-ee.jpg",
     ]
 }

@@ -68,7 +68,9 @@ private let matchedPairs: [MatchedPair] = [
     // the same paper photographed upright and sideways.
     MatchedPair(pump: "pump-355", receipt: "receipt-100"),
     MatchedPair(pump: "pump-356", receipt: "receipt-100"),
-    MatchedPair(pump: "pump-355", receipt: "receipt-101")
+    MatchedPair(pump: "pump-355", receipt: "receipt-101"),
+    // Circle K Petrooleumi (2026-09-28): a Gilbarco head in low sun and its paper.
+    MatchedPair(pump: "pump-359", receipt: "receipt-102")
 ]
 
 @Suite("Matched pump/receipt pairs (RV.114)")

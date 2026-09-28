@@ -1607,3 +1607,16 @@ The running fill `video-052` is in `../pump-live/README.md` -> Batch 13.
 angles) and `pump-354` (the Tokheim fill with no other capture) are **heldout2**; the rest train.
 The second Tokheim fill stays train because `video-053` shows the same fill and video frames are
 train. Boxes unreviewed (the owner's check). No mark moves (pump is scored on heldout only).
+
+## Added 2026-09-28 (batch 15: Circle K Petrooleumi Gilbarcos, from debug case Q70Z4-SF8JH - 3 stills)
+
+- `pump-357`..`359` - Circle K Petrooleumi (Tallinn), Gilbarco Veeder-Root heads in low sun, the
+  same four-grade board (2,039 / 2,099 / 2,299 / 2,199) on each: pump 5 (19,54 / 9,40 at 2,079 -
+  a price on no board line), pump 6 (11,96 / 5,71 at 2,094, also off the board) and pump 2
+  (165,48 / 71,98 at 2,299, the owner's diesel fill, the pair of `receipt-102`). The beta's
+  pump-photo path read all three whole on the phone (build `3f6e9f53`) and the tree reads them
+  whole too; boxes auto-placed from those reads, every row including the four board prices.
+  Single shots, no Live records.
+
+**Split:** all train (nothing the heldout sets lack: Circle K Gilbarco in daylight is well
+covered). No mark moves (pump is scored on heldout only).

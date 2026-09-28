@@ -151,6 +151,10 @@ enum PostSweepCorpusAdditions {
             "receipt-099-circlek-tammisaare-95miles-pump1-4681l-1884-extra-soodus-ee.jpg",
             "receipt-100-olerex-peetri-diesel-1090l-2039-pair-ee.jpg",
             "receipt-101-olerex-peetri-diesel-1090l-2039-pair-sideways-ee.jpg",
+            // 2026-09-28, batch 15: the paper half of pump-359, and receipt-099's paper shot
+            // again indoors, crumpled, at 1080x1920.
+            "receipt-102-circlek-petrooleumi-diesel-7198l-2299-pair-ee.jpg",
+            "receipt-103-circlek-tammisaare-95miles-4681l-1884-second-shot-crumpled-ee.jpg",
         ],
         "pump": pump,
         "screenshots": [
