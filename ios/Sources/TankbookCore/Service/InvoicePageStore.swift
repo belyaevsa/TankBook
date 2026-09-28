@@ -36,11 +36,14 @@ public struct InvoicePageStore {
         let id = UUID.v7()
         let ref = try files.write(imageData, id: id)
         let now = Date()
+        // The inline thumbnail every photo chip draws from (docs/SYNC.md); a page
+        // saved without one showed a generic icon in Edit entry.
+        let thumbnail = (try? AttachmentRendition.thumbnailBase64(for: imageData, kind: .photo)) ?? nil
         let attachment = Attachment(
             id: id, createdAt: now, updatedAt: now, deletedAt: nil,
             kind: .photo, file: ref,
             extractedTimestamp: extractedTimestamp,
-            ocrText: ocrText)
+            ocrText: ocrText, thumbnailBase64: thumbnail)
         try repository.upsertAttachment(attachment)
         return attachment
     }

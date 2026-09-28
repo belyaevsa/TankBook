@@ -1,4 +1,6 @@
+import CoreGraphics
 import Foundation
+import ImageIO
 import Testing
 @testable import TankbookCore
 
@@ -43,6 +45,28 @@ import Testing
                                  energy: .kWhPer100),
             photo: nil, archived: false, paceLimitKmPerDay: 1500,
             initialOdometer: 118_930)
+    }
+
+    /// A small real JPEG, so the thumbnail renderer has pixels to scale.
+    private func jpeg() throws -> Data {
+        let context = try #require(CGContext(data: nil, width: 300, height: 400, bitsPerComponent: 8, bytesPerRow: 0,
+                                              space: CGColorSpaceCreateDeviceRGB(),
+                                              bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        context.setFillColor(CGColor(gray: 0.8, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 300, height: 400))
+        let image = try #require(context.makeImage())
+        let output = NSMutableData()
+        let destination = try #require(CGImageDestinationCreateWithData(output, "public.jpeg" as CFString, 1, nil))
+        CGImageDestinationAddImage(destination, image, nil)
+        #expect(CGImageDestinationFinalize(destination))
+        return output as Data
+    }
+
+    @Test("a page carries the inline thumbnail the photo chip draws")
+    func pageCarriesItsThumbnail() throws {
+        let store = InvoicePageStore(repository: try makeRepository(), files: RecordingFiles())
+        let page = try store.addPage(imageData: try jpeg(), ocrText: nil, extractedTimestamp: nil)
+        #expect(page.thumbnailBase64 != nil, "an invoice page saved without a thumbnail shows a generic icon")
     }
 
     // MARK: - Multi-page

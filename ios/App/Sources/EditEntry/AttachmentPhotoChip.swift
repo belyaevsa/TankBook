@@ -52,9 +52,25 @@ struct AttachmentPhotoChip: View {
     }
 
     private var thumbnailImage: UIImage? {
-        guard let base64 = attachment.thumbnailBase64,
-              let data = Data(base64Encoded: base64) else { return nil }
-        return UIImage(data: data)
+        if let base64 = attachment.thumbnailBase64, let data = Data(base64Encoded: base64) {
+            return UIImage(data: data)
+        }
+        return attachment.kind == .photo ? Self.localThumbnail(attachment) : nil
+    }
+
+    /// A photo saved without an inline thumbnail (invoice pages before they
+    /// carried one) is drawn from its file on this device, scaled down once
+    /// and cached; a photo whose file is not here keeps the placeholder.
+    private static let localThumbnails = NSCache<NSUUID, UIImage>()
+
+    private static func localThumbnail(_ attachment: Attachment) -> UIImage? {
+        let key = attachment.id as NSUUID
+        if let cached = localThumbnails.object(forKey: key) { return cached }
+        guard let directory = try? VehiclePhotoStore.attachmentsDirectory(),
+              let image = UIImage(contentsOfFile: directory.appendingPathComponent(attachment.file.relativePath).path),
+              let small = image.preparingThumbnail(of: CGSize(width: 132, height: 168)) else { return nil }
+        localThumbnails.setObject(small, forKey: key)
+        return small
     }
 
     /// A translucent veil + spinner over the thumbnail - the visual "this is on
