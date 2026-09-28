@@ -143,6 +143,7 @@ dispatch ledger moved to `docs/TASKS-HISTORY.md`.*
 | SH.13 | no-scenario: the owner's measurement of the knife-edge verifier (PU.106's follow-up, the beta) | `[x]` | TASKS-DONE.md · Launch triage (2026-08-29) – what v1 needs, what waits |
 | SH.14 | no-scenario: the owner's measurement of real fills (the scanShadow beta experiment) The TFT rou | `[x]` | TASKS-DONE.md · Launch triage (2026-08-29) – what v1 needs, what waits |
 | SH.15 | no-scenario: the store listing for the release after 1.0 The App Store update after v1.0: what | `[x]` | TASKS-DONE.md · Launch triage (2026-08-29) – what v1 needs, what waits |
+| SH.16 | no-scenario: the store listing and the site The 1.1 release notes, App Store copy and the site' | `[x]` | TASKS-DONE.md · Launch triage (2026-08-29) – what v1 needs, what waits |
 | RV.318 | (J7 service visit; F2 scan recognised WRONG data) A photo picked in Service mode opens the fill | `[x]` | TASKS-DONE.md · Launch triage (2026-08-29) – what v1 needs, what waits |
 | RV.320 | (J7 service visit; F2 scan recognised WRONG data) An Estonian invoice's VAT line is read as its | `[x]` | TASKS-DONE.md · Launch triage (2026-08-29) – what v1 needs, what waits |
 | RV.319 | (J7 service visit; J3 the 5-second fill-up; F1 scan recognised nothing) In Fill-up mode, a serv | `[x]` | TASKS-DONE.md · Launch triage (2026-08-29) – what v1 needs, what waits |
