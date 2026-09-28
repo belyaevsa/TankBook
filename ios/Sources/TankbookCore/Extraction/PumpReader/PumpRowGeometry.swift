@@ -27,9 +27,21 @@ enum PumpRowGeometry {
         case blankLayout
     }
 
+    /// What the verdict measured, beside the limits above - how near a row
+    /// sits to a rule is what the trace records (agents/research/KNIFE-EDGE.md).
+    struct Measurements: Equatable {
+        let cells: Int
+        let pitchToBand: Double
+        let inkBandFraction: Double
+        /// Digits after the decimal mark; nil when the row shows no mark.
+        let impliedDecimals: Int?
+        let interiorBlankRun: Int
+    }
+
     struct Verdict {
         let kept: Bool
         let reasons: [Reason]
+        var measured: Measurements?
         /// Failed exactly one rule, by no more than that rule's borderline
         /// margin: the reading of a row that sits on a limit flips with a
         /// re-encode of the same photo (agents/research/KNIFE-EDGE.md), so such
@@ -91,7 +103,7 @@ enum PumpRowGeometry {
         var reasons: [Reason] = []
         let nonBlank = cells.filter { !$0.isBlank }
         guard let first = nonBlank.first else {
-            return Verdict(kept: false, reasons: [.cellCount])
+            return Verdict(kept: false, reasons: [.cellCount], measured: nil)
         }
         var withinMargin = true
         if nonBlank.count < minimumCells || nonBlank.count > maximumCells {
@@ -120,7 +132,11 @@ enum PumpRowGeometry {
             reasons.append(.blankLayout)
             withinMargin = withinMargin && blankRun == borderlineInteriorBlankRun
         }
+        let decimals = cells.firstIndex(where: { $0.hasDecimalPoint }).map { cells.count - 1 - $0 }
         return Verdict(kept: reasons.isEmpty, reasons: reasons,
+                       measured: Measurements(cells: nonBlank.count, pitchToBand: Double(pitchToBand),
+                                              inkBandFraction: Double(bandFraction), impliedDecimals: decimals,
+                                              interiorBlankRun: blankRun),
                        borderline: reasons.count == 1 && withinMargin)
     }
 

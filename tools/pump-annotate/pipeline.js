@@ -590,11 +590,26 @@ function renderStrips(view, trace, truth, a) {
     view.appendChild(h);
     (a.verdicts || []).forEach((v, i) => {
       const box = document.createElement('div'); box.className = 'strip'; box.style.borderColor = v.kept ? OK : BAD;
-      box.innerHTML = `<h4 style="color:${v.kept ? OK : BAD}">#${i} ${v.kept ? 'kept' : 'dropped: ' + esc(v.reasons.join(', '))} <span class="muted">· ${v.cells} cells · ${v.detected ? 'detector' : 'proposal'}</span></h4>`;
+      box.innerHTML = `<h4 style="color:${v.kept ? OK : BAD}">#${i} ${v.kept ? 'kept' : 'dropped: ' + esc(v.reasons.join(', '))} <span class="muted">· ${v.cells} cells · ${v.detected ? 'detector' : 'proposal'}</span></h4>${geometryLine(v.geometry, trace.geometryLimits)}`;
       if (v.strip) box.appendChild(stripCanvas(trace.base + v.strip.file, v.strip, v.cellRects, null, 'board', Math.min(z, 1)));
       view.appendChild(box);
     });
   }
+}
+
+// The verdict's measurements against the verifier's limits: a value at or past
+// a limit is what makes a row flip between two encodings of one photo.
+function geometryLine(g, lim) {
+  if (!g || !lim) return '';
+  const f = (x) => (typeof x === 'number' ? x.toFixed(3) : String(x));
+  const parts = [
+    `cells ${g.cells} (${lim.cells[0]}-${lim.cells[1]})`,
+    `pitch ${f(g.pitchToBand)} (${lim.pitchToBand[0]}-${lim.pitchToBand[1]})`,
+    `ink band ${f(g.inkBandFraction)} (>= ${lim.inkBandFraction[0]})`,
+    `decimals ${g.impliedDecimals ?? '-'} (<= ${lim.impliedDecimals})`,
+    `blank run ${g.interiorBlankRun} (<= ${lim.interiorBlankRun})`,
+  ];
+  return `<div class="muted mono" style="font-size:11px;margin:2px 0 4px">${esc(parts.join(' · '))}</div>`;
 }
 
 function cellTiles(img, r, want) {

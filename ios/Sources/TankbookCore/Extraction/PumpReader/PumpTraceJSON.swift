@@ -19,6 +19,14 @@ enum PumpTraceJSON {
                                     "currency": currency?.rawValue ?? NSNull(),
                                     "chosen": trace.chosen ?? NSNull()]
         reply.merge(extra) { _, new in new }
+        reply["geometryLimits"] = [
+            "cells": [PumpRowGeometry.minimumCells, PumpRowGeometry.maximumCells],
+            "pitchToBand": [Double(PumpRowGeometry.minimumPitchToBand), Double(PumpRowGeometry.maximumPitchToBand)],
+            "inkBandFraction": [Double(PumpRowGeometry.minimumInkBandFraction),
+                                Double(PumpRowGeometry.maximumInkBandFraction)],
+            "impliedDecimals": PumpRowGeometry.maximumDecimalPlaces,
+            "interiorBlankRun": PumpRowGeometry.maximumInteriorBlankRun
+        ]
         reply["orientationScores"] = trace.orientationScores.map {
             ["rotationCW": $0.rotationCW, "keptRows": $0.keptRows, "inkBandArea": $0.inkBandArea]
         }
@@ -51,6 +59,7 @@ enum PumpTraceJSON {
             return ["quad": quad(verdict.quad, normalised: false), "kept": verdict.kept, "detected": verdict.detected,
                     "reasons": verdict.dropReasons, "cells": verdict.cells, "heightFraction": verdict.heightFraction,
                     "meanMargin": verdict.meanMargin, "cellRects": cellsJSON(record.cells),
+                    "borderline": verdict.borderline, "geometry": geometryJSON(verdict.geometry),
                     "strip": stripWriter?(record.strip, "a\(index)-v\(number).png") ?? NSNull()]
         }
         out["verified"] = attempt.verified.enumerated().map { number, window -> [String: Any] in
@@ -129,6 +138,16 @@ enum PumpTraceJSON {
     private static func detectionJSON(_ detection: PumpDisplayCapture.Detection) -> [String: Any] {
         ["display": detection.isPumpDisplay, "rows": detection.displayRows, "textLines": detection.textLines,
          "widestRow": detection.widestRow, "tallestRow": detection.tallestRow, "path": detection.path.rawValue]
+    }
+
+    /// A verdict's measurements (`PumpRowGeometry.Measurements`), read against
+    /// the reply's `geometryLimits`.
+    private static func geometryJSON(_ measured: PumpRowGeometry.Measurements?) -> Any {
+        guard let measured else { return NSNull() }
+        return ["cells": measured.cells, "pitchToBand": measured.pitchToBand,
+                "inkBandFraction": measured.inkBandFraction,
+                "impliedDecimals": measured.impliedDecimals ?? NSNull(),
+                "interiorBlankRun": measured.interiorBlankRun]
     }
 }
 

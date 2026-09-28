@@ -135,6 +135,12 @@ enum CapturePipeline {
             prefill.scanKinds = ScanOutcome.prefillKinds(reader: pumpReading?.extraction, rules: rulesExtraction,
                                                          form: assembly.extraction, caution: pumpReading?.law.caution)
         }
+        if pumpDetection?.isPumpDisplay == true || resolvedSource == .pump {
+            prefill.scanShadow = ScanShadow.compute(
+                lines: lines, bandProvider: bandProvider,
+                readerCurrency: PumpReaderCurrency.choose(homeCurrency: homeCurrency, region: .current),
+                closedUnder: pumpReading?.law.closedUnder)
+        }
         prefill.scanFolder = ScanRecorder.record(image: image, prefill: prefill, requestedSource: source,
                                                  resolvedSource: resolvedSource, detection: pumpDetection,
                                                  trace: pumpTrace)

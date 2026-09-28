@@ -33,6 +33,7 @@ enum ScanRecorder {
         let rotation = prefill.provenance == .pumpPhoto ? prefill.displayRotationCW : nil
         let build = Bundle.main.object(forInfoDictionaryKey: "TankbookBuildCommit") as? String
         let kinds = prefill.scanKinds
+        let shadow = prefill.scanShadow
         let id = UUID().uuidString
         let folder = history.folder(at: capturedAt, id: id)
         Task.detached(priority: .utility) {
@@ -45,6 +46,7 @@ enum ScanRecorder {
             record.pumpRotationCW = rotation
             record.build = build
             record.prefillKinds = kinds.isEmpty ? nil : kinds
+            record.shadow = shadow
             history.record(photo: jpeg, record: record.data, trace: trace, at: capturedAt, id: id)
         }
         return folder

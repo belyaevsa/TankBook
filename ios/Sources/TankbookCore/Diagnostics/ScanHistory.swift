@@ -124,6 +124,8 @@ public struct ScanRecord: Sendable {
     public var build: String?
     /// Each pump field's pre-fill kind (`ScanOutcome.prefillKinds`).
     public var prefillKinds: [String: ScanPrefillKind]?
+    /// The routes the beta computes beside the capture without showing them.
+    public var shadow: ScanShadow?
 
     public init(capturedAt: Date, requestedSource: ExtractionSource?, resolvedSource: ExtractionSource,
                 provenance: String, durationMs: Int, extraction: FuelExtraction) {
@@ -148,6 +150,9 @@ public struct ScanRecord: Sendable {
         ]
         if let prefillKinds {
             record["prefillKinds"] = prefillKinds.mapValues(\.rawValue)
+        }
+        if let shadow {
+            record["shadow"] = shadow.json
         }
         if let detection {
             record["detection"] = ["display": detection.isPumpDisplay, "rows": detection.displayRows,

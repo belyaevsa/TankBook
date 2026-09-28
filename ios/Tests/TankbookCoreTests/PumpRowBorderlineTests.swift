@@ -54,6 +54,18 @@ struct PumpRowBorderlineTests {
         #expect(thinBand.reasons == [.inkBand] && !thinBand.borderline)
     }
 
+    @Test("the verdict carries its measurements for the trace")
+    func measurementsRecorded() throws {
+        let cap = PumpReadingLaw.maxCells
+        let measured = try #require(Self.verdict(Self.cells(cap + 1, pitch: 1.30, blank: [3, 4], mark: 4)).measured)
+        #expect(measured.cells == cap - 1)
+        #expect(abs(measured.pitchToBand - 1.30) < 0.001)
+        #expect(measured.impliedDecimals == cap - 4)
+        #expect(measured.interiorBlankRun == 2)
+        #expect(abs(measured.inkBandFraction - Double(Self.band) / Double(Self.stripHeight)) < 0.001)
+        #expect(Self.verdict(Self.cells(6)).measured?.impliedDecimals == nil)
+    }
+
     private static func square(_ y: CGFloat) -> [CGPoint] {
         [CGPoint(x: 0, y: y), CGPoint(x: 100, y: y), CGPoint(x: 100, y: y + 20), CGPoint(x: 0, y: y + 20)]
     }

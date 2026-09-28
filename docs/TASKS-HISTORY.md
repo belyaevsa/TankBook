@@ -265,3 +265,5 @@ known, and the AD rows, which the owner had built in the session rather than dis
 | `PU.106` | done | 2026-09-27 | orchestrator (Claude session), from the Kimi K3 research note `agents/research/KNIFE-EDGE.md` |
 | `SH.11` | done | 2026-09-28 | orchestrator (Claude session), not dispatched |
 | `SH.12` | done | 2026-09-28 | orchestrator (Claude session), not dispatched |
+| `SH.13` | done | 2026-09-28 | orchestrator (Claude session), not dispatched |
+| `SH.14` | done | 2026-09-28 | orchestrator (Claude session), not dispatched |

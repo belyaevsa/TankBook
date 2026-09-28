@@ -353,6 +353,9 @@ struct PumpReader {
         /// (`PumpRowGeometry.Verdict.borderline`): offered after every kept
         /// row, never in place of one.
         var borderline: Bool = false
+        /// The geometry verdict's measurements, for the trace (nil when the
+        /// strip could not be sliced).
+        var geometry: PumpRowGeometry.Measurements?
         /// Why a candidate was not kept, for the annotator and the diagnostics.
         /// Nothing reads it back to decide: `kept` is the verdict.
         var dropReasons: [String] = []
@@ -487,6 +490,7 @@ struct PumpReader {
             let reasons = geometry.reasons.map(\.rawValue) + (shaped ? [] : ["tooWide"]) + (keypad ? ["keypad"] : [])
             out.append(Verdict(quad: quad, heightFraction: heightFraction, cells: cells.count, meanMargin: mean, kept: kept,
                                detected: candidate.detected, borderline: borderline,
+                               geometry: geometry.measured,
                                dropReasons: reasons + (borderline ? ["borderline"] : [])))
             trace?.judged(out[out.count - 1], strip: stripRGB, cells: sliced.fullCells)
         }
