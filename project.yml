@@ -172,7 +172,7 @@ targets:
         # The build number is stamped by scripts/release.sh from the commit
         # count (monotonic on main); this default is what a local Debug build gets.
         CURRENT_PROJECT_VERSION: "1"
-        MARKETING_VERSION: "1.0.0"
+        MARKETING_VERSION: "1.1.0"
         # Pinned rather than inherited. Xcode's Release default is already
         # dwarf-with-dsym, but a silent flip to plain "dwarf" produces
         # unsymbolicated addresses in Organizer months later, with nothing
