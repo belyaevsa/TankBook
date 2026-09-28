@@ -1,0 +1,63 @@
+name: store-06-en
+
+canvas:
+  width: 1284
+  height: 2778
+  background: "#101318"
+  padding: 96
+  gap: 24
+  columns: 12
+  rows: 24
+
+style:
+  artStyle: flat vector, minimal, high contrast
+  colors: ["#F4503A", "#4FC3E8", "#4FD18C"]
+  background: "#101318"
+  dark: true
+
+layers:
+  # THE SHARED BACKGROUND - identical on all ten panels, so the set reads as one
+  # family in the store's carousel rather than ten separate pictures. Drawn
+  # locally: a base ground, a taillight glow behind the headline and a headlight
+  # glow under the device, both at low opacity.
+  - id: ground
+    source: image
+    bleed: true
+    path: /Users/sbelyaev/repos/fuel-counter-ios/design/store/.cache/background-1284x2778.png
+    fit: cover
+
+  - id: wash
+    source: fill
+    area: {cols: 1-12, rows: 1-6}
+    color: "#161C25"
+    opacity: 0.92
+    radius: 32
+
+  - id: kicker
+    source: text
+    area: {cols: 1-12, rows: 1}
+    text: "NO RECEIPT?"
+    role: caption
+    font: {vAlign: bottom, align: center, color: "#FF8A75"}
+
+  - id: headline
+    source: text
+    area: {cols: 1-12, rows: 2-4}
+    text: "Photograph the pump display"
+    role: display
+    fitText: balance
+    font: {vAlign: middle, align: center, color: "#EAEDF2"}
+
+  - id: caption
+    source: text
+    area: {cols: 1-12, rows: 5-6}
+    text: "Total, litres and price are pre-filled for you to check before saving."
+    role: subtitle
+    fitText: shrink
+    font: {vAlign: top, align: center, color: "#9FB0C4"}
+
+  - id: device
+    source: image
+    area: {cols: 1-12, rows: 7-24}
+    path: /Users/sbelyaev/repos/fuel-counter-ios/design/store/.cache/SH.15-pump-capture-rounded.png
+    fit: contain

@@ -260,3 +260,152 @@ shows English reminder titles because the seed data is English; a Russian seed w
   that nothing is *gated* on them, which is what "no screen waits for the network" says.
 - **"Reads the odometer from the photo"** – one corpus fixture suggested it, one fixture is not a
   feature.
+
+## Update 1.1 (2026-09-28)
+
+The pump display is now offered in the bundled store configuration (`pumpPhoto` is on). A photo
+pre-fills numbers for the driver's review; it never saves an entry on its own. The descriptions
+below replace the previous descriptions for this update. Character counts exclude the code-fence
+markers and the final newline.
+
+### English
+
+#### What's New (379 / 4000 characters; 5 lines)
+
+```
+Photograph the pump display: total, litres and price are pre-filled for you to check before saving.
+Correct a read beside the photo or type the numbers yourself; a mismatch gets a clear warning.
+Add service invoices from Photos and review their itemised lines.
+See due reminders, monthly costs and fuel prices by station brand.
+Choose Match the system, Dark or Light in Settings.
+```
+
+#### Description (2955 / 4000 characters)
+
+```
+Tankbook is a fuel and running-cost log built on one promise: the history you keep is yours, and you can take it out whole. English and Russian throughout.
+
+No account. Ever.
+Your records live on your phone. There is no login wall and no forced sign-up: the app opens, records and calculates with no account at all, and signing in later only adds cross-device sync and restore. Every screen works offline.
+
+Export that takes the photos with it
+Export is free and complete. Most fuel apps leave the receipt images behind; the Tankbook archive carries the actual image files, not only the rows, and the app restores from that archive on a new phone. A new phone, a dead sync cloud, a cancelled account – your history comes along.
+
+No subscription, no ads
+There is no paid tier and no in-app purchase in this version. Several cars, importers, reminders and the full export are not gated behind a plan, and nothing is sold to advertisers.
+
+Snap it or type it – your call
+Photograph a fuel receipt or the pump display. The pump reader works on your device and pre-fills the total, litres and price it can read. A receipt can also fill in the date and station. Shop receipts, parking tickets and service invoices scan into an expense or a service record with its line items. Check the numbers beside the photo, correct what it missed, then save. Nothing is saved from a capture without your review. Typing is an equal way to add an entry – the app remembers your usual station, fuel and currency.
+
+A scan is a head start, not an answer
+On our own test set of real receipts, about one in three still needs a field corrected. Every value stays editable after saving, and nothing is silently "fixed" for you. If a pump photo cannot be read, you can type its numbers with the photo attached.
+
+The arithmetic, shown
+Litres x price per litre = total, checked in front of you. When all three numbers disagree, the app warns you to check them instead of quietly adjusting them. If a number is missing, it asks you to fill it in. Consumption is computed from your own fill-ups with the working visible.
+
+What it tracks
+- Fuel-ups: litres, price, total, odometer, station and fuel type
+- Consumption in L/100 km or MPG, cost per kilometre, monthly spend
+- Service, repairs, parts, tyres, insurance and taxes, with photos attached
+- Petrol, diesel and hybrid in one history
+- Several cars, each with its own history and statistics
+- Reminders by date and by odometer, with the history of what was done
+- Back-dated entries, so old service records are easy to add
+
+Coming from another app
+Import from Drivvo and My Fuel Manager. You review what was read before anything is written to your log.
+
+Money in any currency
+Fill up abroad and the entry keeps both amounts: what you paid, and what it was worth in your car's currency at that day's rate, fixed when you save – so your history never shifts after the fact. Expenses and service bills keep their currency the same way.
+```
+
+#### Promotional text (153 / 170 characters)
+
+```
+Your log stays yours: no account, subscription or ads. Photograph a pump display to pre-fill the numbers, check them, and keep the photo with your entry.
+```
+
+#### Keywords (94 / 100 characters)
+
+```
+mpg,gas,mileage,odometer,receipt,scanner,vehicle,expenses,maintenance,offline,diesel,pump,fuel
+```
+
+`pump` replaces `economy` from the previous paste-ready English field. The headline feature earns
+a direct search term; the words in the app name and subtitle remain unchanged.
+
+### Russian
+
+#### What's New (376 / 4000 characters; 5 lines)
+
+```
+Снимите табло колонки: сумма, литры и цена появятся в полях. Проверьте их перед сохранением.
+Если цифры не сходятся, приложение предупредит. Можно поправить их или ввести вручную.
+Фото счёта из сервиса теперь открывает запись о ТО; строки счёта можно проверить.
+В журнале видны напоминания и затраты за месяц.
+В настройках можно выбрать светлую, тёмную тему или тему телефона.
+```
+
+#### Description (2878 / 4000 characters)
+
+```
+Tankbook – журнал расхода топлива и затрат на машину, который живёт в вашем телефоне. Приложение полностью на русском, можно переключить на английский.
+
+Откроется, даже когда серверы недоступны
+База лежит в телефоне, и аккаунт не нужен вообще. Приложение открывается, считает и записывает без интернета и без наших серверов – ни один экран не ждёт сети. Если позже захотите аккаунт, он добавит только синхронизацию между устройствами.
+
+Подписки нет
+В этой версии нет платного уровня и нет покупок внутри приложения. Нет и «бесплатной версии», где что-то не работает: версия одна, и в ней всё бесплатно. Рекламы нет.
+
+Цифры можно проверить
+Расход считается по вашим заправкам, и расчёт показан на экране: литры x цена за литр = сумма. Если три числа не сходятся, приложение предупреждает и просит проверить их, а не поправляет втихую. Если одно число не удалось прочитать, его можно ввести. Любое значение можно изменить до сохранения и после.
+
+Фото чека остаётся в приложении
+Снимок копируется внутрь приложения, а не просто ссылается на файл в галерее: удалите или переименуйте его там – в журнале запись и фотография останутся. Экспорт бесплатный и полный: вместе с записями уходят и сами изображения чеков, а на новом телефоне журнал восстанавливается из этого архива.
+
+Сфотографировать или ввести – как удобно
+Нет чека? Снимите табло колонки. Приложение прочитает его на телефоне и подставит сумму, литры и цену, которые удалось разобрать. Чек с АЗС может добавить дату и станцию. Чек из магазина, парковочный талон и счёт из сервиса идут в затраты или запись о ТО со строками счёта. Сверьте цифры с фотографией, поправьте и только потом сохраните. Без вашего подтверждения снимок не создаёт запись. Если ничего не прочиталось, введите цифры сами – фото останется при записи. Ручной ввод такой же обычный путь; приложение помнит вашу АЗС, топливо и валюту.
+
+Съёмка – это фора, а не готовый ответ
+На наших чеках примерно в трети случаев одно поле всё-таки приходится поправить. Поэтому любое поле редактируется и после сохранения, и без вас ничего не исправляется.
+
+Что умеет журнал
+- Заправки: литры, цена, сумма, пробег, АЗС
+- Расход в л/100 км или MPG, стоимость километра, затраты за месяц
+- ТО, ремонты, запчасти, шины, страховка и налоги – с фотографиями
+- Бензин, дизель и гибрид в одной истории
+- Несколько машин – у каждой свои записи и статистика
+- Напоминания по дате и по пробегу – с историей того, что сделано
+- Записи задним числом: старое ТО и прошлые заправки
+
+Переход из другого приложения
+Импорт из Drivvo и My Fuel Manager. Сначала показываем, что распозналось, и только потом записываем в журнал.
+
+Любая валюта
+Заправились за границей? Запись хранит обе суммы: сколько заплатили и сколько это в валюте машины по курсу того дня. Курс закрепляется в момент записи, и история задним числом не пересчитывается. Затраты и счета из сервиса хранят валюту так же.
+```
+
+#### Promotional text (143 / 170 characters)
+
+```
+Без аккаунта и подписки, журнал работает офлайн. Нет чека? Снимите табло колонки, проверьте цифры перед сохранением. Фото останется при записи.
+```
+
+#### Keywords (94 / 100 characters)
+
+```
+бензин,дизель,заправка,чек,пробег,табло,авто,машина,техобслуживание,напоминания,ремонт,топливо
+```
+
+`табло` replaces `одометр` from the previous paste-ready Russian field. It is a driver's word for
+the photographed display and leaves the core fuel and ownership terms in place.
+
+### Screenshots for 1.1
+
+| # | English panel | Source screenshot | Russian panel | Source screenshot | Status |
+|---|---|---|---|---|---|
+| 6 | `store-06-en.png` – Photograph the pump display | `SH.15-pump-capture.png` | `store-06-ru.png` – Снимите табло колонки | `SH.15-pump-capture-ru.png` | Pending render: Pillow is unavailable to `build.py` in this checkout. |
+
+Proposed upload order: English **01, 06, 03, 02, 04, 05**; Russian **01, 02, 06, 03, 04, 05**.
+The pump step reaches the first three in both languages while English still leads with ownership
+and Russian still leads with offline access and checkable arithmetic.

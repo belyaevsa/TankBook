@@ -267,6 +267,7 @@ known, and the AD rows, which the owner had built in the session rather than dis
 | `SH.12` | done | 2026-09-28 | orchestrator (Claude session), not dispatched |
 | `SH.13` | done | 2026-09-28 | orchestrator (Claude session), not dispatched |
 | `SH.14` | done | 2026-09-28 | orchestrator (Claude session), not dispatched |
+| `SH.15` | done | 2026-09-28 | Codex `gpt-6-sol` (copy, release notes, panel text); orchestrator (device shots, panel build) |
 | `RV.318` | done | 2026-09-28 | orchestrator (Claude session), not dispatched |
 | `RV.320` | done | 2026-09-28 | orchestrator (Claude session), not dispatched |
 | `RV.319` | done | 2026-09-28 | orchestrator (Claude session), not dispatched |

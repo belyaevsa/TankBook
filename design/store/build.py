@@ -189,6 +189,14 @@ PANELS = [
       "Import from Drivvo and My Fuel Manager. The export is free and takes the photos too."),
      ("НЕ ТОЛЬКО ЗАПРАВКИ", "ТО, страховка и напоминания",
       "Ремонты, запчасти, шины и налоги - с фотографиями и напоминаниями по пробегу.")),
+
+    # 1.1: the pump display read on the phone (SH.15). The shot is the capture's
+    # check step on a real Gilbarco display; the numbers stay the user's to check.
+    ("06", "SH.15-pump-capture", "SH.15-pump-capture",
+     ("NO RECEIPT?", "Photograph the pump display",
+      "Total, litres and price are pre-filled for you to check before saving."),
+     ("НЕТ ЧЕКА?", "Снимите табло колонки",
+      "Сумма, литры и цена появятся в полях – проверьте их перед сохранением.")),
 ]
 
 SPEC = """name: store-{pid}-{lang}
