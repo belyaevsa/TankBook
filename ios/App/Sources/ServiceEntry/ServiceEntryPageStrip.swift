@@ -3,13 +3,15 @@ import TankbookCore
 
 /// The scanned invoice's page strip (design/screens/ServiceEntry.dc.html): a
 /// horizontal row of page thumbnails, each removable, with the "Page N of M"
-/// counter and "+ add page" (the scanner re-opens). Removing a page deletes its
+/// counter and "+ add page" (the scanner re-opens, or a page is chosen from
+/// Photos - an invoice that is already an image). Removing a page deletes its
 /// file - no orphan. Only present on the scanned path; the typed path (P3.1a)
 /// shows no strip.
 struct ServiceEntryPageStrip: View {
     let pages: [InvoicePage]
     @Binding var selectedIndex: Int
     let onAddPage: () -> Void
+    let onAddPageFromPhotos: () -> Void
     let onRemovePage: (InvoicePage) -> Void
 
     var body: some View {
@@ -67,7 +69,16 @@ struct ServiceEntryPageStrip: View {
     }
 
     private var addPageButton: some View {
-        Button(action: onAddPage) {
+        Menu {
+            Button(action: onAddPage) {
+                Label("Scan a page", systemImage: "doc.viewfinder")
+            }
+            .accessibilityIdentifier("serviceEntryAddPageScan")
+            Button(action: onAddPageFromPhotos) {
+                Label("Choose from Photos", systemImage: "photo")
+            }
+            .accessibilityIdentifier("serviceEntryAddPagePhotos")
+        } label: {
             HStack(spacing: 4) {
                 Image(systemName: "plus")
                     .font(.caption.weight(.semibold))

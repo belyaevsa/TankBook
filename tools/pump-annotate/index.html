@@ -161,7 +161,7 @@
   <div id="toolbar2">
     <button id="framesToggle" style="display:none">View frames</button>
     <button id="save" class="primary" title="⌘S">Save</button>
-    <button id="savenext" title="mark processed, save, open the next">✓ &amp; next</button>
+    <button id="savenext" title="mark processed, save, open the next (from the frames view: saves the frame's pin first)">✓ &amp; next</button>
     <button id="undo" title="undo the last box or text change (⌘Z)" disabled>↶ undo</button>
     <button id="reload" title="reload this still/record from the database, discarding unsaved changes">⟲ reload</button>
     <button id="compareBtn" title="two models on this image, side by side: overlays, the funnel and the verdict (⚖)">⚖ compare</button>
@@ -565,7 +565,6 @@ function saveTarget() {
 function labelSaveButtons() {
   const t = saveTarget();
   $('#save').textContent = t.label; $('#save').title = t.title;
-  $('#savenext').style.display = frameMode ? 'none' : '';
   $('#trackBar').style.display = (current && (currentRecord() || isVideo)) ? '' : 'none';
   $('#framesToggle').style.display = (currentRecord() || {}).tracked?.length ? '' : 'none';
   $('#recTrack').style.display = frameMode ? 'none' : '';
@@ -1902,7 +1901,16 @@ async function padConventions() {
 }
 $('#vlRead').onclick = () => runReader(false);
 function next() { const names = [...document.querySelectorAll('#list div')].map(d => d.dataset.n); const n = names[names.indexOf(current) + 1]; if (n) openFixture(n); }
-$('#savenext').onclick = async () => { $('#reviewed').checked = true; await save(); next(); };
+// From the frames view too: a frame's pending pin (or a video frame whose
+// boxes were moved) is saved first, the view is left, then the still is
+// marked processed, saved and the next one opens.
+$('#savenext').onclick = async () => {
+  if (frameMode) {
+    if (!isVideo || frameQuadsEdited || pinnedHere) await saveTarget().run();
+    leaveFrames();
+  }
+  $('#reviewed').checked = true; await save(); next();
+};
 // In Debugging the library IS the debugger's set: a filter change moves it too.
 function libraryChanged() { renderList(); if (workspace === 'debug') window.pipelineView.refreshSet(); }
 $('#filter').oninput = libraryChanged; $('#state').onchange = libraryChanged;

@@ -330,7 +330,7 @@ captures" metric assumed QR was a capture path; it is not.)
 **Success metric:** % of EV owners logging ≥4 sessions/month; the comparison screen's weekly views.
 
 ### J7 · Service visit
-**Status: implemented 2026-09-13** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J7-2026-09-13)
+**Status: unreviewed** (was implemented 2026-09-13, REVIEW-SCENARIO-J7-2026-09-13; cleared 2026-09-28 by RV.318-320, which change how an invoice gets in and how it is read)
 **Trigger:** leaving the workshop with a multi-page invoice, or DIY oil change in the garage.
 
 **The manual door (RV.61, hard rule 15):** typing is a peer path, never a camera fallback. The same form is reached with no camera from Home's header - "Type it" → its menu → "Service" opens the empty `ServiceEntryView` (odometer pre-filled from the last known value, editable). A capture is a head start, never a gate.
@@ -458,10 +458,31 @@ line by the user's row and an unpaired one "New line" (`ERRORS.md` → Service &
 Over the served page cap no cloud call is made and the form says so - every page is still kept
 and split on the device.
 
+**An invoice that is already an image (RV.318, product owner 2026-09-28).** An invoice arrives as a
+PDF, a screenshot or a photo taken earlier as often as it is scanned at the counter. In Service mode
+the Photos button takes one such image through the review step into **the service form**, as a
+one-page scan - the same split, the same persisted page, the same cloud reading as the document
+camera's pages - never the fill-up form the mode chip does not name. On the service form, **Add page**
+offers **Scan a page** and **Choose from Photos** side by side. The mode chip and the form it opens
+are one mapping for both doors (`CaptureMode.manualEntryForm`), so "Type it" and "Use this" cannot
+disagree.
+
+**An invoice shot in Fill-up mode (RV.319, 2026-09-28).** Capture opens on Fill-up, so the natural
+move - open Capture, shoot the invoice - used to read it as a fuel receipt and land an empty fill-up
+form. Now the verify screen says what it looks like - "This looks like a service invoice, not a fuel
+receipt" - and offers **Open as service** and **Open as expense**, the photo carried over to that
+form's own reading. It is a suggestion: Continue still makes a fill-up of it (hard rule 13), and a
+document with any fuel evidence is never offered anything.
+
+**The invoice is read as a table (RV.320, 2026-09-28).** An invoice whose lines are net of tax adds
+its tax as a line of its own, so the lines add up to what was paid; the payable total wins over a
+section's subtotal; the vendor is never a comment field. The cloud reading of every page still runs
+beside the local split as before.
+
 **Success metric:** ≥50% of service records carry an attachment; reminder acceptance rate ≥60%.
 
 ### J7b · Parts, tires, consumables
-**Status: implemented 2026-09-13** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J7b-2026-09-13b)
+**Status: unreviewed** (was implemented 2026-09-13, REVIEW-SCENARIO-J7b-2026-09-13b; cleared 2026-09-28 by RV.330, which adds the tire set's life below)
 **Trigger:** a filter ordered online, brake pads bought on sale, a winter tire set – purchased *now*, installed *later* (or never; the car is sold with the shelf).
 
 | Stage | Doing | Notes |
@@ -478,6 +499,16 @@ auto-create (hard rule 13). It is the one `.tires` offer there is: a tire line i
 cadence, and a live `.tires` reminder on the car suppresses a second. The user stops the season the
 way any reminder stops - **Dismiss** (keeps the row with a reason, feeds the anomaly logic) or
 **Delete** (a tombstone with the 30-day undo) from the row's own menu.
+
+**[v1.x] The tire set's life (RV.330, product owner 2026-09-28).** A set is more than a name and a
+total. Its Garage screen lists **every stint** - the swap that mounted it, the date, the km that stint
+covered and the running total - derived from the tire-swap service records, never stored. When the
+set is created (or edited later) the user may give the tires' **make, model, size, production week,
+tread-life rating and new tread depth**; at each swap the form offers a **condition reading** - tread
+depth measured and a note on wear or damage - so the set's history shows how the tires aged. All of
+it is optional and the user's to change (hard rule 13). Later, the tread trend against the legal and
+seasonal minimum becomes a suggestion to buy new tires - offered where the set lives, never in an
+error surface.
 
 **Fallbacks:** part logged without a receipt → plain manual expense, one field + price. User skips the shelf entirely and just types parts inside service records → works fine, the shelf is an optimization, never a gate. Tire mileage without logged swaps → unavailable, shown as "–", never estimated.
 

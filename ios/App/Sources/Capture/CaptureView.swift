@@ -352,19 +352,22 @@ struct CaptureView: View {
     /// sheet presented after the pipeline's await, because SwiftUI will not
     /// present a sheet in the same runloop turn it dismisses a cover.
     ///
-    /// RV.62: Expense mode takes its own exit after the same pipeline - the
-    /// recognised total/currency/date go to the expense form through
-    /// `ExpenseEntrySession`, never to the fill-up Confirm sheet.
+    /// The accepted image goes to the form the selected mode names - the same
+    /// mapping "Type it" uses (`CaptureMode.manualEntryForm`), so a mode chip
+    /// and the form it opens cannot disagree. Expense takes the expense form
+    /// through `ExpenseEntrySession`; Service takes the invoice split as a
+    /// one-page scan, with its cloud reading, exactly as the document camera's
+    /// pages do.
     private func acceptReview(_ image: UIImage) {
         guard !isProcessing else { return }
         isProcessing = true
         reviewSubject = nil
         Task {
             defer { isProcessing = false }
-            if mode == .expense {
-                await acceptExpenseScan(image)
-            } else {
-                await acceptFillUpScan(image)
+            switch mode.manualEntryForm {
+            case .expense: await acceptExpenseScan(image)
+            case .service: scanServiceInvoice([image])
+            case .fillUp: await acceptFillUpScan(image)
             }
         }
     }

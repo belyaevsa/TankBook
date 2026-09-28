@@ -26,7 +26,7 @@ enum ServiceInvoiceScanner {
                                       recognition: ServiceRecognition())
         }
         let linesByPage = await ocrLinesByPage(images)
-        let split = InvoiceSplitter().split(lines: linesByPage.flatMap { $0 })
+        let split = InvoiceSplitter().split(pages: linesByPage)
         let pages = enrichPages(stagedPages, linesByPage: linesByPage,
                                 extractedTimestamp: split.date, repository: repository)
 

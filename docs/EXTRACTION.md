@@ -649,6 +649,30 @@ and a late answer becomes an inbox item through `GatewayInboxPolicy.item(recogni
 one policy. The same guards apply: `config.allowsServerBacked` withholds the call under `.required`,
 a guest gets no transport, and a non-JPEG rendition gets no call.
 
+**The local split reads a table (RV.320, 2026-09-28).** Vision returns an invoice's table cell by
+cell - a row's code, title, quantity, unit price, discount and net amount as separate lines, and a
+label (`ARVE SUMMA:`) apart from its value. `InvoiceSplitter.rows(_:)` rebuilds each page's printed
+rows first (lines whose centres lie within half a line height are one row, left to right; pages
+never share a row), and the split reads rows. Three rules follow from the first Estonian invoice
+(`service-004`): a net-of-tax table plus the printed tax that closes the gap to the total becomes a
+split **with the tax as its own line**, so the lines add up to what was paid (the service form derives
+its total from its lines); a **payable** label (`К оплате`, `Итог по документу`, `ARVE SUMMA`,
+`Amount due`) outranks a section's `Итого` subtotal, and a label whose value Vision placed a hair
+above it takes the value line above; the vendor is a legal-form line first, then the issuer's own
+e-mail or web domain, never a `Label: value` field (`Kommentaar: 004TXK` is the car's plate). The
+folder is scored by `ServiceCorpusTests` on the measured runtime (vendor, total, date, line count).
+
+**Not a fuel document (RV.319, 2026-09-28).** A photo taken in Fill-up mode that carries no fuel
+evidence - no fuel kind read, no fuel word on any row - is classified by `CaptureDocumentHint`: an
+invoice or work-order word, or a costed row in a service category, suggests the Service form. A read
+volume alone is not fuel evidence (an oil change is sold in litres), and a total alone suggests
+nothing: measured on the corpus, six fuel receipts whose fuel line went unread have exactly that
+shape, and an offer there would send a real fill-up away from its form. The verify screen offers both
+(docs/ERRORS.md -> Capture verify) and the photo goes to the chosen form's own scan path, with its
+own cloud reading (`kind: "invoice"` or `kind: "expense"`). The corpus check is part of
+`ServiceCorpusTests`: no receipt or screenshot in the corpus is offered another form, and every
+service document is offered Service.
+
 **Every page reaches the cloud, and the cloud may read the lines (PJ.301/PJ.302, 2026-09-18;
 decided 2026-09-15, product owner).** The paragraph above is the header-only shape an older
 client still sends as `image`. The client now sends **every captured page** of an invoice as

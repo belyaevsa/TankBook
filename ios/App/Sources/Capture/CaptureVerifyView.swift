@@ -16,6 +16,8 @@ struct CaptureVerifyView: View {
     @Bindable var session: CaptureVerifySession
     let onContinue: () -> Void
     let onRetake: () -> Void
+    /// The photo is not a fuel document: open it in the Service or Expense form.
+    var onOpenAs: (CaptureEntryForm) -> Void = { _ in }
 
     @FocusState private var focus: ManualFillUpMath.Field?
 
@@ -124,6 +126,40 @@ struct CaptureVerifyView: View {
         case .pumpUnchecked:
             warn(Text("Couldn't check these numbers – type the missing one from the photo."),
                  identifier: "captureVerifyUnchecked")
+        case .notFuel(let suggested):
+            notFuel(suggested)
+        }
+    }
+
+    /// Not a fuel document: say what it looks like and offer the two forms
+    /// that take it, the suggested one first. Continue still makes a fill-up
+    /// of it - the user decides (hard rule 13).
+    private func notFuel(_ suggested: CaptureEntryForm) -> some View {
+        let forms: [CaptureEntryForm] = [suggested] + [.service, .expense].filter { $0 != suggested }
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("This looks like a service invoice, not a fuel receipt.")
+                .font(.footnote)
+                .foregroundStyle(Theme.Palette.ink)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("captureVerifyNotFuel")
+            HStack(spacing: 8) {
+                ForEach(forms, id: \.self) { form in
+                    Button {
+                        onOpenAs(form)
+                    } label: {
+                        Text(form == .service ? "Open as service" : "Open as expense")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(Theme.Palette.action)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(Capsule().fill(Theme.Palette.dash))
+                            .overlay(Capsule().stroke(Theme.Palette.hairline, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier(form == .service ? "captureVerifyOpenAsService"
+                                                              : "captureVerifyOpenAsExpense")
+                }
+            }
         }
     }
 

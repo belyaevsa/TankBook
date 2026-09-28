@@ -66,7 +66,19 @@ public struct InvoiceSplitter: Sendable {
 
     // MARK: - Entry points
 
+    /// A multi-page invoice: each page's lines are rebuilt into printed rows
+    /// on their own (`rows(_:)` - two pages share coordinates, never rows),
+    /// then split as one document.
+    public func split(pages: [[OCRLine]]) -> InvoiceSplitResult {
+        split(rows: pages.flatMap(Self.rows))
+    }
+
+    /// One page of OCR lines.
     public func split(lines: [OCRLine]) -> InvoiceSplitResult {
+        split(pages: [lines])
+    }
+
+    private func split(rows lines: [OCRLine]) -> InvoiceSplitResult {
         let vendor = detectVendor(lines)
         let dateString = detectDateString(lines)
         let date = dateString.flatMap { ConfirmDate.parse($0) }
@@ -80,6 +92,17 @@ public struct InvoiceSplitter: Sendable {
                 vendor: vendor, date: date, total: total,
                 items: candidates, lumpSum: false,
                 extraction: makeExtraction(items: candidates, vendor: vendor))
+        }
+        // Net lines and a gross total: the printed tax closes the gap exactly,
+        // so it becomes a line of its own and the lines add up to what was
+        // paid (the service form derives its total from the lines).
+        if let total, !candidates.isEmpty, let tax = detectTaxItem(lines),
+           Self.sumsToTotalWithTax(candidates, tax: tax, total: total) {
+            let items = candidates + [tax]
+            return InvoiceSplitResult(
+                vendor: vendor, date: date, total: total,
+                items: items, lumpSum: false,
+                extraction: makeExtraction(items: items, vendor: vendor))
         }
         if let total {
             let lump = InvoiceLineItem(
@@ -125,13 +148,16 @@ public struct InvoiceSplitter: Sendable {
     /// more than one number, and not a date/total/VAT/payment line. The shape
     /// itself lives in `CompanyNameLine`, shared with the fuel station
     /// extractor so the two cannot drift.
+    ///
+    /// The strongest evidence wins: a line carrying a legal form (`AS`, `OÜ`,
+    /// `ООО`, `GmbH`), then the issuer's own e-mail or web domain, then the
+    /// first company-shaped line. A `Label: value` field is never the vendor.
     func detectVendor(_ lines: [OCRLine]) -> String? {
+        if let legal = legalNameLine(lines) { return legal }
+        if let domain = domainVendor(lines) { return domain }
         for line in lines {
             let text = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !text.isEmpty else { continue }
-            guard !isTotalOrExcludedLine(text) else { continue }
-            guard CompanyNameLine.isCompanyName(text) else { continue }
-            return text
+            if Self.isVendorCandidate(text) { return text }
         }
         return nil
     }
@@ -153,14 +179,25 @@ public struct InvoiceSplitter: Sendable {
     /// The invoice's own grand total. Labels are invoice-specific (GESAMT,
     /// ИТОГО, СУММА, TOTAL, ...), read from the same line or the one directly
     /// after, and resolved by mode like the receipt total-finder.
+    ///
+    /// A label with no value on its row takes the value line below it, else
+    /// the one above - Vision can place a right-aligned amount a hair above its
+    /// label (`7 680,00 руб.` over `К оплате:`). When a payable label
+    /// (`payableLabels`) carries a value, only payable labels vote: a
+    /// section's `Итого` is a subtotal, the payable line is the invoice.
     func detectTotal(_ lines: [OCRLine]) -> Decimal? {
         var candidates: [Decimal] = []
+        var payable: [Decimal] = []
         for (index, line) in lines.enumerated() {
             guard Self.totalLabelKind(line.text) == .primary else { continue }
-            if let value = value(in: line) ?? nextLineValue(after: index, in: lines) {
-                candidates.append(value)
-            }
+            guard let value = value(in: line)
+                    ?? nextLineValue(after: index, in: lines)
+                    ?? previousLineValue(before: index, in: lines) else { continue }
+            candidates.append(value)
+            let upper = line.text.uppercased()
+            if Self.payableLabels.contains(where: upper.contains) { payable.append(value) }
         }
+        if !payable.isEmpty { candidates = payable }
         guard !candidates.isEmpty else { return nil }
         let counts = Dictionary(grouping: candidates, by: { $0 }).mapValues(\.count)
         let maxCount = counts.values.max() ?? 0
@@ -171,6 +208,13 @@ public struct InvoiceSplitter: Sendable {
     private func value(in line: OCRLine) -> Decimal? {
         guard let raw = NumberScanner.value(in: line.text) else { return nil }
         return Self.decimal(raw)
+    }
+
+    private func previousLineValue(before index: Int, in lines: [OCRLine]) -> Decimal? {
+        guard index > 0 else { return nil }
+        let previous = lines[index - 1]
+        guard NumberScanner.isValueLine(previous.text), Self.totalLabelKind(previous.text) == nil else { return nil }
+        return value(in: previous)
     }
 
     private func nextLineValue(after index: Int, in lines: [OCRLine]) -> Decimal? {
@@ -188,15 +232,23 @@ public struct InvoiceSplitter: Sendable {
 
     /// Classifies a line as an invoice total line. Excluded labels (VAT, subtotal,
     /// discount, change) come first so they never win.
-    private static let excludedLabels = [
+    static let excludedLabels = [
         "СУММА НДС", "СУММА БЕЗ НДС", "НДС", "В Т.Ч. НДС", "ОКРУГЛЕНИЕ", "СДАЧА",
         "ПОЛУЧЕНО", "ИТОГО БЕЗ", "ИТОГО НДС", "SUBTOTAL", "VAT", "MWST", "TAX",
-        "DISCOUNT", "RABATT", "СКИДКА", "ZWISCHENSUMME", "СУММА СКИДК"
+        "DISCOUNT", "RABATT", "СКИДКА", "ZWISCHENSUMME", "СУММА СКИДК",
+        "KÄIBEMAKS", "KAIBEMAKS", "KM-TA", "KMTA", "ILMA KM", "TASUDA", "TASUMISTINGIMUS", "MAKSTUD"
     ]
     private static let primaryLabels = [
-        "ИТОГО", "ИТОГ", "ВСЕГО", "СУММА", "К ОПЛАТЕ", "К ОПЛАТЕ",
+        "ИТОГО", "ИТОГ", "ВСЕГО", "СУММА", "К ОПЛАТЕ",
         "TOTAL", "GRAND TOTAL", "AMOUNT DUE", "TOTAL DUE",
-        "GESAMT", "GESAMTBETRAG", "RECHNUNGSBETRAG", "SUMME", "SUMMA", "TOTALE", "KOKKU"
+        "GESAMT", "GESAMTBETRAG", "RECHNUNGSBETRAG", "SUMME", "SUMMA", "TOTALE", "KOKKU", "ARVE SUMMA"
+    ]
+
+    /// The labels of the amount actually payable, which outrank a section
+    /// subtotal (`Итого работ`, `Итого` under the materials table).
+    static let payableLabels = [
+        "К ОПЛАТЕ", "ИТОГ ПО ДОКУМЕНТУ", "ВСЕГО ПО", "ARVE SUMMA", "AMOUNT DUE", "TOTAL DUE",
+        "GRAND TOTAL", "RECHNUNGSBETRAG", "GESAMTBETRAG"
     ]
 
     static func totalLabelKind(_ text: String) -> TotalLabelKind? {
@@ -252,6 +304,14 @@ public struct InvoiceSplitter: Sendable {
               let amount = decimal(value) else { return nil }
         var title = String(line[..<last.range.lowerBound])
         title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        // A table row's title is followed by its numeric columns (quantity,
+        // unit price, discount %, net): they are the row's arithmetic, not
+        // its name.
+        var words = title.split(separator: " ", omittingEmptySubsequences: true)
+        while let tail = words.last, tail.allSatisfy({ $0.isNumber || ".,%x×".contains($0) }) {
+            words.removeLast()
+        }
+        title = words.joined(separator: " ")
         title = title.trimmingCharacters(in: CharacterSet(charactersIn: "·•-–:| "))
         guard !title.isEmpty else { return nil }
         return (title, amount)
@@ -262,18 +322,18 @@ public struct InvoiceSplitter: Sendable {
     /// `.other("")`, which the screen renders as "Other" with free text.
     static func category(for title: String) -> ServiceCategory {
         let lower = title.lowercased()
-        if matches(lower, ["oil", "öl", "масл", "lubricant", "schmierung"]) { return .oil }
-        if matches(lower, ["brake", "brems", "тормоз", "belag", "beläge", "pad", "scheibenbremse"]) { return .brakes }
-        if matches(lower, ["tire", "tyre", "reifen", "шина", "шиномонтаж", "wheel", "радиал"]) { return .tires }
-        if matches(lower, ["battery", "batterie", "аккум", "батаре"]) { return .battery }
+        if matches(lower, ["oil", "öl", "масл", "lubricant", "schmierung", "õli", "mootoriõli"]) { return .oil }
+        if matches(lower, ["brake", "brems", "тормоз", "belag", "beläge", "pad", "scheibenbremse", "pidur"]) { return .brakes }
+        if matches(lower, ["tire", "tyre", "reifen", "шина", "шиномонтаж", "wheel", "радиал", "rehv", "velg"]) { return .tires }
+        if matches(lower, ["battery", "batterie", "аккум", "батаре", "aku"]) { return .battery }
         if matches(lower, ["filter", "фильтр", "luftfilter", "pollen", "kraftstofffilter"]) { return .filters }
         if matches(lower, ["inspection", "inspektion", "check-up", "check up",
-                           "осмотр", "техосмотр", "диагност", "diagnos", "service"]) {
+                           "осмотр", "техосмотр", "диагност", "diagnos", "service", "hooldus", "ülevaatus"]) {
             return .inspection
         }
-        if matches(lower, ["repair", "reparatur", "ремонт", "instandsetzung"]) { return .repair }
-        if matches(lower, ["part", "teil", "детал", "запчаст", "ersatzteil"]) { return .parts }
-        if matches(lower, ["wash", "wäsche", "waschen", "мойка", "clean", "reinigung", "carwash"]) { return .wash }
+        if matches(lower, ["repair", "reparatur", "ремонт", "instandsetzung", "remont"]) { return .repair }
+        if matches(lower, ["part", "teil", "детал", "запчаст", "ersatzteil", "varuosa"]) { return .parts }
+        if matches(lower, ["wash", "wäsche", "waschen", "мойка", "clean", "reinigung", "carwash", "pesu"]) { return .wash }
         return .other("")
     }
 
