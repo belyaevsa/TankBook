@@ -52,6 +52,8 @@ struct AttachmentViewerView: View {
     /// labels follow the car (RV.234).
     var volumeUnit: VolumeUnit = .l
     var onAttachmentChanged: (FuelExtraction?) -> Void = { _ in }
+    /// The entry's other pages (RV.331); nil for a single-page entry.
+    var paging: AttachmentViewerPaging?
 
     @Environment(\.dismiss) var dismiss
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
@@ -89,10 +91,34 @@ struct AttachmentViewerView: View {
                 Theme.Palette.midnight.ignoresSafeArea()
                 content
             }
-            .navigationTitle(Text("Receipt photo"))
+            .navigationTitle(paging.map { Text(L10n.pageOf(current: $0.index + 1, total: $0.count)) }
+                             ?? Text("Receipt photo"))
             .navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom) { actionBar }
             .toolbar {
+                if let paging {
+                    ToolbarItem(placement: .topBarLeading) {
+                        HStack(spacing: 18) {
+                            Button {
+                                paging.onMove(paging.index - 1)
+                            } label: {
+                                Image(systemName: "chevron.left")
+                            }
+                            .disabled(paging.index == 0)
+                            .accessibilityLabel(Text("Previous page"))
+                            .accessibilityIdentifier("attachmentViewerPreviousPage")
+                            Button {
+                                paging.onMove(paging.index + 1)
+                            } label: {
+                                Image(systemName: "chevron.right")
+                            }
+                            .disabled(paging.index >= paging.count - 1)
+                            .accessibilityLabel(Text("Next page"))
+                            .accessibilityIdentifier("attachmentViewerNextPage")
+                        }
+                        .foregroundStyle(Theme.Palette.action)
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 20) {
                         // Share is offered only once the full rendition is

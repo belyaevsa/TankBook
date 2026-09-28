@@ -20,6 +20,10 @@ enum EditEntryServiceTestSeed {
             seedServiceMismatch()
             return true
         }
+        if arguments.contains("-seedEditEntryServicePages") {
+            seedServicePages()
+            return true
+        }
         if arguments.contains("-seedEditEntryServiceMixedCurrency") {
             seedServiceMixedCurrency()
             return true
@@ -99,6 +103,40 @@ enum EditEntryServiceTestSeed {
             ])
     }
 
+    /// RV.331 screenshot/test seam: a service invoice kept as THREE pages, each
+    /// a real local photo with a thumbnail, so the card shows every page and
+    /// the viewer steps between them.
+    @MainActor
+    private static func seedServicePages() {
+        // The reset runs once per launch, so it must come before the pages are
+        // written; `seedServiceRecord`'s own call is then a no-op.
+        if ProcessInfo.processInfo.arguments.contains("-homeResetDatabase") {
+            AppStore.resetForTestsOncePerLaunch()
+        }
+        let pages: [AttachmentID] = (0..<3).compactMap { _ in
+            guard let data = PhotoSyncingTestSeed.sampleJPEG(size: 900),
+                  let saved = try? VehiclePhotoStore.save(data, id: UUID.v7()),
+                  let repository = try? AppStore.repository() else { return nil }
+            let now = Date()
+            let attachment = Attachment(
+                id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil, kind: .photo,
+                file: LocalFileRef(sha256: saved.sha256, relativePath: saved.relativePath),
+                extractedTimestamp: nil, ocrText: nil,
+                thumbnailBase64: PhotoSyncingTestSeed.thumbnailBase64(), extractionMeta: nil)
+            try? repository.upsertAttachment(attachment)
+            return attachment.id
+        }
+        seedServiceRecord(
+            money: Money(amount: Decimal(string: "134.00")!, currency: .eur, homeCurrency: .eur),
+            vendor: "Tireman",
+            items: [
+                ServiceItem(title: "4 tyre change", category: .tires,
+                            cost: Money(amount: Decimal(string: "134.00")!,
+                                        currency: .eur, homeCurrency: .eur))
+            ],
+            attachments: pages)
+    }
+
     /// RV.199 screenshot/test seam: a service whose stored Amount (160.00)
     /// differs from its line sum (89.00 + 59.00 = 148.00) - the honest invoice
     /// shape the row exists for (tax, a discount, an un-itemised line). The
@@ -145,7 +183,7 @@ enum EditEntryServiceTestSeed {
     /// stored `money`, the vendor and the items.
     @MainActor
     private static func seedServiceRecord(money: Money, vendor: String?,
-                                          items: [ServiceItem]) {
+                                          items: [ServiceItem], attachments: [AttachmentID] = []) {
         let arguments = ProcessInfo.processInfo.arguments
         if arguments.contains("-homeResetDatabase") {
             AppStore.resetForTestsOncePerLaunch()
@@ -168,7 +206,7 @@ enum EditEntryServiceTestSeed {
         try? repository.upsertServiceRecord(ServiceRecord(
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
             vehicleId: vehicle.id, date: now, odometer: 119_486,
-            money: money, note: nil, attachments: [], provenance: .manual,
+            money: money, note: nil, attachments: attachments, provenance: .manual,
             conflict: .none, purchaseGroupId: nil, vendor: vendor,
             items: items, usedParts: [], tireSetId: nil))
     }

@@ -479,6 +479,15 @@ its tax as a line of its own, so the lines add up to what was paid; the payable 
 section's subtotal; the vendor is never a comment field. The cloud reading of every page still runs
 beside the local split as before.
 
+**Every page can be looked at, and a typed service can take its invoice (RV.332, RV.333,
+2026-09-28).** On the service form a page opens full size from the strip (zoom, turn, "‹ ›" between
+pages). A service started by typing carries **Add invoice** (the scanner or Photos): its first page
+gets the same reading a scanned invoice gets - the split fills the form only while nothing is typed,
+and the cloud reading runs beside it - and later pages join the strip. The expense form shows the
+receipt it was scanned from and takes more pages the same way, on the scanned and the typed form
+alike; every page is written with the entry. A page added to a typed expense is kept as a photo; it
+does not re-read the form.
+
 **Success metric:** ≥50% of service records carry an attachment; reminder acceptance rate ≥60%.
 
 ### J7b · Parts, tires, consumables
@@ -669,6 +678,14 @@ two fills and an exact total, and always labelled as a pace, never a bill.
 **Journey:** Log → the entry → the receipt strip's chip is a **tap target**, not decoration → the photo opens full-screen, fitted, and pinch or double-tap magnifies it to read a printed line the 44x56 chip could never show. A PDF invoice opens in the PDF viewer instead of a blank frame. When the full rendition has not reached this device, the viewer shows the payload's thumbnail from the first frame and says so, naming the next step – it never shows an empty screen and never blocks the entry (hard rules 1 and 7). If the receipt carried anything recognised, a second page beside the photo shows what was read (the OCR lines and the scan timestamp) – a swipe away, not chrome over the photo, and absent when there was nothing. The Share affordance (RV.17) hands the **full** rendition to the system share sheet – Save Image, Save to Files, share to apps – and is offered only once that rendition is local, never over the thumbnail; sharing is the user's deliberate act. Close or swipe down and the entry is exactly as it was, still editable. An entry that arrived without a receipt offers **Add receipt** on the same strip (RV.202), so the photo this journey is about can be supplied after the fact, not only viewed. An entry that references a photo that was never saved - the dangling id RV.173's failed grouped write left – shows **"The photo for this entry was never saved"** with the same Add receipt door (RV.208); the reference stays because a device mid-restore cannot tell a missing row from one it has not pulled yet (docs/SYNC.md -> Attachments).
 
 **Delete and replace (RV.37):** the viewer also offers **Delete** – system-confirmed, which removes the receipt from this entry and tombstones the attachment record for the 30-day window (the blob itself is left alone; reclamation is a separate concern) – and **Replace photo**, which opens the same camera/Photos door as "Add receipt", writes a **new** attachment and tombstones the old one (never an in-place mutation, so the 30-day undo has something to restore). The replace then asks – *"Re-read this and update the entry?"* – and "Leave it as it is" is the default: a silent re-read would overwrite values the user already confirmed, which hard rule 13 forbids. On an explicit "Update entry" the extracted values are still suggestions filling **blank fields only**, each dimmed until tapped. "Use a different receipt" is just replace again.
+
+**Every page, and one more (RV.331, product owner 2026-09-28).** An entry can hold more than one
+photo - the back of a receipt, a second invoice page, the parts bill - and the strip shows every page,
+each opening the viewer on itself; the viewer steps between them with "‹ ›" and names the page on
+screen ("Page 2 of 3"), and Delete and Replace act on that page alone. **Add page** (the scanner or
+Photos) stays offered once the entry has a photo, on fill-ups, services and expenses alike; pages
+added in one edit are written in order when Save runs, each degrading on its own, and a page added to
+an entry that already has recorded values never replaces them.
 
 **Success metric:** the receipt can be read without leaving the app or hunting for the paper; opening a photo never ends in a blank screen.
 

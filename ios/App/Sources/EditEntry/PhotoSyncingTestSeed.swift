@@ -205,14 +205,14 @@ enum PhotoSyncingTestSeed {
     }
 
     /// A real ~120px JPEG, base64 - the chip renders it, never a dead glyph.
-    private static func thumbnailBase64() -> String? {
+    static func thumbnailBase64() -> String? {
         guard let data = sampleJPEG(size: 120) else { return nil }
         return try? AttachmentRendition.thumbnailBase64(for: data, kind: .photo)
     }
 
     /// A small grey receipt-shaped sample (text bars) so the thumbnail and the
     /// full rendition are legible in a screenshot rather than a flat colour.
-    private static func sampleJPEG(size: Int) -> Data? {
+    static func sampleJPEG(size: Int) -> Data? {
         guard let context = CGContext(data: nil, width: size, height: size,
                                       bitsPerComponent: 8, bytesPerRow: 0,
                                       space: CGColorSpaceCreateDeviceRGB(),

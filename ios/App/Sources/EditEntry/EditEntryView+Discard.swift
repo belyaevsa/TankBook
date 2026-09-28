@@ -25,10 +25,11 @@ extension EditEntryView {
             let pristine = Self.pristineFillForm(for: fillUp, vehicle: vehicle)
             return note != (fillUp.note ?? "")
                 || fillForm != pristine
-                || attachImage != nil
+                || !heldPages.isEmpty
         }
         if let entry = currentEntry, let vehicle {
             return nonFillForm != Self.pristineNonFillForm(for: entry, vehicle: vehicle)
+                || !heldPages.isEmpty
         }
         return false
     }

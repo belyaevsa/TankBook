@@ -54,10 +54,34 @@ extension EditEntryView {
             outcome = attemptReceiptPhotoWrite(scanned: plan, source: source,
                                                repository: repository)
             target.attachments = updated.attachments + outcome.sharedIDs
-            if outcome.sharedID != nil {
+            // The recorded values are the entry's first photo's. A page added
+            // to an entry that already carries them (the back of the receipt,
+            // a second page) is kept as a photo and never replaces them.
+            if outcome.sharedID != nil, updated.extraction == nil {
                 target.extraction = plan.extraction
             }
         }
         return (target, outcome)
+    }
+
+    /// Every held page, written in the order the user added them, each through
+    /// the one-page seam above - so each degrades on its own and a lost page
+    /// never costs the pages around it (RV.331).
+    @MainActor
+    static func attachHeldReceiptsToFill(
+        _ updated: FillUp,
+        saved: ScannedSaveValues,
+        heldPhotos: [HeldReceiptPhoto],
+        repository: TankbookRepository
+    ) -> (fill: FillUp, outcomes: [ReceiptWriteOutcome]) {
+        var target = updated
+        var outcomes: [ReceiptWriteOutcome] = []
+        for held in heldPhotos {
+            let (next, outcome) = attachHeldReceiptToFill(target, saved: saved, heldPhoto: held,
+                                                          repository: repository)
+            target = next
+            outcomes.append(outcome)
+        }
+        return (target, outcomes)
     }
 }

@@ -89,15 +89,15 @@ struct EditEntryView: View {
     // and the extraction are held until Save writes them. A failed write
     // DEGRADES on every entry kind - the save the user asked for lands, the
     // photo failure is reported after it, and re-attach is the next step
-    // (docs/ERRORS.md -> Edit entry, the RV.204 row). `attachImage` is internal
+    // (docs/ERRORS.md -> Edit entry, the RV.204 row). `heldPages` is internal
     // (not private) for the RV.31 discard extension - a held photo is unsaved
     // work too.
     @State var showAttachSource = false
-    @State var attachImage: UIImage?
-    @State private var attachOcrLines: [OCRLine] = []
-    @State private var attachExtraction: FuelExtraction?
-    @State private var attachIsPumpDisplay = false
-    @State var attachProcessing = false
+    /// RV.331: every page added in this edit, in order, each with its own
+    /// reading; written on Save.
+    @State var heldPages: [HeldReceiptPhoto] = []
+    @State var attachReading = 0
+    var attachProcessing: Bool { attachReading > 0 }
 
     var currentEntry: (any Entry)? { fillUp ?? charge ?? service ?? expense }
     private var volumeUnit: VolumeUnit { vehicle?.units.volume ?? .l }
@@ -247,7 +247,7 @@ struct EditEntryView: View {
                              pendingBlobIDs: pendingBlobIDs,
                              missingAttachmentIDs: missingAttachmentIDs,
                              onAttachmentChanged: handleAttachmentChanged,
-                             attachImage: attachImage,
+                             heldPages: heldPages.map(\.image),
                              attachProcessing: attachProcessing,
                              showAttachSource: $showAttachSource,
                              onAddReceipt: { showAttachSource = true },
@@ -392,20 +392,16 @@ struct EditEntryView: View {
             // is APPENDED to the entry's existing list, never a replace, so a
             // reference the user has not removed - a dangling id from an
             // earlier failed write (RV.208) - is not silently dropped.
-            let held = attachImage.map {
-                HeldReceiptPhoto(image: $0, ocrLines: attachOcrLines,
-                                 extraction: attachExtraction, isPumpDisplay: attachIsPumpDisplay)
-            }
             let saved = ScannedSaveValues(total: derived.total, volumeL: derived.volumeL,
                                           unitPrice: derived.unitPrice, currency: fillForm.currency,
                                           fuelKind: fillForm.fuelKind, date: fillForm.date)
-            let (toSave, receiptWrite) = Self.attachHeldReceiptToFill(
-                updated, saved: saved, heldPhoto: held, repository: repository)
+            let (toSave, receiptWrites) = Self.attachHeldReceiptsToFill(
+                updated, saved: saved, heldPhotos: heldPages, repository: repository)
             try loggedWrite(AppLog.shared, op: .update, entityType: FillUp.entityType,
                             entityId: toSave.id, source: .manual) { try repository.upsertFillUp(toSave) }
             let after = headline(repository: repository, vehicle: vehicle)
             notify(before: before, after: after, vehicle: vehicle)
-            reportLostReceiptPhoto(receiptWrite, toastCenter: toastCenter)
+            reportLostReceiptPhotos(receiptWrites, toastCenter: toastCenter)
             dismiss()
         } catch {
             AppLog.error(operation: "editEntry.saveFillUp", category: .ui, error: error)
@@ -421,17 +417,13 @@ struct EditEntryView: View {
             // blocking the entry (hard rule 1), and the report fires only after
             // the entry is on disk, so a failed save never claims success (hard
             // rule 8, docs/ERRORS.md -> Confirm, RV.149).
-            let held = attachImage.map {
-                HeldReceiptPhoto(image: $0, ocrLines: attachOcrLines,
-                                 extraction: attachExtraction, isPumpDisplay: attachIsPumpDisplay)
-            }
-            let receiptWrite = try Self.writeNonFillWithHeldReceipt(
+            let receiptWrites = try Self.writeNonFillWithHeldReceipts(
                 entry, vehicle: vehicle, form: nonFillForm,
-                otherEntries: otherEntries, heldPhoto: held, repository: repository)
+                otherEntries: otherEntries, heldPhotos: heldPages, repository: repository)
             // A non-fill edit never moves consumption segments; there is no
             // delta to toast about - Home just reloads.
             toastCenter.noteEntryChanged()
-            reportLostReceiptPhoto(receiptWrite, toastCenter: toastCenter)
+            reportLostReceiptPhotos(receiptWrites, toastCenter: toastCenter)
             // PJ.22: a service whose line-item lifetime was set or changed
             // proposes the next reminder, through the SAME `ReminderOffer` seam
             // the create door uses. Nothing is created here - the offer is
@@ -653,40 +645,4 @@ extension EditEntryView {
                                           volumeUnit: vehicle.units.volume)
     }
     #endif
-
-    /// One image in, one set of blank-fields-only suggestions out. The OCR runs
-    /// through the same `CapturePipeline` the scan door uses; the merge then
-    /// decides which fields are blank on the TYPED entry, and only those are
-    /// offered as dimmed pre-fills (hard rule 13). A typed value is never
-    /// overwritten and raises no amber (docs/ERRORS.md -> Edit entry).
-    ///
-    /// RV.202: shared by the fill-up and the three non-fill kinds. The
-    /// blank-fields-only merge is a FILL-UP concern - a service invoice or an
-    /// expense receipt has no fuel fields to pre-fill - so a non-fill attach
-    /// holds the photo without any value merge; widening recognition over entry
-    /// kind is RV.201's, not this path's. The photo itself is written on Save by
-    /// both paths through the shared `attemptReceiptPhotoWrite` seam
-    /// (`attachHeldReceiptToFill` and `writeNonFillWithHeldReceipt`), which
-    /// degrades on failure (RV.204).
-    func attachReceipt(_ image: UIImage) {
-        guard let vehicle else { return }
-        attachImage = image
-        attachProcessing = true
-        Task {
-            let prefill = await CapturePipeline.process(
-                image,
-                bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle.id),
-                homeCurrency: vehicle.homeCurrency)
-            attachOcrLines = prefill.ocrLines
-            attachIsPumpDisplay = prefill.provenance == .pumpPhoto
-            let extraction = prefill.extraction ?? FuelExtraction()
-            attachExtraction = extraction
-            if let fillUp {
-                let suggestions = ReceiptAttachMerge.suggestions(entry: fillUp, extraction: extraction)
-                fillForm.applyAttachedSuggestions(suggestions, extraction: extraction,
-                                                  volumeUnit: vehicle.units.volume)
-            }
-            attachProcessing = false
-        }
-    }
 }

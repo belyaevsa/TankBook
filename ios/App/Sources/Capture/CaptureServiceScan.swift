@@ -7,8 +7,9 @@ import UIKit
 // Split out of `CaptureView.swift` (which sits at the linter's file-length
 // ceiling), the same split `CaptureExpenseScan.swift` made. The document
 // camera's result and the `-captureAutoServiceScan` test hook both land in
-// `scanServiceInvoice`; this extension owns the local split's hand-off and the
-// cloud reading of every captured page.
+// `scanServiceInvoice`; the reading itself (the local split and the cloud
+// reading of every page) is `ServiceInvoiceSession.startReading`, shared with
+// the service form's own "Add invoice".
 
 extension CaptureView {
     /// The document camera returned pages: OCR them, split deterministically,
@@ -25,78 +26,31 @@ extension CaptureView {
     /// starts (F4: never awaited). A late answer reaches the inbox through the
     /// same one policy.
     func scanServiceInvoice(_ images: [UIImage]) {
-        let homeCurrency = (try? currentVehicle())?.homeCurrency ?? .eur
-        let session = invoiceSession
-        let inbox = self.inbox
-        // RV.243: persist the pages NOW, before the read. A save that beats the
-        // read must still keep the invoice (hard rule 8); the read enriches
-        // these same pages and only offers its values.
-        let staged = ServiceInvoiceScanner.stagePages(images: images)
-        session.start(
-            stagedPages: staged,
-            work: { await self.serviceScanOutcome(images: images, staged: staged,
-                                                  homeCurrency: homeCurrency) },
-            onAnswer: { outcome in session.pendingPrefill = outcome.prefill },
-            onSavedAnswer: { outcome, entryID in
-                inbox.recordLateGatewayAnswer(.service(outcome.recognition), entryID: entryID)
-            })
-        Task {
-            try? await Task.sleep(for: Self.coverDismissBeat)
-            onServiceEntry()
-        }
-    }
-
-    /// PJ.29a: runs the local split and, once it has produced the outcome, fires
-    /// the cloud reading of EVERY page in one request (docs/API.md "multi-page
-    /// invoices"). The header is on the first page and the lines may run onto
-    /// the rest; the cloud's lines are paired onto the local split by the
-    /// device (docs/JOURNEYS.md J7), never taken as the split. Starting the
-    /// gateway here, never awaited, keeps F4: the form opens on the local read
-    /// and the cloud is a head start, not a wait.
-    private func serviceScanOutcome(images: [UIImage], staged: [InvoicePage],
-                                    homeCurrency: CurrencyCode) async -> ServiceScanOutcome {
+        let vehicle = try? currentVehicle()
+        var split: (@MainActor ([InvoicePage]) async -> ServiceScanOutcome)?
         #if DEBUG
         // DEBUG/test-only (`ServiceScanTestSeed`): a canned split lets a UI test
         // assert what the user SEES without OCR over a corpus image. It
         // substitutes only the scanner's output - the session hand-off, the
         // gateway start and the form's apply path are the shipped ones.
-        if let seeded = ServiceScanTestSeed.outcome(from: ProcessInfo.processInfo.arguments,
-                                                    pages: staged,
-                                                    homeCurrency: homeCurrency) {
-            startServiceGatewayIfAvailable(pages: images)
-            return seeded
+        let homeCurrency = vehicle?.homeCurrency ?? .eur
+        if ProcessInfo.processInfo.arguments.contains("-seedServiceScan") {
+            split = { staged in
+                if let seeded = ServiceScanTestSeed.outcome(from: ProcessInfo.processInfo.arguments,
+                                                            pages: staged, homeCurrency: homeCurrency) {
+                    return seeded
+                }
+                return await ServiceInvoiceScanner.process(images: images, stagedPages: staged,
+                                                           homeCurrency: homeCurrency)
+            }
         }
         #endif
-        let outcome = await ServiceInvoiceScanner.process(images: images, stagedPages: staged,
-                                                          homeCurrency: homeCurrency)
-        startServiceGatewayIfAvailable(pages: images)
-        return outcome
-    }
-
-    /// PJ.29a: fires `/extract` with `kind: "invoice"` for every captured page,
-    /// under the same guards the fill-up and expense paths use -
-    /// `allowsServerBacked` withholds the call under `.required` (docs/CONFIG.md),
-    /// a guest has no transport, and a non-JPEG rendition gets no call. The
-    /// answer is delivered to the open sheet through the session, or, once the
-    /// record is saved, to the inbox through the ONE policy.
-    private func startServiceGatewayIfAvailable(pages: [UIImage]) {
-        guard config.allowsServerBacked, !pages.isEmpty else { return }
-        let vehicle = try? currentVehicle()
-        let language = Locale.current.language.languageCode?.identifier ?? "en"
-        let hints = GatewayExtractHints(currency: vehicle?.homeCurrency.rawValue,
-                                        locale: language,
-                                        vehicleFuelKinds: [])
-        let inbox = self.inbox
-        invoiceSession.startGateway(
-            pages: pages,
-            hints: hints,
-            captureId: UUID.v7().uuidString,
-            maxInvoicePages: config.config.maxInvoicePages,
-            onSavedAnswer: { extraction, entryID in
-                let reading = ServiceRecognitionBuilder.reading(fromGateway: extraction,
-                                                                homeCurrency: vehicle?.homeCurrency)
-                inbox.recordLateGatewayAnswer(.service(reading.recognition), entryID: entryID)
-            })
+        invoiceSession.startReading(images: images, vehicle: vehicle, config: config, inbox: inbox,
+                                    split: split)
+        Task {
+            try? await Task.sleep(for: Self.coverDismissBeat)
+            onServiceEntry()
+        }
     }
 
     /// DEBUG/test-only: `-captureAutoServiceScan` (with `-captureFixtureImage`)

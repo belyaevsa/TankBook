@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import TankbookCore
 import UIKit
 
@@ -59,7 +60,31 @@ extension ServiceEntryView {
         showDocumentCamera = true
     }
 
+    /// The Photos door. Under the `-attachReceiptFixtureImage` test double
+    /// (`ReceiptAttachFixture`) the fixture is the pick - the out-of-process
+    /// picker cannot be driven; production never passes the argument.
+    func addPageFromPhotos() {
+        if let fixture = ReceiptAttachFixture.image() {
+            handleAddedPages([fixture])
+        } else {
+            showPagePhotoPicker = true
+        }
+    }
+
+    /// A page from the scanner or Photos. The service's FIRST invoice page -
+    /// added on the typed path, where no scan started the form (RV.332) - goes
+    /// through the same reading a scanned invoice gets (`startReading`: the
+    /// split, filling the form only while nothing is typed, and the cloud
+    /// reading); later pages join the strip.
     func handleAddedPages(_ images: [UIImage]) {
+        if pages.isEmpty {
+            let staged = invoiceSession.startReading(images: images, vehicle: vehicle,
+                                                     config: config, inbox: inbox)
+            pages = staged
+            form.attachments = staged.map(\.attachment.id)
+            selectedPageIndex = 0
+            return
+        }
         Task {
             let newPages = await ServiceInvoiceScanner.appendPages(images: images)
             pages.append(contentsOf: newPages)
@@ -86,4 +111,22 @@ extension ServiceEntryView {
         }
     }
 
+
+    /// The typed service's door for its invoice (RV.332): the scanner or a
+    /// photo already in Photos. Once a page is added the strip takes its place.
+    var invoiceDoor: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "doc.text")
+                .font(.subheadline)
+                .foregroundStyle(Theme.Palette.inkSoft)
+            Text("Invoice")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Theme.Palette.ink)
+            Spacer(minLength: 8)
+            AddPageMenu(label: "Add invoice", identifier: "serviceEntryAddInvoice",
+                        onScan: addPage, onPhotos: addPageFromPhotos)
+        }
+        .padding(12)
+        .formCard()
+    }
 }

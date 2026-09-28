@@ -35,7 +35,8 @@ struct ServiceEntryView: View {
     /// `/extract` request under `.required` (docs/CONFIG.md), exactly as the
     /// fill-up Confirm sheet and the expense form do - the local split still
     /// stands.
-    @Environment(AppConfigService.self) private var config
+    @Environment(AppConfigService.self) var config
+    @Environment(AppInbox.self) var inbox
 
     @State var form = ServiceEntryFormState()
     @FocusState private var focus: ServiceEntryFocus?
@@ -51,6 +52,7 @@ struct ServiceEntryView: View {
     @State var selectedPageIndex = 0
     @State var showDocumentCamera = false
     @State var showPagePhotoPicker = false
+    @State var pageViewer: PageViewerTarget?
     /// The parts on the shelf and the parts linked into this service (P3.2).
     @State private var shelfParts: [Expense] = []
     @State private var linkedParts: [Expense] = []
@@ -132,8 +134,11 @@ struct ServiceEntryView: View {
                         ServiceEntryPageStrip(pages: pages,
                                               selectedIndex: $selectedPageIndex,
                                               onAddPage: addPage,
-                                              onAddPageFromPhotos: { showPagePhotoPicker = true },
-                                              onRemovePage: removePage)
+                                              onAddPageFromPhotos: addPageFromPhotos,
+                                              onRemovePage: removePage,
+                                              onOpenPage: { pageViewer = PageViewerTarget(index: $0) })
+                    } else {
+                        invoiceDoor
                     }
                     // Both halves of the row: Service/Tires select a mode
                     // (P3.3), Parts/Other are forward exits into the Expense
@@ -211,6 +216,9 @@ struct ServiceEntryView: View {
             PhotoPickerView(isPresented: $showPagePhotoPicker) { image in
                 if let image { handleAddedPages([image]) }
             }
+        }
+        .sheet(item: $pageViewer) { target in
+            PagePhotoViewer(images: pages.map(\.image), index: target.index)
         }
         .sheet(item: $nestedSheet) { route in
             SheetDestinationView(route: route)
