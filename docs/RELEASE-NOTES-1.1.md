@@ -5,6 +5,8 @@
 - A photo of the pump display can pre-fill the total, litres and price on your phone. Check the figures against the photo before saving, or type them from the start. The photo creates no entry until you save it. (PU.6, PU.89, PJ.505)
 - If the pump figures do not add up, the check screen warns you. It asks for a number it could not read or check. (PU.100, PU.103, PJ.504)
 - Choose a service invoice in Photos, add another page if needed, and check its itemised lines before saving the service entry. (RV.318, RV.320, PJ.301, PJ.302, PJ.303)
+- An entry keeps every page you give it: the back of a receipt, a second invoice page, the parts bill. Each page opens full size, and you can add one more to a fill-up, a service or an expense at any time. (RV.331, RV.332, RV.333)
+- A service shows its invoice page as a thumbnail in the entry. (RV.335)
 - Due reminders appear in the Log with their date or distance. The full reminder list is one tap away. (RV.122)
 - The Log shows distance, consumption and cost per kilometre. It compares the month with the previous one when the records support a comparison. (RV.119)
 - See how your fill-ups are spaced and an estimate of this month's pace when there are enough records to calculate it. (RV.120)

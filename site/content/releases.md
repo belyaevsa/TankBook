@@ -15,6 +15,7 @@ This update is being prepared for the App Store.
 - Photograph the pump display to pre-fill the total, litres and price the phone can read. Check them against the photo before saving. You can type the figures from the start, too; the photo saves nothing by itself.
 - When a pump reading does not add up, the check screen warns you. A figure it cannot read or check stays open for you to enter.
 - A service invoice from Photos opens as a service entry, whether it is a photo, screenshot or PDF page. Review its itemised lines and add more pages if needed.
+- An entry keeps every page you give it: the back of a receipt, a second invoice page, the parts bill. Each page opens full size, and you can add one more to a fill-up, a service or an expense at any time.
 - Due reminders now appear in the Log with a date or distance and a link to the full list.
 - The Log shows distance, consumption, cost per kilometre and a comparison with the previous month when there are enough records.
 - Trends compares fuel prices by station brand once you have enough entries from two brands.
