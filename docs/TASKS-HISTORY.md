@@ -273,3 +273,6 @@ known, and the AD rows, which the owner had built in the session rather than dis
 | `RV.318` | done | 2026-09-28 | orchestrator (Claude session), not dispatched |
 | `RV.320` | done | 2026-09-28 | orchestrator (Claude session), not dispatched |
 | `RV.319` | done | 2026-09-28 | orchestrator (Claude session), not dispatched |
+| `RV.331` | done | 2026-09-28 | orchestrator (Claude session), not dispatched |
+| `RV.332` | done | 2026-09-28 | orchestrator (Claude session), not dispatched |
+| `RV.333` | done | 2026-09-28 | orchestrator (Claude session), not dispatched |

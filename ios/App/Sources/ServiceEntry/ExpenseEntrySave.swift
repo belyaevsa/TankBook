@@ -1,5 +1,6 @@
 import Foundation
 import TankbookCore
+import UIKit
 
 // RV.243: the repository half of the Expense sheet's save, split out of
 // `ExpenseEntryView.swift` (which sits near the linter's file-length ceiling)
@@ -19,7 +20,7 @@ extension ExpenseEntryView {
     @MainActor
     static func writeExpense(
         form: ExpenseEntryFormState, vehicle: Vehicle, amount: Decimal,
-        scan: ExpenseScanCapture?, repository: TankbookRepository,
+        scan: ExpenseScanCapture?, extraPages: [UIImage] = [], repository: TankbookRepository,
         id: UUID = UUID.v7(),
         store: RateStore = AppRates.store
     ) throws -> (expense: Expense, photoWriteFailed: Bool) {
@@ -32,6 +33,20 @@ extension ExpenseEntryView {
             } catch {
                 AppLog.error(operation: "expenseEntry.receiptPhotoSave",
                              category: .ui, error: error)
+                photoWriteFailed = true
+            }
+        }
+        // RV.333: pages added on the form are kept as photos with the entry,
+        // each degrading on its own exactly like the scanned one.
+        for page in extraPages {
+            do {
+                let id = UUID.v7()
+                let attachment = try ReceiptAttachmentWriter.write(id: id, image: page, ocrLines: [],
+                                                                   extraction: FuelExtraction())
+                try repository.upsertAttachment(attachment)
+                attachmentIDs.append(id)
+            } catch {
+                AppLog.error(operation: "expenseEntry.pagePhotoSave", category: .ui, error: error)
                 photoWriteFailed = true
             }
         }

@@ -13,6 +13,8 @@ struct ServiceEntryPageStrip: View {
     let onAddPage: () -> Void
     let onAddPageFromPhotos: () -> Void
     let onRemovePage: (InvoicePage) -> Void
+    /// A page opened full size (`PagePhotoViewer`).
+    var onOpenPage: (Int) -> Void = { _ in }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -39,51 +41,74 @@ struct ServiceEntryPageStrip: View {
 
     private func thumbnail(_ page: InvoicePage, at index: Int) -> some View {
         let isSelected = index == selectedIndex
-        return Image(uiImage: page.image)
-            .resizable()
-            .scaledToFill()
-            .frame(width: 58, height: 76)
-            .clipShape(RoundedRectangle(cornerRadius: 7))
-            .overlay(
-                RoundedRectangle(cornerRadius: 7)
-                    .stroke(isSelected ? Theme.Palette.taillight : Theme.Palette.hairline,
-                            lineWidth: isSelected ? 1.5 : 1)
-            )
-            .overlay(alignment: .topTrailing) {
-                Button {
-                    onRemovePage(page)
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.caption)
-                        .foregroundStyle(Theme.Palette.inkSoft)
-                        .background(Circle().fill(Theme.Palette.midnight.opacity(0.85)))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Remove page")
-                .accessibilityIdentifier("serviceEntryPageRemove_\(index)")
-                .padding(3)
-            }
-            .onTapGesture {
+        // The page and its remove control are two sibling buttons: an
+        // identifier on a view with an overlay also lands on the overlay's
+        // button, and a tap meant to open the page could remove it.
+        return ZStack(alignment: .topTrailing) {
+            Button {
                 selectedIndex = index
+                onOpenPage(index)
+            } label: {
+                Image(uiImage: page.image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 58, height: 76)
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 7)
+                            .stroke(isSelected ? Theme.Palette.taillight : Theme.Palette.hairline,
+                                    lineWidth: isSelected ? 1.5 : 1)
+                    )
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text(L10n.pageOf(current: index + 1, total: pages.count)))
+            .accessibilityIdentifier("serviceEntryPage_\(index)")
+            Button {
+                onRemovePage(page)
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                    .background(Circle().fill(Theme.Palette.midnight.opacity(0.85)))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Remove page")
+            .accessibilityIdentifier("serviceEntryPageRemove_\(index)")
+            .padding(3)
+        }
     }
 
     private var addPageButton: some View {
+        AddPageMenu(label: "Add page", identifier: "serviceEntryAddPage",
+                    onScan: onAddPage, onPhotos: onAddPageFromPhotos)
+    }
+}
+
+/// "Add page" / "Add invoice" / "Add receipt": the scanner or a photo already in
+/// Photos, side by side (hard rule 15's two doors for a page). The service
+/// form's strip, its typed-path invoice door and the expense form all use it.
+struct AddPageMenu: View {
+    let label: LocalizedStringKey
+    let identifier: String
+    let onScan: () -> Void
+    let onPhotos: () -> Void
+
+    var body: some View {
         Menu {
-            Button(action: onAddPage) {
+            Button(action: onScan) {
                 Label("Scan a page", systemImage: "doc.viewfinder")
             }
-            .accessibilityIdentifier("serviceEntryAddPageScan")
-            Button(action: onAddPageFromPhotos) {
+            .accessibilityIdentifier(identifier + "Scan")
+            Button(action: onPhotos) {
                 Label("Choose from Photos", systemImage: "photo")
             }
-            .accessibilityIdentifier("serviceEntryAddPagePhotos")
+            .accessibilityIdentifier(identifier + "Photos")
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "plus")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Theme.Palette.action)
-                Text("Add page")
+                Text(label)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Theme.Palette.action)
             }
@@ -93,6 +118,6 @@ struct ServiceEntryPageStrip: View {
             .overlay(Capsule().stroke(Theme.Palette.hairline, lineWidth: 1))
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("serviceEntryAddPageButton")
+        .accessibilityIdentifier(identifier + "Button")
     }
 }

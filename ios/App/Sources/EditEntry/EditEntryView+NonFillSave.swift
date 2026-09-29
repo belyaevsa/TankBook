@@ -13,8 +13,8 @@ import TankbookCore
 /// gate). RV.202.
 struct HeldReceiptPhoto {
     let image: UIImage
-    let ocrLines: [OCRLine]
-    let extraction: FuelExtraction?
+    var ocrLines: [OCRLine]
+    var extraction: FuelExtraction?
     /// PU.29: the attach's classification - a pump display is marked on the
     /// attachment by its pipeline name, whatever the entry's own provenance.
     var isPumpDisplay: Bool = false
@@ -106,9 +106,26 @@ extension EditEntryView {
         heldPhoto: HeldReceiptPhoto?,
         repository: TankbookRepository
     ) throws -> ReceiptWriteOutcome {
+        try writeNonFillWithHeldReceipts(entry, vehicle: vehicle, form: form, otherEntries: otherEntries,
+                                         heldPhotos: heldPhoto.map { [$0] } ?? [],
+                                         repository: repository).first ?? .nothingToWrite
+    }
+
+    /// Every held page (RV.331), each written through the shared seam in the
+    /// order the user added them and appended when it landed; a lost page is
+    /// reported and never costs the others or the entry. The entry itself is
+    /// written once.
+    @MainActor
+    static func writeNonFillWithHeldReceipts(
+        _ entry: any Entry, vehicle: Vehicle,
+        form: EditEntryNonFillForm,
+        otherEntries: [any Entry],
+        heldPhotos: [HeldReceiptPhoto],
+        repository: TankbookRepository
+    ) throws -> [ReceiptWriteOutcome] {
         var target = entry
-        var outcome = ReceiptWriteOutcome.nothingToWrite
-        if let heldPhoto {
+        var outcomes: [ReceiptWriteOutcome] = []
+        for heldPhoto in heldPhotos {
             var source = ConfirmPrefill(extraction: heldPhoto.extraction,
                                         ocrLines: heldPhoto.ocrLines,
                                         sourceImage: heldPhoto.image)
@@ -124,13 +141,14 @@ extension EditEntryView {
                         pipeline: heldPhoto.isPumpDisplay
                             ? ScannedSavePlanner.pumpReaderPipeline : ScannedSavePlanner.onDevicePipeline)
                 })
-            outcome = attemptReceiptPhotoWrite(scanned: plan, source: source,
-                                               repository: repository)
-            target.attachments = entry.attachments + outcome.sharedIDs
+            let outcome = attemptReceiptPhotoWrite(scanned: plan, source: source,
+                                                   repository: repository)
+            target.attachments += outcome.sharedIDs
+            outcomes.append(outcome)
         }
         try writeNonFill(target, vehicle: vehicle, form: form,
                          otherEntries: otherEntries, repository: repository)
-        return outcome
+        return outcomes
     }
 
     /// A non-fill edit resolves at commit when it can - the same claim an

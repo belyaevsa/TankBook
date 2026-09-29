@@ -49,6 +49,12 @@ struct ExpenseEntryView: View {
     /// session on load and held here until Save persists it. `nil` is the typed
     /// path (hard rule 15): no photo, and nothing about this save changes.
     @State private var scan: ExpenseScanCapture?
+    var scanImage: UIImage? { scan?.image }
+    /// RV.333: pages added on the form, written with the entry on Save.
+    @State var extraPages: [UIImage] = []
+    @State var showPageCamera = false
+    @State var showPagePicker = false
+    @State var pageViewer: PageViewerTarget?
     /// A reminder completion handed off by the ReminderComplete sheet (P3.5):
     /// pre-fills this form and, on save, completes the reminder with the
     /// entry's real id. Consumed at load; held locally for the save.
@@ -104,6 +110,7 @@ struct ExpenseEntryView: View {
                     if expenseSession.gateway.phase == .authExpired, !authExpiredNoticeDismissed {
                         GatewayAuthExpiredNoticeView(dismiss: { authExpiredNoticeDismissed = true })
                     }
+                    pagesCard
                     categoryCard
                     titleCard
                     amountCard
@@ -118,6 +125,11 @@ struct ExpenseEntryView: View {
         .background(Theme.Palette.midnight)
         .safeAreaInset(edge: .bottom) { saveBar }
         .task { await load() }
+        .modifier(ExpensePageSheets(extraPages: $extraPages, showCamera: $showPageCamera,
+                                    showPicker: $showPagePicker, viewer: $pageViewer, pages: shownPages))
+        .onChange(of: extraPages.count) { _, _ in
+            hasUnsavedChanges = form.hasEdits() || !extraPages.isEmpty
+        }
         // RV.267: the sheet's one dismissal path. The X, a swipe-down and any
         // discard prompt end here; a save sets `didSave` first and keeps the
         // capture its record consumed. A scan staged a photo and a pre-fill with
@@ -423,7 +435,7 @@ extension ExpenseEntryView {
             // is a head start, never a requirement).
             let (expense, photoWriteFailed) = try Self.writeExpense(
                 form: form, vehicle: vehicle, amount: amount, scan: scan,
-                repository: repository, id: entryId)
+                extraPages: extraPages, repository: repository, id: entryId)
             // RV.200: only a scanned expense has a suggestion to report - the
             // typed path proposed no category and emits nothing. Shape only:
             // the category code and whether the user kept it (hard rule 12).

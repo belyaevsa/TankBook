@@ -85,9 +85,14 @@ struct ReceiptPhotoSaveReportGuardTests {
     /// pins the `.lost` flag the report keys off.
     @Test("The Edit-entry non-fill save reports a lost receipt photo")
     func editEntryNonFillSaveReportsThroughTheSharedSymbol() throws {
+        // RV.331: the save reports every page's outcome through the list form,
+        // which reports through the one shared symbol.
         let view = try Self.source(of: "EditEntry/EditEntryView.swift")
-        #expect(view.contains("reportLostReceiptPhoto("),
+        #expect(view.contains("reportLostReceiptPhotos("),
                 "the non-fill save must report a lost photo, never a silent drop (RV.202)")
+        let attach = try Self.source(of: "EditEntry/EditEntryView+Attachment.swift")
+        #expect(attach.contains("reportLostReceiptPhoto(lost"),
+                "the list form must report through the one shared symbol")
     }
 
     /// RV.204: the fill-up edit save must degrade through the SAME seam the
@@ -102,8 +107,10 @@ struct ReceiptPhotoSaveReportGuardTests {
         #expect(receiptHalf.contains("attemptReceiptPhotoWrite("),
                 "the fill-up edit must write through the shared degrade seam, not a second one")
         let view = try Self.source(of: "EditEntry/EditEntryView.swift")
-        #expect(view.contains("attachHeldReceiptToFill("),
+        #expect(view.contains("attachHeldReceiptsToFill("),
                 "the fill-up save must route its receipt half through the shared helper")
+        #expect(receiptHalf.contains("attachHeldReceiptToFill(target"),
+                "every held page must go through the one-page seam (RV.331)")
         #expect(!view.contains("attachFailed"),
                 "the blocking warn row must be gone - RV.204 decided degrade everywhere")
     }

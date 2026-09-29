@@ -38,12 +38,12 @@ struct EditEntryNonFillView: View {
     /// with a re-attach next step.
     let missingAttachmentIDs: [AttachmentID]
     let onAttachmentChanged: (FuelExtraction?) -> Void
-    /// RV.202: the receipt a non-fill entry is being given. `attachImage` drives
-    /// the pending card; `showAttachSource` is the camera/Photos chooser's
-    /// binding; `onAddReceipt` opens it and `onAttachImage` runs the shared
-    /// `attachReceipt` path. The chooser hangs off the card, never the screen
-    /// (RV.11).
-    let attachImage: UIImage?
+    /// RV.202/RV.331: the pages a non-fill entry is being given in this edit.
+    /// `heldPages` are shown after the saved ones; `showAttachSource` is the
+    /// camera/Photos chooser's binding; `onAddReceipt` opens it and
+    /// `onAttachImage` runs the shared `attachReceipt` path. The chooser hangs
+    /// off the card, never the screen (RV.11).
+    let heldPages: [UIImage]
     let attachProcessing: Bool
     @Binding var showAttachSource: Bool
     let onAddReceipt: () -> Void
@@ -126,14 +126,7 @@ struct EditEntryNonFillView: View {
     /// `confirmationDialog` popover to the view it is attached to (RV.11).
     @ViewBuilder
     private var receiptCard: some View {
-        if !attachments.isEmpty {
-            EditEntryRows.receiptCard(attachments: attachments, entry: entry,
-                                      volumeUnit: vehicle.units.volume,
-                                      pendingBlobIDs: pendingBlobIDs,
-                                      onAttachmentChanged: onAttachmentChanged)
-        } else if attachImage != nil {
-            EditEntryRows.pendingReceiptCard(processing: attachProcessing)
-        } else if !missingAttachmentIDs.isEmpty {
+        if attachments.isEmpty, heldPages.isEmpty, !missingAttachmentIDs.isEmpty {
             // RV.208: the entry references an id no live Attachment resolves to.
             // The reference stays; the strip names the missing photo and offers
             // the same re-attach door.
@@ -146,9 +139,12 @@ struct EditEntryNonFillView: View {
             EditEntryRows.receiptCard(attachments: attachments, entry: entry,
                                       volumeUnit: vehicle.units.volume,
                                       pendingBlobIDs: pendingBlobIDs,
-                                      onAddReceipt: onAddReceipt)
+                                      heldPages: heldPages,
+                                      processing: attachProcessing,
+                                      onAddReceipt: onAddReceipt,
+                                      onAttachmentChanged: onAttachmentChanged)
                 .receiptAttachSource(isPresented: $showAttachSource,
-                                     title: "Add receipt") { image in
+                                     title: attachments.isEmpty && heldPages.isEmpty ? "Add receipt" : "Add page") { image in
                     onAttachImage(image)
                 }
         }
