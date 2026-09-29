@@ -47,9 +47,11 @@ passes the locale's; without one PU.74's table abstains as `currencyUnmeasured` 
 - **The lab itself:** the shutter sat below the preset list, a scroll away from the preview - the
   owner could not see what was being shot while pressing it. Moved under the preview (SH.8).
 
-**Decisions taken:** none yet on the preset (see Runs 2-3: the latency finding did not hold). **Next runs** (the owner, with the next beta and its
-shipped model): a night pump, a display in glare, a long or faded receipt. Production's preset moves
-to `speed` only if those read the same (SH.9).
+**Decision (product owner, 2026-09-29): production keeps `default` (SH.9 closed).** Across Runs 1-4 and
+the 2026-09-28 receipt run no preset read better than `default` - daylight pump and receipt, a TFT
+screen, a black LCD, a pump at night all read the same on the tree - and `speed` was not reliably
+faster (faster twice, slower twice). Its byte saving no longer matters either: SH.10 stores a 2048 px
+q80 rendition, not the capture. The lab stays in the beta for new scenes.
 
 ## Runs 2-3 – 2026-09-25, two displays the reader has never read (daylight)
 
