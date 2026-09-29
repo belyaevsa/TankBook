@@ -248,7 +248,10 @@ done
 # a redirect to it in both languages, so old links keep landing somewhere real.
 for prefix in "" "ru/"; do
   alias_page="site/public/${prefix}roadmap/index.html"
-  if [ -f "$alias_page" ] && grep -q "${prefix}releases/" "$alias_page" && grep -qi 'http-equiv="refresh"' "$alias_page"; then
+  # Anchored on the host: "/ru/releases/" also contains "/releases/", and under the
+  # pinned Hugo a RU alias once landed on the EN path and passed this check.
+  if [ -f "$alias_page" ] && grep -q "url=https://[^/\"]*/${prefix}releases/" "$alias_page" \
+     && grep -qi 'http-equiv="refresh"' "$alias_page"; then
     pass "S3: /${prefix}roadmap/ redirects to /${prefix}releases/"
   else
     fail "S3: /${prefix}roadmap/ redirects to /${prefix}releases/"
