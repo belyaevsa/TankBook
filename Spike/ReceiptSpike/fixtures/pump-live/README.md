@@ -537,6 +537,12 @@ heldout2: `pump-362`/`363` (the 203 L truck fill, both angles); the rest train. 
 | `live-6476` | 65 | Live record of the pump still | `pump-366` |
 | `live-6477` | 48 | Live record of the pump still | `pump-367` |
 
+## Batch 17 (2026-09-29, product owner): a US Circle K "This Sale" head
+
+| video | frames | what | truth |
+|---|---|---|---|
+| `video-054-unknown-circlek-this-sale-gallons-running-display-4049-us` | 466 (720x1280, 30 fps, 15.5 s) | a US **Circle K** head (make not legible), `This Sale` / `$` over `Gallons`, **counting up** 62.44 / 15.421 → 65.21 / 16.106 in low sun, the owner's shadow across the face and the camera moving fast; **no price window** on the display; IMG_2174.MOV whole, no audio, no metadata. Reference quads placed by the orchestrator on frame 001, anchors on 180, 240, 300, 360 and 466; the tracker still slides the total box right around frames 200-225 and 320-345 (fix in the annotator). The read phase closed **1 of 460** frames: the gallons read (15.421, 15.451) but the grey total segments do not, so the labels are the owner's keyframes | price `4.049` USD/gal constant, derived: 8 sampled readings close exactly (`15.421 x 4.049 = 62.44`, `16.106 x 4.049 = 65.21`); the `liters` field holds **gallons** |
+
 ## Frames and tracking (2026-09-20)
 
 Two scripts in `ml/pump-reader` turn the records into labelled training frames without a

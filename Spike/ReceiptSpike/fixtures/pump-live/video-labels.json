@@ -38351,59 +38351,137 @@
    "unitPrice": "2.079",
    "via": "copied"
   },
-  "121.jpg": {
-   "liters": "1.221",
-   "source": "arithmetic",
-   "total": "2.55",
+  "033.jpg": {
+   "liters": "9.83",
+   "source": "owner",
+   "total": "20.44",
    "unitPrice": "2.079"
   },
-  "188.jpg": {
-   "liters": "14.12",
-   "source": "arithmetic",
-   "total": "29.38",
+  "034.jpg": {
+   "liters": "9.83",
+   "source": "owner",
+   "total": "20.44",
    "unitPrice": "2.079"
   },
-  "189.jpg": {
-   "liters": "14.12",
-   "source": "arithmetic",
-   "total": "29.38",
+  "035.jpg": {
+   "liters": "9.89",
+   "source": "owner",
+   "total": "20.56",
    "unitPrice": "2.079"
   },
-  "199.jpg": {
-   "liters": "14.38",
-   "source": "arithmetic",
-   "total": "29.92",
+  "036.jpg": {
+   "liters": "9.89",
+   "source": "owner",
+   "total": "20.56",
    "unitPrice": "2.079"
   },
-  "201.jpg": {
-   "liters": "14.48",
-   "source": "arithmetic",
-   "total": "30.08",
+  "037.jpg": {
+   "liters": "9.96",
+   "source": "owner",
+   "total": "20.71",
    "unitPrice": "2.079"
   },
-  "202.jpg": {
-   "liters": "14.48",
-   "source": "arithmetic",
-   "total": "30.08",
+  "039.jpg": {
+   "liters": "9.76",
+   "source": "owner",
+   "total": "20.99",
    "unitPrice": "2.079"
   },
-  "208.jpg": {
-   "liters": "14.86",
-   "source": "arithmetic",
-   "total": "30.90",
+  "040.jpg": {
+   "liters": "10.03",
+   "source": "owner",
+   "total": "20.85",
    "unitPrice": "2.079"
   },
-  "215.jpg": {
-   "liters": "14.80",
-   "source": "arithmetic",
-   "total": "30.80",
+  "041.jpg": {
+   "liters": "10.03",
+   "source": "owner",
+   "total": "20.85",
+   "unitPrice": "2.079",
+   "via": "copied"
+  },
+  "042.jpg": {
+   "liters": "10.10",
+   "source": "owner",
+   "total": "21.00",
    "unitPrice": "2.079"
   },
-  "357.jpg": {
-   "liters": "18.80",
-   "source": "arithmetic",
-   "total": "39.09",
+  "043.jpg": {
+   "liters": "10.10",
+   "source": "owner",
+   "total": "21.00",
+   "unitPrice": "2.079",
+   "via": "copied"
+  },
+  "044.jpg": {
+   "liters": "10.16",
+   "source": "owner",
+   "total": "21.12",
    "unitPrice": "2.079"
+  },
+  "184.jpg": {
+   "liters": "13.98",
+   "source": "arithmetic",
+   "total": "29.08",
+   "unitPrice": "2.079"
+  },
+  "291.jpg": {
+   "liters": "1.83",
+   "source": "arithmetic",
+   "total": "3.800",
+   "unitPrice": "2.079"
+  },
+  "389.jpg": {
+   "liters": "1.969",
+   "source": "arithmetic",
+   "total": "4.094",
+   "unitPrice": "2.079"
+  }
+ },
+ "video-052-unknown-alexela-black-lcd-running-display-2059-ee": {
+  "1235.jpg": {
+   "liters": "3.899",
+   "source": "arithmetic",
+   "total": "8.020",
+   "unitPrice": "2.059"
+  },
+  "238.jpg": {
+   "liters": "1.11",
+   "source": "arithmetic",
+   "total": "2.327",
+   "unitPrice": "2.059"
+  },
+  "239.jpg": {
+   "liters": "1.130",
+   "source": "arithmetic",
+   "total": "2.301",
+   "unitPrice": "2.059"
+  },
+  "245.jpg": {
+   "liters": "1.181",
+   "source": "arithmetic",
+   "total": "2.377",
+   "unitPrice": "2.059"
+  },
+  "360.jpg": {
+   "liters": "1.488",
+   "source": "arithmetic",
+   "total": "3.093",
+   "unitPrice": "2.059"
+  },
+  "922.jpg": {
+   "liters": "3.030",
+   "source": "arithmetic",
+   "total": "6.239",
+   "unitPrice": "2.059"
+  }
+ },
+ "video-054-unknown-circlek-this-sale-gallons-running-display-4049-us": {
+  "277.jpg": {
+   "liters": "15.824",
+   "source": "arithmetic",
+   "total": "64.07",
+   "unitPrice": "4.049"
   }
  }
 }
