@@ -224,20 +224,34 @@ if [ "$missing_variants" -eq 0 ]; then
   pass "W12 all $variant_count referenced screenshot variants exist on disk"
 fi
 
-if find site/public -name '*.html' -exec grep -l 'rejected' {} + 2>/dev/null | grep -q .; then
+# A reference is an image path (src/srcset/href) naming a 'rejected' file; the
+# word itself in page copy ("a sync rejected by the server") is not one.
+rejected_ref='[^"'"'"' ]*rejected[^"'"'"' ]*\.(png|jpe?g|webp|gif|svg)'
+if find site/public -name '*.html' -exec grep -lE "$rejected_ref" {} + 2>/dev/null | grep -q .; then
   fail "no screenshot whose name contains 'rejected' is ever referenced (pages below)"
-  find site/public -name '*.html' -exec grep -l 'rejected' {} + 2>/dev/null
+  find site/public -name '*.html' -exec grep -lE "$rejected_ref" {} + 2>/dev/null
 else
   pass "no screenshot whose name contains 'rejected' is ever referenced (all built pages)"
 fi
 
 # ── S3: the legal pages exist, and the privacy table is all there ─────────
 
-for page in privacy terms support delete-account roadmap press; do
+for page in privacy terms support delete-account press; do
   if [ -f "site/public/$page/index.html" ] && [ -f "site/public/ru/$page/index.html" ]; then
     pass "S3: /$page/ and /ru/$page/ built"
   else
     fail "S3: /$page/ and /ru/$page/ built"
+  fi
+done
+
+# The roadmap page was folded into the releases page (SH.16): /roadmap/ must stay
+# a redirect to it in both languages, so old links keep landing somewhere real.
+for prefix in "" "ru/"; do
+  alias_page="site/public/${prefix}roadmap/index.html"
+  if [ -f "$alias_page" ] && grep -q "${prefix}releases/" "$alias_page" && grep -qi 'http-equiv="refresh"' "$alias_page"; then
+    pass "S3: /${prefix}roadmap/ redirects to /${prefix}releases/"
+  else
+    fail "S3: /${prefix}roadmap/ redirects to /${prefix}releases/"
   fi
 done
 
