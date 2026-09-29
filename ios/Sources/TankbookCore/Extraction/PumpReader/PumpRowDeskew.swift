@@ -79,8 +79,8 @@ enum PumpRowDeskew {
         let centre = CGPoint(x: box.midX, y: box.midY)
         let searchHeight = box.height * (1 + 2 * searchPadding)
         let crop = inside(centre: centre, width: box.width, height: searchHeight, degrees: 0, image: image)
-        guard let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: crop, stripHeight: searchStripHeight),
-              let search = angle(of: PumpQuadWarp.rgbImage(from: strip).grayscale()) else {
+        guard let search = angle(of: PumpQuadWarp.warpToStripPixels(rgb: image, quad: crop,
+                                                                     stripHeight: searchStripHeight).grayscale()) else {
             return Result(quad: quad, degrees: 0)
         }
         let best = (degrees: search.degrees, confidence: search.confidence)
@@ -95,8 +95,8 @@ enum PumpRowDeskew {
         // Fit the height to the ink band at the chosen angle, so the turned box
         // is as tight as the upright one was rather than padded.
         let wide = rotatedRect(centre: centre, width: box.width, height: searchHeight, degrees: best.degrees)
-        guard let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: wide, stripHeight: searchStripHeight),
-              let band = inkBand(PumpQuadWarp.rgbImage(from: strip).grayscale()) else {
+        let strip = PumpQuadWarp.warpToStripPixels(rgb: image, quad: wide, stripHeight: searchStripHeight)
+        guard let band = inkBand(strip.grayscale()) else {
             return Result(quad: rotatedRect(centre: centre, width: box.width, height: box.height, degrees: best.degrees),
                           degrees: best.degrees, confidence: best.confidence)
         }

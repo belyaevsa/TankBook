@@ -88,12 +88,12 @@ extension PumpReader {
         for row in detectedRows(for: upright) where row.confidence >= Self.searchMinimumConfidence {
             let pixels = row.quad.map { CGPoint(x: $0.x * CGFloat(upright.width), y: $0.y * CGFloat(upright.height)) }
             guard let sliced = Self.sliceDetectedOrOriginal(pixels, detected: true, in: upright) else { continue }
-            let geometry = PumpRowGeometry.verdict(cells: sliced.fullCells, stripWidth: sliced.strip.width,
-                                                   stripHeight: sliced.strip.height)
+            let geometry = PumpRowGeometry.verdict(cells: sliced.fullCells, stripWidth: sliced.rgb.width,
+                                                   stripHeight: sliced.rgb.height)
             guard geometry.kept else { continue }
             kept += 1
             let band = sliced.fullCells.first(where: { !$0.isBlank })?.rect.height ?? 0
-            ink += band * CGFloat(sliced.strip.width)
+            ink += band * CGFloat(sliced.rgb.width)
         }
         return OrientationScore(rotationCW: rotationCW, keptRows: kept, inkBandArea: ink)
     }
@@ -105,8 +105,8 @@ extension PumpReader {
         for row in detectedRows(for: upright) where row.confidence >= Self.searchMinimumConfidence {
             let pixels = row.quad.map { CGPoint(x: $0.x * CGFloat(upright.width), y: $0.y * CGFloat(upright.height)) }
             guard let sliced = Self.sliceDetectedOrOriginal(pixels, detected: true, in: upright),
-                  PumpRowGeometry.verdict(cells: sliced.fullCells, stripWidth: sliced.strip.width,
-                                          stripHeight: sliced.strip.height).kept,
+                  PumpRowGeometry.verdict(cells: sliced.fullCells, stripWidth: sliced.rgb.width,
+                                          stripHeight: sliced.rgb.height).kept,
                   !sliced.cells.isEmpty, sliced.cells.count <= PumpReadingLaw.maxCells else { continue }
             let crops = sliced.cells.compactMap {
                 Self.resample(sliced.rgb, rect: $0.rect, width: PumpSegmentsModel.inputWidth,

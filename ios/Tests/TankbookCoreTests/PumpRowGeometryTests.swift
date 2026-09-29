@@ -58,7 +58,7 @@ struct PumpRowGeometryTests {
             let px = PumpQuadWarp.readingOrder(
                 PumpReaderTestSupport.quadPixels(quad, width: image.width, height: image.height), rotationCW: rotation)
             if let sliced = PumpReader.sliceDetectedOrOriginal(px, detected: false, in: image) {
-                return (sliced.strip.width, sliced.strip.height)
+                return (sliced.rgb.width, sliced.rgb.height)
             }
         }
         return nil
@@ -77,8 +77,8 @@ struct PumpRowGeometryTests {
         let quad = [CGPoint(x: x0 * width, y: y0 * height), CGPoint(x: x1 * width, y: y0 * height),
                     CGPoint(x: x1 * width, y: y1 * height), CGPoint(x: x0 * width, y: y1 * height)]
         guard let sliced = PumpReader.sliceDetectedOrOriginal(quad, detected: false, in: image) else { return nil }
-        return PumpRowGeometry.verdict(cells: sliced.fullCells, stripWidth: sliced.strip.width,
-                                       stripHeight: sliced.strip.height)
+        return PumpRowGeometry.verdict(cells: sliced.fullCells, stripWidth: sliced.rgb.width,
+                                       stripHeight: sliced.rgb.height)
     }
 
     @Test("a display's pitch-to-band is kept; a keypad's square keys are not")

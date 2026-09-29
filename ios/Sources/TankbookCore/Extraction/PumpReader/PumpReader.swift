@@ -135,7 +135,6 @@ struct PumpReader {
     /// cells instead (pump-209: 6 -> 1), so the margin may never cost a digit.
     struct SlicedCandidate {
         let quad: [CGPoint]
-        let strip: CGImage
         let rgb: PumpRGBImage
         /// The cells a reading uses: the slicer's occupied cells only.
         let cells: [GlyphCell]
@@ -147,10 +146,9 @@ struct PumpReader {
 
     static func sliceDetectedOrOriginal(_ original: [CGPoint], detected: Bool, in image: PumpRGBImage) -> SlicedCandidate? {
         func slice(_ quad: [CGPoint]) -> SlicedCandidate? {
-            guard let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: quad, stripHeight: Self.stripHeight) else { return nil }
-            let rgb = PumpQuadWarp.rgbImage(from: strip)
+            let rgb = PumpQuadWarp.warpToStripPixels(rgb: image, quad: quad, stripHeight: Self.stripHeight)
             let cells = PumpGlyphSlicer.slice(rgb.grayscale())
-            return SlicedCandidate(quad: quad, strip: strip, rgb: rgb,
+            return SlicedCandidate(quad: quad, rgb: rgb,
                                    cells: cells.filter { !$0.isBlank }, fullCells: cells)
         }
         guard let plain = slice(original) else { return nil }
@@ -207,9 +205,7 @@ struct PumpReader {
     func read(image: PumpRGBImage, windows: [Window], trace: PumpTrace? = nil) throws -> [WindowRead] {
         var out: [WindowRead] = []
         for window in windows {
-            guard let strip = PumpQuadWarp.warpToStrip(rgb: image, quad: window.quad, stripHeight: Self.stripHeight)
-            else { trace?.read(window, skipped: "unwarpable"); continue }
-            let stripRGB = PumpQuadWarp.rgbImage(from: strip)
+            let stripRGB = PumpQuadWarp.warpToStripPixels(rgb: image, quad: window.quad, stripHeight: Self.stripHeight)
             if let rowReader {
                 guard let readings = try rowReader.read(strip: stripRGB) else {
                     trace?.read(window, strip: stripRGB, skipped: "noCells"); continue
@@ -453,7 +449,7 @@ struct PumpReader {
                 trace?.judged(out[out.count - 1])
                 continue
             }
-            let quad = sliced.quad, strip = sliced.strip, stripRGB = sliced.rgb, cells = sliced.cells
+            let quad = sliced.quad, stripRGB = sliced.rgb, cells = sliced.cells
             // The classifier's margin is computed for the diagnostic only; the
             // keep decision is the strip's geometry, for a detected row and a
             // Vision proposal alike, so a retrain cannot move it (decision 10).
@@ -467,9 +463,9 @@ struct PumpReader {
                 let margins = probabilities.map { PumpCellReading(probabilities: $0).margin }
                 mean = margins.reduce(0, +) / Double(margins.count)
             }
-            let geometry = PumpRowGeometry.verdict(cells: sliced.fullCells, stripWidth: strip.width,
-                                                   stripHeight: strip.height)
-            let aspect = CGFloat(strip.width) / CGFloat(strip.height)
+            let geometry = PumpRowGeometry.verdict(cells: sliced.fullCells, stripWidth: stripRGB.width,
+                                                   stripHeight: stripRGB.height)
+            let aspect = CGFloat(stripRGB.width) / CGFloat(stripRGB.height)
             let shaped = aspect <= Self.maximumAspectPerCell * CGFloat(max(cells.count, 1)) + 1
             // A keypad row is the one thing the per-strip geometry cannot see:
             // its cells can look like a display row, and what singles it out is

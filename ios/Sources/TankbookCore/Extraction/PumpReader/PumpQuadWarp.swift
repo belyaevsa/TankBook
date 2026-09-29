@@ -163,6 +163,14 @@ enum PumpQuadWarp {
     /// The same warp over an already-decoded RGBA buffer, so a caller that holds
     /// the pixels warps many windows without re-decoding the full image each time.
     static func warpToStrip(rgb: PumpRGBImage, quad: [CGPoint], stripHeight: CGFloat) -> CGImage? {
+        let strip = warpToStripPixels(rgb: rgb, quad: quad, stripHeight: stripHeight)
+        return makeImage(strip.pixels, width: strip.width, height: strip.height)
+    }
+
+    /// The warp's pixels, for a caller that reads them straight away: the same
+    /// bytes `rgbImage(from: warpToStrip(...))` returns, without building a
+    /// `CGImage` and drawing it back into a buffer.
+    static func warpToStripPixels(rgb: PumpRGBImage, quad: [CGPoint], stripHeight: CGFloat) -> PumpRGBImage {
         let sw = max(1, Int((stripHeight * aspect(of: quad)).rounded()))
         let sh = max(1, Int(stripHeight))
         let dst = [
@@ -172,26 +180,26 @@ enum PumpQuadWarp {
             CGPoint(x: 0, y: CGFloat(sh)),
         ]
         let h = homography(src: dst, dst: quad)
-        let src = rgb.pixels
         let srcW = rgb.width
         let srcH = rgb.height
         var out = [UInt8](repeating: 0, count: sw * sh * 4)
-        for y in 0..<sh {
-            let py = Double(y) + 0.5
-            for x in 0..<sw {
-                let px = Double(x) + 0.5
-                let wgt = h[6] * px + h[7] * py + h[8]
-                let u = (h[0] * px + h[1] * py + h[2]) / wgt
-                let v = (h[3] * px + h[4] * py + h[5]) / wgt
-                let rgb = sampleBilinear(src, width: srcW, height: srcH, x: u, y: v)
-                let idx = (y * sw + x) * 4
-                out[idx] = rgb.0
-                out[idx + 1] = rgb.1
-                out[idx + 2] = rgb.2
-                out[idx + 3] = 255
+        rgb.pixels.withUnsafeBufferPointer { src in
+            out.withUnsafeMutableBufferPointer { dstBuffer in
+                for y in 0..<sh {
+                    let py = Double(y) + 0.5
+                    for x in 0..<sw {
+                        let px = Double(x) + 0.5
+                        let wgt = h[6] * px + h[7] * py + h[8]
+                        let u = (h[0] * px + h[1] * py + h[2]) / wgt
+                        let v = (h[3] * px + h[4] * py + h[5]) / wgt
+                        let idx = (y * sw + x) * 4
+                        sampleBilinear(src, size: (srcW, srcH), at: SIMD2(u, v), into: dstBuffer, index: idx)
+                        dstBuffer[idx + 3] = 255
+                    }
+                }
             }
         }
-        return makeImage(out, width: sw, height: sh)
+        return PumpRGBImage(width: sw, height: sh, pixels: out)
     }
 
     /// Solves the 3x3 homography (h22 = 1) mapping `src[i]` -> `dst[i]`.
@@ -251,11 +259,16 @@ enum PumpQuadWarp {
         return (data, w, h)
     }
 
+    /// Bilinear sample of one source point into `out[at..<at+3]`; a point off
+    /// the image samples black.
     private static func sampleBilinear(
-        _ data: [UInt8], width w: Int, height h: Int, x: Double, y: Double
-    ) -> (UInt8, UInt8, UInt8) {
+        _ data: UnsafeBufferPointer<UInt8>, size: (width: Int, height: Int), at point: SIMD2<Double>,
+        into out: UnsafeMutableBufferPointer<UInt8>, index: Int
+    ) {
+        let w = size.width, h = size.height, x = point.x, y = point.y
         if x < 0 || y < 0 || x > Double(w - 1) || y > Double(h - 1) {
-            return (0, 0, 0)
+            out[index] = 0; out[index + 1] = 0; out[index + 2] = 0
+            return
         }
         let x0 = Int(floor(x))
         let y0 = Int(floor(y))
@@ -263,17 +276,17 @@ enum PumpQuadWarp {
         let y1 = min(y0 + 1, h - 1)
         let fx = x - Double(x0)
         let fy = y - Double(y0)
-        func channel(_ c: Int) -> UInt8 {
-            let i00 = Double(data[y0 * w * 4 + x0 * 4 + c])
-            let i10 = Double(data[y0 * w * 4 + x1 * 4 + c])
-            let i01 = Double(data[y1 * w * 4 + x0 * 4 + c])
-            let i11 = Double(data[y1 * w * 4 + x1 * 4 + c])
+        let row0 = y0 * w * 4, row1 = y1 * w * 4
+        for c in 0..<3 {
+            let i00 = Double(data[row0 + x0 * 4 + c])
+            let i10 = Double(data[row0 + x1 * 4 + c])
+            let i01 = Double(data[row1 + x0 * 4 + c])
+            let i11 = Double(data[row1 + x1 * 4 + c])
             let top = i00 * (1 - fx) + i10 * fx
             let bot = i01 * (1 - fx) + i11 * fx
             let value = top * (1 - fy) + bot * fy
-            return UInt8(clamping: Int(value.rounded()))
+            out[index + c] = UInt8(clamping: Int(value.rounded()))
         }
-        return (channel(0), channel(1), channel(2))
     }
 
     static func makeImage(_ pixels: [UInt8], width: Int, height: Int) -> CGImage? {

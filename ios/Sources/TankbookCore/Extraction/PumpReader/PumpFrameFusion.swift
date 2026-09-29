@@ -82,9 +82,7 @@ extension PumpReader {
                                mode: FusionMode) throws -> FusionAccumulator {
         var accumulator = FusionAccumulator()
         for window in windows {
-            guard let strip = PumpQuadWarp.warpToStrip(rgb: still, quad: window.quad,
-                                                       stripHeight: Self.stripHeight) else { continue }
-            let stripRGB = PumpQuadWarp.rgbImage(from: strip)
+            let stripRGB = PumpQuadWarp.warpToStripPixels(rgb: still, quad: window.quad, stripHeight: Self.stripHeight)
             let allCells = PumpGlyphSlicer.slice(stripRGB.grayscale())
             let cells = allCells.filter { !$0.isBlank }
             guard !cells.isEmpty else { continue }
