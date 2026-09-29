@@ -2275,3 +2275,35 @@ r6's steps / pool (`.out/real`) / real-frac on today's renderer, 3 seeds per arm
 The shipped r6 on the same tree: 116/116 annotated, 47/47 live. Every flatten seed adds wrong
 readings (pump-092 3.0 L / 191.55 for 30.0 / 1915.5; pump-041, -055, -062 last digits); nothing
 ships. Temperatures (train pool): r6 0.568, control 0.587, flatten 0.534-0.537.
+
+## The round protocol: every round reports its live ledger diff (PU.56, 2026-09-29)
+
+The live gate is one number (`PumpPhotoGate.readerCommitted` at precision 0.98 on the app path), so a
+change that trades five photos for five others reads as "no change", and a change that loses a few
+reads as "regression, revert" without saying where. From this round on, **a classifier, detector,
+row-reader or law change reports, beside the scalar floor, the ledger diff against the shipped
+configuration**:
+
+```
+cd ios
+PUMP_LIVE_LEDGER=/tmp/shipped.json swift test --filter "PumpReaderPipelineTests/livePath"
+PUMP_LIVE_LEDGER=/tmp/candidate.json PUMP_DETECTOR=<candidate> swift test --filter "PumpReaderPipelineTests/livePath"
+cd .. && scripts/pump-live-diff.py /tmp/shipped.json /tmp/candidate.json
+```
+
+`livePath` writes `ios/.build/pump-reader-out/live-ledger.json` on every run (or `PUMP_LIVE_LEDGER`):
+per heldout still, per field, the outcome (`right`, `wrong`, `abstained`, `unscored`), the value and
+the reason - the law's `PumpAbstentionReason`, or `notADisplay` when the app's display decision
+refused the photo before anything was read - and the test fails if the rows do not add up to the
+totals it printed. `scripts/pump-live-diff.py` names every changed field by the stage it moved at:
+`gain`, `WRONG`, `law flip`, `read flip`, `assign flip`, `locate flip`, `loss`, `reason`. The
+scalar floor stays the gate; the diff is what the round's entry here must carry.
+
+**First entry: PU.91 round 2 (`rowseg-seg-r2`, refused 2026-09-28)**, diffed against the shipped
+`rowseg-seg-r1` on macOS 27 (`runs/2026-09-29/pu91-r2-live-diff.txt`). The scalar said
+126/125 -> 130/127; the ledger says the two models disagree on 14 stills, not 4 cells: seg-r2 wins
+five photos whole (`pump-056`, `089`, `104`, `120`, `170`), loses four whole ones to the law and the
+display decision (`pump-068` to `priceOutOfBand`, `095` to `priceUnvalidated`, `165` to
+`nothingClosed`, `201` refused as not a display), and commits two new wrong cells on `pump-055`
+(56.09 / 108.6 for 56.05 / 108.68). None of the losses is a read failure: every one is a located
+row the law or the display decision then refused, which is where a round 3 should look first.
