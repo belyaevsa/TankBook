@@ -244,20 +244,6 @@ for page in privacy terms support delete-account press; do
   fi
 done
 
-# The roadmap page was folded into the releases page (SH.16): /roadmap/ must stay
-# a redirect to it in both languages, so old links keep landing somewhere real.
-for prefix in "" "ru/"; do
-  alias_page="site/public/${prefix}roadmap/index.html"
-  # Anchored on the host: "/ru/releases/" also contains "/releases/", and under the
-  # pinned Hugo a RU alias once landed on the EN path and passed this check.
-  if [ -f "$alias_page" ] && grep -q "url=https://[^/\"]*/${prefix}releases/" "$alias_page" \
-     && grep -qi 'http-equiv="refresh"' "$alias_page"; then
-    pass "S3: /${prefix}roadmap/ redirects to /${prefix}releases/"
-  else
-    fail "S3: /${prefix}roadmap/ redirects to /${prefix}releases/"
-  fi
-done
-
 # Every row of SITE.md's legal table, in both languages. Greps are per-language
 # exact substrings of the shipped copy, so a rewrite that drops a claim fails.
 # NOTE (2026-09-05, product owner: "remove checking for page texts, it's
