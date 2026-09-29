@@ -93,6 +93,19 @@ first measurement also fixed one matcher blind spot: a Latin look-alike inside a
 (`PН-Тверь` with a Latin P, which every RN slip prints) is now read as the Cyrillic it stands for
 before transliteration, 29 -> 31.
 
+**The station is best-effort (product owner, 2026-09-29).** A station name is a convenience the user
+can fill in any time, so a blank beats a wrong one, and the `stations` mark is a record, not a gate
+worth trading receipt accuracy for: a change may move it a little, and says so, rather than being
+tuned until it holds. **Invoice furniture is never the station (RV.321, 2026-09-29).** On a page
+whose lines lie horizontally, the extractor also skips a line that is one cell of a table row (three
+or more side-by-side lines of similar height holding real text - a column header or a line item), a
+field label ending in a colon (`Tasumistingimus:`), and the value beside such a label, including a
+value wrapped onto its neighbouring lines (`Maksekaardiga` / `Peterburi` / `keskus`). A cropped
+service invoice that starts at its table therefore names no station instead of the `Müügi` column
+header (case PS88P-4A7KB). Four attempts to add a "the station sits above the body" cut-off cost 17
+to 23 receipts each - tilted photos slope their rows, and Vision's split, overlapping header
+fragments look like cells - and were dropped; the rule that shipped leaves the mark at 50/92.
+
 **Hard rule 12.** A station name, brand or address is a domain value and is never logged, at any
 level, in any build; only counts and confidence are shape. A source-scan gate
 (`RV161StationLoggingGateTests`) pins the extraction and pre-fill seams against it.

@@ -82,10 +82,15 @@ public enum StationNameExtractor {
 
     /// The first line that reads as a fuel receipt's station identity.
     public static func stationName(from lines: [OCRLine]) -> String? {
+        let layout = horizontal(lines)
         for line in lines {
-            guard line.confidence >= 0.5 else { continue }
             let text = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !text.isEmpty else { continue }
+            // A cropped invoice starts at its table: a column header or a line
+            // item is one cell of a row, never the station.
+            guard !(layout && isInvoiceFurniture(line, among: lines)) else { continue }
+            // A field label (`Tasumistingimus:`) introduces a value; a station
+            // name is the value of nothing.
+            guard line.confidence >= 0.5, !text.isEmpty, !text.hasSuffix(":") else { continue }
             // A value line (`n=19719.00`, `ЗН`, `A0000000041010`) has the
             // shape of a company name once the shared predicate allows one
             // numeric token; a station name has real letters.
@@ -136,6 +141,62 @@ public enum StationNameExtractor {
         "KOMMENTAAR", "MÄRKUS", "COMMENT", "КОММЕНТАРИ", "ПРИМЕЧАНИ",
         "KÄIBEMAKS", "KAIBEMAKS"
     ]
+
+    /// A table cell or the value beside a field label.
+    static func isInvoiceFurniture(_ line: OCRLine, among lines: [OCRLine]) -> Bool {
+        isTableCell(line, among: lines) || isFieldValue(line, among: lines)
+    }
+
+    /// A line that is one cell of a row of three or more - a table's column
+    /// header (`Kood | Nimetus | Kogus | Müügi | Summa`) or a line item - is
+    /// never the station: a station name stands on its own line. A cropped
+    /// invoice starts at its table, so its first confident word is a header
+    /// cell. Lines without geometry (a zero box) are never treated as cells.
+    static func isTableCell(_ line: OCRLine, among lines: [OCRLine]) -> Bool {
+        let box = line.boundingBox
+        guard box != .zero, box.height > 0 else { return false }
+        let neighbours = lines.filter { other in
+            let cell = other.boundingBox
+            guard other != line, cell != .zero, cell.height > 0 else { return false }
+            // A border mark (`*`, `|`) framing a header line is decoration, not
+            // a cell: a cell holds text.
+            guard other.text.filter({ $0.isLetter || $0.isNumber }).count >= 2 else { return false }
+            // Cells of one printed row share a line height, sit side by side,
+            // and drift by up to half a line on a photographed page. Vision's
+            // garbled duplicates of a header overlap it or differ in height,
+            // so they are not cells.
+            let short = min(box.height, cell.height), tall = max(box.height, cell.height)
+            guard tall <= short * 1.6 else { return false }
+            let apart = cell.maxX <= box.minX || cell.minX >= box.maxX
+            return apart && abs(cell.midY - box.midY) < short * 0.75
+        }
+        return neighbours.count >= 2
+    }
+
+    /// A value printed beside its label (`Tasumistingimus:` | `Maksekaardiga`),
+    /// including a value wrapped onto the lines just above or below it,
+    /// answers the label, so it is never the station.
+    static func isFieldValue(_ line: OCRLine, among lines: [OCRLine]) -> Bool {
+        let box = line.boundingBox
+        guard box != .zero, box.height > 0 else { return false }
+        return lines.contains { other in
+            let labelBox = other.boundingBox
+            guard other != line, labelBox != .zero, labelBox.height > 0,
+                  labelBox.maxX <= box.minX + box.width * 0.1 else { return false }
+            let label = other.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            return label.hasSuffix(":") && abs(labelBox.midY - box.midY) < labelBox.height * 1.5
+        }
+    }
+
+    /// Whether the lines carry geometry and lie horizontally - at least three
+    /// quarters wider than tall. On a sideways photo rows run vertically, so
+    /// neither "a row of cells" nor "above the body" means anything there.
+    static func horizontal(_ lines: [OCRLine]) -> Bool {
+        let boxed = lines.filter { $0.boundingBox != .zero && $0.boundingBox.height > 0 }
+        guard !boxed.isEmpty else { return false }
+        let wide = boxed.filter { $0.boundingBox.width > $0.boundingBox.height }.count
+        return wide * 4 >= boxed.count * 3
+    }
 
     private static func isFurniture(_ text: String) -> Bool {
         let upper = text.uppercased()
