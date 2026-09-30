@@ -501,6 +501,23 @@ if grep -q '<script src="/js/motion' site/public/index.html && ! grep -q 'Inters
 else
   fail "CSP: the motion script must load by src from /js/, never inline (script-src 'self')"
 fi
+# And no executable inline script anywhere (JSON-LD is data, not script).
+inline_js="$(python3 - <<'PYEOF'
+import glob,re
+bad=[]
+for f in glob.glob('site/public/**/*.html',recursive=True):
+    for m in re.finditer(r'<script([^>]*)>(.*?)</script>',open(f).read(),re.S):
+        if 'src=' in m.group(1) or 'ld+json' in m.group(1): continue
+        if m.group(2).strip(): bad.append(f)
+print('\n'.join(sorted(set(bad))))
+PYEOF
+)"
+if [ -z "$inline_js" ]; then
+  pass "CSP: no page carries an executable inline script"
+else
+  fail "CSP: executable inline script on (script-src 'self' blocks it):"
+  printf '%s\n' "$inline_js"
+fi
 
 # ── W2 hygiene: no em-dash anywhere under site/, no raw <img> in layouts ──
 

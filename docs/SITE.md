@@ -85,6 +85,14 @@ recurring bug.
   leaves a block already on screen static, and marks the rest `.is-inview` as they scroll in; no
   start state applies without it.
   Nothing loops, nothing counts up, and nothing simulates scanning (the copy rule in motion).
+- **No inline script** (2026-09-30): `deploy/nginx/tankbook.live.conf` sends `script-src 'self'`, so
+  every script is a fingerprinted file (`assets/js/`), and `scripts/check-site.sh` fails a page
+  with an executable inline `<script>`. The Yandex.Metrika loader moved out of line for this reason.
+  **Open, the owner's call:** the same policy also blocks what the loader fetches and sends
+  (`mc.yandex.ru` scripts, beacons and the noscript pixel), so the counter records nothing until the
+  CSP allows Yandex's documented hosts - `script-src https://mc.yandex.ru https://yastatic.net`,
+  `img-src`/`connect-src https://mc.yandex.ru`, `frame-src`/`child-src blob: https://mc.yandex.ru` -
+  or the counter is removed.
 - **`design/tokens.json` -> `site/assets/css/tokens.generated.css`** via a small generator beside the
   Swift one. Hand-editing that file is the same bug as hand-editing `Theme.generated.swift`.
 - Hosting: static, on any CDN (Cloudflare Pages is the default assumption). The site is public and
