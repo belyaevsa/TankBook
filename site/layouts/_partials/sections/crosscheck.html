@@ -13,7 +13,7 @@
       <p class="eyebrow">{{ .check_eyebrow }}</p>
       <h2 class="section-title">{{ .check_title }}</h2>
       <p class="check-text">{{ .check_text }}</p>
-      <div class="check-card">
+      <div class="check-card" data-reveal>
         <p class="check-line">
           <span class="check-line__value">{{ .check_lhs_value }}<span class="check-line__unit">&nbsp;{{ .check_lhs_unit }}</span></span>
           <span class="check-line__op" aria-hidden="true">×</span>
@@ -24,7 +24,7 @@
           {{ partial "icons/tick-circle.html" . }}
           <span class="check-rule__bar" aria-hidden="true"></span>
         </div>
-        <p class="check-total">= {{ .check_total }}<span class="check-line__unit">&nbsp;{{ .check_total_unit }}</span></p>
+        <p class="check-total"><span class="check-total__roll">= {{ .check_total }}<span class="check-line__unit">&nbsp;{{ .check_total_unit }}</span></span></p>
         <p class="check-warn">
           {{ partial "icons/warn-triangle.html" . }}
           <span>{{ .check_warn_before }} <span class="amber-underline">{{ .check_warn_styled }}</span> {{ .check_warn_after }}</span>

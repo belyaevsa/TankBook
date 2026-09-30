@@ -4,15 +4,17 @@
         <text x="360" y="54" text-anchor="middle" class="mono" font-size="34" font-weight="600" fill="var(--ink)" letter-spacing="10">0014,00</text>
         <text x="20" y="92" fill="var(--ink-soft)">the row strip (32 px high)</text>
         <g class="mono" font-size="14" text-anchor="middle" fill="var(--ink-soft)">
-          <text x="46" y="128">0</text><text x="86" y="128">0</text><text x="126" y="128">–</text><text x="166" y="128">0</text><text x="206" y="128">0</text>
-          <text x="246" y="128">–</text><text x="286" y="128">1</text><text x="326" y="128">4</text><text x="366" y="128">4</text><text x="406" y="128">,</text>
-          <text x="446" y="128">0</text><text x="486" y="128">–</text><text x="526" y="128">0</text><text x="566" y="128">0</text><text x="606" y="128">–</text><text x="646" y="128">–</text>
+          <text x="46" y="128">0</text><text x="86" y="128">0</text><text class="ctc-blank" x="126" y="128">–</text><text x="166" y="128">0</text><text x="206" y="128">0</text>
+          <text class="ctc-blank" x="246" y="128">–</text><text x="286" y="128">1</text><text x="326" y="128">4</text><text x="366" y="128">4</text><text x="406" y="128">,</text>
+          <text x="446" y="128">0</text><text class="ctc-blank" x="486" y="128">–</text><text x="526" y="128">0</text><text x="566" y="128">0</text><text class="ctc-blank" x="606" y="128">–</text><text class="ctc-blank" x="646" y="128">–</text>
         </g>
         <text x="20" y="152" fill="var(--ink-soft)">the best symbol at each step (“–” is blank)</text>
+        <g class="ctc-result">
         <path d="M360,162 V182" stroke="var(--ink-soft)" stroke-width="1.5" marker-end="url(#pr-ar-ctc)"/>
         <rect x="250" y="190" width="220" height="42" rx="6" fill="var(--dash)" stroke="var(--ok)" stroke-width="1.5"/>
         <text x="360" y="218" text-anchor="middle" class="mono" font-size="20" font-weight="600">0014,00</text>
         <text x="484" y="206" fill="var(--ink-soft)">repeats merged,</text>
         <text x="484" y="224" fill="var(--ink-soft)">blanks removed</text>
+        </g>
       </g>
     </svg>

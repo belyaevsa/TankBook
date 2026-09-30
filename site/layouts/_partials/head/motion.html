@@ -1,0 +1,4 @@
+{{- /* Before first paint: opt into the one-shot reveals only when the browser
+      can observe and the visitor has not asked for reduced motion. Without
+      this class no start state applies, so nothing is ever hidden. */ -}}
+<script>if('IntersectionObserver' in window&&window.matchMedia&&matchMedia('(prefers-reduced-motion: no-preference)').matches)document.documentElement.classList.add('js-motion')</script>

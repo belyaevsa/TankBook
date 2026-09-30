@@ -1,0 +1,138 @@
+/* One-shot reveals (docs/SITE.md -> "Motion"). Every rule here animates FROM a
+   start state TO the static page, so the page is complete without it:
+   - `js-motion` is set in <head> only when IntersectionObserver exists and the
+     visitor has not asked for reduced motion (layouts/_partials/head/motion.html);
+   - a start state applies only under `js-motion` and before `.is-inview`;
+   - base.css's reduced-motion switch removes every animation regardless.
+   Nothing loops; nothing counts up. */
+
+/* 1 + 6 · The cross-check locks: the rule draws in from both ends toward the
+   tick, the tick lands, the total rolls in, then the amber underline draws once. */
+.js-motion .check-card:not(.is-inview) .check-rule__bar,
+.js-motion .check-card:not(.is-inview) .check-rule .icon,
+.js-motion .check-card:not(.is-inview) .check-total__roll {
+  opacity: 0;
+}
+
+.js-motion .check-card:not(.is-inview) .amber-underline {
+  background-size: 0 2px;
+}
+
+.check-card.is-inview .check-rule__bar {
+  animation: motion-bar 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.check-card.is-inview .check-rule__bar:first-child {
+  transform-origin: left center;
+}
+
+.check-card.is-inview .check-rule__bar:last-child {
+  transform-origin: right center;
+}
+
+.check-card.is-inview .check-rule .icon {
+  animation: motion-tick 220ms cubic-bezier(0.34, 1.56, 0.64, 1) 300ms both;
+}
+
+.check-card.is-inview .check-total__roll {
+  animation: motion-roll 280ms ease-out 520ms both;
+}
+
+.check-card.is-inview .amber-underline {
+  animation: motion-underline 300ms ease-out 1000ms both;
+}
+
+@keyframes motion-bar {
+  from { opacity: 1; transform: scaleX(0); }
+  to { opacity: 1; transform: scaleX(1); }
+}
+
+@keyframes motion-tick {
+  from { opacity: 0; transform: scale(0.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* 4 · The checked total rolls up into place inside its own line (the app's
+   digit roll), never counting: the number is already what it is. */
+@keyframes motion-roll {
+  from { opacity: 0; transform: translateY(0.45em); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes motion-underline {
+  from { background-size: 0 2px; }
+  to { background-size: 100% 2px; }
+}
+
+/* 3 · The ways in arrive together: one curve, one duration, no stagger - a
+   stagger would make one card look primary (hard rule 15). */
+.js-motion .doors-grid:not(.is-inview) .door-card {
+  opacity: 0;
+}
+
+.doors-grid.is-inview .door-card {
+  animation: motion-rise 400ms ease-out both;
+}
+
+@keyframes motion-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 2 · The pump-reading pipeline lights up step by step, ending as drawn. */
+.js-motion [data-reveal]:not(.is-inview) .pipe-step {
+  opacity: 0.25;
+}
+
+[data-reveal].is-inview .pipe-step {
+  animation: motion-step 320ms ease-out calc(var(--i) * 140ms) both;
+}
+
+@keyframes motion-step {
+  from { opacity: 0.25; }
+  to { opacity: 1; }
+}
+
+/* 5 · CTC: the blanks fall back, then the merged row appears below them. */
+.ctc-blank {
+  opacity: 0.45;
+}
+
+.js-motion [data-reveal]:not(.is-inview) .ctc-result {
+  opacity: 0;
+}
+
+[data-reveal].is-inview .ctc-blank {
+  animation: motion-blank 500ms ease-out both;
+}
+
+[data-reveal].is-inview .ctc-result {
+  animation: motion-merge 600ms ease-out 500ms both;
+}
+
+@keyframes motion-blank {
+  from { opacity: 1; }
+  to { opacity: 0.45; }
+}
+
+@keyframes motion-merge {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 7 · Interactive chrome changes state perceptibly, not in a snap. Focus rings
+   (base.css :focus-visible) stay instant. */
+.btn,
+.nav-links a,
+.lang-chip {
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, filter 150ms ease;
+}
+
+.btn--primary:hover {
+  filter: brightness(1.08);
+}
+
+.btn--secondary:hover,
+.btn--ghost:hover {
+  border-color: color-mix(in srgb, var(--ink) 32%, transparent);
+}

@@ -1,6 +1,6 @@
 {{- /* Concatenate and minify all site CSS, inline it as one <style>.
       No <link rel="stylesheet"> may ever appear in the output. */ -}}
-{{- $files := slice "tokens.generated.css" "base.css" "layout.css" "sections.css" -}}
+{{- $files := slice "tokens.generated.css" "base.css" "layout.css" "sections.css" "motion.css" -}}
 {{- $parts := slice -}}
 {{- range $files -}}
   {{- with resources.Get (printf "css/%s" .) -}}

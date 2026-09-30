@@ -74,6 +74,15 @@ recurring bug.
 - **Hugo extended** (v0.153.4 is installed), no third-party theme. A theme would fight the Night
   Drive palette harder than writing the layouts.
 - **No JavaScript framework.** A landing page is documents. Progressive enhancement only.
+- **Motion** (2026-09-30, product owner, from `agents/reviews/SITE-ANIMATION-deepseek.md`): one-shot
+  reveals only, each ending on the static page - the cross-check lock (the rule draws in to the tick,
+  the total rolls in, the amber underline draws once), the ways-in cards arriving together with no
+  stagger (hard rule 15), the pump-reading pipeline lighting step by step, the CTC blanks falling
+  back before the merged row, and 150 ms state changes on buttons and nav links. CSS keyframes in
+  `assets/css/motion.css`; a ~0.4 KB inline observer (`assets/js/motion.js`) marks a block
+  `.is-inview`; `head/motion.html` sets `js-motion` before first paint only when the browser can
+  observe and the visitor has not asked for reduced motion, and no start state applies without it.
+  Nothing loops, nothing counts up, and nothing simulates scanning (the copy rule in motion).
 - **`design/tokens.json` -> `site/assets/css/tokens.generated.css`** via a small generator beside the
   Swift one. Hand-editing that file is the same bug as hand-editing `Theme.generated.swift`.
 - Hosting: static, on any CDN (Cloudflare Pages is the default assumption). The site is public and

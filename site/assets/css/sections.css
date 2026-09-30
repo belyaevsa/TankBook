@@ -316,6 +316,7 @@
 }
 
 .check-total {
+  overflow: hidden;
   font-size: 58px;
   font-weight: 800;
   letter-spacing: -0.01em;
@@ -343,9 +344,16 @@
   flex: none;
 }
 
+/* A background, not a border, so the underline can draw left to right once
+   (motion.css); the resting state is the same 2px amber line. */
 .amber-underline {
   color: var(--ink);
-  border-bottom: 2px solid var(--warn);
+  padding-bottom: 2px;
+  background: linear-gradient(var(--warn), var(--warn)) left bottom / 100% 2px no-repeat;
+}
+
+.check-total__roll {
+  display: inline-block;
 }
 
 .check-shot {
