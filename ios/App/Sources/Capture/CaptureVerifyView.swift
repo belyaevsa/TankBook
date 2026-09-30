@@ -38,6 +38,10 @@ struct CaptureVerifyView: View {
                 if !typing { actions }
             }
             .padding(.bottom, typing ? 8 : 0)
+            // Top-aligned: while typing the photo takes a fixed height and the
+            // column is shorter than the screen; centred, it left a band of
+            // empty space above the title and pushed the fields under the pad.
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .animation(.easeOut(duration: 0.2), value: typing)
         }
         .accessibilityElement(children: .contain)

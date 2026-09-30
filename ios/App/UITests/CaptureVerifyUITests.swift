@@ -121,26 +121,34 @@ final class CaptureVerifyUITests: XCTestCase {
     }
 
     /// With the decimal pad up, every field is still reachable (the keyboard
-    /// never covers them) and Done puts it away so Continue comes back.
+    /// never covers them) and Done puts it away so Continue comes back. Each
+    /// field is tapped in turn - the owner's report came from the volume field,
+    /// which the system scrolls to, not from the price field below it.
     func testTheKeyboardLeavesEveryFieldReachable() {
         let app = shoot("-seedFillUpScanPumpNothingRead")
-        app.textFields["captureVerifyPriceField"].tap()
-        let done = app.buttons["captureVerifyDoneButton"]
-        XCTAssertTrue(done.waitForExistence(timeout: 5), "typing offers Done")
-        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5), "the decimal pad is up")
-        let keyboardTop = app.keyboards.firstMatch.frame.minY
-        for identifier in ["captureVerifyTotalField", "captureVerifyVolumeField", "captureVerifyPriceField"] {
-            let field = app.textFields[identifier]
-            XCTAssertTrue(field.isHittable, "\(identifier) must stay reachable while typing")
-            XCTAssertLessThanOrEqual(field.frame.maxY, keyboardTop, "\(identifier) must sit above the keyboard")
+        let fields = ["captureVerifyTotalField", "captureVerifyVolumeField", "captureVerifyPriceField"]
+        for tapped in fields {
+            app.textFields[tapped].tap()
+            let done = app.buttons["captureVerifyDoneButton"]
+            XCTAssertTrue(done.waitForExistence(timeout: 5), "typing in \(tapped) offers Done")
+            XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5), "the decimal pad is up")
+            let keyboardTop = app.keyboards.firstMatch.frame.minY
+            for identifier in fields {
+                let field = app.textFields[identifier]
+                XCTAssertTrue(field.isHittable, "\(identifier) must stay reachable while typing in \(tapped)")
+                XCTAssertLessThanOrEqual(field.frame.maxY, keyboardTop,
+                                         "\(identifier) must sit above the keyboard while typing in \(tapped)")
+            }
+            let titleTop = labelled(app, "Check the numbers").frame.minY
+            XCTAssertGreaterThanOrEqual(titleTop, 0, "the title stays on screen, never pushed under the status bar")
+            XCTAssertLessThanOrEqual(titleTop, 120,
+                                     "the column is top-aligned while typing in \(tapped) - no empty band above the title")
+            XCTAssertLessThanOrEqual(app.images["captureVerifyImage"].frame.height, 181,
+                                     "the photo takes the typing height, so the fit never relies on the system shrinking it")
+            done.tap()
+            XCTAssertTrue(app.buttons["captureVerifyContinueButton"].waitForExistence(timeout: 5),
+                          "Done brings the actions back")
         }
-        XCTAssertGreaterThanOrEqual(labelled(app, "Check the numbers").frame.minY, 0,
-                                    "the title stays on screen, never pushed under the status bar")
-        XCTAssertLessThanOrEqual(app.images["captureVerifyImage"].frame.height, 181,
-                                 "the photo takes the typing height, so the fit never relies on the system shrinking it")
-        done.tap()
-        XCTAssertTrue(app.buttons["captureVerifyContinueButton"].waitForExistence(timeout: 5),
-                      "Done brings the actions back")
         XCTAssertTrue(app.buttons["captureVerifyContinueButton"].isHittable)
     }
 
