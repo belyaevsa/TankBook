@@ -1,0 +1,33 @@
+<svg viewBox="0 0 720 330" role="img" aria-label="Дерево решения колонка или нет" class="diagram-svg" xmlns="http://www.w3.org/2000/svg"><defs><marker id="pr-ar-decision" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker></defs>
+      <g font-size="13" fill="var(--ink)">
+        <rect x="20" y="14" width="300" height="48" rx="8" fill="var(--dash)" stroke="var(--tab-bar-border)"/>
+        <text x="34" y="34" font-weight="600">Строки от RowSeg</text>
+        <text x="34" y="52" fill="var(--ink-soft)">оставить: высота ≥ 2,5 %, ширина ≥ 18 % кадра</text>
+        <path d="M170,62 V84" stroke="var(--ink-soft)" stroke-width="1.5" marker-end="url(#pr-ar-decision)"/>
+        <rect x="20" y="88" width="300" height="66" rx="8" fill="var(--dash)" stroke="var(--tab-bar-border)"/>
+        <text x="34" y="108" font-weight="600">Есть пара строк, которые</text>
+        <text x="34" y="126" fill="var(--ink-soft)">• по горизонтали совпадают (±25 % ширины)</text>
+        <text x="34" y="144" fill="var(--ink-soft)">• стоят одна над другой (зазор ≤ 3 высоты)?</text>
+        <path d="M320,121 H392" stroke="var(--ok)" stroke-width="1.5" marker-end="url(#pr-ar-decision)"/>
+        <text x="332" y="113" fill="var(--ok)">да</text>
+        <rect x="398" y="96" width="302" height="50" rx="8" fill="none" stroke="var(--ok)" stroke-width="1.5"/>
+        <text x="412" y="117" font-weight="600">Колонка · быстрый путь</text>
+        <text x="412" y="135" fill="var(--ink-soft)">без распознавания текста</text>
+        <path d="M170,154 V178" stroke="var(--ink-soft)" stroke-width="1.5" marker-end="url(#pr-ar-decision)"/>
+        <text x="180" y="170" fill="var(--ink-soft)">нет</text>
+        <rect x="20" y="182" width="300" height="84" rx="8" fill="var(--dash)" stroke="var(--tab-bar-border)"/>
+        <text x="34" y="202" font-weight="600">Медленный путь (≤ 1,5 с)</text>
+        <text x="34" y="220" fill="var(--ink-soft)">• строк текста по Vision ≤ 30</text>
+        <text x="34" y="238" fill="var(--ink-soft)">• ≥ 2 строки прошли проверку геометрии</text>
+        <text x="34" y="256" fill="var(--ink-soft)">• самая широкая ≥ 18 % кадра</text>
+        <path d="M320,224 H392" stroke="var(--ok)" stroke-width="1.5" marker-end="url(#pr-ar-decision)"/>
+        <text x="332" y="216" fill="var(--ok)">да</text>
+        <rect x="398" y="200" width="302" height="50" rx="8" fill="none" stroke="var(--ok)" stroke-width="1.5"/>
+        <text x="412" y="221" font-weight="600">Колонка · медленный путь</text>
+        <text x="412" y="239" fill="var(--ink-soft)">проверенные строки идут в чтение</text>
+        <path d="M170,266 V288" stroke="var(--ink-soft)" stroke-width="1.5" marker-end="url(#pr-ar-decision)"/>
+        <text x="180" y="282" fill="var(--ink-soft)">нет или время вышло</text>
+        <rect x="20" y="292" width="300" height="30" rx="8" fill="none" stroke="var(--tab-bar-border)" stroke-dasharray="4 4"/>
+        <text x="34" y="312" font-weight="600">Не колонка → путь чека</text>
+      </g>
+    </svg>

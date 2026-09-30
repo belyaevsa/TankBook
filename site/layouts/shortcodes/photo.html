@@ -1,0 +1,12 @@
+{{- /* An article photo with its caption. Params: name (a file under
+      assets/screenshots/articles/<page slug>/, without the language suffix) and
+      caption (also the alt text). The language's own rendition is used, because
+      the labels are drawn into the pixels. The img itself is the screenshot
+      partial's - this shortcode owns no img tag. */ -}}
+{{- $name := .Get "name" -}}
+{{- $caption := .Get "caption" -}}
+{{- $file := printf "articles/%s/%s.%s.jpg" .Page.File.ContentBaseName $name .Page.Language.Lang -}}
+<figure class="article-figure">
+  {{ partial "screenshot.html" (dict "name" $file "alt" $caption "photo" true "width" 640) }}
+  {{- with $caption }}<figcaption>{{ . }}</figcaption>{{ end }}
+</figure>

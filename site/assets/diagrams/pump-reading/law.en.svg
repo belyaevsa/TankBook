@@ -1,0 +1,16 @@
+<svg viewBox="0 0 720 290" role="img" aria-label="Исправление цифры по арифметике на примере" class="diagram-svg" xmlns="http://www.w3.org/2000/svg"><defs><marker id="pr-ar-law" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker></defs>
+      <g font-size="14" fill="var(--ink)">
+        <text x="20" y="26" font-weight="600">A tilted night shot: the network missed the price's first digit, the arithmetic fixed it</text>
+        <g class="mono" font-size="20" font-weight="600">
+          <rect x="20" y="44" width="170" height="44" rx="6" fill="var(--dash)" stroke="var(--taillight)" stroke-width="1.5"/><text x="105" y="73" text-anchor="middle">20,20</text>
+          <rect x="230" y="44" width="170" height="44" rx="6" fill="var(--dash)" stroke="var(--ok)" stroke-width="1.5"/><text x="315" y="73" text-anchor="middle">9,51</text>
+          <rect x="440" y="44" width="170" height="44" rx="6" fill="var(--dash)" stroke="var(--headlight)" stroke-width="1.5"/><text x="525" y="73" text-anchor="middle"><tspan fill="var(--taillight)">5</tspan>,124</text>
+        </g>
+        <g font-size="12" fill="var(--ink-soft)"><text x="105" y="106" text-anchor="middle">margin 15.9 · 16.4 …</text><text x="315" y="106" text-anchor="middle">margin 16.5 · 18.6 …</text><text x="525" y="106" text-anchor="middle">first digit: a margin of only 4.3</text></g>
+        <text x="20" y="144">As the network read it: 9.51 × 5.124 = 48.73 ≠ 20.20 – the triple does not close.</text>
+        <text x="20" y="168">The reading stage allows one substitution: for the price's first digit, “2” is among the top three:</text>
+        <g class="mono" font-size="17"><rect x="20" y="186" width="680" height="44" rx="6" fill="var(--dash)" stroke="var(--ok)" stroke-width="1.5"/><text x="40" y="214">9,51 × <tspan fill="var(--ok)" font-weight="600">2</tspan>,124 = 20,19924 → 20,20 ✓   (единственная сходящаяся тройка)</text></g>
+        <text x="20" y="258" fill="var(--ink-soft)" font-size="13">The triple is within 6 nats of the network's read, one substitution – the price is offered as 2.124.</text>
+        <text x="20" y="278" fill="var(--ink-soft)" font-size="13">Total and litres were read with confidence (margins of 7–23 nats) and left as they were.</text>
+      </g>
+    </svg>

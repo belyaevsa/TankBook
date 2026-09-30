@@ -1,0 +1,11 @@
+{{- /* A drawn diagram, inlined so its text stays selectable and its colours
+      follow the site's tokens in both themes. Params: name (a file under
+      assets/diagrams/<page slug>/, without the language suffix) and caption. */ -}}
+{{- $name := .Get "name" -}}
+{{- $path := printf "diagrams/%s/%s.%s.svg" .Page.File.ContentBaseName $name .Page.Language.Lang -}}
+{{- $res := resources.Get $path -}}
+{{- if not $res -}}{{- errorf "diagram %s: not found in assets/%s" $name $path -}}{{- end -}}
+<figure class="article-figure article-figure--diagram">
+  <div class="diagram-scroll">{{ $res.Content | safeHTML }}</div>
+  {{- with .Get "caption" }}<figcaption>{{ . }}</figcaption>{{ end }}
+</figure>

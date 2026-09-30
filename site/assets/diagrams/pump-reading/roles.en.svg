@@ -1,0 +1,27 @@
+<svg viewBox="0 0 720 300" role="img" aria-label="Examples of role layouts" class="diagram-svg" xmlns="http://www.w3.org/2000/svg"><defs><marker id="pr-ar-roles" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker></defs>
+      <g font-size="12" fill="var(--ink)">
+        <text x="20" y="22" font-weight="600" font-size="13">Gilbarco: a column + a price board on the left</text>
+        <g transform="translate(20,36)">
+          <rect width="300" height="230" rx="10" fill="var(--midnight)"/>
+          <g fill="none" stroke="var(--warn)" stroke-width="2.5"><rect x="16" y="20" width="62" height="28" rx="3"/><rect x="16" y="64" width="62" height="28" rx="3"/><rect x="16" y="108" width="62" height="28" rx="3"/><rect x="16" y="152" width="62" height="28" rx="3"/></g>
+          <g fill="var(--warn)"><text x="20" y="200">board (a column</text><text x="20" y="214">of equal windows)</text></g>
+          <rect x="112" y="24" width="170" height="50" rx="3" fill="none" stroke="var(--taillight)" stroke-width="2.5"/>
+          <text x="120" y="92" fill="var(--taillight)" font-weight="600">1 · total</text>
+          <rect x="132" y="100" width="150" height="40" rx="3" fill="none" stroke="var(--ok)" stroke-width="2.5"/>
+          <text x="140" y="156" fill="var(--ok)" font-weight="600">2 · litres</text>
+          <rect x="166" y="170" width="84" height="30" rx="3" fill="none" stroke="var(--headlight)" stroke-width="2.5"/>
+          <text x="170" y="218" fill="var(--headlight)" font-weight="600">3 · price</text>
+        </g>
+        <text x="380" y="22" font-weight="600" font-size="13">Wayne: a board in a row, no sale price</text>
+        <g transform="translate(380,36)">
+          <rect width="320" height="230" rx="10" fill="var(--midnight)"/>
+          <rect x="60" y="22" width="200" height="50" rx="3" fill="none" stroke="var(--taillight)" stroke-width="2.5"/>
+          <text x="66" y="90" fill="var(--taillight)" font-weight="600">1 · total</text>
+          <rect x="80" y="98" width="180" height="40" rx="3" fill="none" stroke="var(--ok)" stroke-width="2.5"/>
+          <text x="86" y="156" fill="var(--ok)" font-weight="600">2 · litres</text>
+          <g fill="none" stroke="var(--warn)" stroke-width="2.5"><rect x="30" y="170" width="72" height="28" rx="3"/><rect x="124" y="170" width="72" height="28" rx="3"/><rect x="218" y="170" width="72" height="28" rx="3"/></g>
+          <text x="30" y="218" fill="var(--warn)">board (a row of equal windows) → the price</text>
+          <text x="30" y="232" fill="var(--warn)">comes from the board if the triple closes</text>
+        </g>
+      </g>
+    </svg>

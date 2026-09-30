@@ -1,0 +1,22 @@
+<svg viewBox="0 0 720 230" role="img" aria-label="Выпрямление повёрнутой строки гомографией" class="diagram-svg" xmlns="http://www.w3.org/2000/svg"><defs><marker id="pr-ar-warp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker></defs>
+      <g font-size="13" fill="var(--ink)">
+        <text x="20" y="22" font-weight="600">Строка на снимке (под углом)</text>
+        <g transform="translate(40,40)">
+          <polygon points="0,60 220,10 232,62 12,112" fill="var(--tab-bar-border)" stroke="var(--taillight)" stroke-width="2.5"/>
+          <text x="118" y="68" text-anchor="middle" class="mono" font-size="26" font-weight="600" fill="var(--ink)" transform="rotate(-12.8 118 60)">0020,20</text>
+          <g font-size="11" fill="var(--ink-soft)"><text x="-18" y="56">TL</text><text x="220" y="4">TR</text><text x="236" y="76">BR</text><text x="-6" y="128">BL</text></g>
+          <path d="M0,160 H90" stroke="var(--ink-soft)" stroke-dasharray="3 3"/>
+          <path d="M0,160 L88,140" stroke="var(--taillight)" stroke-width="2"/>
+          <text x="96" y="156" fill="var(--ink-soft)" font-size="12">угол = atan2(TR.y − TL.y, TR.x − TL.x)</text>
+        </g>
+        <path d="M330,100 H390" stroke="var(--ink-soft)" stroke-width="1.5" marker-end="url(#pr-ar-warp)"/>
+        <text x="312" y="88" fill="var(--ink-soft)" font-size="12">гомография</text>
+        <text x="410" y="22" font-weight="600">Прямая полоска</text>
+        <g transform="translate(410,62)">
+          <rect width="290" height="64" fill="var(--tab-bar-border)" stroke="var(--taillight)" stroke-width="2.5"/>
+          <text x="145" y="44" text-anchor="middle" class="mono" font-size="30" font-weight="600" fill="var(--ink)">0020,20</text>
+          <text x="0" y="90" fill="var(--ink-soft)" font-size="12">высота 96 px, ширина = 96 × пропорция строки</text>
+          <text x="0" y="108" fill="var(--ink-soft)" font-size="12">каждая точка полоски берётся билинейно из снимка</text>
+        </g>
+      </g>
+    </svg>

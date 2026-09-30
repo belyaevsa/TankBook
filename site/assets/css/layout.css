@@ -312,3 +312,61 @@
     flex-direction: column;
   }
 }
+
+/* Article figures (pump-reading): a photo or an inlined diagram with its caption. */
+.article-figure {
+  margin: 28px 0;
+}
+
+.article-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-card);
+}
+
+.article-figure figcaption {
+  margin-top: 10px;
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+
+.diagram-scroll {
+  overflow-x: auto;
+  padding: 16px;
+  background: var(--dash);
+  border: 1px solid var(--tab-bar-border);
+  border-radius: var(--radius-card);
+}
+
+.diagram-svg {
+  display: block;
+  width: 100%;
+  min-width: 600px;
+  height: auto;
+  font-family: inherit;
+}
+
+.diagram-svg text {
+  font-family: inherit;
+}
+
+.page__body table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.page__body th,
+.page__body td {
+  padding: 8px 12px 8px 0;
+  border-bottom: 1px solid var(--tab-bar-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.page__body th {
+  color: var(--ink-soft);
+  font-weight: 600;
+}

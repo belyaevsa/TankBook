@@ -1,0 +1,33 @@
+<svg viewBox="0 0 720 330" role="img" aria-label="The pump-or-not decision" class="diagram-svg" xmlns="http://www.w3.org/2000/svg"><defs><marker id="pr-ar-decision" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker></defs>
+      <g font-size="13" fill="var(--ink)">
+        <rect x="20" y="14" width="300" height="48" rx="8" fill="var(--dash)" stroke="var(--tab-bar-border)"/>
+        <text x="34" y="34" font-weight="600">Rows from RowSeg</text>
+        <text x="34" y="52" fill="var(--ink-soft)">keep: height ≥ 2.5 %, width ≥ 18 % of the frame</text>
+        <path d="M170,62 V84" stroke="var(--ink-soft)" stroke-width="1.5" marker-end="url(#pr-ar-decision)"/>
+        <rect x="20" y="88" width="300" height="66" rx="8" fill="var(--dash)" stroke="var(--tab-bar-border)"/>
+        <text x="34" y="108" font-weight="600">Is there a pair of rows that</text>
+        <text x="34" y="126" fill="var(--ink-soft)">• line up horizontally (±25 % of width)</text>
+        <text x="34" y="144" fill="var(--ink-soft)">• sit one above the other (gap ≤ 3 heights)?</text>
+        <path d="M320,121 H392" stroke="var(--ok)" stroke-width="1.5" marker-end="url(#pr-ar-decision)"/>
+        <text x="332" y="113" fill="var(--ok)">yes</text>
+        <rect x="398" y="96" width="302" height="50" rx="8" fill="none" stroke="var(--ok)" stroke-width="1.5"/>
+        <text x="412" y="117" font-weight="600">Pump · fast path</text>
+        <text x="412" y="135" fill="var(--ink-soft)">no text recognition</text>
+        <path d="M170,154 V178" stroke="var(--ink-soft)" stroke-width="1.5" marker-end="url(#pr-ar-decision)"/>
+        <text x="180" y="170" fill="var(--ink-soft)">no</text>
+        <rect x="20" y="182" width="300" height="84" rx="8" fill="var(--dash)" stroke="var(--tab-bar-border)"/>
+        <text x="34" y="202" font-weight="600">Slow path (≤ 1.5 s)</text>
+        <text x="34" y="220" fill="var(--ink-soft)">• Vision text lines ≤ 30</text>
+        <text x="34" y="238" fill="var(--ink-soft)">• ≥ 2 rows passed the geometry check</text>
+        <text x="34" y="256" fill="var(--ink-soft)">• the widest ≥ 18 % of the frame</text>
+        <path d="M320,224 H392" stroke="var(--ok)" stroke-width="1.5" marker-end="url(#pr-ar-decision)"/>
+        <text x="332" y="216" fill="var(--ok)">yes</text>
+        <rect x="398" y="200" width="302" height="50" rx="8" fill="none" stroke="var(--ok)" stroke-width="1.5"/>
+        <text x="412" y="221" font-weight="600">Pump · slow path</text>
+        <text x="412" y="239" fill="var(--ink-soft)">the checked rows go on to reading</text>
+        <path d="M170,266 V288" stroke="var(--ink-soft)" stroke-width="1.5" marker-end="url(#pr-ar-decision)"/>
+        <text x="180" y="282" fill="var(--ink-soft)">no, or out of time</text>
+        <rect x="20" y="292" width="300" height="30" rx="8" fill="none" stroke="var(--tab-bar-border)" stroke-dasharray="4 4"/>
+        <text x="34" y="312" font-weight="600">Not a pump → receipt path</text>
+      </g>
+    </svg>

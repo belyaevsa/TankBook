@@ -31,10 +31,14 @@
       672 px PNG is ~600 KB, six times a whole page's budget, for a file only
       pre-WebP browsers ever fetch. Those pass photo=true and get JPEG. */ -}}
 {{- $fallback := cond .photo "jpg q82" "" -}}
-{{- $png1x := $res.Resize (printf "336x %s" $fallback | strings.TrimSpace) -}}
-{{- $png2x := $res.Resize (printf "672x %s" $fallback | strings.TrimSpace) -}}
-{{- $webp1x := $res.Resize "336x webp q85" -}}
-{{- $webp2x := $res.Resize "672x webp q85" -}}
+{{- /* An article photo fills a 640 px text column, not a phone slot: it passes
+      width = 640, and its 2x is capped at the source so nothing is upscaled. */ -}}
+{{- $w1 := .width | default 336 -}}
+{{- $w2 := math.Min (mul $w1 2) $res.Width | int -}}
+{{- $png1x := $res.Resize (printf "%dx %s" $w1 $fallback | strings.TrimSpace) -}}
+{{- $png2x := $res.Resize (printf "%dx %s" $w2 $fallback | strings.TrimSpace) -}}
+{{- $webp1x := $res.Resize (printf "%dx webp q85" $w1) -}}
+{{- $webp2x := $res.Resize (printf "%dx webp q85" $w2) -}}
 <picture>
   <source type="image/webp" srcset="{{ $webp1x.RelPermalink }} 1x, {{ $webp2x.RelPermalink }} 2x">
   <img src="{{ $png1x.RelPermalink }}" srcset="{{ $png1x.RelPermalink }} 1x, {{ $png2x.RelPermalink }} 2x" alt="{{ $alt }}" width="{{ $png1x.Width }}" height="{{ $png1x.Height }}"{{ if .eager }} fetchpriority="high"{{ else }} loading="lazy"{{ end }} decoding="async">

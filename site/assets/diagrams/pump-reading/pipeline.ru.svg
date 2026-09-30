@@ -1,0 +1,73 @@
+<svg viewBox="0 0 720 690" role="img" aria-label="Схема конвейера из девяти шагов" class="diagram-svg" xmlns="http://www.w3.org/2000/svg"><defs><marker id="pr-ar-pipeline" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/></marker></defs>
+      
+      <g font-size="14" fill="var(--ink)">
+        <g>
+          <rect x="20" y="14" width="430" height="50" rx="8" fill="var(--dash)" stroke="var(--tab-bar-border)"/>
+          <text x="36" y="35" font-weight="600">1 · Снимок</text>
+          <text x="36" y="54" fill="var(--ink-soft)" font-size="13">12 Мп, поворот из EXIF «впечатан» в пиксели</text>
+        </g>
+        <g>
+          <rect x="20" y="86" width="430" height="50" rx="8" fill="var(--dash)" stroke="var(--tab-bar-border)"/>
+          <text x="36" y="107" font-weight="600">2 · Поиск строк цифр (RowSeg)</text>
+          <text x="36" y="126" fill="var(--ink-soft)" font-size="13">нейросеть по пикселям → повёрнутые прямоугольники строк</text>
+        </g>
+        <g>
+          <rect x="20" y="158" width="430" height="50" rx="8" fill="var(--dash)" stroke="var(--tab-bar-border)"/>
+          <text x="36" y="179" font-weight="600">3 · Колонка это или нет</text>
+          <text x="36" y="198" fill="var(--ink-soft)" font-size="13">≥ 2 крупные строки одна над другой; иначе – медленный путь</text>
+          <path d="M450,183 H548" stroke="var(--ink-soft)" stroke-width="1.5" marker-end="url(#pr-ar-pipeline)"/>
+          <text x="462" y="175" fill="var(--ink-soft)" font-size="12">нет</text>
+          <rect x="554" y="158" width="146" height="50" rx="8" fill="none" stroke="var(--tab-bar-border)" stroke-dasharray="4 4"/>
+          <text x="568" y="179" font-weight="600" font-size="13">Путь чека</text>
+          <text x="568" y="197" fill="var(--ink-soft)" font-size="12">OCR + разбор строк</text>
+        </g>
+        <g>
+          <rect x="20" y="230" width="430" height="50" rx="8" fill="var(--dash)" stroke="var(--tab-bar-border)"/>
+          <text x="36" y="251" font-weight="600">4 · Проверка геометрии каждой строки</text>
+          <text x="36" y="270" fill="var(--ink-soft)" font-size="13">знакоместа, шаг, полоса чернил, клавиатура, дубликаты</text>
+        </g>
+        <g>
+          <rect x="20" y="302" width="430" height="50" rx="8" fill="var(--dash)" stroke="var(--tab-bar-border)"/>
+          <text x="36" y="323" font-weight="600">5 · Роли строк</text>
+          <text x="36" y="342" fill="var(--ink-soft)" font-size="13">наклон снят; табло цен отделено; столбец читается сверху вниз</text>
+        </g>
+        <g>
+          <rect x="20" y="374" width="430" height="50" rx="8" fill="var(--dash)" stroke="var(--tab-bar-border)"/>
+          <text x="36" y="395" font-weight="600">6 · Выпрямление полоски</text>
+          <text x="36" y="414" fill="var(--ink-soft)" font-size="13">гомография: четырёхугольник → прямая полоса 96 px</text>
+        </g>
+        <g>
+          <rect x="20" y="446" width="430" height="50" rx="8" fill="var(--dash)" stroke="var(--tab-bar-border)"/>
+          <text x="36" y="467" font-weight="600">7 · Чтение строки целиком (RowRead)</text>
+          <text x="36" y="486" fill="var(--ink-soft)" font-size="13">CRNN + CTC → цифры с вероятностями всех вариантов</text>
+        </g>
+        <g>
+          <rect x="20" y="518" width="430" height="58" rx="8" fill="var(--dash)" stroke="var(--taillight)" stroke-width="1.5"/>
+          <text x="36" y="539" font-weight="600">8 · Закон чтения</text>
+          <text x="36" y="557" fill="var(--ink-soft)" font-size="13">литры × цена = итого до цента, формат валюты,</text>
+          <text x="36" y="572" fill="var(--ink-soft)" font-size="13">одна замена цифры; не сошлось – с предупреждением</text>
+          <path d="M450,547 H548" stroke="var(--ink-soft)" stroke-width="1.5" marker-end="url(#pr-ar-pipeline)"/>
+          <text x="462" y="539" fill="var(--ink-soft)" font-size="12">выдано</text>
+          <rect x="554" y="522" width="146" height="50" rx="8" fill="none" stroke="var(--taillight)"/>
+          <text x="568" y="543" font-weight="600" font-size="13">Форма</text>
+          <text x="568" y="561" fill="var(--ink-soft)" font-size="12">подтверждения</text>
+        </g>
+        <g>
+          <rect x="20" y="608" width="430" height="58" rx="8" fill="none" stroke="var(--tab-bar-border)" stroke-dasharray="4 4"/>
+          <text x="36" y="629" font-weight="600">9 · Ничего не выдано → поворот 90° / 270°</text>
+          <text x="36" y="647" fill="var(--ink-soft)" font-size="13">лучший поворот по геометрии, затем шаги 2–8 заново;</text>
+          <text x="36" y="662" fill="var(--ink-soft)" font-size="13">результат берётся, только если он что-то выдал</text>
+        </g>
+        <g stroke="var(--ink-soft)" stroke-width="1.5">
+          <path d="M235,64 V84" marker-end="url(#pr-ar-pipeline)"/>
+          <path d="M235,136 V156" marker-end="url(#pr-ar-pipeline)"/>
+          <path d="M235,208 V228" marker-end="url(#pr-ar-pipeline)"/>
+          <path d="M235,280 V300" marker-end="url(#pr-ar-pipeline)"/>
+          <path d="M235,352 V372" marker-end="url(#pr-ar-pipeline)"/>
+          <path d="M235,424 V444" marker-end="url(#pr-ar-pipeline)"/>
+          <path d="M235,496 V516" marker-end="url(#pr-ar-pipeline)"/>
+          <path d="M235,576 V606" marker-end="url(#pr-ar-pipeline)"/>
+          <text x="244" y="596" fill="var(--ink-soft)" font-size="12" stroke="none">ничего не выдано</text>
+        </g>
+      </g>
+    </svg>
