@@ -109,7 +109,9 @@ newsletter, and any tracking-based personalisation.
    weight** - and this is a design rule, not a preference: the page must not make one entry path
    look like the other's fallback, exactly as the app must not. Below it, one real screenshot
    (dark, EN), not a device render with invented content.
-2. **The two doors.** Snap it / type it, side by side. This is the product's spine and the section
+2. **The ways in.** Snap the receipt / photograph the pump / type it, three equal cards side by side
+   (the pump card joined the two doors on 2026-09-30, product owner: the pump photo is the app's
+   killer feature, shown at par, never above typing). This is the product's spine and the section
    most likely to be diluted into "AI-powered scanning" by a well-meaning edit. It is the section
    the copy rule above exists to protect.
 3. **The cross-check, shown.** Litres x price = total with the tick - a screenshot and one sentence.

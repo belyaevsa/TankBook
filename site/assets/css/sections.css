@@ -200,7 +200,7 @@
 
 .doors-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 28px;
   margin-top: 40px;
 }
@@ -208,7 +208,7 @@
 .door-card {
   display: flex;
   flex-direction: column;
-  padding: 32px 32px 0;
+  padding: 28px 24px 0;
   background: var(--dash);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-card);
@@ -236,6 +236,7 @@
 
 .door-card__text {
   margin-top: 14px;
+  margin-bottom: 22px;
   font-size: 15px;
   line-height: 1.65;
   color: var(--ink-soft);
@@ -245,7 +246,9 @@
   width: 300px;
   max-width: 100%;
   height: 430px;
-  margin: 22px auto 0;
+  /* auto on top: the three cards share a row height, so every shot sits on the
+     card's bottom edge whatever the length of the text above it. */
+  margin: auto auto 0;
   border: 1px solid var(--border-hairline);
   border-bottom: 0;
   border-radius: 18px 18px 0 0;

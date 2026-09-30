@@ -16,7 +16,7 @@ hero_shot = "P1.4-home.png"
 hero_shot_alt = '''Tankbook's Log screen: a Volvo V60 at 123 600 km, average consumption 5.3 L/100km set large, September spend 147 €, and a stream of real entries'''
 hero_shot_caption = '''The real app, not a render – note "Type it" sits beside the camera.'''
 
-doors_eyebrow = "The two doors"
+doors_eyebrow = "Three ways in"
 doors_title = "Snap it or type it – both take seconds."
 doors_note = "Neither door is a fallback – a poor photo means correcting two fields, never starting over."
 
@@ -62,7 +62,15 @@ faq_title = "Questions, answered straight."
 [[doors]]
 title = "Snap it"
 icon = "camera"
-text = "Point the camera at the receipt or at the pump's display. The app fills in what it can read – you check the numbers against the photo, correct the rest, and it remembers your corrections. A head start, not an answer."
+text = "Point the camera at the receipt. The scan fills in what it can read – you check the numbers, correct the rest, and it remembers your corrections. A head start, not an answer."
+shot = "capture-review-photo.png"
+shot_alt = "After a capture: the photographed receipt filling the screen under \"Check the photo - can you read the total on it?\", showing 45,22 L at 1,754 EUR per litre and a total of 79,32 EUR, with Use this, Re-take and Type it side by side"
+shot_photo = true   # W3: the receipt fills this one, so the fallback is JPEG
+
+[[doors]]
+title = "Photograph the pump"
+icon = "fuel-pump"
+text = "Point the camera at the pump's display before you drive off. The app reads the total, litres and price, checks that they multiply up, and shows them beside the photo for you to confirm. A head start, not an answer."
 shot = "SH.18-capture-verify-pump.png"
 shot_alt = "After photographing a pump display: \"Check the numbers\" over the photo of a Gilbarco display showing 0030,02 euros and 0014,00 litres at 2,144, with Total 30.02, Liters 14.00 and Price / L 2.144 filled in below, and Continue and Re-take"
 shot_photo = true   # W3: the pump photo fills this one, so the fallback is JPEG
