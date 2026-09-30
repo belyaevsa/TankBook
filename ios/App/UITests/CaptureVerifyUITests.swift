@@ -142,9 +142,9 @@ final class CaptureVerifyUITests: XCTestCase {
             let titleTop = labelled(app, "Check the numbers").frame.minY
             XCTAssertGreaterThanOrEqual(titleTop, 0, "the title stays on screen, never pushed under the status bar")
             XCTAssertLessThanOrEqual(titleTop, 120,
-                                     "the column is top-aligned while typing in \(tapped) - no empty band above the title")
+                                     "top-aligned while typing in \(tapped) - no empty band above the title")
             XCTAssertLessThanOrEqual(app.images["captureVerifyImage"].frame.height, 181,
-                                     "the photo takes the typing height, so the fit never relies on the system shrinking it")
+                                     "the photo takes the typing height; the fit never relies on the system")
             done.tap()
             XCTAssertTrue(app.buttons["captureVerifyContinueButton"].waitForExistence(timeout: 5),
                           "Done brings the actions back")
