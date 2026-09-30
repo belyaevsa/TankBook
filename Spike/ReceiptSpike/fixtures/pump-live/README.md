@@ -543,6 +543,33 @@ heldout2: `pump-362`/`363` (the 203 L truck fill, both angles); the rest train. 
 |---|---|---|---|
 | `video-054-unknown-circlek-this-sale-gallons-running-display-4049-us` | 466 (720x1280, 30 fps, 15.5 s) | a US **Circle K** head (make not legible), `This Sale` / `$` over `Gallons`, **counting up** 62.44 / 15.421 → 65.21 / 16.106 in low sun, the owner's shadow across the face and the camera moving fast; **no price window** on the display; IMG_2174.MOV whole, no audio, no metadata. Reference quads placed by the orchestrator on frame 001, anchors on 180, 240, 300, 360 and 466; the tracker still slides the total box right around frames 200-225 and 320-345 (fix in the annotator). The read phase closed **1 of 460** frames: the gallons read (15.421, 15.451) but the grey total segments do not, so the labels are the owner's keyframes | price `4.049` USD/gal constant, derived: 8 sampled readings close exactly (`15.421 x 4.049 = 62.44`, `16.106 x 4.049 = 65.21`); the `liters` field holds **gallons** |
 
+## Batch 18 (2026-09-30, product owner): black LCDs at Alexela Sikupilli and Neste Vesse, an AdBlue truck head
+
+Eight Live records beside their stills and three plain videos of the same fills. **Alexela Sikupilli**
+(diesel 15,08 L at 2,059, the receipt only) and **Neste Vesse** (Tallinn): the black-LCD heads with
+the grade-price board beside the sale (19,42 / 38,82; 25,00 / 52,22; pump 4 15,00 / 31,34 at 2,089),
+a Gilbarco at Circle K Petrooleumi (94,60 / 45,07 at 2,099) and a Wayne AdBlue truck head (idle at
+0,899, then 5,75 L / 5,17). heldout2: `pump-369`/`370` (two whole dark-display fills no other capture
+shows); the rest train. Pair: `pump-371` / `receipt-110` (video-056 is the same fill). The videos are
+train, as every video is - frames of one clip are near-copies, so none is held out one by one.
+
+| live | frames | what | paired still / truth |
+|---|---|---|---|
+| `live-6483` | 67 | Live record of the receipt | `receipt-109` |
+| `live-6486` | 63 | Live record of the pump still | `pump-368` |
+| `live-6487` | 61 | Live record of the pump still (heldout2) | `pump-369` |
+| `live-6488` | 63 | Live record of the pump still (heldout2) | `pump-370` |
+| `live-6490` | 72 | Live record of the pump still | `pump-371` |
+| `live-6491` | 56 | Live record of the receipt | `receipt-110` |
+| `live-6492` | 51 | Live record of the pump still | `pump-372` |
+| `live-6494` | 86 | Live record of the receipt | `receipt-111` |
+
+| video | frames | what | truth |
+|---|---|---|---|
+| `video-055-unknown-alexela-sikupilli-black-lcd-running-display-2059-ee` | 1265 (2160x3840, 24 fps, 52.7 s) | black LCD at Alexela Sikupilli, diesel **counting up** to 31.05 / 15.08, the owner's hand and phone reflected across the face; the fill of `receipt-109`; IMG_6482.MOV whole (only the display is in frame), no audio, no metadata. Reference quads placed by the orchestrator on the last frame 1265, unreviewed; `pump_reader.track --videos` kept 1114 of 1265 frames | price `2.059` (`15.08 x 2.059 = 31.05` closes) |
+| `video-056-unknown-neste-vesse-black-lcd-pump4-running-display-2089-ee` | 891 (2160x3840, 24 fps, 37.1 s) | black LCD at Neste Vesse pump 4, Futura D **counting up** to 31.34 / 15.00 at an oblique angle, the grade board beside it; the fill of `pump-371` and `receipt-110`; IMG_6489.MOV whole, no audio, no metadata. Reference quads placed by the orchestrator on the last frame 891, unreviewed; `pump_reader.track --videos` kept 844 of 891 frames | price `2.089` (`15.00 x 2.089 = 31.34` closes) |
+| `video-057-wayne-neste-vesse-adblue-truck-lcd-running-display-0899-ee` | 659 (2160x1728, 24 fps, 27.5 s) | Wayne **AdBlue** truck head at Neste Vesse, **counting up** to 5.17 / 5.75; IMG_6493.MOV **cropped to the head** (`crop=iw:ih*0.45:0:ih*0.06` - a person's reflection sits below it), no audio, no metadata; the fill of `receipt-111` (`pump-372` is the same head idle). Reference quads placed by the orchestrator on the last frame 659, unreviewed; `pump_reader.track --videos` kept 616 of 659 frames | price `0.899` (`5.75 x 0.899 = 5.17` closes) |
+
 ## Frames and tracking (2026-09-20)
 
 Two scripts in `ml/pump-reader` turn the records into labelled training frames without a

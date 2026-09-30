@@ -15574,6 +15574,210 @@
       ]
      }
     ]
+   },
+   {
+    "frame": "049.jpg",
+    "windows": [
+     {
+      "field": "total",
+      "quad": [
+       [
+        0.4468,
+        0.2614
+       ],
+       [
+        0.583,
+        0.2618
+       ],
+       [
+        0.5786,
+        0.3855
+       ],
+       [
+        0.4439,
+        0.3742
+       ]
+      ]
+     },
+     {
+      "field": "liters",
+      "quad": [
+       [
+        0.4491,
+        0.3745
+       ],
+       [
+        0.5807,
+        0.3822
+       ],
+       [
+        0.5781,
+        0.4851
+       ],
+       [
+        0.4466,
+        0.4742
+       ]
+      ]
+     },
+     {
+      "field": "unitPrice",
+      "quad": [
+       [
+        0.6001,
+        0.2523
+       ],
+       [
+        0.6821,
+        0.2517
+       ],
+       [
+        0.6823,
+        0.3154
+       ],
+       [
+        0.6003,
+        0.312
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "frame": "052.jpg",
+    "windows": [
+     {
+      "field": "total",
+      "quad": [
+       [
+        0.4473,
+        0.261
+       ],
+       [
+        0.5963,
+        0.2662
+       ],
+       [
+        0.5923,
+        0.3935
+       ],
+       [
+        0.445,
+        0.3935
+       ]
+      ]
+     },
+     {
+      "field": "liters",
+      "quad": [
+       [
+        0.4532,
+        0.3895
+       ],
+       [
+        0.5839,
+        0.3974
+       ],
+       [
+        0.5809,
+        0.5002
+       ],
+       [
+        0.4505,
+        0.4889
+       ]
+      ]
+     },
+     {
+      "field": "unitPrice",
+      "quad": [
+       [
+        0.6038,
+        0.2673
+       ],
+       [
+        0.6858,
+        0.2666
+       ],
+       [
+        0.6857,
+        0.3306
+       ],
+       [
+        0.6038,
+        0.3271
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "frame": "060.jpg",
+    "windows": [
+     {
+      "field": "total",
+      "quad": [
+       [
+        0.428,
+        0.2339
+       ],
+       [
+        0.5741,
+        0.2373
+       ],
+       [
+        0.5689,
+        0.3657
+       ],
+       [
+        0.4249,
+        0.3669
+       ]
+      ]
+     },
+     {
+      "field": "liters",
+      "quad": [
+       [
+        0.4416,
+        0.3659
+       ],
+       [
+        0.5693,
+        0.3727
+       ],
+       [
+        0.5654,
+        0.4758
+       ],
+       [
+        0.4383,
+        0.4652
+       ]
+      ]
+     },
+     {
+      "field": "unitPrice",
+      "quad": [
+       [
+        0.5814,
+        0.2383
+       ],
+       [
+        0.6625,
+        0.2366
+       ],
+       [
+        0.6616,
+        0.3014
+       ],
+       [
+        0.5808,
+        0.2987
+       ]
+      ]
+     }
+    ]
    }
   ]
  },
@@ -15802,20 +16006,20 @@
     "field": "total",
     "quad": [
      [
-      0.245,
-      0.368
+      0.2249,
+      0.3749
      ],
      [
-      0.555,
-      0.368
+      0.5517,
+      0.3742
      ],
      [
-      0.555,
-      0.442
+      0.5517,
+      0.4482
      ],
      [
-      0.245,
-      0.442
+      0.2226,
+      0.4453
      ]
     ]
    },
@@ -15823,20 +16027,20 @@
     "field": "liters",
     "quad": [
      [
-      0.245,
+      0.2292,
       0.452
      ],
      [
-      0.53,
-      0.452
+      0.4941,
+      0.4547
      ],
      [
-      0.53,
-      0.505
+      0.493,
+      0.5007
      ],
      [
-      0.245,
-      0.505
+      0.2281,
+      0.4992
      ]
     ]
    }
@@ -16078,7 +16282,317 @@
       ]
      }
     ]
+   },
+   {
+    "frame": "030.jpg",
+    "windows": [
+     {
+      "field": "total",
+      "quad": [
+       [
+        0.1847,
+        0.3706
+       ],
+       [
+        0.5172,
+        0.3715
+       ],
+       [
+        0.5096,
+        0.4451
+       ],
+       [
+        0.1813,
+        0.4416
+       ]
+      ]
+     },
+     {
+      "field": "liters",
+      "quad": [
+       [
+        0.188,
+        0.4483
+       ],
+       [
+        0.4581,
+        0.4515
+       ],
+       [
+        0.4564,
+        0.4974
+       ],
+       [
+        0.1862,
+        0.4959
+       ]
+      ]
+     }
+    ]
+   },
+   {
+    "frame": "046.jpg",
+    "windows": [
+     {
+      "field": "total",
+      "quad": [
+       [
+        0.1338,
+        0.3785
+       ],
+       [
+        0.4687,
+        0.3797
+       ],
+       [
+        0.46,
+        0.4521
+       ],
+       [
+        0.1281,
+        0.4492
+       ]
+      ]
+     },
+     {
+      "field": "liters",
+      "quad": [
+       [
+        0.1481,
+        0.4548
+       ],
+       [
+        0.4217,
+        0.4575
+       ],
+       [
+        0.4192,
+        0.503
+       ],
+       [
+        0.1448,
+        0.5026
+       ]
+      ]
+     }
+    ]
    }
   ]
+ },
+ "video-055-unknown-alexela-sikupilli-black-lcd-running-display-2059-ee": {
+  "reference": "1265.jpg",
+  "currency": "EUR",
+  "unitPrice": "2.059",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.31,
+      0.298
+     ],
+     [
+      0.672,
+      0.298
+     ],
+     [
+      0.672,
+      0.407
+     ],
+     [
+      0.31,
+      0.407
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.345,
+      0.412
+     ],
+     [
+      0.66,
+      0.412
+     ],
+     [
+      0.66,
+      0.503
+     ],
+     [
+      0.345,
+      0.503
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.725,
+      0.298
+     ],
+     [
+      0.948,
+      0.298
+     ],
+     [
+      0.948,
+      0.357
+     ],
+     [
+      0.725,
+      0.357
+     ]
+    ]
+   }
+  ],
+  "reviewed": false,
+  "note": "IMG_6482.MOV whole, no audio, no metadata - black LCD at Alexela Sikupilli, Estonia, diesel counting up at 2,059 to 31.05 / 15.08, the owner's hand and phone reflected across the face; the fill of receipt-109; reference quads placed by the orchestrator on the last frame 1265, unreviewed"
+ },
+ "video-056-unknown-neste-vesse-black-lcd-pump4-running-display-2089-ee": {
+  "reference": "891.jpg",
+  "currency": "EUR",
+  "unitPrice": "2.089",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.458,
+      0.232
+     ],
+     [
+      0.77,
+      0.248
+     ],
+     [
+      0.763,
+      0.347
+     ],
+     [
+      0.452,
+      0.331
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.475,
+      0.343
+     ],
+     [
+      0.732,
+      0.352
+     ],
+     [
+      0.725,
+      0.433
+     ],
+     [
+      0.469,
+      0.421
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.755,
+      0.397
+     ],
+     [
+      0.947,
+      0.407
+     ],
+     [
+      0.942,
+      0.455
+     ],
+     [
+      0.752,
+      0.443
+     ]
+    ]
+   }
+  ],
+  "reviewed": false,
+  "note": "IMG_6489.MOV whole, no audio, no metadata - black LCD at Neste Vesse, Estonia, pump 4, Futura D counting up at 2,089 to 31.34 / 15.00 at an oblique angle; the fill of pump-371 and receipt-110; reference quads placed by the orchestrator on the last frame 891, unreviewed"
+ },
+ "video-057-wayne-neste-vesse-adblue-truck-lcd-running-display-0899-ee": {
+  "reference": "659.jpg",
+  "currency": "EUR",
+  "unitPrice": "0.899",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.612,
+      0.39
+     ],
+     [
+      0.782,
+      0.39
+     ],
+     [
+      0.782,
+      0.507
+     ],
+     [
+      0.612,
+      0.507
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.645,
+      0.513
+     ],
+     [
+      0.765,
+      0.513
+     ],
+     [
+      0.765,
+      0.6
+     ],
+     [
+      0.645,
+      0.6
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.56,
+      0.684
+     ],
+     [
+      0.653,
+      0.684
+     ],
+     [
+      0.653,
+      0.753
+     ],
+     [
+      0.56,
+      0.753
+     ]
+    ]
+   }
+  ],
+  "reviewed": false,
+  "note": "IMG_6493.MOV cropped to the head (crop=iw:ih*0.45:0:ih*0.06; a person's reflection sits below it), no audio, no metadata - Wayne AdBlue truck head at Neste Vesse, Estonia, counting up at 0,899 to 5.17 / 5.75; the fill of pump-372 (idle) and receipt-111; reference quads placed by the orchestrator on the last frame 659, unreviewed"
  }
 }

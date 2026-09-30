@@ -70,7 +70,14 @@ private let matchedPairs: [MatchedPair] = [
     MatchedPair(pump: "pump-356", receipt: "receipt-100"),
     MatchedPair(pump: "pump-355", receipt: "receipt-101"),
     // Circle K Petrooleumi (2026-09-28): a Gilbarco head in low sun and its paper.
-    MatchedPair(pump: "pump-359", receipt: "receipt-102")
+    MatchedPair(pump: "pump-359", receipt: "receipt-102"),
+    // Neste Vesse (2026-09-30): the black-LCD pump 4 and its paper; video-056 shows the same fill.
+    MatchedPair(pump: "pump-371", receipt: "receipt-110"),
+    // The same fill shot again in the app (case 3GQZB-BC5VF): the display head-on and the same paper
+    // in hand, so each shot of the paper pairs with each shot of the display.
+    MatchedPair(pump: "pump-373", receipt: "receipt-113"),
+    MatchedPair(pump: "pump-371", receipt: "receipt-113"),
+    MatchedPair(pump: "pump-373", receipt: "receipt-110")
 ]
 
 @Suite("Matched pump/receipt pairs (RV.114)")

@@ -449,5 +449,14 @@ extension PostSweepCorpusAdditions {
         "pump-365-gilbarco-circlek-peterburi-2046-937l-price-glare-ee.jpg",
         "pump-366-gilbarco-circlek-peterburi-89954-41000l-2194-pump13-ee.jpg",
         "pump-367-gilbarco-circlek-peterburi-adblue-2977-3104l-ee.jpg",
+        // 2026-09-30, batch 18: a Circle K Petrooleumi Gilbarco, three Neste Vesse black-LCD board
+        // heads (pump-369/370 heldout2) and the idle AdBlue truck lane.
+        "pump-368-gilbarco-circlek-petrooleumi-9460-4507l-2099-pump2-ee.jpg",
+        "pump-369-unknown-neste-vesse-black-lcd-3882-1942l-board-ee.jpg",
+        "pump-370-unknown-neste-vesse-black-lcd-5222-2500l-board-reflection-ee.jpg",
+        "pump-371-unknown-neste-vesse-black-lcd-pump4-3134-1500l-board-glare-pair-ee.jpg",
+        "pump-372-wayne-neste-vesse-adblue-truck-lcd-idle-0899-ee.jpg",
+        // Case 3GQZB-BC5VF (2026-09-30): the in-app shot of pump-371's fill, head-on.
+        "pump-373-unknown-neste-vesse-black-lcd-pump4-3134-1500l-board-headon-pair-ee.jpg"
     ]
 }

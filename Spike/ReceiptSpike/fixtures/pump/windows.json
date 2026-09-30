@@ -45328,24 +45328,25 @@
     "text": "444.60",
     "quad": [
      [
-      0.345,
-      0.215
+      0.3329,
+      0.2063
      ],
      [
-      0.68,
-      0.215
+      0.6958,
+      0.1776
      ],
      [
       0.68,
       0.335
      ],
      [
-      0.345,
-      0.335
+      0.3341,
+      0.3708
      ]
     ],
     "legibility": "partial",
-    "placedBy": "hand"
+    "placedBy": "hand",
+    "zoom": 0.4175
    },
    {
     "field": "liters",
@@ -45356,12 +45357,12 @@
       0.3718
      ],
      [
-      0.7025,
-      0.3502
+      0.697,
+      0.3485
      ],
      [
-      0.707,
-      0.4808
+      0.685,
+      0.4826
      ],
      [
       0.3498,
@@ -45369,31 +45370,106 @@
      ]
     ],
     "legibility": "partial",
-    "placedBy": "auto"
+    "placedBy": "hand",
+    "zoom": 0.4175
    },
    {
     "field": "unitPrice",
     "text": "2.184",
     "quad": [
      [
-      0.425,
-      0.68
+      0.427,
+      0.6944
      ],
      [
-      0.56,
-      0.68
+      0.5617,
+      0.6818
      ],
      [
-      0.56,
-      0.745
+      0.5652,
+      0.7466
      ],
      [
-      0.425,
-      0.745
+      0.4305,
+      0.7591
      ]
     ],
     "legibility": "partial",
-    "placedBy": "hand"
+    "placedBy": "hand",
+    "zoom": 0.4175
+   }
+  ],
+  "reviewed": true,
+  "tracking": "ok",
+  "liveAnchors": [
+   {
+    "record": "live-6470",
+    "frame": "063.jpg",
+    "windows": [
+     {
+      "field": "total",
+      "quad": [
+       [
+        0.3297,
+        0.1851
+       ],
+       [
+        0.7449,
+        0.1345
+       ],
+       [
+        0.7293,
+        0.3086
+       ],
+       [
+        0.3397,
+        0.3686
+       ]
+      ]
+     },
+     {
+      "field": "liters",
+      "quad": [
+       [
+        0.3417,
+        0.3769
+       ],
+       [
+        0.7473,
+        0.3277
+       ],
+       [
+        0.7255,
+        0.4767
+       ],
+       [
+        0.3539,
+        0.5259
+       ]
+      ]
+     },
+     {
+      "field": "unitPrice",
+      "quad": [
+       [
+        0.4261,
+        0.7419
+       ],
+       [
+        0.5779,
+        0.7141
+       ],
+       [
+        0.5869,
+        0.79
+       ],
+       [
+        0.4344,
+        0.8187
+       ]
+      ]
+     }
+    ]
    }
   ]
  },
@@ -45468,7 +45544,8 @@
     ],
     "placedBy": "auto"
    }
-  ]
+  ],
+  "reviewed": true
  },
  "pump-364-gilbarco-circlek-peterburi-11008-5075l-2169-pump4-ee.jpg": {
   "windows": [
@@ -45542,7 +45619,9 @@
     ],
     "placedBy": "hand"
    }
-  ]
+  ],
+  "reviewed": true,
+  "tracking": "ok"
  },
  "pump-365-gilbarco-circlek-peterburi-2046-937l-price-glare-ee.jpg": {
   "windows": [
@@ -45741,5 +45820,382 @@
     "placedBy": "auto"
    }
   ]
+ },
+ "pump-368-gilbarco-circlek-petrooleumi-9460-4507l-2099-pump2-ee.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "0094,60",
+    "quad": [
+     [
+      0.3301,
+      0.3108
+     ],
+     [
+      0.751,
+      0.3191
+     ],
+     [
+      0.748,
+      0.4042
+     ],
+     [
+      0.3271,
+      0.3958
+     ]
+    ],
+    "placedBy": "auto"
+   },
+   {
+    "field": "liters",
+    "text": "0045,07",
+    "quad": [
+     [
+      0.3766,
+      0.4036
+     ],
+     [
+      0.6951,
+      0.4111
+     ],
+     [
+      0.6926,
+      0.472
+     ],
+     [
+      0.374,
+      0.4646
+     ]
+    ],
+    "placedBy": "auto"
+   },
+   {
+    "field": "unitPrice",
+    "text": "2,099",
+    "quad": [
+     [
+      0.4495,
+      0.5566
+     ],
+     [
+      0.613,
+      0.5566
+     ],
+     [
+      0.613,
+      0.6035
+     ],
+     [
+      0.4495,
+      0.6035
+     ]
+    ],
+    "placedBy": "auto"
+   },
+   {
+    "field": "board",
+    "text": "2,299",
+    "quad": [
+     [
+      0.1229,
+      0.4824
+     ],
+     [
+      0.2469,
+      0.4824
+     ],
+     [
+      0.2469,
+      0.5176
+     ],
+     [
+      0.1229,
+      0.5176
+     ]
+    ],
+    "placedBy": "auto"
+   },
+   {
+    "field": "board",
+    "text": "2,039",
+    "quad": [
+     [
+      0.1224,
+      0.2949
+     ],
+     [
+      0.2422,
+      0.2949
+     ],
+     [
+      0.2422,
+      0.334
+     ],
+     [
+      0.1224,
+      0.334
+     ]
+    ],
+    "placedBy": "auto"
+   },
+   {
+    "field": "board",
+    "text": "2,099",
+    "quad": [
+     [
+      0.1224,
+      0.3887
+     ],
+     [
+      0.2474,
+      0.3887
+     ],
+     [
+      0.2474,
+      0.4277
+     ],
+     [
+      0.1224,
+      0.4277
+     ]
+    ],
+    "placedBy": "auto"
+   },
+   {
+    "field": "board",
+    "text": "2,199",
+    "quad": [
+     [
+      0.1276,
+      0.5723
+     ],
+     [
+      0.2474,
+      0.5723
+     ],
+     [
+      0.2474,
+      0.6113
+     ],
+     [
+      0.1276,
+      0.6113
+     ]
+    ],
+    "placedBy": "auto"
+   }
+  ]
+ },
+ "pump-369-unknown-neste-vesse-black-lcd-3882-1942l-board-ee.jpg": {
+  "windows": [],
+  "pendingWindows": true
+ },
+ "pump-370-unknown-neste-vesse-black-lcd-5222-2500l-board-reflection-ee.jpg": {
+  "windows": [],
+  "pendingWindows": true
+ },
+ "pump-371-unknown-neste-vesse-black-lcd-pump4-3134-1500l-board-glare-pair-ee.jpg": {
+  "windows": [],
+  "pendingWindows": true
+ },
+ "pump-372-wayne-neste-vesse-adblue-truck-lcd-idle-0899-ee.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "0.00",
+    "quad": [
+     [
+      0.5665,
+      0.3572
+     ],
+     [
+      0.7007,
+      0.3488
+     ],
+     [
+      0.7058,
+      0.3944
+     ],
+     [
+      0.5716,
+      0.4028
+     ]
+    ],
+    "placedBy": "auto"
+   },
+   {
+    "field": "liters",
+    "text": "0.00",
+    "quad": [
+     [
+      0.6078,
+      0.4043
+     ],
+     [
+      0.7047,
+      0.4043
+     ],
+     [
+      0.7047,
+      0.4355
+     ],
+     [
+      0.6078,
+      0.4355
+     ]
+    ],
+    "placedBy": "auto"
+   }
+  ],
+  "pendingWindows": true
+ },
+ "pump-373-unknown-neste-vesse-black-lcd-pump4-3134-1500l-board-headon-pair-ee.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "31.34",
+    "quad": [
+     [
+      0.3166,
+      0.2785
+     ],
+     [
+      0.5527,
+      0.2816
+     ],
+     [
+      0.5505,
+      0.3776
+     ],
+     [
+      0.3143,
+      0.3745
+     ]
+    ],
+    "placedBy": "hand",
+    "zoom": 0.4375
+   },
+   {
+    "field": "liters",
+    "text": "15.00",
+    "quad": [
+     [
+      0.317,
+      0.376
+     ],
+     [
+      0.5547,
+      0.376
+     ],
+     [
+      0.5516,
+      0.4606
+     ],
+     [
+      0.3124,
+      0.4583
+     ]
+    ],
+    "placedBy": "hand",
+    "zoom": 0.4375
+   },
+   {
+    "field": "board",
+    "text": "2.089",
+    "quad": [
+     [
+      0.5669,
+      0.4149
+     ],
+     [
+      0.7033,
+      0.4147
+     ],
+     [
+      0.6966,
+      0.4565
+     ],
+     [
+      0.5655,
+      0.4552
+     ]
+    ],
+    "placedBy": "hand",
+    "zoom": 1.08864
+   },
+   {
+    "field": "board",
+    "text": "2.369",
+    "quad": [
+     [
+      0.5704,
+      0.3711
+     ],
+     [
+      0.7027,
+      0.3711
+     ],
+     [
+      0.7027,
+      0.4125
+     ],
+     [
+      0.5704,
+      0.4125
+     ]
+    ],
+    "placedBy": "hand",
+    "zoom": 1.08864
+   },
+   {
+    "field": "board",
+    "text": "1.999",
+    "quad": [
+     [
+      0.5704,
+      0.3312
+     ],
+     [
+      0.7052,
+      0.3312
+     ],
+     [
+      0.7052,
+      0.3697
+     ],
+     [
+      0.5704,
+      0.3697
+     ]
+    ],
+    "placedBy": "hand",
+    "zoom": 1.08864
+   },
+   {
+    "field": "board",
+    "text": "1.939",
+    "quad": [
+     [
+      0.5717,
+      0.2894
+     ],
+     [
+      0.7058,
+      0.2894
+     ],
+     [
+      0.7058,
+      0.3289
+     ],
+     [
+      0.5717,
+      0.3289
+     ]
+    ],
+    "placedBy": "hand",
+    "zoom": 1.08864
+   }
+  ],
+  "reviewed": true
  }
 }

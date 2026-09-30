@@ -1640,3 +1640,25 @@ covered). No mark moves (pump is scored on heldout only).
 **Split:** `pump-362`/`363` (the 203 L truck fill, both angles - a make and a decimal convention
 the heldout sets lack) are **heldout2**; the rest train, so the classifier sees the dot-decimal LCD
 too. Boxes unreviewed (the owner's check). No mark moves (pump is scored on heldout only).
+
+## Added 2026-09-30 (batch 18: black LCDs at Neste Vesse, a Gilbarco, an AdBlue truck head - 5 stills)
+
+- `pump-368` - Gilbarco Veeder-Root at Circle K Petrooleumi, pump 2, 94,60 / 45,07 at 2,099 in
+  daylight; the reader reads it whole, boxes auto-placed from those reads with the four board prices.
+- `pump-369`..`371` - **black LCDs** at Neste Vesse (Tallinn): light segments on a dark face behind
+  reflective glass, the grade board (1.999 / 2.369 / 2.089 ...) printed beside the sale in the same
+  segments, and **no unit-price window** (`unitPrice` blank). 19.42 / 38.82, 25.00 / 52.22 with a
+  reflection, and pump 4 at 15.00 / 31.34 with glare (landscape, the pair of `receipt-110`). The
+  reader commits no right cell on any of the three (`pump-369` reads the litres as 1.94).
+  **Windows not drawn yet** (`pendingWindows`) - the annotator's.
+- `pump-372` - a Wayne **AdBlue** truck head, idle at 0.00 / 0.00 with the price 0.899 (dot decimals);
+  the two zero boxes auto-placed, the price box pending.
+- `pump-373` - pump 4's fill again, head-on and sharp, the in-app shot from debug case 3GQZB-BC5VF
+  (the pair of `receipt-113`). The detector's boxes start right of the leading digit on both rows,
+  so the phone read 1.34 / 5.00 and put 5.0 L on the form under a warning. Windows pending.
+- Five Live records beside them and two videos of the same kind of face (`pump-live/README.md` →
+  Batch 18).
+
+**Split:** `pump-369`/`370` (two whole dark-display fills that no other capture shows - a face the
+heldout sets lack) are **heldout2**; `pump-371` and `pump-373` stay train because `video-056` shows
+the same fill, and the rest train. No mark moves (pump is scored on heldout only).

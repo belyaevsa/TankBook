@@ -1186,3 +1186,22 @@ Measured on the iOS 27 simulator on a copy of the committed tree: receipts 357/4
 Measured on the iOS 27 simulator: receipts 365/493 -> 385/517 (20 of the 24 new cells read; through
 compression 363 -> 380), stations 47/88 -> 50/92 - `receipt-106` reads a garbled street line as the
 station.
+
+## Added 2026-09-30 (batch 18: Alexela Sikupilli and Neste Vesse - 6 receipts, three papers)
+
+- `receipt-109` - Alexela Sikupilli, diesel 15,08 L x 2,059 = 31,05 EUR; the fill of `video-055`.
+- `receipt-110` - Neste Vesse, Futura D 15,00 L x 2,089 = 31,34 EUR; the pair of `pump-371` and the
+  fill of `video-056`.
+- `receipt-111` - Neste Vesse, AdBlue 5,75 L x 0,899 = 5,17 EUR - not a fuel, so `fuelKind` is blank;
+  the fill of `video-057`.
+
+Each has a Live record (`pump-live/README.md` → Batch 18).
+
+- `receipt-112`..`114` - the same three papers (`109`/`112`, `110`/`113` and `111`/`114` are one
+  paper each, product owner) shot again **in the app** minutes after the fill, held in hand (debug case
+  3GQZB-BC5VF): the phone read only the total of the Alexela paper, all three cells
+  of the Futura D one, and the AdBlue one as 5,10 L with no total. `receipt-110` and `receipt-113` each
+  pair with both `pump-371` and `pump-373`.
+
+Measured on the iOS 27 simulator: receipts 385/517 -> 400/545 (15 of the 28 new cells read; through
+compression 380 -> 392), stations 50/92 -> 51/98.

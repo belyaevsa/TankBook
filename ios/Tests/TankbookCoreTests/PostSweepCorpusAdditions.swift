@@ -162,6 +162,15 @@ enum PostSweepCorpusAdditions {
             "receipt-106-circlek-peterburi-diesel-4161l-2184-1080p-ee.jpg",
             "receipt-107-circlek-peterburi-diesel-802l-2169-extra-soodus-ee.jpg",
             "receipt-108-circlek-peterburi-diesel-3219l-2184-ee.jpg",
+            // 2026-09-30, batch 18: Alexela Sikupilli diesel, Neste Vesse Futura D (the paper of
+            // pump-371) and Neste Vesse AdBlue.
+            "receipt-109-alexela-sikupilli-diesel-1508l-2059-ee.jpg",
+            "receipt-110-neste-vesse-futura-d-1500l-2089-pair-ee.jpg",
+            "receipt-111-neste-vesse-adblue-575l-0899-ee.jpg",
+            // Case 3GQZB-BC5VF (2026-09-30): in-app second shots of the batch 18 papers.
+            "receipt-112-alexela-sikupilli-diesel-1508l-2059-second-shot-ee.jpg",
+            "receipt-113-neste-vesse-futura-d-1500l-2089-second-shot-pair-ee.jpg",
+            "receipt-114-neste-vesse-adblue-575l-0899-second-shot-ee.jpg"
         ],
         "pump": pump,
         "screenshots": [
