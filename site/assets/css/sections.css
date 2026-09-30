@@ -627,3 +627,33 @@
   padding: 0 22px;
   font-size: 15px;
 }
+
+/* A screen recording in a door card (layouts/_partials/video.html): it fills
+   the same frame the screenshot did, with a replay chip once it has played. */
+.clip {
+  position: relative;
+  height: 100%;
+}
+
+.clip__video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+
+.clip__replay {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-hairline);
+  border-radius: 999px;
+  background: var(--dash);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}

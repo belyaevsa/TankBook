@@ -62,25 +62,28 @@ faq_title = "Questions, answered straight."
 [[doors]]
 title = "Snap it"
 icon = "camera"
+video = "doors/receipt"
 text = "Point the camera at the receipt. The scan fills in what it can read – you check the numbers, correct the rest, and it remembers your corrections. A head start, not an answer."
 shot = "capture-review-photo.png"
-shot_alt = "After a capture: the photographed receipt filling the screen under \"Check the photo - can you read the total on it?\", showing 45,22 L at 1,754 EUR per litre and a total of 79,32 EUR, with Use this, Re-take and Type it side by side"
+shot_alt = "A recording of the app: a photographed receipt on \"Check the numbers\", its total 79.32, 45.22 litres and 1.754 per litre arriving in the fields, then Continue and the fill-up form filled with them"
 shot_photo = true   # W3: the receipt fills this one, so the fallback is JPEG
 
 [[doors]]
 title = "Photograph the pump"
 icon = "fuel-pump"
+video = "doors/pump"
 text = "Point the camera at the pump's display before you drive off. The app reads the total, litres and price, checks that they multiply up, and shows them beside the photo for you to confirm. A head start, not an answer."
 shot = "SH.18-capture-verify-pump.png"
-shot_alt = "After photographing a pump display: \"Check the numbers\" over the photo of a Gilbarco display showing 0030,02 euros and 0014,00 litres at 2,144, with Total 30.02, Liters 14.00 and Price / L 2.144 filled in below, and Continue and Re-take"
+shot_alt = "A recording of the app: a photo of a Gilbarco pump display on \"Check the numbers\", 30.02, 14.00 litres and 2.144 per litre arriving in the fields, then Continue and the fill-up form filled with them"
 shot_photo = true   # W3: the pump photo fills this one, so the fallback is JPEG
 
 [[doors]]
 title = "Type it"
 icon = "keyboard"
+video = "doors/typing"
 text = "Date, odometer, litres, total – a form built for thumbs, and price per litre fills in from total ÷ litres. Typing is a front door of its own, never the failure branch."
 shot = "P1.3-confirm-manual.png"
-shot_alt = "The manual fill-up form: date, odometer with its live sanity check, station suggestion, fuel choice and the three-number card"
+shot_alt = "A recording of the app: typing a total of 71.02 and 42.30 litres into the fill-up form on the keypad, the price per litre filling in as 1.679"
 
 [[data_cards]]
 icon = "user-x"

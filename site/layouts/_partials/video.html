@@ -1,0 +1,23 @@
+{{- /* A screen recording of the real app, the way screenshot.html is a real
+      capture. Params: name (a clip under assets/video/, without the language
+      suffix), alt (what it shows). The language's own clip and poster are used;
+      the poster is the clip's last frame, so without JavaScript or with reduced
+      motion the page shows the finished screen. assets/js/motion.js plays a
+      [data-play-once] clip once when it is half in view and offers a replay.
+      A missing clip, poster or alt fails the build. */ -}}
+{{- $lang := site.Language.Lang -}}
+{{- $clip := resources.Get (printf "video/%s-%s.mp4" .name $lang) -}}
+{{- $poster := resources.Get (printf "video/%s-%s.jpg" .name $lang) -}}
+{{- if not (and $clip $poster) -}}
+  {{- errorf (printf "video %s: clip or poster missing in assets/video for %s" .name $lang) -}}
+{{- end -}}
+{{- if not .alt -}}
+  {{- errorf (printf "video %s: alt is empty - every recording carries a description" .name) -}}
+{{- end -}}
+<div class="clip">
+  <video class="clip__video" muted playsinline preload="none" data-play-once
+         poster="{{ $poster.RelPermalink }}" aria-label="{{ .alt }}">
+    <source src="{{ $clip.RelPermalink }}" type="video/mp4">
+  </video>
+  <button class="clip__replay" type="button" hidden>{{ i18n "clipReplay" }}</button>
+</div>

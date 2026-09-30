@@ -15,9 +15,15 @@
         </div>
         <p class="door-card__text">{{ .text }}</p>
         <figure class="door-card__shot">
+          {{- if .video }}
+          <div class="shot">
+            {{ partial "video.html" (dict "name" .video "alt" .shot_alt) }}
+          </div>
+          {{- else }}
           <div class="shot shot--crop" style="--crop: 0px;">
             {{ partial "screenshot.html" (dict "name" .shot "alt" .shot_alt "photo" .shot_photo) }}
           </div>
+          {{- end }}
         </figure>
       </article>
       {{- end }}

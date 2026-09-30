@@ -85,6 +85,16 @@ recurring bug.
   leaves a block already on screen static, and marks the rest `.is-inview` as they scroll in; no
   start state applies without it.
   Nothing loops, nothing counts up, and nothing simulates scanning (the copy rule in motion).
+- **Screen recordings in the ways-in cards** (2026-09-30, product owner): each card plays a real
+  recording of the app - the receipt and the pump photographed, the read arriving on "Check the
+  numbers", Continue, the filled form; typing a total and litres - once, when half in view, then
+  holds its last frame with a Replay chip. All three cards or none (hard rule 15); real speed, no
+  cut that hides the check. Made by `ios/App/UITests/SiteRecordingUITests.swift` (opt-in,
+  `TEST_RUNNER_SITE_RECORDING`) under `simctl io recordVideo`, with a status-bar flicker keeping
+  frames coming (the recorder mistimes static stretches) and the status bar cropped out; EN uses the
+  drawn receipt (`design/store/assets/receipt-sketch.png`), RU the Samara receipt already on the RU
+  page. `layouts/_partials/video.html` is the only path to a `<video>` (named clip, poster = last
+  frame, description required); clips are 600 px H.264, ~130-310 KB.
 - **No inline script** (2026-09-30): `deploy/nginx/tankbook.live.conf` sends `script-src 'self'`, so
   every script is a fingerprinted file (`assets/js/`), and `scripts/check-site.sh` fails a page
   with an executable inline `<script>`. The Yandex.Metrika loader moved out of line for this reason.
