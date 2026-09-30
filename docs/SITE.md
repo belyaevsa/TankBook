@@ -79,9 +79,11 @@ recurring bug.
   the total rolls in, the amber underline draws once), the ways-in cards arriving together with no
   stagger (hard rule 15), the pump-reading pipeline lighting step by step, the CTC blanks falling
   back before the merged row, and 150 ms state changes on buttons and nav links. CSS keyframes in
-  `assets/css/motion.css`; a ~0.4 KB inline observer (`assets/js/motion.js`) marks a block
-  `.is-inview`; `head/motion.html` sets `js-motion` before first paint only when the browser can
-  observe and the visitor has not asked for reduced motion, and no start state applies without it.
+  `assets/css/motion.css`; `assets/js/motion.js` (~0.8 KB, a fingerprinted **file**, never inline -
+  `deploy/nginx/tankbook.live.conf` sends `script-src 'self'`, which blocks inline scripts) sets
+  `js-motion` only when the browser can observe and the visitor has not asked for reduced motion,
+  leaves a block already on screen static, and marks the rest `.is-inview` as they scroll in; no
+  start state applies without it.
   Nothing loops, nothing counts up, and nothing simulates scanning (the copy rule in motion).
 - **`design/tokens.json` -> `site/assets/css/tokens.generated.css`** via a small generator beside the
   Swift one. Hand-editing that file is the same bug as hand-editing `Theme.generated.swift`.

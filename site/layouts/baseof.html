@@ -13,7 +13,6 @@
   {{- $desc := .Description -}}
   {{- if eq .Kind "404" }}{{ $desc = i18n "notFoundText" }}{{ end -}}
   {{ with $desc }}<meta name="description" content="{{ . }}">{{ end }}
-  {{ partial "head/motion.html" . }}
   {{ partial "head/css.html" . }}
   {{ partial "head/seo.html" . }}
   {{ partial "head/jsonld.html" . }}
@@ -87,8 +86,9 @@
       </div>
     </div>
   </footer>
-  {{- with resources.Get "js/motion.js" | minify }}
-  <script>{{ .Content | safeJS }}</script>
+  {{- /* A file, never inline: the site's CSP is script-src 'self'. */ -}}
+  {{- with resources.Get "js/motion.js" | minify | fingerprint }}
+  <script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}"></script>
   {{- end }}
 </body>
 </html>

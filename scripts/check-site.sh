@@ -492,6 +492,16 @@ else
   fail "S4 favicon.ico linked, present and a valid multi-size ICO"
 fi
 
+# ── CSP: the site's own scripts are files, never inline ─────────────────
+# deploy/nginx/tankbook.live.conf sends script-src 'self', which blocks every
+# inline script; the motion script shipped inline once and never ran in
+# production. It must load by src from the site's own origin.
+if grep -q '<script src="/js/motion' site/public/index.html && ! grep -q 'IntersectionObserver' site/public/index.html; then
+  pass "CSP: the motion script loads from /js/, and no page inlines it"
+else
+  fail "CSP: the motion script must load by src from /js/, never inline (script-src 'self')"
+fi
+
 # ── W2 hygiene: no em-dash anywhere under site/, no raw <img> in layouts ──
 
 # Every text file under site/, built output included. Binary artefacts (png)

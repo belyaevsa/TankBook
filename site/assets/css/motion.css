@@ -1,20 +1,22 @@
 /* One-shot reveals (docs/SITE.md -> "Motion"). Every rule here animates FROM a
    start state TO the static page, so the page is complete without it:
-   - `js-motion` is set in <head> only when IntersectionObserver exists and the
-     visitor has not asked for reduced motion (layouts/_partials/head/motion.html);
-   - a start state applies only under `js-motion` and before `.is-inview`;
+   - `js-motion` is set by assets/js/motion.js only when IntersectionObserver
+     exists and the visitor has not asked for reduced motion;
+   - a start state applies only under `js-motion`, to a block that still carries
+     data-reveal (one already on screen at load has it removed) and before
+     `.is-inview`;
    - base.css's reduced-motion switch removes every animation regardless.
    Nothing loops; nothing counts up. */
 
 /* 1 + 6 · The cross-check locks: the rule draws in from both ends toward the
    tick, the tick lands, the total rolls in, then the amber underline draws once. */
-.js-motion .check-card:not(.is-inview) .check-rule__bar,
-.js-motion .check-card:not(.is-inview) .check-rule .icon,
-.js-motion .check-card:not(.is-inview) .check-total__roll {
+.js-motion .check-card[data-reveal]:not(.is-inview) .check-rule__bar,
+.js-motion .check-card[data-reveal]:not(.is-inview) .check-rule .icon,
+.js-motion .check-card[data-reveal]:not(.is-inview) .check-total__roll {
   opacity: 0;
 }
 
-.js-motion .check-card:not(.is-inview) .amber-underline {
+.js-motion .check-card[data-reveal]:not(.is-inview) .amber-underline {
   background-size: 0 2px;
 }
 
@@ -66,7 +68,7 @@
 
 /* 3 · The ways in arrive together: one curve, one duration, no stagger - a
    stagger would make one card look primary (hard rule 15). */
-.js-motion .doors-grid:not(.is-inview) .door-card {
+.js-motion .doors-grid[data-reveal]:not(.is-inview) .door-card {
   opacity: 0;
 }
 
