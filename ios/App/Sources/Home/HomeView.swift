@@ -427,12 +427,9 @@ struct HomeView: View {
     }
 
     private func headerRow(_ vehicle: Vehicle) -> some View {
-        HStack {
+        VStack(alignment: .leading, spacing: 10) {
             HomeCarSwitcherButton(vehicleName: vehicle.name,
                                   onTap: { presentSheet(.carSwitcher) })
-
-            Spacer(minLength: 0)
-
             HomeTypeItControl(presentSheet: presentSheet)
         }
     }

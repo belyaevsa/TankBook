@@ -85,7 +85,7 @@ extension ColdLaunchJourneyUITests {
                        "the log must follow the selected car, not keep the other car's rows")
     }
 
-    /// PJ.100: the guest capture card's "Type it" is the SAME split control the
+    /// PJ.100 / PJ.507: the guest capture card carries the SAME typed doors the
     /// signed-in header renders, so Service and Expense are reachable without an
     /// account (nothing about them is a sync feature, hard rule 1).
     func testGuestTypeItOffersServiceAndExpense() {
@@ -93,13 +93,10 @@ extension ColdLaunchJourneyUITests {
         addCarFromWelcome(app, named: "Volvo")
         XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 10))
 
-        let menu = app.buttons["typeItMenu"]
-        XCTAssertTrue(menu.waitForExistence(timeout: 10),
-                      "the guest capture card must carry the signed-in Type-it menu")
-        menu.tap()
-        let service = app.buttons["Service"]
-        XCTAssertTrue(service.waitForExistence(timeout: 5), "the menu must offer Service")
-        XCTAssertTrue(app.buttons["Expense"].exists, "the menu must offer Expense")
+        let service = app.buttons["typeItService"]
+        XCTAssertTrue(service.waitForExistence(timeout: 10),
+                      "the guest capture card must show the Service door")
+        XCTAssertTrue(app.buttons["typeItExpense"].exists, "the guest capture card must show the Expense door")
         service.tap()
         XCTAssertTrue(app.textFields["serviceEntryVendorField"].waitForExistence(timeout: 10),
                       "picking Service must open the service entry form as a guest")

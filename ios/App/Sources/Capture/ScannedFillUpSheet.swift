@@ -101,28 +101,42 @@ extension CaptureEntryForm {
         }
     }
 
-    /// The forms Home's "Type it" menu lists, in order: every form EXCEPT the
-    /// primary (fill-up), which is the button's own one-tap action (RV.61,
-    /// hard rule 15 - the two doors stand side by side, and the commonest
-    /// entry must never get slower). Derived from `allCases`, never hardcoded,
-    /// so a fourth entry form appears here the moment it exists - it cannot
-    /// silently lack a door. `sheetRoute` above is an exhaustive switch, so the
-    /// new case refuses to compile until it maps to a sheet.
-    static var doorMenuForms: [CaptureEntryForm] {
-        allCases.filter { $0 != .fillUp }
-    }
-
-    /// The menu item's label, the same wording as the capture screen's mode
-    /// chip (`CaptureMode.label`) so both doors name the entry type
-    /// identically. Exhaustive: a new form must name itself here or the switch
-    /// fails to compile. `.fillUp` is never listed - it is the primary action -
-    /// but the case keeps the switch exhaustive and reuses the button's own
-    /// "Type it" label.
-    var doorMenuLabel: LocalizedStringKey {
+    /// The chip's label: the entry type, named as the capture screen's mode
+    /// chip names it (`CaptureMode.label`) without the "· auto" promise, which
+    /// belongs to the camera.
+    var doorLabel: LocalizedStringKey {
         switch self {
-        case .fillUp: "Type it"
+        case .fillUp: "Fill-up"
         case .service: "Service"
         case .expense: "Expense"
+        }
+    }
+
+    /// The chip's spoken label: the visible word is the entry type, the action
+    /// is typing it.
+    var doorAccessibilityLabel: LocalizedStringKey {
+        switch self {
+        case .fillUp: "Type a fill-up"
+        case .service: "Type a service"
+        case .expense: "Type an expense"
+        }
+    }
+
+    var doorSymbol: String {
+        switch self {
+        case .fillUp: "fuelpump"
+        case .service: "wrench.and.screwdriver"
+        case .expense: "creditcard"
+        }
+    }
+
+    /// `typeItButton` is the fill-up chip's identity, kept from the single
+    /// button it replaced so every entry test reaches the form unchanged.
+    var doorIdentifier: String {
+        switch self {
+        case .fillUp: "typeItButton"
+        case .service: "typeItService"
+        case .expense: "typeItExpense"
         }
     }
 }

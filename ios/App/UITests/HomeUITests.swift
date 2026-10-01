@@ -48,7 +48,7 @@ final class HomeUITests: XCTestCase {
     func testGuestStateRendersGuestChrome() {
         let app = launch(args: ["-clearSessionAtLaunch", "-seedHomeEmptyVehicle"])
 
-        XCTAssertTrue(app.staticTexts["Scan your first fill-up"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Add your first entry"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["typeItButton"].exists)
         XCTAssertTrue(app.buttons["homeGuestImportButton"].exists)
         XCTAssertTrue(app.staticTexts[
@@ -604,7 +604,7 @@ final class HomeUITests: XCTestCase {
                              "the entry subtitle must wrap to two lines")
     }
 
-    // MARK: - RV.61 the manual door (Service and Expense without the camera)
+    // MARK: - RV.61 / PJ.507 the typed doors (Service and Expense without the camera)
 
     /// RV.61 (hard rule 15): from Home, with no camera involved, reach a SAVED
     /// Service record. The assertion is the saved record afterwards - never that
@@ -613,13 +613,10 @@ final class HomeUITests: XCTestCase {
     func testManualDoorSavesServiceFromHome() {
         let app = launch(args: ["-seedHomeEmptyVehicle"])
 
-        // The header "Type it" is a split control: the button is the fill-up
-        // door, the chevron menu lists the other entry types.
-        let menu = app.buttons["typeItMenu"]
-        XCTAssertTrue(menu.waitForExistence(timeout: 10))
-        menu.tap()
-        let service = app.buttons["Service"]
-        XCTAssertTrue(service.waitForExistence(timeout: 5), "the menu must offer Service")
+        // PJ.507: each entry type is its own visible chip, one tap from Home.
+        let service = app.buttons["typeItService"]
+        XCTAssertTrue(service.waitForExistence(timeout: 10), "Home must show the Service door")
+        XCTAssertTrue(service.isHittable, "the Service door must be visible, not behind a menu")
         service.tap()
 
         // The ServiceEntry form opens; add a titled line item and save.
@@ -637,15 +634,23 @@ final class HomeUITests: XCTestCase {
                       "the saved service must appear in the log")
     }
 
+    /// PJ.507: a guest with a long log sees the typed doors without scrolling -
+    /// they sit above the stream, not under it.
+    func testGuestWithALogSeesTheTypedDoorsAboveIt() {
+        let app = launch(args: ["-clearSessionAtLaunch", "-seedHomeFullHistory"])
+        let service = app.buttons["typeItService"]
+        XCTAssertTrue(service.waitForExistence(timeout: 10))
+        XCTAssertTrue(service.isHittable, "the Service door must be on screen without scrolling")
+        XCTAssertTrue(app.buttons["typeItExpense"].isHittable)
+    }
+
     /// RV.61: the Expense half - a SAVED Expense record from Home, no camera.
     func testManualDoorSavesExpenseFromHome() {
         let app = launch(args: ["-seedHomeEmptyVehicle"])
 
-        let menu = app.buttons["typeItMenu"]
-        XCTAssertTrue(menu.waitForExistence(timeout: 10))
-        menu.tap()
-        let expense = app.buttons["Expense"]
-        XCTAssertTrue(expense.waitForExistence(timeout: 5), "the menu must offer Expense")
+        let expense = app.buttons["typeItExpense"]
+        XCTAssertTrue(expense.waitForExistence(timeout: 10), "Home must show the Expense door")
+        XCTAssertTrue(expense.isHittable, "the Expense door must be visible, not behind a menu")
         expense.tap()
 
         XCTAssertTrue(app.textFields["expenseEntryTitleField"].waitForExistence(timeout: 5))

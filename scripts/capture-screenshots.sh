@@ -246,14 +246,18 @@ capture RV.197-guest-home-one-entry-ru ru -seedHomeSingleFill -clearSessionAtLau
 capture RV.251-guest-home-two-cars    en -seedHomeRV66TwoCar -clearSessionAtLaunch
 capture RV.251-guest-home-two-cars-ru ru -seedHomeRV66TwoCar -clearSessionAtLaunch
 
-# PJ.100 / PJ.200: the guest capture card carries the SAME split "Type it"
-# control the signed-in header renders, and the permanent Reminders row is
-# present above it - both account-free (hard rule 1). One car, so the frame is
-# about the two controls, not the switcher. `-presentTypeItMenu` renders the
-# menu's own `doorMenuForms` as a dialog for the pose (simctl cannot tap a
-# SwiftUI Menu); the two names are one picture and are aliased below.
-capture PJ.100-guest-typeit-menu    en -seedReminders -clearSessionAtLaunch -presentTypeItMenu
-capture PJ.100-guest-typeit-menu-ru ru -seedReminders -clearSessionAtLaunch -presentTypeItMenu
+# PJ.507: Home's typed doors - Fill-up, Service, Expense as three visible
+# chips, on the guest card (first entry, and with a log) and under the car
+# switcher in the signed-in header. PJ.508: with the camera refused, the mode
+# row stays and the embedded form follows it (Service selected).
+capture PJ.507-guest-first-entry       en -clearSessionAtLaunch -seedHomeEmptyVehicle
+capture PJ.507-guest-first-entry-ru    ru -clearSessionAtLaunch -seedHomeEmptyVehicle
+capture PJ.507-guest-with-log          en -seedHomeFullHistory -clearSessionAtLaunch
+capture PJ.507-guest-with-log-ru       ru -seedHomeFullHistory -clearSessionAtLaunch
+capture PJ.507-signed-in-header        en -seedSettingsSignedIn -seedHomeFullHistory
+capture PJ.507-signed-in-header-ru     ru -seedSettingsSignedIn -seedHomeFullHistory
+capture PJ.508-denied-service          en -seedVehicleForUITests -presentScreen capture -cameraStatus denied -captureMode service
+capture PJ.508-denied-service-ru       ru -seedVehicleForUITests -presentScreen capture -cameraStatus denied -captureMode service
 # PJ.200 is the row itself, so its frame is the guest Home with no dialog over it.
 capture PJ.200-guest-reminders-row    en -seedReminders -clearSessionAtLaunch
 capture PJ.200-guest-reminders-row-ru ru -seedReminders -clearSessionAtLaunch

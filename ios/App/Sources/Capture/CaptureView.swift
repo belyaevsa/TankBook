@@ -49,7 +49,7 @@ struct CaptureView: View {
     /// RV.5: the captured frame awaiting the user's verdict. Non-nil means the
     /// review step is up; the capture pipeline has NOT run yet.
     @State var reviewSubject: CaptureReviewSubject?
-    @State private var hasUnsavedChanges = false
+    @State var hasUnsavedChanges = false
     @State private var resolved = false
     /// Guards against a double shutter tap starting two pipelines.
     @State private var isProcessing = false
@@ -410,7 +410,7 @@ struct CaptureView: View {
     /// it. The reload, the gateway seal and the odometer-reconcile `Task` have
     /// all already run by the time the save calls this, so nothing here can
     /// cancel them.
-    private func leaveCaptureAfterSave() {
+    func leaveCaptureAfterSave() {
         activeSheet = nil
         Task {
             try? await Task.sleep(for: Self.coverDismissBeat)
@@ -474,20 +474,6 @@ struct CaptureView: View {
         } else {
             Theme.Palette.midnight
                 .ignoresSafeArea()
-        }
-    }
-
-    // MARK: - Permission fallback (F8): permission card over the manual form
-
-    /// The denied and restricted states share this layout: the manual form stays
-    /// usable beneath a top card. The card's copy and next steps differ by state
-    /// (`CapturePermissionCards`): denied names Settings, restricted does not.
-    private var permissionLayout: some View {
-        VStack(spacing: 0) {
-            permissionCard
-                .padding(.horizontal, Theme.Spacing.screenMargin)
-                .padding(.top, 10)
-            ManualFillUpView(hasUnsavedChanges: $hasUnsavedChanges)
         }
     }
 
@@ -557,7 +543,7 @@ struct CaptureView: View {
     /// offers four - and in Russian four chips do not fit on an iPhone 12
     /// width, so wrapping would strand a single chip on its own row and read as
     /// broken. Scrolling degrades honestly instead.
-    private var modeRow: some View {
+    var modeRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 7) {
                 ForEach(offeredModes, id: \.self) { candidate in

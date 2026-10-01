@@ -110,8 +110,8 @@ flowchart TD
     Trends -->|capture button| Capture
     Garage -->|capture button| Capture
     Home -->|"Type it" (primary, one tap)| ConfirmManual
-    Home -->|"Type it" menu · Service| ServiceEntry
-    Home -->|"Type it" menu · Expense| ExpenseEntry
+    Home -->|"Service" chip| ServiceEntry
+    Home -->|"Expense" chip| ExpenseEntry
 
     Garage -->|vehicle| VehicleDetail
     Garage -->|Add car| AddVehicle
@@ -265,8 +265,8 @@ Beneath the three doors sits a fourth affordance that is **not** a peer door but
 | Confirm / Foreign / Mixed / Manual | Capture review "Use this" · Capture "Type it" (Fill-up mode) | Save → the sheet AND the capture modal behind it close (RV.12) → the opener tab, entry visible + toast · tank row → TankLevel · the foreign-currency conversion card offers the manual-rate entry on the card itself when the rate is pending (F9, hard rule 7), and "Edit rate" on a feed conversion (hard rule 13) | back → Capture (photo kept) · swipe-down discards scan (photo re-offerable) |
 | Tank level (sheet) | Confirm's tank row | Set / Skip → Confirm | swipe-down = Skip |
 | Station brand picker (sheet, RV.115 / RV.180) | Confirm's and Edit entry's station menu → **Change brand**; Station settings → **Brand · Change** | the vocabulary ordered on the device (the capture's country, the user's chains, the device region, the hint, the rest) with a search over every spelling; **No brand** first-class; "Use “…”" for the user's own word → written to the station, the pick is theirs permanently | swipe-down / Cancel = keep as is |
-| Service & expenses | Capture (Service mode, scan) · Capture "Type it" (Service mode) · ReminderComplete · Home's "Type it" menu (RV.61, the no-camera door) | Save → Home · vendor, line items, **the currency chip row (RV.279: the same offer Edit entry uses; the pick applies to the record and its items)**, date and odometer · **Tires mode** (P3.3) mounts a set (a `ServiceRecord` carrying `tireSetId`) and makes the odometer required | X → opener (typed input asks first) |
-| Expense entry (sheet, P3.2) | Capture "Type it" (Expense mode) · Capture review "Use this" in Expense mode (RV.62, pre-filled with the scan's total/currency/date, editable – hard rule 13) · ServiceEntry's Parts/Other mode row · Home's "Type it" menu (RV.61, the no-camera door) | Save → Home · category, title, money, **the currency chip row and the odometer card (RV.279: the same components Edit entry renders, so a foreign total is offered with its currency)**, date (PJ.6 wired the Capture door; `.parts` is an ordinary category, never a separate flow) | X → opener (typed input asks first) |
+| Service & expenses | Capture (Service mode, scan) · Capture "Type it" (Service mode) · ReminderComplete · Home's Service chip (RV.61, PJ.507, the no-camera door) · the denied Capture layout's mode row (PJ.508) | Save → Home · vendor, line items, **the currency chip row (RV.279: the same offer Edit entry uses; the pick applies to the record and its items)**, date and odometer · **Tires mode** (P3.3) mounts a set (a `ServiceRecord` carrying `tireSetId`) and makes the odometer required | X → opener (typed input asks first) |
+| Expense entry (sheet, P3.2) | Capture "Type it" (Expense mode) · Capture review "Use this" in Expense mode (RV.62, pre-filled with the scan's total/currency/date, editable – hard rule 13) · ServiceEntry's Parts/Other mode row · Home's Expense chip (RV.61, PJ.507, the no-camera door) · the denied Capture layout's mode row (PJ.508) | Save → Home · category, title, money, **the currency chip row and the odometer card (RV.279: the same components Edit entry renders, so a foreign total is offered with its currency)**, date (PJ.6 wired the Capture door; `.parts` is an ordinary category, never a separate flow) | X → opener (typed input asks first) |
 | Edit entry | Log entry, duplicate/conflict cards, RecentlyDeleted · the account-wide flagged list ("Needs a look") and the inbox's "use a different receipt", both of which pass an EXPLICIT entry id | Save / Delete → Home · photo → viewer · Restore my version · a foreign-currency entry renders the conversion card (resolved from the rate store) and its rate is editable there, including a rate the user set before (hard rule 13) | X → opener |
 | **Excluded entries** (RV.141) | the Home Log's / Trends' "N entries excluded" footnote when MORE than one entry is out (N == 1 opens the excluded entry's own Edit screen directly and skips this list) | a row → Edit entry - the entry in front of the user. Each row states WHY it is out (docs/ERRORS.md -> Home, RV.141): a timeline conflict is fixed by editing the odometer or the date, an unresolved duplicate by Merge or Keep both on the Log. The list is CAR-scoped and counts exactly what the footnote counted - conflicts plus the non-counting members of unresolved duplicate pairs, one derivation (`ExcludedEntries.derive`) - never the account-wide "Needs a look" population, which filters to conflicts only | back chevron + edge-swipe → the tab root that pushed it |
 | **Attachment viewer** (RV.9 + RV.17 + RV.37, sheet over Edit entry) | the receipt strip's photo chip on Edit entry – the fill-up form and the non-fill form alike; the chip is a control, not decoration | Share/save the full rendition via the system share sheet (RV.17, offered only once the rendition is local – never the 44 pt thumbnail) · swipe to the recognised-data page when the attachment carried any, absent rather than empty otherwise. **RV.48 changed what that page IS**: the headline is now the ASSIGNMENT the parse concluded - date, fuel kind, volume, price per litre, total, currency, each with the value it read - and the raw OCR lines are demoted behind a disclosure rather than being the page. An attachment whose parse assigned nothing SAYS SO instead of rendering an empty card. The page presents STORED data and never re-runs OCR: a fresh read could contradict a value the user has already confirmed (hard rule 13) · **Delete** (system-confirmed: tombstones the attachment and unlinks it from the entry, hard rule 8) · **Replace photo** (the same camera/Photos door as "Add receipt"; a new attachment plus a tombstone for the old, then the ask – "Re-read this and update the entry?" with "Leave it as it is" the default, hard rule 13). Rotate, crop and edit remain their own decisions | **Close and swipe-down, both** – a viewer that can only be left by a gesture traps the user who does not know the gesture |
@@ -448,8 +448,8 @@ job on a list that has rows - and is NOT rendered on an empty one, so the screen
 weights for the same action.
 
 **What the create action must NOT be attached to**, argued and rejected in the same review: the tab
-bar (five decided slots, the fifth reserved for Ask); the Home header's "Type it" menu, whose items
-come from `CaptureEntryForm.doorMenuForms` over an exhaustive enum of ENTRY forms - a reminder has
+bar (five decided slots, the fifth reserved for Ask); Home's typed-door chips, which
+come from `CaptureEntryForm.allCases`, an exhaustive enum of ENTRY forms - a reminder has
 no amount, no receipt and nothing to scan, so it is not a peer of those doors, and putting it there
 would also scope it silently to the selected car; the Home banner (amber is attention, and mixing
 planning into triage is what hard rule 5 guards against); the Garage car row, whose count is a
@@ -561,13 +561,15 @@ here fails the guard, which is the `PJ.4` shape.
   mode** (PJ.6): Fill-up → `ConfirmManual`, Service → ServiceEntry, Expense → ExpenseEntry. A
   user who starts manually and one whose scan came back thin end up in the identical screen for
   their kind of entry, editing the same fields.
-  **RV.61 (hard rule 15, the two doors at every entry point):** Home's header "Type it" is a
-  **split** - the primary action is the fill-up form in one tap (the commonest entry never gets
-  slower), and its trailing chevron is a menu offering **Service** and **Expense** entry. This is
-  the no-camera manual door for the two entry types that previously existed only behind the capture
-  screen's mode row; a fourth entry form appears in that menu the moment it exists
-  (`CaptureEntryForm.doorMenuForms` derives from `allCases`, and `sheetRoute` is an exhaustive
-  switch, so it cannot silently lack a door).
+  **RV.61, PJ.507 (hard rule 15, the two doors at every entry point):** Home's typed door is
+  **three equal chips - Fill-up · Service · Expense** - each opening its form empty in one tap, in
+  the signed-in header (under the car switcher); a guest sees them inside the first-entry card,
+  then above the log once an entry exists. They replaced a split
+  "Type it" whose Service and Expense hid behind a chevron, which a user read as "the app logs fuel
+  only" (feedback, 2026-10-01). A fourth entry form gets a chip the moment it exists
+  (`HomeTypeItControl` iterates `CaptureEntryForm.allCases`, and `sheetRoute` is an exhaustive
+  switch, so it cannot silently lack a door). **PJ.508:** the denied/restricted Capture layout keeps
+  the mode row, and its embedded form follows the selected mode.
 - **Confirm takes a `ConfirmPrefill` (P2.3)**: the extraction pre-fills present fields, nil
   fields stay blank and focusable, and an all-nil extraction IS the ordinary manual form -
   never an error, never a "scan failed" banner (the two doors stay equal). **PJ.17: when that

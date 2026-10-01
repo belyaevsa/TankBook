@@ -1,6 +1,108 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Fill-up": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fill-up"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заправка"
+          }
+        }
+      }
+    },
+    "Add your first entry": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add your first entry"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавьте первую запись"
+          }
+        }
+      }
+    },
+    "Fuel, service or any other expense – scan the receipt or type it in.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fuel, service or any other expense – scan the receipt or type it in."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Топливо, сервис или любая другая затрата – отсканируйте чек или введите вручную."
+          }
+        }
+      }
+    },
+    "Type a fill-up": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type a fill-up"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ввести заправку"
+          }
+        }
+      }
+    },
+    "Type a service": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type a service"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ввести сервис"
+          }
+        }
+      }
+    },
+    "Type an expense": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type an expense"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ввести затрату"
+          }
+        }
+      }
+    },
     "%1$@ – %2$@": {
       "extractionState": "manual",
       "localizations": {
@@ -9765,23 +9867,6 @@
         }
       }
     },
-    "More entry types": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "More entry types"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Другие типы записей"
-          }
-        }
-      }
-    },
     "More…": {
       "extractionState": "manual",
       "localizations": {
@@ -11397,23 +11482,6 @@
         }
       }
     },
-    "Point the camera at a receipt – even an old one from the glovebox. Your consumption appears after the second full tank.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Point the camera at a receipt – even an old one from the glovebox. Your consumption appears after the second full tank."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Наведите камеру на чек – даже старый из бардачка. Расход появится после второго полного бака."
-          }
-        }
-      }
-    },
     "Possible duplicate – %@, %@ logged twice": {
       "extractionState": "manual",
       "localizations": {
@@ -12929,40 +12997,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Сканируйте чеки"
-          }
-        }
-      }
-    },
-    "Scan a fill-up": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scan a fill-up"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Отсканируйте заправку"
-          }
-        }
-      }
-    },
-    "Scan your first fill-up": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scan your first fill-up"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Отсканируйте первую заправку"
           }
         }
       }

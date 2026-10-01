@@ -339,6 +339,8 @@ dispatch ledger moved to `docs/TASKS-HISTORY.md`.*
 | PJ.505 | (J3 the 5-second fill-up; J4 pump display photo; F1 nothing read; F2 scan recognised wrong data | `[x]` | TASKS-DONE.md · PJ · Journeys review (2026-08-29) |
 | PJ.506 | (J3 the 5-second fill-up; J4 pump display photo) The verify screen with the keyboard up | `[x]` | TASKS-DONE.md · PJ · Journeys review (2026-08-29) |
 | DC.1 | no-scenario: the owner's debugging path (the diagnostics the owner reads) The app keeps its own | `[x]` | TASKS-DONE.md · PJ · Journeys review (2026-08-29) |
+| PJ.507 | (J3b type it - the peer path; J7 service visit) Home's typed door shows every entry type | `[x]` | TASKS-DONE.md · PJ · Journeys review (2026-08-29) |
+| PJ.508 | (F8 permissions said no; J7 service visit) With the camera refused, the capture screen still of | `[x]` | TASKS-DONE.md · PJ · Journeys review (2026-08-29) |
 | PJ.42 | v1.x | `[x]` | TASKS-DONE.md · PJ · Journeys review (2026-08-29) |
 | PJ.16 | v1.1 | `[x]` | TASKS-DONE.md · PJ · Journeys review (2026-08-29) |
 | PJ.41 | (J3 mixed fallback) DONE 2026-10-01, verified (orchestrator - Codex was out of quota; agents/br | `[x]` | TASKS-DONE.md · PJ · Journeys review (2026-08-29) |

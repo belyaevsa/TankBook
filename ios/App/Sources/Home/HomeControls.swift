@@ -32,87 +32,38 @@ struct HomeCarSwitcherButton: View {
     }
 }
 
-/// Home's "Type it" control. ONE control (RV.61): the primary button opens the
-/// fill-up form in one tap (the commonest entry must never get slower, hard rule
-/// 15); the trailing chevron is a menu offering the other entry forms (Service,
-/// Expense) - the same choice the capture screen's mode row presents. A plain
-/// `Button` + `Menu` pair, not `Menu(primaryAction:)`, so the two affordances
-/// have separate, deterministic accessibility identities. Rendered by the
-/// signed-in header row and the guest capture card (PJ.100), never copied; the
-/// menu items come from `CaptureEntryForm.doorMenuForms`, so a fourth entry form
-/// appears on both doors the moment it exists.
+/// Home's typed doors: one chip per entry form - Fill-up, Service, Expense -
+/// side by side and equal, each opening its form empty in one tap (hard rule
+/// 15). The forms are visible, not behind a menu: a user with no receipts read
+/// a single "Type it" button as "this app logs fuel only". Rendered by the
+/// signed-in header and the guest capture card, never copied; the chips come
+/// from `CaptureEntryForm.allCases`, so a fourth entry form appears on both
+/// doors the moment it exists. The fill-up chip keeps the `typeItButton`
+/// identity the entry tests drive.
 struct HomeTypeItControl: View {
     let presentSheet: (SheetRoute) -> Void
 
     var body: some View {
-        HStack(spacing: 0) {
-            Button {
-                presentSheet(.confirmManual)
-            } label: {
-                Label("Type it", systemImage: "square.and.pencil")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.ink)
-                    .padding(.leading, 12)
-                    .padding(.trailing, 8)
-                    .padding(.vertical, 6)
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("typeItButton")
-
-            Menu {
-                ForEach(CaptureEntryForm.doorMenuForms, id: \.self) { form in
-                    Button {
-                        presentSheet(form.sheetRoute)
-                    } label: {
-                        Text(form.doorMenuLabel)
-                    }
+        HStack(spacing: 8) {
+            ForEach(CaptureEntryForm.allCases, id: \.self) { form in
+                Button {
+                    presentSheet(form.sheetRoute)
+                } label: {
+                    Label(form.doorLabel, systemImage: form.doorSymbol)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.ink)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .background(Capsule().fill(Theme.Palette.dash))
+                        .overlay(Capsule().stroke(Theme.Palette.hairline, lineWidth: 1))
+                        .contentShape(Capsule())
                 }
-            } label: {
-                Image(systemName: "chevron.down")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.inkSoft)
-                    .padding(.leading, 2)
-                    .padding(.trailing, 10)
-                    .padding(.vertical, 6)
-                    .contentShape(Rectangle())
+                .buttonStyle(.plain)
+                .accessibilityLabel(form.doorAccessibilityLabel)
+                .accessibilityIdentifier(form.doorIdentifier)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("More entry types")
-            .accessibilityIdentifier("typeItMenu")
         }
-        .background(Capsule().fill(Theme.Palette.dash))
-        .overlay(Capsule().stroke(Theme.Palette.hairline, lineWidth: 1))
-        .modifier(TypeItScreenshotMenu(presentSheet: presentSheet))
-    }
-}
-
-/// `simctl` cannot tap a SwiftUI `Menu`, so `-presentTypeItMenu` renders the
-/// same `doorMenuForms` choices as a dialog for the screenshot pose. Debug-only
-/// and derived from the same source as the menu, so the captured options cannot
-/// drift from the ones a user sees.
-private struct TypeItScreenshotMenu: ViewModifier {
-    let presentSheet: (SheetRoute) -> Void
-
-    @State private var isOpen = false
-
-    func body(content: Content) -> some View {
-        #if DEBUG
-        content
-            .task {
-                if ProcessInfo.processInfo.arguments.contains("-presentTypeItMenu") {
-                    isOpen = true
-                }
-            }
-            .confirmationDialog("Type it", isPresented: $isOpen, titleVisibility: .visible) {
-                ForEach(CaptureEntryForm.doorMenuForms, id: \.self) { form in
-                    Button(form.doorMenuLabel) {
-                        presentSheet(form.sheetRoute)
-                    }
-                }
-            }
-        #else
-        content
-        #endif
     }
 }
 

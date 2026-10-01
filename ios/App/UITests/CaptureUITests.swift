@@ -631,9 +631,8 @@ extension CaptureUITests {
     /// The F8 escape obeys the mode too (the brief's second call site): the
     /// permission card's "Type it" is the door a user reaches when the camera
     /// is refused, and sending them to the wrong form is worse, not better.
-    /// The mode is forced with `-captureMode service` because the denied
-    /// layout has no mode row to tap - exactly the state a real denied user is
-    /// in, with the default mode overridden by the debug hook the test drives.
+    /// The mode is forced with `-captureMode service`, the debug hook that
+    /// stands in for a chip tap.
     func testDeniedPermissionTypeItOpensTheFormForTheSelectedMode() {
         let app = captureApp("denied", ["-captureMode", "service"])
         let typeIt = app.buttons["capturePermissionTypeItButton"]
@@ -641,6 +640,20 @@ extension CaptureUITests {
         typeIt.tap()
         XCTAssertTrue(app.textFields["serviceEntryVendorField"].waitForExistence(timeout: 10),
                       "the permission card's Type it must open the form for the selected mode")
+    }
+
+    /// PJ.508 (hard rule 15): with the camera refused the mode row stays and
+    /// the embedded form follows it, so service and expense need no camera.
+    func testDeniedModeRowSwitchesTheEmbeddedForm() {
+        let app = captureApp("denied")
+        XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 10))
+        let service = app.buttons["captureMode_service"]
+        XCTAssertTrue(service.waitForExistence(timeout: 5), "the denied layout must show the mode row")
+        service.tap()
+        XCTAssertTrue(app.textFields["serviceEntryVendorField"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.textFields["manualFillUpTotalField"].exists, "Service must replace the fill-up form")
+        app.buttons["captureMode_expense"].tap()
+        XCTAssertTrue(app.textFields["expenseEntryTitleField"].waitForExistence(timeout: 10))
     }
 }
 

@@ -6,9 +6,9 @@ import UIKit
 
 /// The no-account Home (design/screens/GuestHome.dc.html): garage card, the
 /// capture CTA, the import card and the privacy line. Fully usable offline -
-/// sync is not required for anything (hard rule 1). The card's action is the
-/// "Type it" peer door (hard rule 15); the tab bar's centre capture button is
-/// the other, always one thumb-tap away.
+/// sync is not required for anything (hard rule 1). The card's actions are the
+/// typed doors, one per entry form (hard rule 15); the tab bar's centre capture
+/// button is the other door, always one thumb-tap away.
 ///
 /// RV.197: once the user has an entry, the guest Home also renders the SAME log
 /// stream the signed-in Home shows (`HomeView.logStream`), passed in as
@@ -66,8 +66,16 @@ struct HomeGuestLayout<LogContent: View>: View {
             if vehicle != nil {
                 HomeRemindersEntryRow(attentionCount: attentionCount)
             }
-            logStream
-            captureCard
+            // PJ.507: with a log the typed doors sit ABOVE it, as the signed-in
+            // header's do - under the stream they scroll out of sight after a
+            // few entries. The card is the first-entry invitation only.
+            if stats?.hasEntries == true {
+                HomeTypeItControl(presentSheet: presentSheet)
+                logStream
+            } else {
+                logStream
+                captureCard
+            }
             importCard
             privacyLine
         }
@@ -219,38 +227,30 @@ struct HomeGuestLayout<LogContent: View>: View {
                     .font(.system(size: 22))
                     .foregroundStyle(Theme.Palette.taillight)
             }
-            // "First" is only true before the first entry; once the log is on
-            // screen the card is the capture door, not the onboarding promise.
-            if stats?.hasEntries == true {
-                Text("Scan a fill-up")
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(Theme.Palette.ink)
-            } else {
-                Text("Scan your first fill-up")
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(Theme.Palette.ink)
-            }
-            Text("Point the camera at a receipt – even an old one from the glovebox. Your consumption appears after the second full tank.")
+            Text("Add your first entry")
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(Theme.Palette.ink)
+            // Names every entry type: a card that spoke of fuel alone read as
+            // "this app logs fuel only" to a user whose garage gives no receipts.
+            Text("Fuel, service or any other expense – scan the receipt or type it in.")
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .multilineTextAlignment(.center)
-            // PJ.100: the SAME `typeItControl` the signed-in header renders, so
-            // the guest's typed door offers Service and Expense too - nothing
-            // about being a guest gates them.
+            // The same typed doors the signed-in header renders: nothing about
+            // being a guest gates Service or Expense.
             HomeTypeItControl(presentSheet: presentSheet)
             // PJ.42: a quieter third door for someone with no receipt to hand -
-            // the sample runs the real reader and saves nothing. Only before the
-            // first entry, and never above Scan or Type it (hard rule 15).
-            if stats?.hasEntries != true {
-                Button { showDemo = true } label: {
-                    Text("No receipt to hand? Try a sample")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Theme.Palette.action)
-                }
-                .buttonStyle(.plain)
-                .frame(minHeight: 44)
-                .accessibilityIdentifier("homeTryDemoReceipt")
+            // the sample runs the real reader and saves nothing. The card only
+            // renders before the first entry; never above Scan or Type it (hard
+            // rule 15).
+            Button { showDemo = true } label: {
+                Text("No receipt to hand? Try a sample")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.action)
             }
+            .buttonStyle(.plain)
+            .frame(minHeight: 44)
+            .accessibilityIdentifier("homeTryDemoReceipt")
         }
         .fullScreenCover(isPresented: $showDemo) { DemoReceiptView() }
         #if DEBUG

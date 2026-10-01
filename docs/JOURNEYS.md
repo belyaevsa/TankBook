@@ -266,7 +266,7 @@ a save that changes nothing writes nothing ([RV.136]'s guard, `docs/SCHEMA.md` �
 **Success metric:** pump-photo share of all captures (target ≥15% – proves the niche is real; its measurement path is PJ.503's decision); **≥ 99 % of the fields the pump reader fills on the confirm screen are right** (product owner 2026-09-25, the gate's precision threshold).
 
 ### J3b · Type it (the peer path, every locale)
-**Status: implemented 2026-09-13** (reviewed by the orchestrator, REVIEW-SCENARIO-J3b-2026-09-13)
+**Status: unreviewed** (was implemented 2026-09-13, REVIEW-SCENARIO-J3b-2026-09-13; cleared 2026-10-01 by PJ.507, which replaces Home's single "Type it" with one door per entry type)
 
 **Trigger:** the user would rather type than aim a camera - or the camera cannot deliver: a
 faded thermal receipt, a dark forecourt, gloves on, a pump display that lost its decimal
@@ -274,7 +274,7 @@ points, a corporate fuel-card slip with no QR, or simply a preference.
 
 | Stage | Doing | Thinking / feeling | Notes |
 |---|---|---|---|
-| Reach it | Taps "Type it" - present next to capture on Home, both empty states, the guest layout, inside Capture and on the **capture review step** (RV.5) | "I don't have to fight the camera" | → **Never behind a failed scan.** Reaching manual entry must not require attempting a capture first (hard rule 15). On the review step it sits beside Re-take at the same size, so a user looking at a bad photo picks between two equals rather than being handed a consolation prize |
+| Reach it | Taps the entry type - on Home the typed door is **three visible chips, Fill-up · Service · Expense** (PJ.507) - under the car switcher when signed in, and for a guest inside the first-entry card, then above the log once one exists (under it they scrolled out of sight); "Type it" sits in both empty states, inside Capture and on the **capture review step** (RV.5) | "I don't have to fight the camera" – and "it logs more than fuel" | → **Every entry type is visible, never behind a menu.** One "Type it" with the other types behind a chevron, under a card that spoke only of fuel, read as "this app logs fuel only" to a user whose garage gives no receipts (user feedback, 2026-10-01: *"Кроме заправок не вижу ничего другого"*). → **Never behind a failed scan.** Reaching manual entry must not require attempting a capture first (hard rule 15). On the review step it sits beside Re-take at the same size, so a user looking at a bad photo picks between two equals rather than being handed a consolation prize |
 | Fill | Types total and litres; price derives; odometer pre-filled from last known | Fast, predictable | → Same `ConfirmManual` sheet the capture paths land in - one screen, not a lesser one. Inside Capture, "Type it" opens the form for the **selected mode** (PJ.6): Service → ServiceEntry, Expense → ExpenseEntry, Fill-up → ConfirmManual |
 | Save | Saves | "That was quicker than scanning" | → The cross-check locks exactly as it does for a scan. Typed **inside capture**, Save leaves the capture modal too (RV.12), exactly as the scan door does – the peer path cannot be the one that strands |
 | Later (PJ.48, **[v1.1]**) | Finds the receipt in a pocket, opens the entry, taps "Add receipt" | "I can still keep the paper" | → The typed door is a peer, so its entries can carry the receipt too: attach from camera or Photos on Edit entry; OCR may then **fill blank fields only**, never overwrite a typed value (hard rule 13). The paperclip appears in the Log like a scanned entry's |
@@ -333,7 +333,7 @@ captures" metric assumed QR was a capture path; it is not.)
 **Status: unreviewed** (was implemented 2026-09-13, REVIEW-SCENARIO-J7-2026-09-13; cleared 2026-09-28 by RV.318-320, which change how an invoice gets in and how it is read)
 **Trigger:** leaving the workshop with a multi-page invoice, or DIY oil change in the garage.
 
-**The manual door (RV.61, hard rule 15):** typing is a peer path, never a camera fallback. The same form is reached with no camera from Home's header - "Type it" → its menu → "Service" opens the empty `ServiceEntryView` (odometer pre-filled from the last known value, editable). A capture is a head start, never a gate.
+**The manual door (RV.61, hard rule 15):** typing is a peer path, never a camera fallback. The same form is reached with no camera from Home - the **Service** chip beside Fill-up and Expense (PJ.507; signed-in header and guest card alike) opens the empty `ServiceEntryView` (odometer pre-filled from the last known value, editable). A capture is a head start, never a gate.
 
 Scan invoice (document camera, multi-page) → the **deterministic parser** splits line items ("oil service", "brake pads front") into categorized records with attachments, with the opt-in cloud LLM (tier 3) as the only model-assisted path. *(The on-device model was the original plan here; tier 2 was **cut on 2026-08-25** because Foundation Models has no Russian - `docs/VISION.md` -> "Why tier 2 was cut". Invoices are messier than receipts, so this makes the manual split path load-bearing rather than a fallback.)* → app proposes the *next* reminder from item lifetimes ("Oil change in 15,000 km or 12 months?") → accept = the maintenance loop closes itself. ⚠ Invoices are far messier than fuel receipts – expectations set accordingly: pre-fill what's confident, never fake precision. P3 addition: insurance (ОСАГО) expiry as a first-class reminder type.
 
@@ -935,10 +935,10 @@ is a review list that failed to explain itself.
 **Metric:** restores resolving to full data ≥99.5%; empty-restore sessions that reach the recovery entry point: 100%.
 
 ### F8 · Permissions and hardware said no
-**Status: implemented 2026-09-11** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F8-2026-09-11b)
+**Status: unreviewed** (was implemented 2026-09-11, REVIEW-SCENARIO-F8-2026-09-11b; cleared 2026-10-01 by PJ.508, which adds the mode row to the denied layout)
 **Trigger:** camera permission denied at first capture; or camera in use / hardware fault.
 
-- Denied: the capture tab doesn't become a dead button – it opens the manual form with a top card: "Scanning needs the camera – enable in Settings" (deep link). The core promise degrades but the app remains fully usable, permanently, for the paranoid.
+- Denied: the capture tab doesn't become a dead button – it opens the manual form with a top card: "Scanning needs the camera – enable in Settings" (deep link). The core promise degrades but the app remains fully usable, permanently, for the paranoid. **Fully usable means every entry type** (PJ.508): the mode row stays under the card, and the embedded form follows it – Fill-up, Service, Expense. A user who refused the camera could once type only a fuel entry, and concluded repairs needed the camera (user feedback, 2026-10-01: *"Я думал без камеры нет добавления данных про ремонт"*).
 - A grant in Settings resumes the camera on return, without a relaunch: the scenePhase handler restarts the session, so the deep link's payoff is real rather than a blank preview.
 - Camera in use / hardware fault: the live surface stays and a card names the manual door ("The camera didn't respond – type the entry instead"), with the shutter still there for a retry. It never points at Settings - a grant cannot fix a busy camera - and it is a transient presented state, not a permission state.
 - Photo-library-only users: "add from photos" is always present on the capture surface (also serves the screenshot journey J6).

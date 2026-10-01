@@ -8,6 +8,38 @@ import UIKit
 /// denial and cannot fix a busy camera, and a device policy has no Settings
 /// toggle at all.
 extension CaptureView {
+    /// F8: the denied and restricted states share this layout - the permission
+    /// card, the mode row, and the selected mode's entry form embedded beneath
+    /// them. The mode row is the same one the live camera shows, so a user with
+    /// no camera can still type a service or an expense, not only a fill-up
+    /// (hard rule 15). The card's copy and next steps differ by state: denied
+    /// names Settings, restricted does not.
+    var permissionLayout: some View {
+        VStack(spacing: 0) {
+            permissionCard
+                .padding(.horizontal, Theme.Spacing.screenMargin)
+                .padding(.top, 10)
+            modeRow
+                .padding(.vertical, 8)
+            permissionForm
+                .id(mode.manualEntryForm)
+        }
+    }
+
+    /// The selected mode's form, embedded. Its save leaves capture, as the
+    /// typed door's sheet does (RV.12).
+    @ViewBuilder
+    private var permissionForm: some View {
+        switch mode.manualEntryForm {
+        case .fillUp:
+            ManualFillUpView(hasUnsavedChanges: $hasUnsavedChanges, onSaved: leaveCaptureAfterSave)
+        case .service:
+            ServiceEntryView(hasUnsavedChanges: $hasUnsavedChanges, onSaved: leaveCaptureAfterSave)
+        case .expense:
+            ExpenseEntryView(hasUnsavedChanges: $hasUnsavedChanges, onSaved: leaveCaptureAfterSave)
+        }
+    }
+
     /// F8: the camera is unavailable by permission. `.denied` and `.restricted`
     /// render the same card with different copy and next steps; both sit over
     /// the embedded manual form, so the core promise degrades but the screen

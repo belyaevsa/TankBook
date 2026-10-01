@@ -1495,6 +1495,46 @@
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },
+    "PJ.507-guest-first-entry": {
+      "commit": "33e261cc",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.507-guest-first-entry-ru": {
+      "commit": "33e261cc",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.507-guest-with-log": {
+      "commit": "33e261cc",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.507-guest-with-log-ru": {
+      "commit": "33e261cc",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.507-signed-in-header": {
+      "commit": "33e261cc",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.507-signed-in-header-ru": {
+      "commit": "33e261cc",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.508-denied-service": {
+      "commit": "33e261cc",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.508-denied-service-ru": {
+      "commit": "33e261cc",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "PJ.55-station-favourite": {
       "commit": "c933a3b",
       "device": "iPhone 17",
