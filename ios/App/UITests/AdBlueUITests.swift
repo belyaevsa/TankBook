@@ -77,6 +77,68 @@ final class AdBlueUITests: XCTestCase {
         XCTAssertTrue(line.label.contains("10.00"), line.label)
     }
 
+    /// The scan door: receipt-111 (Neste, AdBlue only) through the real
+    /// capture and recognizer opens the form with the AdBlue chip chosen - the
+    /// receipt names no fuel, so it is a top-up, and the user can switch it.
+    func testAScannedAdBlueReceiptChoosesTheChip() {
+        let fixture = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Spike/ReceiptSpike/fixtures/receipts/receipt-111-neste-vesse-adblue-575l-0899-ee.jpg")
+            .path
+        XCTAssertTrue(FileManager.default.fileExists(atPath: fixture), "the corpus fixture is missing: \(fixture)")
+        let app = launch(["-seedVehicleForUITests", "-seedVehicleDieselOnly", "-inboxReset",
+                          "-presentScreen", "capture", "-cameraStatus", "authorized",
+                          "-captureFixtureImage", fixture])
+        let shutter = app.buttons["captureShutterButton"]
+        XCTAssertTrue(shutter.waitForExistence(timeout: 10))
+        shutter.tap()
+        let useThis = app.buttons["captureVerifyContinueButton"]
+        XCTAssertTrue(useThis.waitForExistence(timeout: 20))
+        useThis.tap()
+
+        let chip = app.buttons["manualFillUpAdBlueChip"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 10))
+        // The capture's pump reader takes this thermal receipt for a display, so
+        // the receipt rules never read its product line. Strict: the day the
+        // route is fixed this block passes, the expectation fails, and the
+        // marker goes.
+        XCTExpectFailure("PU.110: receipt-111 is read as a pump display", strict: true) {
+            XCTAssertTrue(chip.isSelected, "an AdBlue-only receipt is a top-up")
+        }
+    }
+
+    /// The scan's verdict reaches the form: an extraction that is AdBlue opens
+    /// on the AdBlue chip, and the user can still switch it (hard rule 13).
+    func testAnAdBlueScanOpensOnTheChip() {
+        let app = launch(["-seedVehicleForUITests", "-seedVehicleDieselOnly",
+                          "-presentScreen", "confirmManual", "-seedConfirmPrefillAdBlue"])
+        let chip = app.buttons["manualFillUpAdBlueChip"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 10))
+        XCTAssertTrue(chip.isSelected)
+        XCTAssertFalse(app.switches["manualFillUpIsFullToggle"].exists)
+        app.buttons["manualFillUpFuelKind_diesel"].tap()
+        XCTAssertFalse(chip.isSelected, "the user can switch the scan's verdict")
+        XCTAssertTrue(app.switches["manualFillUpIsFullToggle"].exists)
+    }
+
+    /// A diesel + AdBlue receipt: the AdBlue line is offered as a top-up, the
+    /// save writes it into the group, and the car card shows it.
+    func testAMixedReceiptOffersTheAdBlueLineAsATopUp() {
+        let app = launch(["-seedVehicleForUITests", "-seedVehicleDieselOnly",
+                          "-presentScreen", "confirmManual", "-seedConfirmPrefillMixedAdBlue"])
+        let section = anyElement(app, "mixedReceiptSection")
+        XCTAssertTrue(section.waitForExistence(timeout: 10))
+        let adBlueRow = app.staticTexts.containing(NSPredicate(format: "label BEGINSWITH %@", "Top-up · ")).firstMatch
+        XCTAssertTrue(adBlueRow.exists, "the AdBlue line is a top-up, never an expense")
+        let save = app.buttons["manualFillUpSaveButton"]
+        XCTAssertEqual(save.label, "Save fill-up + AdBlue")
+        save.tap()
+        let line = anyElement(app, "homeAdBlueLine")
+        XCTAssertTrue(line.waitForExistence(timeout: 10), "the top-up reached the car card")
+        XCTAssertTrue(line.label.contains("10.00"), line.label)
+    }
+
     func testAPetrolCarIsNotOfferedAdBlue() {
         let app = launch(["-seedVehicleForUITests", "-presentScreen", "confirmManual"])
         XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 10))

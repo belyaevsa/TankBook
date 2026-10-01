@@ -68,6 +68,7 @@ extension ManualFillUpView {
         if let kind = extraction.fuelKind, vehicle.fuelKinds.contains(kind) {
             form.fuelKind = kind
         }
+        form.isAdBlue = extraction.isAdBlue == true
         if let rawDate = extraction.date, let date = ConfirmDate.parse(rawDate) {
             form.date = date
         }

@@ -20327,6 +20327,93 @@
         }
       }
     },
+    "Save fill-up + AdBlue": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save fill-up + AdBlue"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранить заправку + AdBlue"
+          }
+        }
+      }
+    },
+    "Top-up · %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Top-up · %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Долив · %@"
+          }
+        }
+      }
+    },
+    "Save fill-up + AdBlue + %lld expenses": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Save fill-up + AdBlue + %lld expense"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Save fill-up + AdBlue + %lld expenses"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Сохранить заправку + AdBlue + %lld затраты"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Сохранить заправку + AdBlue + %lld затрат"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Сохранить заправку + AdBlue + %lld затрата"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Сохранить заправку + AdBlue + %lld затрат"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Rescan page": {
       "extractionState": "manual",
       "localizations": {

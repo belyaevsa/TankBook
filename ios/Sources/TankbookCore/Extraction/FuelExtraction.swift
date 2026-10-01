@@ -39,6 +39,12 @@ public struct FuelExtraction: Sendable, Equatable, Codable {
     /// no single-digit substitution uniquely closed the arithmetic.
     public var digitRepair: DigitRepair.Result?
 
+    /// True when the receipt's product is AdBlue and no fuel: the values are an
+    /// AdBlue top-up's, and the Confirm sheet opens with its AdBlue chip
+    /// chosen (docs/SCHEMA.md -> AdBlue). A suggestion like every field - the
+    /// user can switch the chip back (hard rule 13). nil when it is not.
+    public var isAdBlue: Bool?
+
     public init(
         liters: Double? = nil,
         unitPrice: Decimal? = nil,

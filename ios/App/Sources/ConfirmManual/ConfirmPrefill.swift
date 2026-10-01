@@ -194,6 +194,27 @@ enum ConfirmPrefillSeed {
                                   qrAnchor: FiscalQRAnchor(total: 50.00,
                                                             date: Date(timeIntervalSince1970: 1_700_000_000)))
         }
+        if arguments.contains("-seedConfirmPrefillMixedAdBlue") {
+            // A diesel receipt that also sold AdBlue and a coffee: 71.02 + 8.99
+            // + 4.80 = 84.81. The AdBlue line is offered as a top-up (accepted
+            // by default), the coffee as a skipped expense.
+            let lines = ["DIESEL 42.30 л X 1.679", "ADBLUE", "10.00 л X 0.899",
+                         "COFFEE L", "1 X 4.80", "84.81", "TOTAL", "84.81"]
+            return ConfirmPrefill(
+                extraction: FuelExtraction(liters: 42.30, unitPrice: 1.679, total: 71.02,
+                                           currency: .eur, fuelKind: .diesel, date: "17.08.2026"),
+                crops: crops(for: [.total, .volume, .unitPrice]),
+                qrAnchor: nil,
+                ocrLines: lines.map { OCRLine(text: $0) })
+        }
+        if arguments.contains("-seedConfirmPrefillAdBlue") {
+            // An AdBlue-only receipt (receipt-111's numbers): the form opens on
+            // the AdBlue chip.
+            var extraction = FuelExtraction(liters: 5.75, unitPrice: Decimal(string: "0.899")!, total: 5.17,
+                                            currency: .eur, date: "30.09.2026")
+            extraction.isAdBlue = true
+            return ConfirmPrefill(extraction: extraction, crops: crops(for: [.total, .volume, .unitPrice]))
+        }
         if arguments.contains("-seedConfirmPrefillMixedReceipt") {
             // P2.4: a mixed receipt with TWO non-fuel items, matching the
             // ConfirmMixed artboard (diesel 71.02 + car wash 8.00 + coffee 4.80

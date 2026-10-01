@@ -930,11 +930,13 @@ The per-car CSV export writes `adblue.csv`.
   it was bought with.
 - **On a receipt.** **An AdBlue line is never the fuel line**: the extractor must not select it for
   a diesel car's fill even when its litres × price cross-check locks (`EXTRACTION.md` -> AdBlue).
-  A scanned standalone AdBlue receipt opens the same form; the user picks the AdBlue chip (hard
-  rule 13 - the scan suggests, the user decides). Turning a mixed receipt's AdBlue line into a
-  second entry in the purchase group is not built yet.
+  A scanned AdBlue-only receipt opens the same form with the AdBlue chip chosen, and a fuel +
+  AdBlue receipt offers its AdBlue line under "Also on this receipt" as a top-up in the purchase
+  group, sharing the fill's date, odometer, station and photo (hard rule 13 - both are
+  suggestions the user can switch off).
 - **Import.** Sources that carry AdBlue (Spritmonitor, MFM's "AdBlue" fuel type where present)
-  map to `AdBlueFill` once an importer reads them; never guessed.
+  map to `AdBlueFill` once an importer reads them; never guessed. The MFM export the importer was
+  built from has fuel codes 1 and 2 only, so the mapping waits for a real export carrying AdBlue.
 
 ### Recalculation on edit (normative)
 

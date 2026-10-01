@@ -336,7 +336,7 @@ extension ScannedSavePlan {
                          createdAt: Date,
                          money: (Decimal) -> Money) -> [Expense] {
         let attachments = sharedAttachmentIDs
-        return group.expenses.map { receipt in
+        return group.expenses.filter { !$0.line.isAdBlue }.map { receipt in
             Expense(
                 id: receipt.id, createdAt: createdAt, updatedAt: createdAt, deletedAt: nil,
                 vehicleId: vehicleId, date: date, odometer: nil,
@@ -344,6 +344,28 @@ extension ScannedSavePlan {
                 note: nil, attachments: attachments, provenance: provenance,
                 conflict: .none, purchaseGroupId: group.purchaseGroupId,
                 category: receipt.category, title: receipt.title)
+        }
+    }
+
+    /// The accepted AdBlue lines as top-ups in the same purchase group - never
+    /// Expenses, never the fuel line (docs/SCHEMA.md -> AdBlue). They share the
+    /// fill's stop: its date, odometer and station.
+    public func adBlueFills(from group: ReceiptGroupPlan,
+                            vehicleId: UUID,
+                            date: Date,
+                            odometer: Int?,
+                            stationId: UUID?,
+                            createdAt: Date,
+                            money: (Decimal) -> Money) -> [AdBlueFill] {
+        let attachments = sharedAttachmentIDs
+        return group.expenses.compactMap { receipt in
+            guard let litres = receipt.line.adBlueLitres else { return nil }
+            return AdBlueFill(
+                id: receipt.id, createdAt: createdAt, updatedAt: createdAt, vehicleId: vehicleId,
+                date: date, odometer: odometer, money: money(receipt.amount),
+                attachments: attachments, provenance: provenance,
+                purchaseGroupId: group.purchaseGroupId,
+                volumeL: litres, unitPrice: receipt.line.unitPrice, stationId: stationId)
         }
     }
 }

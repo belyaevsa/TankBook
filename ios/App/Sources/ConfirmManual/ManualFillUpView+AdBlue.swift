@@ -13,9 +13,14 @@ extension ManualFillUpView {
         guard case .mixed(let lines, _, _) = detection else {
             return L10n.localize("Save fill-up")
         }
-        let accepted = lines.filter { acceptedLineIDs.contains($0.id) }.count
-        if accepted > 0 {
-            return String(localized: "Save fill-up + \(accepted) expenses")
+        let accepted = lines.filter { acceptedLineIDs.contains($0.id) }
+        let expenses = accepted.filter { !$0.isAdBlue }.count
+        if accepted.contains(where: \.isAdBlue) {
+            if expenses > 0 { return String(localized: "Save fill-up + AdBlue + \(expenses) expenses") }
+            return L10n.localize("Save fill-up + AdBlue")
+        }
+        if expenses > 0 {
+            return String(localized: "Save fill-up + \(expenses) expenses")
         }
         return L10n.localize("Save fill-up")
     }
@@ -41,6 +46,18 @@ extension ManualFillUpView {
         Task { await notificationCoordinator.reconcile(vehicleId: vehicle.id) }
         dismiss()
         onSaved?()
+    }
+
+    /// The accepted AdBlue lines of a mixed receipt, written as top-ups in the
+    /// fill's purchase group. Each is stamped by the validator like any entry.
+    func saveReceiptAdBlue(_ fills: [AdBlueFill], vehicle: Vehicle, source: MutationSource,
+                           repository: TankbookRepository) throws {
+        for var fill in fills {
+            let validations = TimelineValidator.validate(entries: existingEntries + [fill], vehicle: vehicle)
+            fill.conflict = validations.first { $0.entryID == fill.id }?.conflict ?? .none
+            try loggedWrite(AppLog.shared, op: .create, entityType: AdBlueFill.entityType,
+                            entityId: fill.id, source: source) { try repository.upsertAdBlueFill(fill) }
+        }
     }
 
     /// The top-up: the form's numbers, date, odometer and station, no fuel

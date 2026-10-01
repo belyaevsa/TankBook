@@ -35,14 +35,25 @@ public struct ReceiptLineItem: Equatable, Sendable, Identifiable {
     /// lines default to accepted, non-car lines (coffee, water) to dismissed -
     /// a suggestion the user can always flip.
     public let isCarRelated: Bool
+    /// The litres of an AdBlue line, which is offered as an AdBlue top-up in
+    /// the purchase group rather than an Expense (docs/SCHEMA.md -> AdBlue).
+    /// nil for every other line.
+    public let adBlueLitres: Double?
+    /// The AdBlue line's price per litre, when the line printed one.
+    public let unitPrice: Decimal?
+
+    public var isAdBlue: Bool { adBlueLitres != nil }
 
     public init(id: UUID = UUID.v7(), title: String, amount: Decimal,
-                category: ExpenseCategory, isCarRelated: Bool) {
+                category: ExpenseCategory, isCarRelated: Bool,
+                adBlueLitres: Double? = nil, unitPrice: Decimal? = nil) {
         self.id = id
         self.title = title
         self.amount = amount
         self.category = category
         self.isCarRelated = isCarRelated
+        self.adBlueLitres = adBlueLitres
+        self.unitPrice = unitPrice
     }
 }
 
@@ -148,10 +159,19 @@ public enum MixedReceiptDetector {
     /// item. Conservative by construction - a candidate must name a product and
     /// carry a positive amount, otherwise it is ignored.
     static func findExtraItems(lines: [OCRLine]) -> [ReceiptLineItem] {
-        let fuelPairIndex = OperandPair.first(in: lines)?.1
+        // An AdBlue line is never the fuel line (docs/EXTRACTION.md -> AdBlue):
+        // the fuel pair is the first one outside an AdBlue item.
+        let adBlueBlock = AdBlueVocabulary.itemLineIndices(in: lines)
+        let fuelPairIndex = lines.indices.first {
+            !adBlueBlock.contains($0) && OperandPair(line: lines[$0].text) != nil
+        }
         var items: [ReceiptLineItem] = []
         for (index, line) in lines.enumerated() {
             if index == fuelPairIndex { continue }
+            if adBlueBlock.contains(index) {
+                if let item = adBlueItem(lines, at: index) { items.append(item) }
+                continue
+            }
             if hasVolumeMarker(line.text) { continue }
             guard let pair = quantityPricePair(line.text) else { continue }
             guard let title = precedingProductTitle(lines, before: index) else { continue }
@@ -165,6 +185,26 @@ public enum MixedReceiptDetector {
                                          isCarRelated: isCarRelated(title)))
         }
         return items
+    }
+
+    /// An AdBlue line's operand pair as a top-up: the quantity is the litres,
+    /// the price is per litre, and the title is the line that named AdBlue.
+    private static func adBlueItem(_ lines: [OCRLine], at index: Int) -> ReceiptLineItem? {
+        guard let operands = OperandPair(line: lines[index].text) else { return nil }
+        // A volume marker names the litres; without one the quantity comes first.
+        let marked: (String) -> Bool = { $0.contains(where: { "лЛL".contains($0) }) }
+        let rightIsVolume = marked(operands.rightText) && !marked(operands.leftText)
+        let pair = rightIsVolume ? (quantity: operands.right, price: operands.left)
+                                 : (quantity: operands.left, price: operands.right)
+        let title = stride(from: index, through: max(0, index - AdBlueVocabulary.itemBlockLength), by: -1)
+            .map { lines[$0].text.trimmingCharacters(in: .whitespaces) }
+            .first(where: AdBlueVocabulary.names) ?? "AdBlue"
+        let amount = ConfirmFormat.decimal(fromExtraction: pair.quantity * pair.price, fractionDigits: 2) ?? 0
+        guard amount > 0 else { return nil }
+        return ReceiptLineItem(title: title, amount: amount, category: .other("AdBlue"), isCarRelated: true,
+                               adBlueLitres: pair.quantity,
+                               unitPrice: ConfirmFormat.decimal(fromExtraction: pair.price,
+                                                                fractionDigits: ConfirmFormat.fractionDigits(for: .unitPrice)))
     }
 
     /// A quantity x price pair, tolerating the unit word thermal printers

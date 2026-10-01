@@ -1777,8 +1777,19 @@ diesel line is the fill and the AdBlue line becomes an `AdBlueFill` in the same 
 (`SCHEMA.md` → AdBlue; its own entity since 2026-10-01, not a fuel kind), each cross-checked
 against its own litres × price. The mixed-receipt detector must classify the AdBlue line as a
 top-up, not as an Expense. A receipt that carries only AdBlue pre-fills an AdBlue top-up - never
-`.diesel` with a suspiciously low price. **Built so far (P1.14):** the entity, the manual form's
-AdBlue chip (a scanned AdBlue receipt reaches the same form and the user picks the chip); the
-detector and the pre-kinded pre-fill are the follow-up row. The Spike parser lists `ADBLUE` among fuel product
+`.diesel` with a suspiciously low price.
+
+How it is built (`AdBlueVocabulary`, `FuelExtractor`, `MixedReceiptDetector`): the vocabulary is
+matched through the homoglyph key and anchored to a word start, and a line it names is never a
+fuel product line even when it carries a fuel word ("Diesel Exhaust Fluid"). A receipt that
+names AdBlue and no fuel sets `FuelExtraction.isAdBlue`, the ladder reads the top-up's numbers,
+and Confirm opens with the AdBlue chip chosen. A receipt with both removes the AdBlue item - its
+name line and up to six lines after it, stopping at a fuel product line or a total label - from
+the fuel ladder, so the fill is the diesel line whichever is printed first; the mixed detector
+then offers the AdBlue operand pair as an AdBlue top-up (litres from the operand carrying the
+volume marker, else the first) in the purchase group, accepted by default. Limits: a mixed
+receipt that prints the AdBlue item label-per-line with no operand pair is not split (the
+corpus has no diesel + AdBlue receipt yet - the L1 cases are constructed); the price band does
+not yet know AdBlue's own range. The Spike parser lists `ADBLUE` among fuel product
 words; that entry moves to the AdBlue vocabulary when the task lands, and the corpus gains a
 diesel + AdBlue fixture and an AdBlue-only fixture, both asserting the fuel line and the kind.

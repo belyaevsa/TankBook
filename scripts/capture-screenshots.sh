@@ -1856,6 +1856,13 @@ capture P1.14-trends-adblue-ru          ru -seedSettingsSignedIn -seedHomeAdBlue
 capture P1.14-adblue-chip               en -seedVehicleForUITests -seedVehicleDieselOnly -presentScreen confirmManual
 capture P1.14-adblue-chip-ru            ru -seedVehicleForUITests -seedVehicleDieselOnly -presentScreen confirmManual
 
+# P1.15: AdBlue on a receipt. A diesel + AdBlue receipt offers the AdBlue line
+# as a top-up under "Also on this receipt"; an AdBlue-only scan opens on the chip.
+capture P1.15-mixed-adblue              en -seedVehicleForUITests -seedVehicleDieselOnly -presentScreen confirmManual -seedConfirmPrefillMixedAdBlue
+capture P1.15-mixed-adblue-ru           ru -seedVehicleForUITests -seedVehicleDieselOnly -presentScreen confirmManual -seedConfirmPrefillMixedAdBlue
+capture P1.15-adblue-scan               en -seedVehicleForUITests -seedVehicleDieselOnly -presentScreen confirmManual -seedConfirmPrefillAdBlue
+capture P1.15-adblue-scan-ru            ru -seedVehicleForUITests -seedVehicleDieselOnly -presentScreen confirmManual -seedConfirmPrefillAdBlue
+
 echo
 echo "Done. NOW OPEN THEM - this script proves a file was written, not that it"
 echo "shows the intended screen. A wrong seed renders an empty or error state"

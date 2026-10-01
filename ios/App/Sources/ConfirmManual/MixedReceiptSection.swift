@@ -5,7 +5,8 @@ import TankbookCore
 //
 // The Confirm sheet's mixed-receipt section (design/screens/ConfirmMixed.dc.html):
 // the fuel line stays the fill-up, and the non-fuel lines the detector found are
-// offered as separate Expenses the user accepts or dismisses individually. Each
+// offered as separate Expenses - an AdBlue line as an AdBlue top-up - the user
+// accepts or dismisses individually. Each
 // row is a default input, never a fact (hard rule 13) - the toggle flips it,
 // nothing is created until Save, and the footer shows the receipt total against
 // what the group actually logs.
@@ -72,6 +73,10 @@ struct MixedReceiptSection: View {
     }
 
     private func subtitle(for line: ReceiptLineItem, accepted: Bool) -> String {
+        if accepted, let litres = line.adBlueLitres {
+            return String(format: L10n.localize("Top-up · %@"),
+                          "\(ManualFillUpFormat.decimal(litres, fractionDigits: 2)) \(L10n.volumeUnit(.l))")
+        }
         if accepted {
             return String(format: L10n.localize("Adds as expense · %@"),
                           L10n.expenseCategoryLabel(line.category))

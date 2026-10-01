@@ -37,9 +37,10 @@ public struct FuelExtractor: Sendable {
         // a nil date (no date printed, or one the regex did not match) is a
         // plain absence - the band provider then applies its most recent period.
         let parsedDate = result.date.flatMap { ConfirmDate.parse($0) }
-        let candidates = ReceiptNoiseFilter.candidateLines(lines)
+        var candidates = ReceiptNoiseFilter.candidateLines(lines)
         if source != .pump {
             result.fuelKind = detectFuelKind(candidates)
+            (candidates, result.isAdBlue) = Self.separatingAdBlue(candidates, rawLines: lines)
         }
 
         if source == .pump {
@@ -482,7 +483,7 @@ public struct FuelExtractor: Sendable {
     }
 
     private func detectFuelKind(_ lines: [OCRLine]) -> FuelKind? {
-        for line in lines where FuelKindNormalizer.isProductLine(line.text) {
+        for line in lines where Self.namesFuel(line.text) {
             if let kind = FuelKindNormalizer.normalize(line.text) {
                 return kind
             }

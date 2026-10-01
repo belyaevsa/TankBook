@@ -405,6 +405,7 @@ struct ManualFillUpView: View {
         if let kind = extraction.fuelKind, vehicle.fuelKinds.contains(kind) {
             form.fuelKind = kind
         }
+        form.isAdBlue = extraction.isAdBlue == true
         if let rawDate = extraction.date, let date = ConfirmDate.parse(rawDate) {
             form.date = date
         }
@@ -581,6 +582,11 @@ private extension ManualFillUpView {
                     try loggedWrite(AppLog.shared, op: .create, entityType: Expense.entityType,
                                     entityId: row.id, source: source) { try repository.upsertExpense(row) }
                 }
+                try saveReceiptAdBlue(bound.adBlueFills(from: plan, vehicleId: vehicle.id, date: form.date,
+                                                        odometer: form.odometerValue, stationId: selectedStation?.id,
+                                                        createdAt: now) { amount in
+                    convertForSave(Money(amount: amount, currency: form.currency, homeCurrency: vehicle.homeCurrency))
+                }, vehicle: vehicle, source: source, repository: repository)
                 // RV.173: shape-only, whether a GROUPED save dropped the binding.
                 if receiptWrite.lostPhoto {
                     AppLog.shared.emit(GroupedSaveReceiptLost(expenseCount: rows.count))
