@@ -8,9 +8,37 @@ import UIKit
 // Every page is written as an attachment when Save runs (`writeExpense`).
 
 extension ExpenseEntryView {
-    /// The scanned photo (when there is one), then the pages added here.
+    /// The linked receipt's pages (PJ.41), the scanned photo (when there is
+    /// one), then the pages added here.
     var shownPages: [UIImage] {
-        (scanImage.map { [$0] } ?? []) + extraPages
+        linkedPages + (scanImage.map { [$0] } ?? []) + extraPages
+    }
+
+    /// PJ.41: an expense added from a logged receipt belongs to that receipt's
+    /// car, whatever car is selected.
+    static func linkedVehicle(_ link: ExpenseReceiptLink?, in vehicles: [Vehicle]) -> Vehicle? {
+        link.flatMap { link in vehicles.first { $0.id == link.vehicleID } }
+    }
+
+    /// PJ.41: the form opens on the linked receipt's date and shows its pages.
+    func applyReceiptLink(_ link: ExpenseReceiptLink, repository: TankbookRepository) {
+        receiptLink = link
+        form.date = link.date
+        let live = (try? repository.liveAttachments()) ?? []
+        linkedPages = AttachmentReference.resolved(link.attachments, liveAttachments: live)
+            .compactMap(Self.linkedPageImage)
+    }
+
+    /// A linked receipt page: its file on this device, else its inline thumbnail.
+    static func linkedPageImage(_ attachment: Attachment) -> UIImage? {
+        if let directory = try? VehiclePhotoStore.attachmentsDirectory(),
+           let image = UIImage(contentsOfFile: directory.appendingPathComponent(attachment.file.relativePath).path) {
+            return image
+        }
+        if let base64 = attachment.thumbnailBase64, let data = Data(base64Encoded: base64) {
+            return UIImage(data: data)
+        }
+        return nil
     }
 
     /// The page strip: each page opens full size; a page added here can be
@@ -34,9 +62,12 @@ extension ExpenseEntryView {
                 }
             }
             Spacer(minLength: 8)
+            // Its label keeps one line (RU "Добавить страницу"); the page strip
+            // beside it scrolls instead of squeezing the label onto two.
             AddPageMenu(label: shownPages.isEmpty ? "Add receipt" : "Add page",
                         identifier: "expenseEntryAddPage",
                         onScan: { showPageCamera = true }, onPhotos: addPageFromPhotos)
+                .fixedSize(horizontal: true, vertical: false)
         }
         .padding(12)
         .formCard()
@@ -116,5 +147,25 @@ struct ExpensePageSheets: ViewModifier {
             .sheet(item: $viewer) { target in
                 PagePhotoViewer(images: pages, index: target.index)
             }
+    }
+}
+
+extension ExpenseEntryView {
+    /// PJ.41: says the expense is filed with a receipt that is already logged -
+    /// its photo is shared, not added again, and the two show as one purchase.
+    var linkedReceiptNote: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "doc.text.image")
+                .foregroundStyle(Theme.Palette.inkSoft)
+            Text("Saved with the receipt you came from – the Log shows them as one purchase.")
+                .font(.footnote)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .formCard()
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("expenseEntryLinkedReceiptNote")
     }
 }

@@ -4283,6 +4283,40 @@
         }
       }
     },
+    "Add expense from this receipt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add expense from this receipt"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавить расход из этого чека"
+          }
+        }
+      }
+    },
+    "Saved with the receipt you came from – the Log shows them as one purchase.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved with the receipt you came from – the Log shows them as one purchase."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранится с тем же чеком – в журнале это будет одна покупка."
+          }
+        }
+      }
+    },
     "Add receipt": {
       "extractionState": "manual",
       "localizations": {

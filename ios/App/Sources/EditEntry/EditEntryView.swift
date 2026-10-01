@@ -39,6 +39,7 @@ struct EditEntryView: View {
     // when a service's line-item lifetime changed; the tab root presents it
     // once this pushed screen has popped (see `stagedOfferForPromotion`).
     @Environment(ReminderOfferSession.self) private var offerSession
+    @Environment(ExpenseEntrySession.self) var expenseSession
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
 
@@ -96,6 +97,8 @@ struct EditEntryView: View {
     /// RV.331: every page added in this edit, in order, each with its own
     /// reading; written on Save.
     @State var heldPages: [HeldReceiptPhoto] = []
+    /// PJ.41: the Expense sheet "Add expense from this receipt" opens over this screen.
+    @State var expenseSheet: SheetRoute?
     @State var attachReading = 0
     var attachProcessing: Bool { attachReading > 0 }
 
@@ -133,7 +136,14 @@ struct EditEntryView: View {
             await fetchPendingBlobs()
             #if DEBUG
             openDatePickerIfRequested()
+            openExpenseFromReceiptIfRequested()
             #endif
+        }
+        .sheet(item: $expenseSheet) { route in
+            SheetDestinationView(route: route)
+        }
+        .onChange(of: expenseSheet) { _, newValue in
+            if newValue == nil { Task { await expenseSheetClosed() } }
         }
         .sheet(isPresented: $showTankLevel) {
             DiscardAwareSheet(policy: .discardSilently, hasUnsavedChanges: .constant(false)) {
@@ -253,7 +263,8 @@ struct EditEntryView: View {
                              onAddReceipt: { showAttachSource = true },
                              onAttachImage: { image in attachReceipt(image) },
                              linkedTireSet: linkedTireSet,
-                             onMakeTireSet: makeTireSet)
+                             onMakeTireSet: makeTireSet,
+                             onAddExpenseFromReceipt: openExpenseFromReceipt)
             .safeAreaInset(edge: .bottom) { nonFillBottomBar }
     }
 
@@ -570,6 +581,9 @@ private extension EditEntryView {
             ScrollView {
                 VStack(spacing: 9) {
                     fillUpReceiptCard(fill)
+                    if !attachments.isEmpty {
+                        AddExpenseFromReceiptButton { openExpenseFromReceipt() }
+                    }
                     ManualFillUpDateRow(date: $fillForm.date, showDatePicker: $showDatePicker)
                     ManualFillUpOdometerCard(form: $fillForm, focus: $fillFocus,
                                              distanceUnit: distanceUnit,

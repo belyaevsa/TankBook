@@ -21,15 +21,17 @@ extension ExpenseEntryView {
     static func writeExpense(
         form: ExpenseEntryFormState, vehicle: Vehicle, amount: Decimal,
         scan: ExpenseScanCapture?, extraPages: [UIImage] = [], repository: TankbookRepository,
-        id: UUID = UUID.v7(),
+        id: UUID = UUID.v7(), receiptLink: ExpenseReceiptLink? = nil,
         store: RateStore = AppRates.store
     ) throws -> (expense: Expense, photoWriteFailed: Bool) {
-        var attachmentIDs: [AttachmentID] = []
+        // PJ.41: an expense added from an already-logged receipt references that
+        // receipt's photos as they are - the same ids, never a second copy.
+        var attachmentIDs: [AttachmentID] = receiptLink?.attachments ?? []
         var photoWriteFailed = false
         if let scan {
             do {
-                attachmentIDs = [try ExpenseReceiptWrite.write(scan: scan,
-                                                               repository: repository)]
+                attachmentIDs.append(try ExpenseReceiptWrite.write(scan: scan,
+                                                                   repository: repository))
             } catch {
                 AppLog.error(operation: "expenseEntry.receiptPhotoSave",
                              category: .ui, error: error)
@@ -55,6 +57,8 @@ extension ExpenseEntryView {
             form: form, vehicle: vehicle, amount: amount,
             attachments: attachmentIDs,
             provenance: scan != nil ? .receiptScan : .manual, id: id, now: now)
+        let group = receiptLink?.groupForSave()
+        expense.purchaseGroupId = group
         // The chosen currency is saved as a snapshot at the entry's OWN date,
         // through the same conversion the fill-up path takes (hard rule 3): a
         // rate for that date snapshots the pair, a miss leaves it rate-pending -
@@ -68,6 +72,16 @@ extension ExpenseEntryView {
                                                      vehicle: vehicle)
         expense.conflict = validations.first { $0.entryID == expense.id }?.conflict ?? .none
         try repository.upsertExpense(expense)
+        // The source joins the group only now, after the expense is on disk: a
+        // cancelled form never leaves it a group of one. A failure here keeps the
+        // expense (it already shares the receipt) and is logged, not thrown.
+        if let receiptLink, let group {
+            do {
+                try ExpenseReceiptLink.joinSource(receiptLink, group: group, repository: repository, now: now)
+            } catch {
+                AppLog.error(operation: "expenseEntry.joinReceiptGroup", category: .ui, error: error)
+            }
+        }
         return (expense, photoWriteFailed)
     }
 }

@@ -1285,6 +1285,26 @@
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },
+    "PJ.41-edit-entry-action": {
+      "commit": "9a3d0d8d",
+      "device": "iPhone 18 Pro",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.41-edit-entry-action-ru": {
+      "commit": "9a3d0d8d",
+      "device": "iPhone 18 Pro",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.41-expense-prefilled": {
+      "commit": "9a3d0d8d",
+      "device": "iPhone 18 Pro",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.41-expense-prefilled-ru": {
+      "commit": "9a3d0d8d",
+      "device": "iPhone 18 Pro",
+      "runtime": "iOS.27.0"
+    },
     "PJ.43-page-not-saved": {
       "commit": "38503ae4",
       "device": "iPhone 18 Pro Max",

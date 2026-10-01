@@ -89,6 +89,9 @@ final class ExpenseEntrySession {
     /// open - and to no later one (the row's vacuous trap: a second open must
     /// not re-attach it).
     var pendingCapture: ExpenseScanCapture?
+    /// PJ.41: Edit entry's "Add expense from this receipt" - the source entry's
+    /// receipt and group the expense joins. Consumed on load like the others.
+    var pendingReceiptLink: ExpenseReceiptLink?
     /// Bumped whenever a deferred read fills the open form after `load()`, so the
     /// view can apply a scan that arrived late (the capture is not `Equatable`,
     /// so the outcome itself cannot be an `onChange` trigger).

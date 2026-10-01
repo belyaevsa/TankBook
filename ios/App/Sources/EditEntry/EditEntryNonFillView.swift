@@ -53,6 +53,8 @@ struct EditEntryNonFillView: View {
     let linkedTireSet: TireSet?
     /// Creates (or opens) the set this `.parts` expense becomes.
     let onMakeTireSet: () -> Void
+    /// PJ.41: "Add expense from this receipt", shown when the entry has a photo.
+    let onAddExpenseFromReceipt: () -> Void
 
     var distanceUnit: DistanceUnit { vehicle.units.distance }
 
@@ -66,6 +68,9 @@ struct EditEntryNonFillView: View {
             ScrollView {
                 VStack(spacing: 9) {
                     receiptCard
+                    if !attachments.isEmpty {
+                        AddExpenseFromReceiptButton(action: onAddExpenseFromReceipt)
+                    }
                     typeCard
                     if let expense = entry as? Expense, expense.category == .parts {
                         TireSetPurchaseCard(linkedSet: linkedTireSet, onMake: onMakeTireSet)

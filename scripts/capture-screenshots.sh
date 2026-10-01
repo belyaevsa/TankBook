@@ -547,6 +547,13 @@ capture P3.5-reminder-complete           en -seedReminderComplete -presentScreen
 capture P3.5-reminder-complete-ru        ru -seedReminderComplete -presentScreen reminders -presentReminderComplete
 capture PJ.43-stale-odometer            en -seedReminderComplete -seedStaleOdometer -presentScreen reminders -presentReminderComplete
 capture PJ.43-stale-odometer-ru         ru -seedReminderComplete -seedStaleOdometer -presentScreen reminders -presentReminderComplete
+# PJ.41: an entry with a receipt photo offers "Add expense from this receipt";
+# -openExpenseFromReceipt taps it after load, so the second pair shows the
+# Expense sheet filed with that receipt.
+capture PJ.41-edit-entry-action         en -seedEditEntryServicePages -presentScreen editEntry -attachReceiptFixtureImage "${PWD}/Spike/ReceiptSpike/fixtures/service/service-004-tireman-peterburi-tyre-change-storage-pdf-ee.png"
+capture PJ.41-edit-entry-action-ru      ru -seedEditEntryServicePages -presentScreen editEntry -attachReceiptFixtureImage "${PWD}/Spike/ReceiptSpike/fixtures/service/service-004-tireman-peterburi-tyre-change-storage-pdf-ee.png"
+capture PJ.41-expense-prefilled         en -seedEditEntryServicePages -presentScreen editEntry -attachReceiptFixtureImage "${PWD}/Spike/ReceiptSpike/fixtures/service/service-004-tireman-peterburi-tyre-change-storage-pdf-ee.png" -openExpenseFromReceipt
+capture PJ.41-expense-prefilled-ru      ru -seedEditEntryServicePages -presentScreen editEntry -attachReceiptFixtureImage "${PWD}/Spike/ReceiptSpike/fixtures/service/service-004-tireman-peterburi-tyre-change-storage-pdf-ee.png" -openExpenseFromReceipt
 # PJ.24: the same sheet with its two entry doors side by side - "Scan invoice"
 # and "Type amount" as peers (hard rule 15). RU is where "Сканировать счёт"
 # and the two-line description test the row's width.

@@ -285,6 +285,11 @@ struct PJ11WritePathGuardTests {
     ///   silent derivation, and the inbox is outside PJ.11's edit scope. The
     ///   fuel path is RV.38's, the service and expense paths are RV.201's
     ///   (the same one merge over entry kind).
+    /// - ExpenseReceiptLink.joinSource (upsertFillUp / upsertChargeSession /
+    ///   upsertServiceRecord / upsertExpense) - PJ.41's "Add expense from this
+    ///   receipt" writes ONE field, the source entry's `purchaseGroupId`, after
+    ///   the expense saves; date, odometer and the stored `conflict` are carried
+    ///   through untouched, so the validator's verdict cannot change.
     ///
     /// EXCLUDED - every `*TestSeed.swift` file and the `TankLevelTestSeed`
     /// block in TankLevelView.swift construct deterministic fixtures, not
@@ -319,6 +324,10 @@ struct PJ11WritePathGuardTests {
             "(AppInbox, upsertFillUp)",
             "(AppInbox, upsertServiceRecord)",
             "(AppInbox, upsertExpense)",
+            "(ExpenseReceiptLink, upsertFillUp)",
+            "(ExpenseReceiptLink, upsertChargeSession)",
+            "(ExpenseReceiptLink, upsertServiceRecord)",
+            "(ExpenseReceiptLink, upsertExpense)",
         ]
 
         let pinned = stamps.union(exemptions)

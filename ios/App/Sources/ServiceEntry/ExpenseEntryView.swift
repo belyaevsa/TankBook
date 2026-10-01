@@ -49,6 +49,11 @@ struct ExpenseEntryView: View {
     /// session on load and held here until Save persists it. `nil` is the typed
     /// path (hard rule 15): no photo, and nothing about this save changes.
     @State private var scan: ExpenseScanCapture?
+    /// PJ.41: the logged receipt this expense is added from - its photos and
+    /// purchase group, consumed from `ExpenseEntrySession` on load.
+    @State var receiptLink: ExpenseReceiptLink?
+    /// The linked receipt's pages, shown first in the strip (viewable, not removable).
+    @State var linkedPages: [UIImage] = []
     var scanImage: UIImage? { scan?.image }
     /// RV.333: pages added on the form, written with the entry on Save.
     @State var extraPages: [UIImage] = []
@@ -109,6 +114,9 @@ struct ExpenseEntryView: View {
                     }
                     if expenseSession.gateway.phase == .authExpired, !authExpiredNoticeDismissed {
                         GatewayAuthExpiredNoticeView(dismiss: { authExpiredNoticeDismissed = true })
+                    }
+                    if receiptLink != nil {
+                        linkedReceiptNote
                     }
                     pagesCard
                     categoryCard
@@ -307,7 +315,9 @@ struct ExpenseEntryView: View {
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()
-            guard let vehicle = Self.entryVehicle(
+            let link = expenseSession.pendingReceiptLink
+            expenseSession.pendingReceiptLink = nil
+            guard let vehicle = Self.linkedVehicle(link, in: vehicles) ?? Self.entryVehicle(
                 vehicles: vehicles,
                 completion: completionSession.pending,
                 selected: carSelection.selectedVehicle(vehicles)) else { return }
@@ -315,6 +325,7 @@ struct ExpenseEntryView: View {
             // The car's own currency is the default (hard rule 13); the chip
             // row lets the user change it, and a foreign scan pre-fills its own.
             form.currency = vehicle.homeCurrency
+            if let link, link.vehicleID == vehicle.id { applyReceiptLink(link, repository: repository) }
             existingEntries = (try? repository.liveEntries(forVehicle: vehicle.id)) ?? []
             // PJ.29: the local read may already have landed before the sheet's
             // `.task` runs (the seeded and fast-scan paths). Capture what it
@@ -435,7 +446,8 @@ extension ExpenseEntryView {
             // is a head start, never a requirement).
             let (expense, photoWriteFailed) = try Self.writeExpense(
                 form: form, vehicle: vehicle, amount: amount, scan: scan,
-                extraPages: extraPages, repository: repository, id: entryId)
+                extraPages: extraPages, repository: repository, id: entryId,
+                receiptLink: receiptLink)
             // RV.200: only a scanned expense has a suggestion to report - the
             // typed path proposed no category and emits nothing. Shape only:
             // the category code and whether the user kept it (hard rule 12).
