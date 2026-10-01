@@ -1,7 +1,7 @@
 // Yandex.Metrika's loader, as a file: the site's CSP blocks inline scripts.
 // Built by layouts/_partials/head/analytics.html with the counter id filled in.
-// tag.js itself comes from mc.yandex.ru, which the CSP must also allow for the
-// counter to run - see docs/SITE.md -> "Motion" and the Metrika note there.
+// tag.js itself comes from mc.yandex.ru, one of the Yandex hosts the CSP allows
+// (deploy/nginx/tankbook.live.conf).
 (function (m, e, t, r, i, k, a) {
   m[i] = m[i] || function () { (m[i].a = m[i].a || []).push(arguments); };
   m[i].l = 1 * new Date();

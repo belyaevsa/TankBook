@@ -4,7 +4,7 @@
      carries no analytics SDK (privacy policy); this is the website's visitor
      counter and the privacy page says so in both languages. The loader is a
      file, never inline: deploy/nginx/tankbook.live.conf's CSP blocks inline
-     scripts. The counter runs only if that CSP also allows Yandex's hosts. */ -}}
+     scripts and allows Yandex.Metrika's documented hosts. */ -}}
 {{- with site.Params.metrikaId }}{{ if hugo.IsProduction }}
 {{- $loader := resources.Get "js/metrika.js" | resources.ExecuteAsTemplate "js/metrika.js" (dict "id" .) | minify | fingerprint }}
 <script src="{{ $loader.RelPermalink }}" integrity="{{ $loader.Data.Integrity }}" async></script>

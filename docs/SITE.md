@@ -98,11 +98,11 @@ recurring bug.
 - **No inline script** (2026-09-30): `deploy/nginx/tankbook.live.conf` sends `script-src 'self'`, so
   every script is a fingerprinted file (`assets/js/`), and `scripts/check-site.sh` fails a page
   with an executable inline `<script>`. The Yandex.Metrika loader moved out of line for this reason.
-  **Open, the owner's call:** the same policy also blocks what the loader fetches and sends
-  (`mc.yandex.ru` scripts, beacons and the noscript pixel), so the counter records nothing until the
-  CSP allows Yandex's documented hosts - `script-src https://mc.yandex.ru https://yastatic.net`,
-  `img-src`/`connect-src https://mc.yandex.ru`, `frame-src`/`child-src blob: https://mc.yandex.ru` -
-  or the counter is removed.
+  **Decided 2026-10-01, product owner ("allow yandex"):** the CSP allows Yandex.Metrika's documented
+  hosts and no others - `script-src https://mc.yandex.ru https://yastatic.net`, `img-src`/
+  `connect-src https://mc.yandex.ru`, `frame-src`/`child-src blob: https://mc.yandex.ru`. Until this
+  the policy had blocked the counter since it was added (2026-09-22), so the account holds no visits
+  from before the nginx reload that carries it.
 - **`design/tokens.json` -> `site/assets/css/tokens.generated.css`** via a small generator beside the
   Swift one. Hand-editing that file is the same bug as hand-editing `Theme.generated.swift`.
 - Hosting: static, on any CDN (Cloudflare Pages is the default assumption). The site is public and
