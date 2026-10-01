@@ -1285,6 +1285,26 @@
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },
+    "PJ.43-page-not-saved": {
+      "commit": "38503ae4",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.43-page-not-saved-ru": {
+      "commit": "38503ae4",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.43-stale-odometer": {
+      "commit": "38503ae4",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.43-stale-odometer-ru": {
+      "commit": "38503ae4",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS.27.0"
+    },
     "PJ.45-pace-limit": {
       "commit": "dff5366",
       "device": "iPhone 17",

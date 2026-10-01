@@ -108,6 +108,12 @@ the number should have been frozen).
 | **U - user setting** | Per-car or per-app setting, synced, user-owned once changed | The value is a *preference* or a fact about the user's world (units, currency, tank size, "warn me when...") | Too few here: hard rule 13 violations. Too many: a settings screen nobody reads, and defaults that must still be right |
 | **F - frozen snapshot** | Stored on the record at write time | The value participated in a computation whose result must not drift (`rateDate`, rate snapshot, schema version of a payload) | Reading a "current" value where a snapshot was needed rewrites history on every recompute |
 
+The PJ.43 odometer-age threshold is a tier C compiled constant:
+
+| Constant | Value | Placement | Reason |
+|---|---|---|---|
+| `OdometerStaleness.threshold` | 30 days | `TankbookCore/Domain/OdometerDelta.swift` | A month without a recorded reading can materially shift a distance recurrence. The boundary is pinned by `OdometerStalenessTests`. |
+
 Rules that follow:
 
 - **Every number that appears in two places is a bug waiting.** A timeout in the client and its

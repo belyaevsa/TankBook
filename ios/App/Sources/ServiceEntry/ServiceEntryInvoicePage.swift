@@ -8,8 +8,28 @@ import TankbookCore
 struct InvoicePage: Identifiable {
     let attachment: Attachment
     let image: UIImage
+    let sourceIndex: Int
+
+    init(attachment: Attachment, image: UIImage, sourceIndex: Int = 0) {
+        self.attachment = attachment
+        self.image = image
+        self.sourceIndex = sourceIndex
+    }
 
     var id: UUID { attachment.id }
+}
+
+/// A captured slot whose attachment write failed. Its index is in the
+/// scanner's original page order; only an explicit Continue removes it.
+struct FailedInvoicePage: Identifiable, Equatable {
+    let index: Int
+    let total: Int
+    var id: Int { index }
+}
+
+struct InvoicePageSaveResult {
+    let pages: [InvoicePage]
+    let failures: [FailedInvoicePage]
 }
 
 /// The placeholder thumbnail the seeds and screenshots use for a scanned page

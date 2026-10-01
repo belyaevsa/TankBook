@@ -35,6 +35,22 @@ struct ReminderCompleteSheet: View {
     /// mode over this sheet, the completion carried through the session into
     /// the expense form the scan opens.
     @State private var showExpenseCapture = false
+    @State private var lastReadingDate: Date?
+    @State private var distanceUnit: DistanceUnit = .km
+    @State private var editedOdometer = ""
+    @State private var isEditingOdometer = false
+
+    private var completionReading: Int? {
+        guard isEditingOdometer else { return currentOdometer }
+        guard let value = Int(OdometerFormat.ungrouped(editedOdometer)), value >= 0 else { return nil }
+        return value
+    }
+
+    private var showsStaleOdometerHint: Bool {
+        reminder.recurrence?.everyKm != nil && currentOdometer != nil &&
+            !isEditingOdometer &&
+            OdometerStaleness.isStale(lastReadingDate: lastReadingDate, now: completionDate)
+    }
 
     /// The completion moment: "now" - the sheet always completes the reminder
     /// as of the tap, so the next cycle counts from today, not the old due.
@@ -47,7 +63,7 @@ struct ReminderCompleteSheet: View {
         ReminderLifecycle.complete(
             reminder, entryId: nil,
             completionDate: completionDate,
-            completionOdometer: currentOdometer).nextOccurrence
+            completionOdometer: completionReading).nextOccurrence
     }
 
     private var entryKind: ReminderCompletion.EntryKind {
@@ -55,19 +71,24 @@ struct ReminderCompleteSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        ScrollView {
+          VStack(alignment: .leading, spacing: 0) {
             dragHandle
             header
             logTheCostCard
             if let previewNext {
                 nextCycleCard(previewNext)
             }
+            if showsStaleOdometerHint { staleOdometerCard }
+            if isEditingOdometer { odometerEditor }
             secondaryActions
+          }
+          .padding(.horizontal, 24)
+          .padding(.bottom, 32)
         }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 32)
         .background(Theme.Palette.dash)
-        .presentationDetents([.medium, .large])
+        .presentationDetents(showsStaleOdometerHint || isEditingOdometer
+                             ? [.large] : [.medium, .large])
         .presentationDragIndicator(.hidden)
         .presentationBackground(Theme.Palette.dash)
         .sheet(item: $entrySheet) { route in
@@ -83,6 +104,7 @@ struct ReminderCompleteSheet: View {
         .fullScreenCover(isPresented: $showExpenseCapture, onDismiss: captureClosed) {
             CaptureView(initialMode: .expense, onEntrySaved: { showExpenseCapture = false })
         }
+        .task { loadLastReadingDate() }
     }
 
     /// The capture cover closed: a saved expense completed the reminder and
@@ -153,6 +175,7 @@ struct ReminderCompleteSheet: View {
 
             costDoors
                 .padding(.top, 12)
+                .disabled(isEditingOdometer && completionReading == nil)
 
             Button(action: skip) {
                 Text("Skip – just mark done")
@@ -163,6 +186,7 @@ struct ReminderCompleteSheet: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("reminderCompleteSkip")
+            .disabled(isEditingOdometer && completionReading == nil)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -267,6 +291,47 @@ struct ReminderCompleteSheet: View {
         .accessibilityIdentifier("reminderCompleteNextCycle")
     }
 
+    private var staleOdometerCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(String(format: L10n.localize("Next cycle counts from %1$@ %2$@ – update if you've driven since."),
+                        OdometerFormat.grouped(currentOdometer ?? 0),
+                        L10n.distanceUnit(distanceUnit)))
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("reminderStaleOdometerHint")
+            Button("Edit odometer") { isEditingOdometer = true }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.Palette.action)
+                .accessibilityIdentifier("reminderEditOdometer")
+        }
+        .padding(.top, 12)
+    }
+
+    private var odometerEditor: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Today's odometer")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+            TextField("Odometer", text: $editedOdometer)
+                .keyboardType(.numberPad)
+                .foregroundStyle(Theme.Palette.ink)
+                .accessibilityIdentifier("reminderTodayOdometer")
+        }
+        .padding(.top, 12)
+    }
+
+    private func loadLastReadingDate() {
+        guard let repository = try? AppStore.repository(),
+              let vehicle = try? repository.vehicle(id: reminder.vehicleId),
+              let entries = try? repository.liveEntries(forVehicle: reminder.vehicleId) else { return }
+        let last = OdometerLastKnown.lastKnown(in: entries, vehicle: vehicle)
+        distanceUnit = vehicle.units.distance
+        // An initial reading is recorded when the car is created, even though
+        // OdometerLastKnown leaves its date nil for the pace validator.
+        lastReadingDate = last.date ?? (last.odometer == nil ? nil : vehicle.createdAt)
+    }
+
     private var secondaryActions: some View {
         HStack(spacing: 26) {
             Button(action: onEdit) {
@@ -302,7 +367,7 @@ struct ReminderCompleteSheet: View {
     /// odometer is unknown. The odometer is runtime data; the phrase is one
     /// catalogue key.
     private var completionSubtitle: String {
-        if let currentOdometer {
+        if let currentOdometer = completionReading {
             return String(format: L10n.localize("Completed today at %1$@ km"),
                           OdometerFormat.grouped(currentOdometer))
         }
@@ -314,7 +379,7 @@ struct ReminderCompleteSheet: View {
     /// renders on the list, embedded in one full localised sentence.
     private func nextCycleLine(_ next: Reminder) -> String {
         let due = ReminderRowFormat.dueLine(
-            for: next, currentOdometer: currentOdometer, now: completionDate)
+            for: next, currentOdometer: completionReading, now: completionDate)
         return String(format: L10n.localize("Next cycle scheduled: %1$@ – counted from today, not the old due date."),
                       due)
     }
@@ -337,7 +402,7 @@ struct ReminderCompleteSheet: View {
             reminder: reminder,
             vehicleId: reminder.vehicleId,
             completionDate: completionDate,
-            completionOdometer: currentOdometer,
+            completionOdometer: completionReading,
             openScanner: true)
         showExpenseCapture = true
     }
@@ -347,7 +412,7 @@ struct ReminderCompleteSheet: View {
             reminder: reminder,
             vehicleId: reminder.vehicleId,
             completionDate: completionDate,
-            completionOdometer: currentOdometer,
+            completionOdometer: completionReading,
             openScanner: openScanner)
         switch entryKind {
         case .expense: entrySheet = .expenseEntry
@@ -359,7 +424,7 @@ struct ReminderCompleteSheet: View {
         ReminderCompletionSession.persistCompletion(
             reminder: reminder, entryId: nil,
             completionDate: completionDate,
-            completionOdometer: currentOdometer,
+            completionOdometer: completionReading,
             coordinator: notificationCoordinator)
         dismiss()
     }

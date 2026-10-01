@@ -17,7 +17,9 @@ extension ServiceInvoiceSession {
     func startReading(images: [UIImage], vehicle: Vehicle?, config: AppConfigService, inbox: AppInbox,
                       split: (@MainActor ([InvoicePage]) async -> ServiceScanOutcome)? = nil) -> [InvoicePage] {
         let homeCurrency = vehicle?.homeCurrency ?? .eur
-        let staged = ServiceInvoiceScanner.stagePages(images: images)
+        let saveResult = ServiceInvoiceScanner.stagePagesResult(images: images)
+        let staged = saveResult.pages
+        failedPages = saveResult.failures
         start(
             stagedPages: staged,
             work: { [weak self] in
@@ -28,7 +30,8 @@ extension ServiceInvoiceSession {
                     outcome = await ServiceInvoiceScanner.process(images: images, stagedPages: staged,
                                                                   homeCurrency: homeCurrency)
                 }
-                self?.startCloudReading(pages: images, vehicle: vehicle, config: config, inbox: inbox)
+                self?.startCloudReading(pages: staged.map(\.image), vehicle: vehicle,
+                                       config: config, inbox: inbox)
                 return outcome
             },
             onAnswer: { [weak self] outcome in self?.pendingPrefill = outcome.prefill },

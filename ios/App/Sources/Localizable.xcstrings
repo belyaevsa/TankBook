@@ -20020,6 +20020,142 @@
           }
         }
       }
+    },
+    "Page %1$@ didn't save – rescan it or continue with %2$@ page.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page %1$@ didn't save – rescan it or continue with %2$@ page."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Страница %1$@ не сохранилась – отсканируйте её ещё раз или продолжите с %2$@ страницей."
+          }
+        }
+      }
+    },
+    "Page %1$@ didn't save – rescan it or continue with %2$@ pages.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page %1$@ didn't save – rescan it or continue with %2$@ pages."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Страница %1$@ не сохранилась – отсканируйте её ещё раз или продолжите с %2$@ страницами."
+          }
+        }
+      }
+    },
+    "Rescan page": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rescan page"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сканировать страницу снова"
+          }
+        }
+      }
+    },
+    "Next cycle counts from %1$@ %2$@ – update if you've driven since.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next cycle counts from %1$@ %2$@ – update if you've driven since."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Следующий цикл считается от %1$@ %2$@ – обновите пробег, если с тех пор ездили."
+          }
+        }
+      }
+    },
+    "Edit odometer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit odometer"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Изменить пробег"
+          }
+        }
+      }
+    },
+    "Today's odometer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today's odometer"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пробег сегодня"
+          }
+        }
+      }
+    },
+    "Rescan the page or Continue with saved pages before saving.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rescan the page or Continue with saved pages before saving."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отсканируйте страницу ещё раз или нажмите «Продолжить» с сохранёнными страницами перед сохранением."
+          }
+        }
+      }
+    },
+    "Page %1$@ didn't save – rescan it or continue without pages.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page %1$@ didn't save – rescan it or continue without pages."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Страница %1$@ не сохранилась – отсканируйте её ещё раз или продолжите без страниц."
+          }
+        }
+      }
     }
 
   },

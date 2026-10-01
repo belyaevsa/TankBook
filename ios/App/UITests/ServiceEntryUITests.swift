@@ -91,6 +91,52 @@ final class ServiceEntryUITests: XCTestCase {
 
     // MARK: - P3.1b, the scanned half
 
+    func testPageSaveFailureKeepsSlotAndContinueUsesSavedPage() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedServiceEntry",
+                               "-seedServicePageSaveFailure", "-presentScreen", "serviceEntry"]
+        app.launch()
+        let message = app.staticTexts["serviceEntryPageSaveFailure"]
+        XCTAssertTrue(message.waitForExistence(timeout: 10))
+        XCTAssertTrue(message.label.contains("Page 2 didn't save"))
+        XCTAssertTrue(message.label.contains("1 page"))
+        XCTAssertTrue(app.descendants(matching: .any)["serviceEntryFailedPage_2"].exists)
+        let window = app.windows.firstMatch.frame
+        let rescan = app.buttons["serviceEntryRescanPage"]
+        let keep = app.buttons["serviceEntryContinueSavedPages"]
+        for button in [rescan, keep] {
+            XCTAssertTrue(button.isHittable)
+            XCTAssertTrue(window.contains(button.frame))
+        }
+        keep.tap()
+        XCTAssertFalse(app.descendants(matching: .any)["serviceEntryFailedPage_2"].exists)
+        XCTAssertTrue(app.scrollViews["serviceEntryPageStrip"].exists)
+        let save = app.buttons["serviceEntrySaveButton"]
+        XCTAssertTrue(save.isEnabled)
+        XCTAssertTrue(window.contains(save.frame))
+        save.tap()
+        XCTAssertFalse(save.waitForExistence(timeout: 3), "Continue saves with only the kept page")
+    }
+
+    func testRescanReplacesOnlyTheFailedPage() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedServiceEntry",
+                               "-seedServicePageSaveFailure", "-presentScreen", "serviceEntry"]
+        app.launch()
+        let rescan = app.buttons["serviceEntryRescanPage"]
+        XCTAssertTrue(rescan.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.windows.firstMatch.frame.contains(rescan.frame))
+        rescan.tap()
+        let failedSlot = app.descendants(matching: .any)["serviceEntryFailedPage_2"]
+        let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"),
+                                             object: failedSlot)
+        XCTAssertEqual(XCTWaiter.wait(for: [gone], timeout: 5), .completed)
+        XCTAssertFalse(app.staticTexts["serviceEntryPageSaveFailure"].exists)
+        XCTAssertTrue(app.scrollViews["serviceEntryPageStrip"].exists)
+        XCTAssertTrue(app.buttons["serviceEntryPage_1"].exists,
+                      "the replacement occupies the failed second slot")
+    }
+
     /// The page strip renders only for a scanned record, and the ordinary typed
     /// sheet stays exactly the sheet P3.1a shipped (hard rule 15: one screen,
     /// two doors - the scan adds to it, it does not replace it).

@@ -18,6 +18,10 @@ import TankbookCore
 @MainActor
 enum ServiceInvoiceScanner {
     static let languages = ["en-US", "de-DE", "ru-RU"]
+    #if DEBUG
+    /// One-shot failure injection for the page-save UI path.
+    static var debugFailPageIndex: Int?
+    #endif
 
     static func process(images: [UIImage], stagedPages: [InvoicePage],
                         homeCurrency: CurrencyCode) async -> ServiceScanOutcome {
@@ -26,7 +30,10 @@ enum ServiceInvoiceScanner {
                                       recognition: ServiceRecognition())
         }
         let linesByPage = await ocrLinesByPage(images)
-        let split = InvoiceSplitter().split(pages: linesByPage)
+        let savedIndices = Set(stagedPages.map(\.sourceIndex))
+        let split = InvoiceSplitter().split(pages: linesByPage.enumerated().compactMap { index, lines in
+            savedIndices.contains(index) ? lines : nil
+        })
         let pages = enrichPages(stagedPages, linesByPage: linesByPage,
                                 extractedTimestamp: split.date, repository: repository)
 
@@ -59,7 +66,19 @@ enum ServiceInvoiceScanner {
     /// (`updatePage`) instead of persisting a second set, so the late read only
     /// offers values and never writes a duplicate page.
     static func stagePages(images: [UIImage]) -> [InvoicePage] {
-        guard let repository = try? AppStore.repository(), !images.isEmpty else { return [] }
+        stagePagesResult(images: images).pages
+    }
+
+    static func stagePagesResult(images: [UIImage]) -> InvoicePageSaveResult {
+        guard !images.isEmpty else {
+            return InvoicePageSaveResult(pages: [], failures: [])
+        }
+        let repository: TankbookRepository
+        do {
+            repository = try AppStore.repository()
+        } catch {
+            return repositoryOpenFailed(imageCount: images.count, indexOffset: 0, error: error)
+        }
         return persistPages(repository: repository, images: images,
                             linesByPage: images.map { _ in [] },
                             extractedTimestamp: nil)
@@ -87,13 +106,39 @@ enum ServiceInvoiceScanner {
     }
 
     static func appendPages(images: [UIImage]) async -> [InvoicePage] {
-        guard let repository = try? AppStore.repository(), !images.isEmpty else { return [] }
+        await appendPagesResult(images: images).pages
+    }
+
+    static func appendPagesResult(images: [UIImage], indexOffset: Int = 0) async -> InvoicePageSaveResult {
+        guard !images.isEmpty else {
+            return InvoicePageSaveResult(pages: [], failures: [])
+        }
+        let repository: TankbookRepository
+        do {
+            repository = try AppStore.repository()
+        } catch {
+            return repositoryOpenFailed(imageCount: images.count, indexOffset: indexOffset, error: error)
+        }
         let linesByPage = await ocrLinesByPage(images)
         return persistPages(repository: repository, images: images,
-                            linesByPage: linesByPage, extractedTimestamp: nil)
+                            linesByPage: linesByPage, extractedTimestamp: nil,
+                            indexOffset: indexOffset)
     }
 
     // MARK: - Helpers
+
+    private static func repositoryOpenFailed(imageCount: Int, indexOffset: Int,
+                                             error: any Error) -> InvoicePageSaveResult {
+        let nsError = error as NSError
+        let failures = (0..<imageCount).map { index in
+            AppLog.shared.emit(InvoicePageSaveFailed(pageIndex: indexOffset + index + 1,
+                                                     errorDomain: nsError.domain,
+                                                     errorCode: nsError.code))
+            return FailedInvoicePage(index: indexOffset + index,
+                                     total: indexOffset + imageCount)
+        }
+        return InvoicePageSaveResult(pages: [], failures: failures)
+    }
 
     /// One OCR pass per page, in page order; the main actor suspends while
     /// each runs rather than blocking on it.
@@ -118,20 +163,39 @@ enum ServiceInvoiceScanner {
     private static func persistPages(repository: TankbookRepository,
                                      images: [UIImage],
                                      linesByPage: [[OCRLine]],
-                                     extractedTimestamp: Date?) -> [InvoicePage] {
+                                     extractedTimestamp: Date?,
+                                     indexOffset: Int = 0) -> InvoicePageSaveResult {
         let store = InvoicePageStore(repository: repository, files: InvoiceAttachmentFiles())
         var pages: [InvoicePage] = []
+        var failures: [FailedInvoicePage] = []
         for (index, image) in images.enumerated() {
             let lines = linesByPage[index]
             let ocrText = lines.isEmpty ? nil : lines.map(\.text).joined(separator: "\n")
             let jpeg = storedPageData(image)
-            guard let attachment = try? store.addPage(
-                imageData: jpeg, ocrText: ocrText, extractedTimestamp: extractedTimestamp) else {
-                continue
+            do {
+                guard !jpeg.isEmpty else {
+                    throw NSError(domain: "InvoicePageEncoding", code: 1)
+                }
+                #if DEBUG
+                if debugFailPageIndex == index + 1 {
+                    debugFailPageIndex = nil
+                    throw NSError(domain: "PJ43InjectedPageSave", code: 1)
+                }
+                #endif
+                let attachment = try store.addPage(
+                    imageData: jpeg, ocrText: ocrText, extractedTimestamp: extractedTimestamp)
+                pages.append(InvoicePage(attachment: attachment, image: image,
+                                         sourceIndex: index))
+            } catch {
+                failures.append(FailedInvoicePage(index: indexOffset + index,
+                                                  total: indexOffset + images.count))
+                let nsError = error as NSError
+                AppLog.shared.emit(InvoicePageSaveFailed(pageIndex: indexOffset + index + 1,
+                                                         errorDomain: nsError.domain,
+                                                         errorCode: nsError.code))
             }
-            pages.append(InvoicePage(attachment: attachment, image: image))
         }
-        return pages
+        return InvoicePageSaveResult(pages: pages, failures: failures)
     }
 
     /// RV.243: fills in the pages staged at scan start with the read's OCR text
@@ -141,14 +205,27 @@ enum ServiceInvoiceScanner {
                                     extractedTimestamp: Date?,
                                     repository: TankbookRepository) -> [InvoicePage] {
         let store = InvoicePageStore(repository: repository, files: InvoiceAttachmentFiles())
-        return pages.enumerated().map { index, page in
-            let lines = index < linesByPage.count ? linesByPage[index] : []
+        return pages.map { page in
+            let lines = page.sourceIndex < linesByPage.count ? linesByPage[page.sourceIndex] : []
             let ocrText = lines.isEmpty ? nil : lines.map(\.text).joined(separator: "\n")
             guard let updated = try? store.updatePage(page.attachment, ocrText: ocrText,
                                                       extractedTimestamp: extractedTimestamp) else {
                 return page
             }
-            return InvoicePage(attachment: updated, image: page.image)
+            return InvoicePage(attachment: updated, image: page.image,
+                               sourceIndex: page.sourceIndex)
         }
+    }
+}
+
+private struct InvoicePageSaveFailed: LogEvent {
+    let eventName = "invoice.page.save_failed"
+    let category = LogCategory.capture
+    let level = LogLevel.warn
+    let fields: [LogField]
+
+    init(pageIndex: Int, errorDomain: String, errorCode: Int) {
+        fields = [.safe("pageIndex", pageIndex), .safe("errorDomain", errorDomain),
+                  .safe("errorCode", errorCode)]
     }
 }

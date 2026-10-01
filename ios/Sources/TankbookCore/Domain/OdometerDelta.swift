@@ -1,5 +1,18 @@
 import Foundation
 
+/// The age at which a recorded odometer needs confirmation before it anchors
+/// a new distance recurrence. A month is long enough to avoid nagging after a
+/// recent fill, while a driven car can move materially in that time.
+public enum OdometerStaleness {
+    public static let threshold: TimeInterval = 30 * 86_400
+
+    public static func isStale(lastReadingDate: Date?, now: Date,
+                               threshold: TimeInterval = OdometerStaleness.threshold) -> Bool {
+        guard let lastReadingDate else { return false }
+        return now.timeIntervalSince(lastReadingDate) > threshold
+    }
+}
+
 /// The live "+N km since last" caption state for the ConfirmManual odometer
 /// (docs/VISION.md -> Fill-up log; docs/DESIGN.md -> the Pump Card). Computed
 /// in core so the four states are L1-testable: a caption built inside the view

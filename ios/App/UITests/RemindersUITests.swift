@@ -9,6 +9,37 @@ import XCTest
 @MainActor
 final class RemindersUITests: XCTestCase {
 
+    func testStaleDistanceCompletionOffersOdometerEdit() {
+        let app = launch(["-seedReminderComplete", "-seedStaleOdometer",
+                          "-presentReminderComplete"])
+        let hint = app.staticTexts["reminderStaleOdometerHint"]
+        XCTAssertTrue(hint.waitForExistence(timeout: 10))
+        XCTAssertTrue(hint.label.contains("119 486 km"))
+        let edit = app.buttons["reminderEditOdometer"]
+        XCTAssertTrue(edit.isHittable)
+        XCTAssertTrue(app.windows.firstMatch.frame.contains(edit.frame))
+        edit.tap()
+        let field = app.textFields["reminderTodayOdometer"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText("120000")
+        XCTAssertTrue(app.descendants(matching: .any)["reminderCompleteNextCycle"].exists)
+    }
+
+    func testFreshDistanceCompletionDoesNotWarn() {
+        let app = launch(["-seedReminderComplete", "-seedFreshOdometer",
+                          "-presentReminderComplete"])
+        XCTAssertTrue(app.buttons["reminderCompleteSkip"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["reminderStaleOdometerHint"].exists)
+    }
+
+    func testStaleOdometerDoesNotWarnForTimeOnlyRecurrence() {
+        let app = launch(["-seedReminderComplete", "-seedStaleOdometer",
+                          "-seedTimeOnlyReminder", "-presentReminderComplete"])
+        XCTAssertTrue(app.buttons["reminderCompleteSkip"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["reminderStaleOdometerHint"].exists)
+    }
+
     override func setUpWithError() throws {
         continueAfterFailure = false
     }

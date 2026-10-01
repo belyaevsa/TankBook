@@ -9,6 +9,7 @@ import TankbookCore
 /// shows no strip.
 struct ServiceEntryPageStrip: View {
     let pages: [InvoicePage]
+    var failedPages: [FailedInvoicePage] = []
     @Binding var selectedIndex: Int
     let onAddPage: () -> Void
     let onAddPageFromPhotos: () -> Void
@@ -20,8 +21,24 @@ struct ServiceEntryPageStrip: View {
         VStack(alignment: .leading, spacing: 8) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(Array(pages.enumerated()), id: \.element.id) { index, page in
-                        thumbnail(page, at: index)
+                    ForEach(0..<(pages.count + failedPages.count), id: \.self) { slot in
+                        if failedPages.contains(where: { $0.index == slot }) {
+                            VStack {
+                                Image(systemName: "exclamationmark.triangle")
+                                Text(String(slot + 1))
+                            }
+                            .foregroundStyle(Theme.Palette.warn)
+                            .frame(width: 58, height: 76)
+                            .overlay(RoundedRectangle(cornerRadius: 7)
+                                .stroke(Theme.Palette.warn, style: StrokeStyle(lineWidth: 1,
+                                                                              dash: [4, 3])))
+                            .accessibilityIdentifier("serviceEntryFailedPage_\(slot + 1)")
+                        } else {
+                            let pageIndex = slot - failedPages.filter { $0.index < slot }.count
+                            if pages.indices.contains(pageIndex) {
+                                thumbnail(pages[pageIndex], at: pageIndex)
+                            }
+                        }
                     }
                 }
                 .padding(.horizontal, 2)
@@ -29,12 +46,14 @@ struct ServiceEntryPageStrip: View {
             .accessibilityIdentifier("serviceEntryPageStrip")
 
             HStack(spacing: 8) {
-                Text(L10n.pageOf(current: selectedIndex + 1, total: pages.count))
+                Text(L10n.pageOf(current: pages.isEmpty ? 1 : selectedIndex + 1 +
+                                 failedPages.filter { $0.index <= selectedIndex }.count,
+                                 total: pages.count + failedPages.count))
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.inkSoft)
                     .accessibilityIdentifier("serviceEntryPageCounter")
                 Spacer(minLength: 8)
-                addPageButton
+                if failedPages.isEmpty { addPageButton }
             }
         }
     }

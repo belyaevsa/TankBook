@@ -92,11 +92,23 @@ enum ReminderTestSeed {
             initialOdometer: 119_486)
         try? repository.upsertVehicle(vehicle)
 
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-seedStaleOdometer") || arguments.contains("-seedFreshOdometer") {
+            let age = arguments.contains("-seedStaleOdometer") ? 31 : 1
+            let readingDate = now.addingTimeInterval(TimeInterval(-age * 86_400))
+            var reading = makeHistoryService(vehicleId: vehicle.id, vendor: "Garage",
+                                             at: readingDate)
+            reading.odometer = 119_486
+            try? repository.upsertServiceRecord(reading)
+        }
+
         let oilChange = ReminderLifecycle.makeReminder(
             vehicleId: vehicle.id, title: "Oil change", category: .oil,
             dueDate: calendar.date(byAdding: .month, value: 18, to: now),
             dueOdometer: 119_486 + 15_000,
-            recurrence: Reminder.Recurrence(everyKm: 15_000, everyMonths: 12))
+            recurrence: arguments.contains("-seedTimeOnlyReminder")
+                ? Reminder.Recurrence(everyKm: nil, everyMonths: 12)
+                : Reminder.Recurrence(everyKm: 15_000, everyMonths: 12))
         try? repository.upsertReminder(oilChange)
     }
 

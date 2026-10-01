@@ -53,6 +53,7 @@ struct ServiceEntryView: View {
     @State var showDocumentCamera = false
     @State var showPagePhotoPicker = false
     @State var pageViewer: PageViewerTarget?
+    @State var rescanFailureIndex: Int?
     /// The parts on the shelf and the parts linked into this service (P3.2).
     @State private var shelfParts: [Expense] = []
     @State private var linkedParts: [Expense] = []
@@ -130,8 +131,12 @@ struct ServiceEntryView: View {
                     if let cap = invoiceSession.pageCapExceeded {
                         ServicePageCapNoteView(cap: cap)
                     }
-                    if !pages.isEmpty {
+                    if let failed = invoiceSession.failedPages.first {
+                        pageSaveFailureCard(failed)
+                    }
+                    if !pages.isEmpty || !invoiceSession.failedPages.isEmpty {
                         ServiceEntryPageStrip(pages: pages,
+                                              failedPages: invoiceSession.failedPages,
                                               selectedIndex: $selectedPageIndex,
                                               onAddPage: addPage,
                                               onAddPageFromPhotos: addPageFromPhotos,
@@ -207,10 +212,18 @@ struct ServiceEntryView: View {
         }
         .sheet(isPresented: $showDocumentCamera) {
             DocumentCamera(
-                onCancel: { showDocumentCamera = false },
+                onCancel: {
+                    showDocumentCamera = false
+                    rescanFailureIndex = nil
+                },
                 onResult: { images in
                     showDocumentCamera = false
-                    handleAddedPages(images)
+                    if let index = rescanFailureIndex {
+                        rescanFailureIndex = nil
+                        rescanFailedPage(images, at: index)
+                    } else {
+                        handleAddedPages(images)
+                    }
                 })
         }
         .sheet(isPresented: $showPagePhotoPicker) {
@@ -329,6 +342,7 @@ struct ServiceEntryView: View {
 
     private var saveEnabled: Bool {
         guard vehicle != nil else { return false }
+        guard invoiceSession.failedPages.isEmpty else { return false }
         if form.mode == .tires, form.tireSetId == nil { return false }
         // RV.212 + RV.214: the save gate is the one core rule the edit door also
         // calls. A service needs a vendor or a line item (a wholly blank one is
@@ -459,6 +473,7 @@ struct ServiceEntryView: View {
                     form.mode = .tires
                     form.tireSetId = tireSets.first?.id
                 }
+                seedPageSaveFailureIfRequested()
                 #endif
             }
             // Snapshots are taken AFTER the convenience pre-fills (odometer,
@@ -637,6 +652,9 @@ extension ServiceEntryView {
 
     private var saveHint: String {
         guard vehicle != nil else { return "" }
+        if !invoiceSession.failedPages.isEmpty {
+            return L10n.localize("Rescan the page or Continue with saved pages before saving.")
+        }
         return form.saveHint ?? ""
     }
 }

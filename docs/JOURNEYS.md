@@ -637,6 +637,11 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 | **Delete** | Gone (tombstone, 30-day undo like everything) | Distinct from **dismiss-with-reason**, which keeps history and teaches insights ("sold the tires") |
 | **Dismiss** (with an optional reason) | The row leaves the live list and moves to the **History** section at the foot of the reminders list (RV.248): the reason the alert collected is the row's caption ("Sold the tires"), and the completion count of the same title on the same car rides beside it. The alert's promise - *"It stays in your history – a reason helps the app learn"* - is now what the screen shows | A reason-less dismissal still reads as history ("Dismissed"). The reason is retained (synced) and displayed; the "learn" half the copy names is the insight logic, which is not built - the owner's 2026-09-12 decision (a) kept the copy and added the surface. *(RV.248: the history section is on the merged all-cars list and on a car's own list; the merged rows name their car.)* |
 
+For a distance recurrence whose car's last recorded odometer is more than 30
+days old (PJ.43), the completion sheet names that reading and offers **Edit
+odometer**. The edited reading anchors the next cycle; completing without an
+edit accepts the shown reading. Time-only recurrences never show this hint.
+
 **History** (RV.248). The terminal rows the live lists drop are read back at the foot of the
 reminders list: a done row names the entry its completion logged (tappable to that entry) or says
 "Completed" when the cost log was skipped, and carries how many times that title has been completed

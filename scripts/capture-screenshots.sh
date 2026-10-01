@@ -481,6 +481,8 @@ capture P3.1b-service-scan            en -seedServiceEntryScan -presentScreen se
 capture P3.1b-service-scan-ru         ru -seedServiceEntryScan -presentScreen serviceEntry
 capture P3.1b-service-scan-lump-sum   en -seedServiceEntryScanLumpSum -presentScreen serviceEntry
 capture P3.1b-service-scan-lump-sum-ru ru -seedServiceEntryScanLumpSum -presentScreen serviceEntry
+capture PJ.43-page-not-saved         en -seedServiceEntry -seedServicePageSaveFailure -presentScreen serviceEntry
+capture PJ.43-page-not-saved-ru      ru -seedServiceEntry -seedServicePageSaveFailure -presentScreen serviceEntry
 
 # RV.214: the create gate accepts a vendor-less untitled lump sum (the invoice
 # splitter's honest fallback, named by its category) and names what is missing
@@ -543,6 +545,8 @@ capture P3.4-reminder-form-ru     ru -seedReminders -seedReminderForm -presentSc
 # auto-opens the sheet over the seeded oil change - simctl cannot tap.
 capture P3.5-reminder-complete           en -seedReminderComplete -presentScreen reminders -presentReminderComplete
 capture P3.5-reminder-complete-ru        ru -seedReminderComplete -presentScreen reminders -presentReminderComplete
+capture PJ.43-stale-odometer            en -seedReminderComplete -seedStaleOdometer -presentScreen reminders -presentReminderComplete
+capture PJ.43-stale-odometer-ru         ru -seedReminderComplete -seedStaleOdometer -presentScreen reminders -presentReminderComplete
 # PJ.24: the same sheet with its two entry doors side by side - "Scan invoice"
 # and "Type amount" as peers (hard rule 15). RU is where "Сканировать счёт"
 # and the two-line description test the row's width.

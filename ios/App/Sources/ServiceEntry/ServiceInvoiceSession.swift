@@ -34,6 +34,7 @@ struct ServiceScanOutcome {
 @Observable
 final class ServiceInvoiceSession {
     var pendingPrefill: ServiceEntryPrefill?
+    var failedPages: [FailedInvoicePage] = []
     /// Bumped whenever a deferred read fills the open form after `load()`, so the
     /// view can apply a pre-fill that arrived late (the non-Equatable pages ride
     /// along, so the pre-fill itself cannot be an `onChange` trigger).
@@ -188,6 +189,7 @@ final class ServiceInvoiceSession {
     func discard() {
         deferred.cancel()
         pendingPrefill = nil
+        failedPages = []
         pendingGatewayExtraction = nil
         pageCapExceeded = nil
         gatewaySavedEntryID = nil

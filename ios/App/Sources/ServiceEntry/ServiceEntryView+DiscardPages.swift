@@ -56,6 +56,101 @@ extension ServiceEntryView {
 // The add/remove half of the page strip, beside the discard half above; the
 // sheet file sits at the linter's length ceiling.
 extension ServiceEntryView {
+    #if DEBUG
+    func seedPageSaveFailureIfRequested() {
+        guard ProcessInfo.processInfo.arguments.contains("-seedServicePageSaveFailure") else { return }
+        ServiceInvoiceScanner.debugFailPageIndex = 2
+        let image = InvoicePagePreview.image()
+        let result = ServiceInvoiceScanner.stagePagesResult(images: [image, image])
+        pages = result.pages
+        invoiceSession.failedPages = result.failures
+        form.attachments = result.pages.map(\.attachment.id)
+    }
+    #endif
+
+    /// The failed slot remains in the strip until one of these actions runs.
+    func pageSaveFailureCard(_ failure: FailedInvoicePage) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "exclamationmark.triangle")
+                Text(pageSaveFailureMessage(failure))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("serviceEntryPageSaveFailure")
+            }
+            .font(.footnote)
+            .foregroundStyle(Theme.Palette.warn)
+            HStack(spacing: 20) {
+                Button("Rescan page") {
+                    #if DEBUG
+                    if ProcessInfo.processInfo.arguments.contains("-seedServicePageSaveFailure") {
+                        rescanFailedPage([InvoicePagePreview.image()], at: failure.index)
+                    } else {
+                        rescanFailureIndex = failure.index
+                        showDocumentCamera = true
+                    }
+                    #else
+                    rescanFailureIndex = failure.index
+                    showDocumentCamera = true
+                    #endif
+                }
+                .accessibilityIdentifier("serviceEntryRescanPage")
+                Button("Continue") {
+                    rescanFailureIndex = nil
+                    invoiceSession.failedPages = invoiceSession.failedPages.compactMap { slot in
+                        guard slot.index != failure.index else { return nil }
+                        return FailedInvoicePage(index: slot.index > failure.index
+                                                 ? slot.index - 1 : slot.index,
+                                                 total: slot.total - 1)
+                    }
+                }
+                .accessibilityIdentifier("serviceEntryContinueSavedPages")
+            }
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(Theme.Palette.action)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.Palette.warn.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func pageSaveFailureMessage(_ failure: FailedInvoicePage) -> String {
+        let savedCount = max(0, failure.total - invoiceSession.failedPages.count)
+        let key: String
+        if savedCount == 0 {
+            key = "Page %1$@ didn't save – rescan it or continue without pages."
+        } else if savedCount == 1 {
+            key = "Page %1$@ didn't save – rescan it or continue with %2$@ page."
+        } else {
+            key = "Page %1$@ didn't save – rescan it or continue with %2$@ pages."
+        }
+        return String(format: L10n.localize(key),
+                      String(failure.index + 1), String(savedCount))
+    }
+
+    func rescanFailedPage(_ images: [UIImage], at index: Int) {
+        guard let first = images.first else { return }
+        Task {
+            let result = await ServiceInvoiceScanner.appendPagesResult(images: [first],
+                                                                      indexOffset: index)
+            if let page = result.pages.first {
+                pages.insert(page, at: min(index, pages.count))
+                selectedPageIndex = min(index, pages.count - 1)
+                invoiceSession.failedPages.removeAll { $0.index == index }
+            }
+            // DocumentCamera can return more than one frame. The first fills
+            // the failed slot; every extra frame still gets its own write.
+            if images.count > 1 {
+                let extra = await ServiceInvoiceScanner.appendPagesResult(
+                    images: Array(images.dropFirst()),
+                    indexOffset: pages.count + invoiceSession.failedPages.count)
+                pages.append(contentsOf: extra.pages)
+                invoiceSession.failedPages.append(contentsOf: extra.failures)
+            }
+            form.attachments = pages.map(\.attachment.id)
+        }
+    }
+
     func addPage() {
         showDocumentCamera = true
     }
@@ -86,8 +181,11 @@ extension ServiceEntryView {
             return
         }
         Task {
-            let newPages = await ServiceInvoiceScanner.appendPages(images: images)
-            pages.append(contentsOf: newPages)
+            let offset = pages.count + invoiceSession.failedPages.count
+            let result = await ServiceInvoiceScanner.appendPagesResult(images: images,
+                                                                       indexOffset: offset)
+            pages.append(contentsOf: result.pages)
+            invoiceSession.failedPages.append(contentsOf: result.failures)
             form.attachments = pages.map(\.attachment.id)
             selectedPageIndex = max(0, pages.count - 1)
         }
@@ -110,7 +208,6 @@ extension ServiceEntryView {
             AppLog.error(operation: "serviceEntry.pageRemoval", category: .ui, error: error)
         }
     }
-
 
     /// The typed service's door for its invoice (RV.332): the scanner or a
     /// photo already in Photos. Once a page is added the strip takes its place.
