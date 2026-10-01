@@ -73,16 +73,36 @@ class Synthetic(IterableDataset):
             yield rr.to_input(render(text, rng)), rr.encode(text)
 
 
+def shifted(strip: Image.Image, fraction: float) -> Image.Image:
+    """The strip's content moved `fraction` of its height down (negative: up), the vacated rows
+    filled with the nearest edge row - a locator box that sat high or low on the digits."""
+    arr = np.asarray(strip.convert("RGB"))
+    rows = int(round(fraction * arr.shape[0]))
+    if rows == 0:
+        return strip
+    out = np.roll(arr, rows, axis=0)
+    if rows > 0:
+        out[:rows] = arr[:1]
+    else:
+        out[rows:] = arr[-1:]
+    return Image.fromarray(out)
+
+
 class Real(Dataset):
-    def __init__(self, items: list[dict]):
+    def __init__(self, items: list[dict], vshift: float = 0.0, seed: int = 0):
         self.items = items
+        self.vshift = vshift
+        self.rng = np.random.default_rng(seed + 77)
 
     def __len__(self) -> int:
         return len(self.items)
 
     def __getitem__(self, i: int):
         it = self.items[i]
-        return rr.to_input(Image.open(it["strip"])), it["tokens"]
+        strip = Image.open(it["strip"])
+        if self.vshift > 0 and self.rng.random() < 0.5:
+            strip = shifted(strip, self.rng.uniform(-self.vshift, self.vshift))
+        return rr.to_input(strip), it["tokens"]
 
 
 def cap(items: list[dict], share: float, seed: int) -> list[dict]:
@@ -141,6 +161,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--cap", type=float, default=0.02)
     p.add_argument("--workers", type=int, default=5)
     p.add_argument("--max-hours", type=float, default=3.0)
+    p.add_argument("--vshift", type=float, default=0.0,
+                   help="shift half the real train strips up or down by up to this share of their height")
     args = p.parse_args(argv)
     torch.manual_seed(args.seed)
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
@@ -150,7 +172,7 @@ def main(argv: list[str] | None = None) -> int:
     train_real = cap([r for r in real if not rr.is_val_group(r["group"])], args.cap, args.seed)
     val_real = [r for r in real if rr.is_val_group(r["group"])]
     n_real = int(round(args.batch * args.real_frac))
-    real_loader = DataLoader(Real(train_real), batch_size=n_real, shuffle=True, drop_last=True,
+    real_loader = DataLoader(Real(train_real, args.vshift, args.seed), batch_size=n_real, shuffle=True, drop_last=True,
                              collate_fn=as_list, num_workers=2, persistent_workers=True)
     synth_loader = DataLoader(Synthetic(args.seed), batch_size=args.batch - n_real,
                               collate_fn=as_list, num_workers=args.workers, persistent_workers=True)

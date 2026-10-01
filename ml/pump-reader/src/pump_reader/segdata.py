@@ -36,6 +36,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--frame-step", type=int, default=1,
                         help="keep one in N owner-verified frames per record (1 = all)")
     parser.add_argument("--db", type=Path, default=None)
+    parser.add_argument("--pseudo", type=Path, default=None,
+                        help="JSON [[record, frame], ...]: unverified frames to add with their tracked quads "
+                             "(an experiment only - never a shipping export)")
     args = parser.parse_args(argv)
     con = corpus_db.connect(args.db)
     train_dir, held_dir = args.out / "train", args.out / "heldout"
@@ -83,6 +86,19 @@ def main(argv: list[str] | None = None) -> int:
                 train.append({"image": dst.name, "source": f"{record}/{frame}", "quads": quads})
                 counts["verified_frames"] += 1
                 counts["train_quads"] += len(quads)
+
+        if args.pseudo is not None:
+            counts["pseudo_frames"] = 0
+            for record, frame in json.loads(args.pseudo.read_text()):
+                t = corpus_db.tracked(record, con=con)
+                entry = t["frames"].get(frame) or {}
+                if not entry.get("windows") or entry.get("verified"):
+                    continue
+                dst = train_dir / f"{record}-{frame}"
+                save(Image.open(FRAMES / record / frame), dst, args.edge)
+                train.append({"image": dst.name, "source": f"{record}/{frame}",
+                              "quads": [wd["quad"] for wd in entry["windows"]]})
+                counts["pseudo_frames"] += 1
 
         for sub in NEGATIVE_FOLDERS:
             for path in sorted((FIX / sub).iterdir()):

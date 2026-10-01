@@ -2307,3 +2307,45 @@ display decision (`pump-068` to `priceOutOfBand`, `095` to `priceUnvalidated`, `
 `nothingClosed`, `201` refused as not a display), and commits two new wrong cells on `pump-055`
 (56.09 / 108.6 for 56.05 / 108.68). None of the losses is a read failure: every one is a located
 row the law or the display decision then refused, which is where a round 3 should look first.
+
+## PU.91 round 3: what moves the live read - seven experiments (2026-09-29 .. 10-01)
+
+All live numbers are the app path on the 68 heldout photos (183 scored cells), macOS unless marked,
+with the per-photo ledger diff (PU.56) beside each; the ledgers are in `runs/2026-09-30/ledgers/`.
+Two independent reviews of the round (`agents/reviews/PU.91-REVIEW-{codex,kimi}.md`) shaped G and
+the noise reading.
+
+**The finding that frames the rest: the reader is fragile to the box, not the locator to the row.**
+On hand boxes the reader reads 159/159; the same boxes 6 % narrower read 129, shifted down 8 % of
+their height 123, shifted right 3 % 135, while 6 % wider or 10 % taller cost nothing
+(`PumpBoxSensitivityTests`, `PUMP_BOX_SENSITIVITY=1`). Locators that differ by a few pixels flip
+whole photos: on every photo seg-r1 and seg-r2 disagree on, both find every row within +-0.05 IoU of
+each other. The locator's own metrics (IoU, recall@0.7, digit coverage) do not predict the live read.
+
+| Exp | What | Live with F, committed / correct | Verdict |
+|---|---|---|---|
+| A | wider read margins as the only read (4 settings) | 104/103 .. 123/121 (r1 alone 126/125) | worse - a wide strip takes a neighbour's ink |
+| **F** | **a second read at 0.3 / 0.1 margins when the first leaves the photo short** | **140/138** (sim 142/140) | **ships - PU.108** |
+| B | locator targets padded 3 % / 5 % per side | 115/112 (0.974) | worse - best coverage (195/252 windows >= 97 % inside), loosest boxes |
+| C1, C2 | seg-r1's exact data, seeds 1 and 2 | 129/127, 133/132 (seed 0 = r1: 140/138) | **the noise band: up to 11 cells between seeds**; C1 vs C2 differ on 8 photos |
+| D | seg-r1 fine-tuned on seg-r2's data | 134/132 | inside the seed band; dark heldout2 19/27 |
+| r2 | seg-r2 (new dark material, from scratch) | 139/136 (0.978) | inside the seed band on ordinary photos; dark 19/27 against the seeds' 12-15 |
+| E | seg-r2's data + 266 unverified frames where seg-r2 and the tracker agree | 133/130 (0.977) | no gain over r2; one new wrong cell |
+| G0 | the row reader retrained on the hand strips available (35 k) | 130/128 | the control for G |
+| G | + 16 542 strips cut from the locator's OWN boxes (standard and wide margins) | 137/136 | +8 over its control; box sensitivity flattens (jitter 138 -> 161, shorter 128 -> 152) except shifted down (129 -> 120) |
+| G2 s0/s1/s2 | G on the full hand export (73 k real strips) | 142/141, 134/134, 140/139 | mean 138 correct = the shipped reader's; fewer wrong cells |
+| **Gv s0/s1/s2** | **G2 + half the real strips shifted up or down by up to 10 % of their height** | **143/143, 140/139, 140/140** | **every seed at or above the shipped reader (138), none adds a wrong cell; shifted-down 147-156; ships - PU.109 (seed 0)** |
+
+**What the seeds settled.** Re-training seg-r1 on its own data moves the live read by up to 11 cells,
+so seg-r2's and D's "losses" were noise and their dark gain (17-19 of 27 against 12-15) is the
+real signal; the locator cannot be chosen on 68 photos by a few cells. A candidate is believed when
+every seed points the same way, or a photo-level split of about 6:2 - the rule the reviews
+proposed, adopted for the next locator round.
+
+**What ships.** F and the Gv seed-0 reader, together: F alone commits two cautioned wrong cells,
+which put the reader's precision at 0.986, under `PumpPhotoGate.precisionThreshold` (0.99) while
+pump photo is on; Gv reads both right. The reader reads the hand boxes a little worse than before
+(annotated tier 151-155 on macOS against 157-160), the trade for reading the app's own boxes
+better. On the iOS 27 simulator the shipped pair measures live 145 / 144 (0.993), annotated 154 / 154,
+pump composite 150 / 186. The annotated floor, checked on macOS, moves 154 -> 151 (151 / 151, precision
+1.000): the live path gains 17 cells for the 3 this tier gives up.

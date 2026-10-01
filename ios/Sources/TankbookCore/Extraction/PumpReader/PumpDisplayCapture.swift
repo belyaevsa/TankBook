@@ -334,22 +334,62 @@ public enum PumpDisplayCapture {
                          rotationCW: Int? = nil,
                          trace: PumpTrace? = nil) -> (detection: Detection, reading: Reading?) {
         let rgb = PumpQuadWarp.rgbImage(from: image)
-        let decision = decide(rgb: rgb, reader: reader.reader, budget: budget, seed: rotationCW, trace: trace)
+        let request = ReadRequest(currency: currency, priceBand: priceBand, budget: budget, rotationCW: rotationCW)
+        let first = classifyOnce(rgb: rgb, reader: reader.reader, request: request, trace: trace)
+        // A photo the first read leaves short - not taken for a display, or
+        // fewer than all three fields committed - is read again with the wide
+        // margins, and the reading that commits more fields is kept; a tie
+        // keeps the first. A photo read whole pays nothing.
+        let firstCount = first.reading?.law.committedCount ?? 0
+        guard firstCount < 3 else { return first }
+        var wide = reader.reader
+        wide.detectedMargins = .wide
+        let firstChosen = trace?.chosen
+        let attemptsBefore = trace?.attempts.count ?? 0
+        let second = classifyOnce(rgb: rgb, reader: wide, request: request, trace: trace)
+        if let trace {
+            for index in attemptsBefore..<trace.attempts.count { trace.attempts[index].kind += "+wideMargins" }
+        }
+        guard (second.reading?.law.committedCount ?? 0) > firstCount else {
+            trace?.chosen = firstChosen
+            return first
+        }
+        // The detection travels with the reading it produced, so the display
+        // verdict and the crops the form shows describe the same pass.
+        return second
+    }
+
+    /// What one classification pass is asked to read under.
+    private struct ReadRequest {
+        let currency: CurrencyCode?
+        let priceBand: FuelPriceBand?
+        let budget: TimeInterval
+        let rotationCW: Int?
+    }
+
+    /// One pass of the classification with the reader as given: decide at the
+    /// seed, read, and search another orientation or the turned rows only when
+    /// that reads nothing.
+    private static func classifyOnce(rgb: PumpRGBImage, reader: PumpReader, request: ReadRequest,
+                                     trace: PumpTrace?) -> (detection: Detection, reading: Reading?) {
+        let currency = request.currency, priceBand = request.priceBand
+        let budget = request.budget, rotationCW = request.rotationCW
+        let decision = decide(rgb: rgb, reader: reader, budget: budget, seed: rotationCW, trace: trace)
         let seedAttempt = trace.map { $0.attempts.count - 1 }
         guard decision.detection.isPumpDisplay else { return (decision.detection, nil) }
-        let seedReading = readDecision(decision, reader: reader.reader, currency: currency, priceBand: priceBand,
+        let seedReading = readDecision(decision, reader: reader, currency: currency, priceBand: priceBand,
                                        trace: trace)
         trace?.chosen = seedReading == nil ? nil : seedAttempt
         if commits(seedReading) { return (decision.detection, seedReading) }
         // The seed orientation read nothing: a display sideways in an upright
         // frame is read upright here.
-        let orientation = reader.reader.bestOrientation(for: rgb, seed: rotationCW, trace: trace)
+        let orientation = reader.bestOrientation(for: rgb, seed: rotationCW, trace: trace)
         if orientation != decision.rotationCW {
-            let searched = decideAt(rgb: rgb, rotationCW: orientation, reader: reader.reader, budget: budget,
+            let searched = decideAt(rgb: rgb, rotationCW: orientation, reader: reader, budget: budget,
                                     trace: trace)
             trace?.current?.kind = "searched"
             if searched.detection.isPumpDisplay,
-               let searchedReading = readDecision(searched, reader: reader.reader, currency: currency,
+               let searchedReading = readDecision(searched, reader: reader, currency: currency,
                                                   priceBand: priceBand, trace: trace),
                commits(searchedReading) {
                 trace?.chosen = trace.map { $0.attempts.count - 1 }
@@ -358,14 +398,14 @@ public enum PumpDisplayCapture {
         }
         // Still nothing: the detector rows turned to their digits' angle, at the
         // seed orientation, when the reader is set to retry that way.
-        if reader.reader.deskew == .onRefusal {
+        if reader.deskew == .onRefusal {
             trace?.begin("turned", rotationCW: decision.rotationCW, upright: decision.upright)
             trace?.current?.detection = decision.detection
-            let candidates = reader.reader.candidates(for: decision.upright, deskewRows: true)
+            let candidates = reader.candidates(for: decision.upright, deskewRows: true)
             trace?.current?.candidates = candidates
-            if let verified = try? reader.reader.verify(image: decision.upright, candidates: candidates, trace: trace),
+            if let verified = try? reader.verify(image: decision.upright, candidates: candidates, trace: trace),
                let turned = reading(from: verified, rgb: decision.upright, detection: decision.detection,
-                                    reader: reader.reader, currency: currency, priceBand: priceBand,
+                                    reader: reader, currency: currency, priceBand: priceBand,
                                     rotationCW: decision.rotationCW, trace: trace),
                commits(turned) {
                 trace?.chosen = trace.map { $0.attempts.count - 1 }

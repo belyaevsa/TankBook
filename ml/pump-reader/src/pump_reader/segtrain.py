@@ -45,9 +45,24 @@ def letterbox(img: np.ndarray) -> tuple[np.ndarray, float]:
     return canvas, s
 
 
+def padded(quad: np.ndarray, pad_w: float, pad_h: float) -> np.ndarray:
+    """A TL,TR,BR,BL quad grown along its own axes: `pad_w` of its width on the
+    left and right, `pad_h` of its height above and below. The reader forgives a
+    box with margin and punishes one that cuts a digit, so a locator trained on
+    padded targets errs the way the reader can afford."""
+    if pad_w == 0 and pad_h == 0:
+        return quad
+    u = (quad[1] - quad[0] + quad[2] - quad[3]) / 2
+    v = (quad[3] - quad[0] + quad[2] - quad[1]) / 2
+    signs = np.array([[-1, -1], [1, -1], [1, 1], [-1, 1]], np.float64)
+    return quad + signs[:, :1] * pad_w * u + signs[:, 1:] * pad_h * v
+
+
 class SegDataset(Dataset):
-    def __init__(self, folder: Path, entries: list[dict], seed: int, augment: bool):
+    def __init__(self, folder: Path, entries: list[dict], seed: int, augment: bool,
+                 pad_w: float = 0.0, pad_h: float = 0.0):
         self.folder, self.entries, self.augment = folder, entries, augment
+        self.pad_w, self.pad_h = pad_w, pad_h
         self.rng = np.random.default_rng(seed)
 
     def __len__(self) -> int:
@@ -57,7 +72,7 @@ class SegDataset(Dataset):
         e = self.entries[i]
         img = cv2.cvtColor(cv2.imread(str(self.folder / e["image"])), cv2.COLOR_BGR2RGB)
         h, w = img.shape[:2]
-        quads = [np.array(q, np.float64) * [w, h] for q in e["quads"]]
+        quads = [padded(np.array(q, np.float64) * [w, h], self.pad_w, self.pad_h) for q in e["quads"]]
         rng = np.random.default_rng(self.rng.integers(1 << 31) + i) if self.augment else None
         if self.augment:
             u = rng.random()
@@ -94,6 +109,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--width", type=int, default=16)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--workers", type=int, default=6)
+    p.add_argument("--pad-w", type=float, default=0.0, help="grow each target quad by this share of its width, per side")
+    p.add_argument("--pad-h", type=float, default=0.0, help="grow each target quad by this share of its height, per side")
+    p.add_argument("--init", type=Path, default=None, help="start from this segnet.pt (a warm start)")
     args = p.parse_args(argv)
     torch.manual_seed(args.seed)
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
@@ -103,9 +121,13 @@ def main(argv: list[str] | None = None) -> int:
     val = [e for e in entries if is_val(e)]
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "split.json").write_text(json.dumps({"train": len(train), "val": [e["source"] for e in val]}))
-    loader = DataLoader(SegDataset(folder, train, args.seed, True), batch_size=args.batch, shuffle=True,
+    loader = DataLoader(SegDataset(folder, train, args.seed, True, args.pad_w, args.pad_h),
+                        batch_size=args.batch, shuffle=True,
                         num_workers=args.workers, persistent_workers=args.workers > 0, drop_last=True)
-    model = segnet.SegNet(args.width).to(device)
+    model = segnet.SegNet(args.width)
+    if args.init is not None:
+        model.load_state_dict(torch.load(args.init, map_location="cpu")["state_dict"])
+    model = model.to(device)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, total_steps=args.steps, pct_start=0.05)
     step, t0, running = 0, time.time(), []

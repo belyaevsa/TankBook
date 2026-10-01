@@ -35,6 +35,8 @@ struct PumpReader {
     /// window's strip whole, in place of the slicer and the cell classifier.
     /// Verification and orientation still use the slicer and the classifier.
     var rowReader: PumpRowReader?
+    /// The margins detected quads are widened by (`DetectedMargins`).
+    var detectedMargins = DetectedMargins.standard
 
     init(model: PumpSegmentsModel, detector: PumpRowDetector? = nil, deskew: DeskewMode = .off,
          rowReader: PumpRowReader? = nil) {
@@ -128,6 +130,19 @@ struct PumpReader {
     static let detectedMarginHorizontal: CGFloat = 0.1
     static let detectedMarginVertical: CGFloat = 0
 
+    /// The margins a detected quad is widened by before slicing, in row heights
+    /// each side. `standard` is the single-read setting measured above. `wide`
+    /// is the second read's (`PumpDisplayCapture.classify`): on its own it reads
+    /// fewer photos, but it reads some the standard margins cannot, so a photo
+    /// the first read leaves short is read again at `wide` and the reading that
+    /// commits more is kept.
+    struct DetectedMargins: Equatable, Sendable {
+        let horizontal: CGFloat
+        let vertical: CGFloat
+        static let standard = DetectedMargins(horizontal: detectedMarginHorizontal, vertical: detectedMarginVertical)
+        static let wide = DetectedMargins(horizontal: 0.3, vertical: 0.1)
+    }
+
     /// The strip and cells a candidate is judged on. A detected box is sliced
     /// widened and as it came, and the widened slice stands only when it found
     /// at least as many cells: the margin exists to recover a clipped edge
@@ -144,7 +159,8 @@ struct PumpReader {
         let fullCells: [GlyphCell]
     }
 
-    static func sliceDetectedOrOriginal(_ original: [CGPoint], detected: Bool, in image: PumpRGBImage) -> SlicedCandidate? {
+    static func sliceDetectedOrOriginal(_ original: [CGPoint], detected: Bool, in image: PumpRGBImage,
+                                        margins: DetectedMargins = .standard) -> SlicedCandidate? {
         func slice(_ quad: [CGPoint]) -> SlicedCandidate? {
             let rgb = PumpQuadWarp.warpToStripPixels(rgb: image, quad: quad, stripHeight: Self.stripHeight)
             let cells = PumpGlyphSlicer.slice(rgb.grayscale())
@@ -152,13 +168,15 @@ struct PumpReader {
                                    cells: cells.filter { !$0.isBlank }, fullCells: cells)
         }
         guard let plain = slice(original) else { return nil }
-        guard detected, let wide = slice(widened(original, in: image)), wide.cells.count >= plain.cells.count else {
+        guard detected, let wide = slice(widened(original, in: image, margins: margins)),
+              wide.cells.count >= plain.cells.count else {
             return plain
         }
         return wide
     }
 
-    static func widened(_ quad: [CGPoint], in image: PumpRGBImage) -> [CGPoint] {
+    static func widened(_ quad: [CGPoint], in image: PumpRGBImage,
+                        margins: DetectedMargins = .standard) -> [CGPoint] {
         // A turned box widens along its own axes; rebuilding it from its upright
         // bounds would undo the turn.
         if quad.count == 4, abs(quad[1].y - quad[0].y) > 0.5 {
@@ -166,7 +184,7 @@ struct PumpReader {
             let v = CGPoint(x: quad[3].x - quad[0].x, y: quad[3].y - quad[0].y)
             let lu = max(hypot(u.x, u.y), 1), lv = max(hypot(v.x, v.y), 1)
             let ux = u.x / lu, uy = u.y / lu, vx = v.x / lv, vy = v.y / lv
-            let dx = detectedMarginHorizontal * lv, dy = detectedMarginVertical * lv
+            let dx = margins.horizontal * lv, dy = margins.vertical * lv
             let signs: [(CGFloat, CGFloat)] = [(-1, -1), (1, -1), (1, 1), (-1, 1)]
             return zip(quad, signs).map { p, sign in
                 CGPoint(x: min(max(p.x + sign.0 * dx * ux + sign.1 * dy * vx, 0), CGFloat(image.width)),
@@ -174,8 +192,8 @@ struct PumpReader {
             }
         }
         let b = PumpRowAssignment.bounds(quad, rotationCW: 0)
-        let dx = detectedMarginHorizontal * b.height
-        let dy = detectedMarginVertical * b.height
+        let dx = margins.horizontal * b.height
+        let dy = margins.vertical * b.height
         let minX = max(0, b.minX - dx), maxX = min(CGFloat(image.width), b.maxX + dx)
         let minY = max(0, b.minY - dy), maxY = min(CGFloat(image.height), b.maxY + dy)
         return [CGPoint(x: minX, y: minY), CGPoint(x: maxX, y: minY),
@@ -440,7 +458,8 @@ struct PumpReader {
             let edge = Self.frameEdgeFraction * CGFloat(image.height)
             let touchesEdge = originalYs.min()! <= edge || originalYs.max()! >= CGFloat(image.height) - edge
             let sliced = heightFraction >= Self.minimumRowHeightFraction && !touchesEdge
-                ? Self.sliceDetectedOrOriginal(original, detected: candidate.detected, in: image) : nil
+                ? Self.sliceDetectedOrOriginal(original, detected: candidate.detected, in: image,
+                                               margins: detectedMargins) : nil
             guard let sliced else {
                 let reasons = heightFraction < Self.minimumRowHeightFraction ? ["tooShort"]
                     : touchesEdge ? ["atFrameEdge"] : ["unsliceable"]

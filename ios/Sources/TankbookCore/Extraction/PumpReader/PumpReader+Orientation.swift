@@ -87,7 +87,8 @@ extension PumpReader {
         var ink: CGFloat = 0
         for row in detectedRows(for: upright) where row.confidence >= Self.searchMinimumConfidence {
             let pixels = row.quad.map { CGPoint(x: $0.x * CGFloat(upright.width), y: $0.y * CGFloat(upright.height)) }
-            guard let sliced = Self.sliceDetectedOrOriginal(pixels, detected: true, in: upright) else { continue }
+            guard let sliced = Self.sliceDetectedOrOriginal(pixels, detected: true, in: upright,
+                                                            margins: detectedMargins) else { continue }
             let geometry = PumpRowGeometry.verdict(cells: sliced.fullCells, stripWidth: sliced.rgb.width,
                                                    stripHeight: sliced.rgb.height)
             guard geometry.kept else { continue }
@@ -104,7 +105,8 @@ extension PumpReader {
         var margins: [Double] = []
         for row in detectedRows(for: upright) where row.confidence >= Self.searchMinimumConfidence {
             let pixels = row.quad.map { CGPoint(x: $0.x * CGFloat(upright.width), y: $0.y * CGFloat(upright.height)) }
-            guard let sliced = Self.sliceDetectedOrOriginal(pixels, detected: true, in: upright),
+            guard let sliced = Self.sliceDetectedOrOriginal(pixels, detected: true, in: upright,
+                                                            margins: detectedMargins),
                   PumpRowGeometry.verdict(cells: sliced.fullCells, stripWidth: sliced.rgb.width,
                                           stripHeight: sliced.rgb.height).kept,
                   !sliced.cells.isEmpty, sliced.cells.count <= PumpReadingLaw.maxCells else { continue }

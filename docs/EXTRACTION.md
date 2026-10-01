@@ -1477,6 +1477,25 @@ the work is its source: the car, then the currency the display prints (the Visio
 reads `€/L`, `EUR`, `руб`), then the region - never "any currency that closes". *(Superseded as
 a gate by PU.100 above. The ranking order and the decade risk stand.)*
 
+### The second read: wide margins when the first read leaves the photo short (PU.108, 2026-10-01)
+
+A located row is widened before it is sliced (`PumpReader.DetectedMargins.standard`: 0.1 row heights
+sideways, none vertically). Measured as the only read, wider margins lose (PU.91 experiment A: 0.3 / 0.1
+reads 123/121 against 126/125 on macOS; 0.5 / 0.15 reads 104/103) - a wider strip takes in a
+neighbouring row's ink and the law refuses it. But on some photos the wide strip is the one that
+closes, so `PumpDisplayCapture.classify` reads a photo **twice when the first read leaves it short**:
+not taken for a display, or fewer than all three fields committed. The second pass runs the whole
+classification again with `DetectedMargins.wide` (0.3 / 0.1), and the reading that commits more
+fields is kept, with the detection it came from; a tie keeps the first. A photo read whole pays
+nothing. On the iOS 27 simulator: the reader's live path 128/127 -> **142/140** (both wrong cells
+cautioned), the composite pump score 141 -> **147** of 186; the per-photo ledger (PU.56) shows 13 cells
+gained and none lost against the single read. The cost is a second classification on the photos the
+first read leaves short (the live test ran 438 s against 228 s on macOS). The trace marks the second
+pass's attempts `+wideMargins` in the pipeline view. Taken from the PU.91 experiments
+(`ml/pump-reader/REPORT.md`, `agents/reviews/PU.91-REVIEW-*.md`); a reviewer's suggestion to hand
+both margins' candidates to the law per field is not built - it widens the chance of a coincidental
+close, and the whole-photo choice already holds precision.
+
 ### Pump photo is on (product owner, 2026-09-26)
 
 **The ship decision (PU.6):** with the reader at 119 committed / 118 correct of 183 heldout cells
@@ -1526,28 +1545,22 @@ The plan and the owner's part of it (captures, frame verification, decisions) ar
 
 ### Model registry
 
-Every on-device model the pump reader has trained, what it is for, whether it ships, and what it
-measured. **A row that ships, retires or refuses a model updates this table in the same change.**
-Numbers are the heldout split's (68 stills, 183 numeric cells, 252 hand quads) unless marked;
+The on-device models the app ships, what each is for and what it measured. **A row that ships or
+replaces a model updates this table in the same change**; refused, retired and spike candidates are
+not listed (product owner, 2026-10-01) - their numbers stay in `ml/pump-reader/REPORT.md` and the
+`docs/TASKS-DONE.md` rows that tried them, and every model ever pushed stays in the corpus bucket
+under `models/<id>/` (`scripts/corpus-sync.py` only uploads, so `pull --models <id>` still restores
+one). Numbers are the heldout split's (68 stills, 183 numeric cells, 252 hand quads) unless marked;
 "annotated" is `gateMirror` (hand quads), "live" is the app's `classify` path, both scored at
-`CorpusScorer.tolerance`. Candidates live under `ml/pump-reader/.out/` (gitignored, not committed);
-only shipped and tool models are in the tree. Every model below - its files, checkpoint, metrics and
-a `meta.json` - is mirrored to the corpus bucket beside the media (`tankbook-corpus`, `models/<id>/`)
-by `scripts/corpus-sync.py push --models`, from the machine-readable twin of this table,
-`ml/pump-reader/models.json`; `pull --models <id>|all` restores them in place.
+`CorpusScorer.tolerance`. Candidates live under `ml/pump-reader/.out/` (gitignored, not committed).
+The machine-readable twin of this table is `ml/pump-reader/models.json`, which `corpus-sync.py push
+--models` mirrors to the bucket.
 
 | Model | Role | Status | File | Size | Trained on | Heldout benchmark | Row |
 |---|---|---|---|---|---|---|---|
 | `PumpSegments` (round 6) | cell classifier: 7 segments + dp, 32 x 48 crop; since PU.89 the verifier's and the orientation search's reader, no longer the transaction read | **shipped** | `ios/App/Resources/PumpSegments.mlpackage` | 64 KB, 24 328 params | synthetic renders + 30 % real glyphs (25 085 cells) | annotated **126 / 126**; live **62 / 61** with `RowSeg` (47 / 47 with `DigitRows`); dp AUC 0.653 | PU.31 (`ml/pump-reader/REPORT.md` round 6, 2026-09-20) |
 | `RowSeg` (seg-r1) | row locator: PixelLink pixel + link segmenter, oriented quads | **shipped** (2026-09-25) | `ios/App/Resources/RowSeg.mlpackage` | 1.8 MB, 0.91 M params | 256 train stills + 275 owner-verified frames + 116 negatives, hand quads | rotated gate: median IoU **0.861**, recall@0.7 **0.885**, false rows/photo **0.088**, 65 / 68 photos every row; 26.5-29.8 ms (Mac Release) | PU.76, PU.87 |
-| `RowSeg` (seg-r2) | row locator: seg-r1 retrained with the dark-display material (PU.91 round 2) | **refused** (2026-09-28) | `ml/pump-reader/.out/seg-r2/` (bucket `models/rowseg-seg-r2/`) | 1.8 MB, 0.91 M params | 284 train stills + 288 owner-verified frames + 128 negatives | rotated gate: median IoU 0.857, recall@0.7 0.889, false rows/photo 0.074; dark heldout2 recall@0.7 **19/27** (seg-r1 15/27), the TFT still 3/3 (0/3); but the app path **135 / 186** heldout cells (seg-r1 141) and live 130 committed / 127 correct (0.977, under the 0.98 floor): 16 of 68 heldout photos read differently, gains and losses both on ordinary heads - used only as the proposer for the owner's frame verification (`pump_reader.segdisagree`) | PU.91 |
-| `DigitRows` | row locator: Create ML object detector, upright boxes | retired from the app; tools only | `ml/pump-reader/detector/DigitRows.mlmodel` | 31.75 MB | 692 train stills / frames (2026-09-20 export) | rotated gate: median IoU 0.771, recall@0.7 0.667, false rows/photo 0.647; live 47 / 47; 9.1-9.5 ms | PU.33 |
-| `DigitRows-pu48` | detector retrain on a week's records | refused | `.out/det/pu48/` | 31.75 MB | + batches 6-9 (tracked frames) | live 41 / 39 (0.951): pump-092 clipped | PU.48 (cut) |
-| `DigitRows-pu66`, `-pu66b`, `-pu66c` | detector retrains with rotated photos | refused | `.out/det/pu66*/` | 31.75 MB each | + rotations; round 3 hand boxes only | round 3 median IoU 0.790 (upright metric); every retrain read wrong on heldout | PU.66 (cut) |
-| PU.73 heads (`flatten`, `coord`) | classifier head variants | refused | `.out/pu73-*/` | 88 KB (36 104 params), 24 616 params | the round 6 pool | flatten lifts dp AUC 0.682 -> 0.726 and adds wrong live readings on every seed | PU.73 |
-| PU.82 classifiers (full, hand, flatten x 3 seeds) | classifier on a fresh pool / the owner-verified hand-box pool | refused | `.out/pu82-*/` | 64-88 KB | full 172 318 cells, hand-only 6 236 | means (correct) annotated 116.3 / 112.3 / 117.3, live 45.0 / 41.0 / 41.3 against 126 / 47 | PU.82 |
-| `RowRead` (PU.77 seed 1) | row reader: CRNN + CTC over a 32 px strip, a whole row as a sequence | **shipped** (2026-09-25) | `ios/App/Resources/RowRead.mlpackage` (`pump_reader.rowexport`) | 3.9 MB fp32, 1 010 668 params | 50 287 real strips (2 % cap per source) + corpus-calibrated synthetic | live **117 / 116**, annotated **154 / 153** (both wrong cells cautioned); 40 / 68 photos every field; 2.6 ms per window (Mac Release) | PU.77, PU.86, PU.89 |
-| PU.77 row reader (CRNN + CTC, 3 seeds) | reads a whole row as a sequence, no slicing | spike; seed 1 shipped as `RowRead` | `.out/pu77-s*/` | 1 010 668 params (~2 MB fp16) | 50 287 real strips (2 % cap per source) + corpus-calibrated synthetic | exact string **0.887-0.903** against 0.564; law over it 152-163 correct at 0.987-0.993 (bar 0.99; PU.86) | PU.77 |
+| `RowRead` (PU.109, Gv seed 0) | row reader: CRNN + CTC over a 32 px strip, a whole row as a sequence | **shipped** (2026-10-01) | `ios/App/Resources/RowRead.mlpackage` (`pump_reader.rowexport`) | 3.9 MB fp32 | 73 384 real strips (58 399 capped): the hand export plus 16 542 strips cut from the locator's own boxes at both margins; half shifted vertically by up to 10 % | iOS 27 sim with the second read: live **145 / 144** (0.993), annotated **154 / 154**, 49 / 68 photos every field, composite 150 / 186 | PU.91, PU.109 |
 
 ### The constraint no model changes
 

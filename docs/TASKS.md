@@ -730,6 +730,8 @@ dispatch ledger moved to `docs/TASKS-HISTORY.md`.*
 | PU.41 | (J4 pump display photo) Round 11: retrain the classifier on the verified corpus, glitches inclu | `[cut]` | TASKS-DONE.md · PU · Pump reader – a trained seven-segment reader, not OCR (2026-09-18) |
 | PU.56 | (no-scenario: how the pump reader is measured) The live floor becomes a per-reason, per-head le | `[x]` | TASKS-DONE.md · PU · Pump reader – a trained seven-segment reader, not OCR (2026-09-18) |
 | PU.75 | no-scenario: speed on the phone the app targets (J4's latency) Batched predictions, vectorised | `[x]` | TASKS-DONE.md · PU · Pump reader – a trained seven-segment reader, not OCR (2026-09-18) |
+| PU.108 | (J4 pump display photo) A photo the first read leaves short is read again with wide margins, an | `[x]` | TASKS-DONE.md · PU · Pump reader – a trained seven-segment reader, not OCR (2026-09-18) |
+| PU.109 | (J4 pump display photo) The row reader learns the strips the app actually cuts | `[x]` | TASKS-DONE.md · PU · Pump reader – a trained seven-segment reader, not OCR (2026-09-18) |
 | AD.1 | no-scenario: the decision record the AD rows are built from The decision, written down | `[x]` | TASKS-DONE.md · AD · Debug cases and the admin viewer (product owner, 2026-09-24) |
 | AD.3 | (F2 scan recognised WRONG data; F1 scan recognised nothing) POST /cases and the case store | `[x]` | TASKS-DONE.md · AD · Debug cases and the admin viewer (product owner, 2026-09-24) |
 | DC.2 | no-scenario: the owner's debugging path (what a tester's case carries) The device keeps its las | `[x]` | TASKS-DONE.md · AD · Debug cases and the admin viewer (product owner, 2026-09-24) |

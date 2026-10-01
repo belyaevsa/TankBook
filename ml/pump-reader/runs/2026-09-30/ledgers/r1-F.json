@@ -1,0 +1,1487 @@
+{
+  "about" : "One row per scored still of the live arm; scripts\/pump-live-diff.py diffs two.",
+  "detector" : "RowSeg.mlpackage",
+  "stills" : [
+    {
+      "fields" : {
+        "liters" : {
+          "outcome" : "abstained",
+          "want" : 20
+        },
+        "total" : {
+          "outcome" : "abstained",
+          "want" : 1098
+        },
+        "unitPrice" : {
+          "outcome" : "abstained",
+          "want" : 54.9
+        }
+      },
+      "head" : "other",
+      "name" : "pump-008-topaz-video-overlay-92-ru.png",
+      "reason" : "notADisplay",
+      "split" : "heldout"
+    },
+    {
+      "caution" : "unclosed",
+      "fields" : {
+        "liters" : {
+          "outcome" : "abstained",
+          "want" : 3.92,
+          "warned" : 3.9200000000000004
+        },
+        "total" : {
+          "outcome" : "unscored",
+          "warned" : 7.01
+        },
+        "unitPrice" : {
+          "outcome" : "unscored",
+          "warned" : 1.884
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-014-dresser-wayne-ee-glare-partial.heic",
+      "reason" : "nothingClosed",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "outcome" : "abstained",
+          "want" : 45.22
+        },
+        "total" : {
+          "outcome" : "abstained",
+          "want" : 79.32
+        },
+        "unitPrice" : {
+          "outcome" : "abstained",
+          "want" : 1.754
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-019-gilbarco-circlek-sikupilli-pump8-ee.jpg",
+      "reason" : "notADisplay",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "outcome" : "abstained",
+          "want" : 29.65
+        },
+        "total" : {
+          "outcome" : "abstained",
+          "want" : 51.71
+        },
+        "unitPrice" : {
+          "outcome" : "unscored"
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-023-wayne-circlek-glare-ee.jpg",
+      "reason" : "notADisplay",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 25.509999999999998,
+          "outcome" : "right",
+          "want" : 25.51
+        },
+        "total" : {
+          "got" : 49.08,
+          "outcome" : "right",
+          "want" : 49.08
+        },
+        "unitPrice" : {
+          "got" : 1.9240000000000002,
+          "outcome" : "right",
+          "want" : 1.924
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-028-gilbarco-circlek-ee-comma-decimal-b.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 54,
+          "outcome" : "right",
+          "want" : 54
+        },
+        "total" : {
+          "got" : 3695.7599999999998,
+          "outcome" : "right",
+          "want" : 3695.76
+        },
+        "unitPrice" : {
+          "got" : 68.44,
+          "outcome" : "right",
+          "want" : 68.44
+        }
+      },
+      "head" : "tokheim",
+      "name" : "pump-030-tokheim-zolotaya-seredina-tver-ru-comma.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 16.8,
+          "outcome" : "right",
+          "want" : 16.8
+        },
+        "total" : {
+          "got" : 32.58,
+          "outcome" : "unscored"
+        },
+        "unitPrice" : {
+          "got" : 1.939,
+          "outcome" : "right",
+          "want" : 1.939
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-031-gilbarco-circlek-ee-discount-mismatch.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 11.379999999999999,
+          "outcome" : "right",
+          "want" : 11.38
+        },
+        "total" : {
+          "got" : 20.02,
+          "outcome" : "right",
+          "want" : 20.02
+        },
+        "unitPrice" : {
+          "got" : 1.759,
+          "outcome" : "right",
+          "want" : 1.759
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-032-gilbarco-circlek-ee-clean.jpg",
+      "split" : "heldout"
+    },
+    {
+      "caution" : "shownPriceDiffers",
+      "fields" : {
+        "liters" : {
+          "got" : 44.96,
+          "outcome" : "right",
+          "want" : 44.96
+        },
+        "total" : {
+          "got" : 82.01,
+          "outcome" : "right",
+          "want" : 82.01
+        },
+        "unitPrice" : {
+          "outcome" : "unscored",
+          "reason" : "priceDisagrees"
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-035-dresser-wayne-circlek-ee-rain-pump8.jpg",
+      "split" : "heldout"
+    },
+    {
+      "caution" : "unclosed",
+      "fields" : {
+        "liters" : {
+          "outcome" : "abstained",
+          "want" : 44.03,
+          "warned" : 44.03
+        },
+        "total" : {
+          "outcome" : "abstained",
+          "want" : 77.45
+        },
+        "unitPrice" : {
+          "outcome" : "abstained",
+          "want" : 1.759
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-038-dresser-wayne-circlek-ee-reflection-95.jpg",
+      "reason" : "noTotalWindow",
+      "split" : "heldout"
+    },
+    {
+      "caution" : "shownPriceDiffers",
+      "fields" : {
+        "liters" : {
+          "got" : 30.619999999999997,
+          "outcome" : "right",
+          "want" : 30.62
+        },
+        "total" : {
+          "got" : 54.92999999999999,
+          "outcome" : "unscored"
+        },
+        "unitPrice" : {
+          "outcome" : "abstained",
+          "reason" : "priceDisagrees",
+          "want" : 1.784
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-041-dresser-wayne-circlek-ee-glare-total.jpg",
+      "split" : "heldout"
+    },
+    {
+      "caution" : "shownPriceDiffers",
+      "fields" : {
+        "liters" : {
+          "got" : 11.34,
+          "outcome" : "right",
+          "want" : 11.34
+        },
+        "total" : {
+          "got" : 20,
+          "outcome" : "right",
+          "want" : 20
+        },
+        "unitPrice" : {
+          "outcome" : "unscored",
+          "reason" : "priceDisagrees"
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-042-dresser-wayne-circlek-ee-preset-20eur.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 12.629999999999999,
+          "outcome" : "right",
+          "want" : 12.63
+        },
+        "total" : {
+          "got" : 22.22,
+          "outcome" : "right",
+          "want" : 22.22
+        },
+        "unitPrice" : {
+          "got" : 1.759,
+          "outcome" : "right",
+          "want" : 1.759
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-046-gilbarco-circlek-ee-pump7-95-badge.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 10.540000000000001,
+          "outcome" : "right",
+          "want" : 10.54
+        },
+        "total" : {
+          "got" : 20.330000000000002,
+          "outcome" : "right",
+          "want" : 20.33
+        },
+        "unitPrice" : {
+          "got" : 1.9289999999999998,
+          "outcome" : "right",
+          "want" : 1.929
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-050-gilbarco-circlek-ee-1929.jpg",
+      "split" : "heldout"
+    },
+    {
+      "caution" : "shownPriceDiffers",
+      "fields" : {
+        "liters" : {
+          "got" : 56.089999999999996,
+          "outcome" : "wrong",
+          "want" : 56.05
+        },
+        "total" : {
+          "got" : 108.67999999999999,
+          "outcome" : "right",
+          "want" : 108.68
+        },
+        "unitPrice" : {
+          "outcome" : "unscored",
+          "reason" : "priceDisagrees"
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-055-wayne-circlek-ee-liitrid-variant.jpg",
+      "split" : "heldout"
+    },
+    {
+      "caution" : "unclosed",
+      "fields" : {
+        "liters" : {
+          "outcome" : "abstained",
+          "want" : 38.32,
+          "warned" : 38.32
+        },
+        "total" : {
+          "outcome" : "abstained",
+          "want" : 72,
+          "warned" : 72
+        },
+        "unitPrice" : {
+          "outcome" : "unscored"
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-056-wayne-circlek-ee-preset-72eur.jpg",
+      "reason" : "nothingClosed",
+      "split" : "heldout"
+    },
+    {
+      "caution" : "shownPriceDiffers",
+      "fields" : {
+        "liters" : {
+          "got" : 33.839999999999996,
+          "outcome" : "right",
+          "want" : 33.84
+        },
+        "total" : {
+          "got" : 62.4,
+          "outcome" : "right",
+          "want" : 62.4
+        },
+        "unitPrice" : {
+          "outcome" : "unscored",
+          "reason" : "priceDisagrees"
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-061-wayne-circlek-ee-discount-below-board.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 20.880000000000003,
+          "outcome" : "right",
+          "want" : 20.88
+        },
+        "total" : {
+          "got" : 39.55,
+          "outcome" : "right",
+          "want" : 39.55
+        },
+        "unitPrice" : {
+          "got" : 1.8940000000000001,
+          "outcome" : "right",
+          "want" : 1.894
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-062-wayne-circlek-ee-pump8-1894.jpg",
+      "split" : "heldout"
+    },
+    {
+      "caution" : "shownPriceDiffers",
+      "fields" : {
+        "liters" : {
+          "got" : 7.17,
+          "outcome" : "right",
+          "want" : 7.17
+        },
+        "total" : {
+          "got" : 13.190000000000001,
+          "outcome" : "wrong",
+          "want" : 13.15
+        },
+        "unitPrice" : {
+          "outcome" : "abstained",
+          "reason" : "priceDisagrees",
+          "want" : 1.834
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-063-wayne-circlek-ee-insect-on-price-display.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 53,
+          "outcome" : "right",
+          "want" : 53
+        },
+        "total" : {
+          "got" : 3765.65,
+          "outcome" : "right",
+          "want" : 3765.65
+        },
+        "unitPrice" : {
+          "got" : 71.05,
+          "outcome" : "right",
+          "want" : 71.05
+        }
+      },
+      "head" : "tokheim",
+      "name" : "pump-065-tokheim-gazpromneft-edrovo-truncated-total-pair-ru.jpeg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 70.7,
+          "outcome" : "right",
+          "want" : 70.7
+        },
+        "total" : {
+          "got" : 148.4,
+          "outcome" : "right",
+          "want" : 148.4
+        },
+        "unitPrice" : {
+          "got" : 2.099,
+          "outcome" : "right",
+          "want" : 2.099
+        }
+      },
+      "head" : "other",
+      "name" : "pump-068-circlek-jarvevana-dmiles-7070l-pair-ee.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 34.94,
+          "outcome" : "right",
+          "want" : 34.94
+        },
+        "total" : {
+          "got" : 67.05,
+          "outcome" : "right",
+          "want" : 67.05
+        },
+        "unitPrice" : {
+          "got" : 1.919,
+          "outcome" : "right",
+          "want" : 1.919
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-070-circlek-gilbarco-3494l-ee.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 77.56,
+          "outcome" : "right",
+          "want" : 77.56
+        },
+        "total" : {
+          "got" : 150,
+          "outcome" : "right",
+          "want" : 150
+        },
+        "unitPrice" : {
+          "got" : 1.934,
+          "outcome" : "right",
+          "want" : 1.934
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-076-gilbarco-circlek-ee-preset-150.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 69,
+          "outcome" : "right",
+          "want" : 69
+        },
+        "total" : {
+          "got" : 135.85999999999999,
+          "outcome" : "right",
+          "want" : 135.86
+        },
+        "unitPrice" : {
+          "got" : 1.969,
+          "outcome" : "right",
+          "want" : 1.969
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-079-gilbarco-circlek-peetri-6900l-ee.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 10.39,
+          "outcome" : "right",
+          "want" : 10.39
+        },
+        "total" : {
+          "got" : 20.15,
+          "outcome" : "right",
+          "want" : 20.15
+        },
+        "unitPrice" : {
+          "got" : 1.939,
+          "outcome" : "right",
+          "want" : 1.939
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-080-gilbarco-circlek-peetri-1039l-ee.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 21,
+          "outcome" : "right",
+          "want" : 21
+        },
+        "total" : {
+          "got" : 1437.24,
+          "outcome" : "right",
+          "want" : 1437.2
+        },
+        "unitPrice" : {
+          "got" : 68.44,
+          "outcome" : "right",
+          "want" : 68.44
+        }
+      },
+      "head" : "tokheim",
+      "name" : "pump-083-tokheim-gazpromneft-azs12089-truncated-total-pair-ru.jpeg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 15,
+          "outcome" : "right",
+          "want" : 15
+        },
+        "total" : {
+          "got" : 1024.5,
+          "outcome" : "right",
+          "want" : 1024.5
+        },
+        "unitPrice" : {
+          "got" : 68.3,
+          "outcome" : "right",
+          "want" : 68.3
+        }
+      },
+      "head" : "scheidt",
+      "name" : "pump-089-scheidt-bachmann-rn-1500l-6830-ru.jpeg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 20,
+          "outcome" : "right",
+          "want" : 20
+        },
+        "total" : {
+          "got" : 1427,
+          "outcome" : "right",
+          "want" : 1427
+        },
+        "unitPrice" : {
+          "got" : 71.35,
+          "outcome" : "right",
+          "want" : 71.35
+        }
+      },
+      "head" : "scheidt",
+      "name" : "pump-091-scheidt-bachmann-rn-2000l-7135-labels-cropped-ru.jpeg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 30,
+          "outcome" : "right",
+          "want" : 30
+        },
+        "total" : {
+          "got" : 1915.5,
+          "outcome" : "right",
+          "want" : 1915.5
+        },
+        "unitPrice" : {
+          "got" : 63.85,
+          "outcome" : "right",
+          "want" : 63.85
+        }
+      },
+      "head" : "scheidt",
+      "name" : "pump-092-scheidt-bachmann-rn-3000l-6385-ru.jpeg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 23.07,
+          "outcome" : "right",
+          "want" : 23.07
+        },
+        "total" : {
+          "got" : 44.85,
+          "outcome" : "right",
+          "want" : 44.85
+        },
+        "unitPrice" : {
+          "got" : 1.9440000000000002,
+          "outcome" : "right",
+          "want" : 1.944
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-095-gilbarco-circlek-peetri-pump5-2307l-pair-ee.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 20,
+          "outcome" : "right",
+          "want" : 20
+        },
+        "total" : {
+          "got" : 1426,
+          "outcome" : "right",
+          "want" : 1426
+        },
+        "unitPrice" : {
+          "got" : 71.3,
+          "outcome" : "right",
+          "want" : 71.3
+        }
+      },
+      "head" : "tokheim",
+      "name" : "pump-096-tokheim-rn-tver-tc252-2000l-pair-ru.jpeg",
+      "split" : "heldout"
+    },
+    {
+      "caution" : "unclosed",
+      "fields" : {
+        "liters" : {
+          "outcome" : "abstained",
+          "want" : 26.5,
+          "warned" : 1.8490000000000002
+        },
+        "total" : {
+          "outcome" : "abstained",
+          "want" : 51.65,
+          "warned" : 26.5
+        },
+        "unitPrice" : {
+          "outcome" : "abstained",
+          "want" : 1.949
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-104-gilbarco-circlek-sikupilli-pump1-2650l-price-washed-pair-ee.jpg",
+      "reason" : "priceUnvalidated",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 51,
+          "outcome" : "right",
+          "want" : 51
+        },
+        "total" : {
+          "got" : 3585.81,
+          "outcome" : "right",
+          "want" : 3585.8
+        },
+        "unitPrice" : {
+          "got" : 70.31,
+          "outcome" : "right",
+          "want" : 70.31
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-106-wayne-gazpromneft-gdrive95-5100l-7031-truncated-total-ru.jpeg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 4.61,
+          "outcome" : "right",
+          "want" : 4.61
+        },
+        "total" : {
+          "got" : 10.14,
+          "outcome" : "right",
+          "want" : 10.14
+        },
+        "unitPrice" : {
+          "got" : 2.1990000000000003,
+          "outcome" : "right",
+          "want" : 2.199
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-112-gilbarco-circlek-ee-461l-2199.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 27.860000000000003,
+          "outcome" : "right",
+          "want" : 27.86
+        },
+        "total" : {
+          "got" : 55.129999999999995,
+          "outcome" : "right",
+          "want" : 55.13
+        },
+        "unitPrice" : {
+          "got" : 1.9789999999999999,
+          "outcome" : "right",
+          "want" : 1.979
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-116-gilbarco-circlek-sikupilli-pump8-98miles-2786l-1979-pair-ee.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 43.519999999999996,
+          "outcome" : "right",
+          "want" : 43.52
+        },
+        "total" : {
+          "got" : 59.58,
+          "outcome" : "right",
+          "want" : 59.58
+        },
+        "unitPrice" : {
+          "got" : 1.3690000000000002,
+          "outcome" : "right",
+          "want" : 1.369
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-119-wayne-circlek-95miles-1369-drive2-third-party-ee.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 41.03,
+          "outcome" : "right",
+          "want" : 41.03
+        },
+        "total" : {
+          "got" : 56.17,
+          "outcome" : "right",
+          "want" : 56.17
+        },
+        "unitPrice" : {
+          "got" : 1.3690000000000002,
+          "outcome" : "right",
+          "want" : 1.369
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-120-wayne-circlek-four-prices-drive2-third-party-ee.jpg",
+      "split" : "heldout"
+    },
+    {
+      "caution" : "unclosed",
+      "fields" : {
+        "liters" : {
+          "outcome" : "abstained",
+          "want" : 41.7,
+          "warned" : 41.7
+        },
+        "total" : {
+          "outcome" : "abstained",
+          "want" : 1911.53,
+          "warned" : 1911.53
+        },
+        "unitPrice" : {
+          "outcome" : "abstained",
+          "want" : 45.84
+        }
+      },
+      "head" : "other",
+      "name" : "pump-123-unknown-comma-1911-drive2-third-party-ru.jpg",
+      "reason" : "priceUnvalidated",
+      "split" : "heldout"
+    },
+    {
+      "caution" : "unclosed",
+      "fields" : {
+        "liters" : {
+          "outcome" : "abstained",
+          "want" : 41.36,
+          "warned" : 41.36
+        },
+        "total" : {
+          "outcome" : "abstained",
+          "want" : 59.52,
+          "warned" : 59.52
+        },
+        "unitPrice" : {
+          "outcome" : "unscored"
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-125-wayne-circlek-price-out-of-frame-drive2-third-party-ee.jpg",
+      "reason" : "priceUnvalidated",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "outcome" : "abstained",
+          "want" : 21.45
+        },
+        "total" : {
+          "outcome" : "abstained",
+          "want" : 5000
+        },
+        "unitPrice" : {
+          "outcome" : "abstained",
+          "want" : 233.1
+        }
+      },
+      "head" : "tokheim",
+      "name" : "pump-134-tokheim-kronur-5000-third-party-is.jpg",
+      "reason" : "notADisplay",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 64.4,
+          "outcome" : "right",
+          "want" : 64.4
+        },
+        "total" : {
+          "got" : 103.88,
+          "outcome" : "right",
+          "want" : 103.88
+        },
+        "unitPrice" : {
+          "got" : 1.6130000000000002,
+          "outcome" : "right",
+          "want" : 1.613
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-139-wayne-euro-1613-third-party-fr.jpg",
+      "split" : "heldout"
+    },
+    {
+      "caution" : "unclosed",
+      "fields" : {
+        "liters" : {
+          "outcome" : "abstained",
+          "want" : 33.69,
+          "warned" : 33.69
+        },
+        "total" : {
+          "outcome" : "abstained",
+          "want" : 62.3,
+          "warned" : 62.3
+        },
+        "unitPrice" : {
+          "outcome" : "unscored",
+          "warned" : 1.8490000000000002
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-140-wayne-circlek-1849-rounding-third-party-lt.jpg",
+      "reason" : "nothingClosed",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 48.489999999999995,
+          "outcome" : "right",
+          "want" : 48.49
+        },
+        "total" : {
+          "got" : 1600.17,
+          "outcome" : "unscored"
+        },
+        "unitPrice" : {
+          "got" : 33,
+          "outcome" : "right",
+          "want" : 33
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-142-wayne-1600-not-closing-third-party-ru.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 6.7299999999999995,
+          "outcome" : "right",
+          "want" : 6.73
+        },
+        "total" : {
+          "got" : 305.88,
+          "outcome" : "right",
+          "want" : 305.88
+        },
+        "unitPrice" : {
+          "got" : 45.45,
+          "outcome" : "right",
+          "want" : 45.45
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-152-wayne-305-third-party-ru.jpg",
+      "split" : "heldout"
+    },
+    {
+      "caution" : "shownPriceDiffers",
+      "fields" : {
+        "liters" : {
+          "got" : 4.220000000000001,
+          "outcome" : "unscored"
+        },
+        "total" : {
+          "got" : 260.86,
+          "outcome" : "unscored"
+        },
+        "unitPrice" : {
+          "outcome" : "abstained",
+          "reason" : "priceDisagrees",
+          "want" : 61.79
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-160-gilbarco-veeder-root-zero-padded-not-closing-third-party-ru.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "outcome" : "abstained",
+          "want" : 24.38
+        },
+        "total" : {
+          "outcome" : "unscored"
+        },
+        "unitPrice" : {
+          "outcome" : "abstained",
+          "want" : 66.44
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-161-gilbarco-veeder-root-tv-still-800px-third-party-ru.jpg",
+      "reason" : "notADisplay",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 78.41,
+          "outcome" : "right",
+          "want" : 78.41
+        },
+        "total" : {
+          "got" : 3602.16,
+          "outcome" : "right",
+          "want" : 3602.16
+        },
+        "unitPrice" : {
+          "got" : 45.94,
+          "outcome" : "right",
+          "want" : 45.94
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-165-gilbarco-veeder-root-four-prices-680px-third-party-ru.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 15.12,
+          "outcome" : "right",
+          "want" : 15.12
+        },
+        "total" : {
+          "got" : 1014.25,
+          "outcome" : "right",
+          "want" : 1014.25
+        },
+        "unitPrice" : {
+          "got" : 67.08,
+          "outcome" : "right",
+          "want" : 67.08
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-166-gilbarco-veeder-root-angled-watermark-third-party-ru.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 42.769999999999996,
+          "outcome" : "right",
+          "want" : 42.77
+        },
+        "total" : {
+          "got" : 2249.27,
+          "outcome" : "right",
+          "want" : 2249.27
+        },
+        "unitPrice" : {
+          "got" : 52.589999999999996,
+          "outcome" : "right",
+          "want" : 52.59
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-167-gilbarco-veeder-root-shell-zero-padded-third-party-ru.jpg",
+      "split" : "heldout"
+    },
+    {
+      "caution" : "unclosed",
+      "fields" : {
+        "liters" : {
+          "outcome" : "abstained",
+          "want" : 130.72,
+          "warned" : 39.9
+        },
+        "total" : {
+          "outcome" : "unscored",
+          "warned" : 91225.73000000001
+        },
+        "unitPrice" : {
+          "outcome" : "abstained",
+          "want" : 39.9
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-169-gilbarco-veeder-root-total-not-closing-video-still-third-party-ru.jpg",
+      "reason" : "priceOutOfBand",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 11,
+          "outcome" : "right",
+          "want" : 11
+        },
+        "total" : {
+          "got" : 560.89,
+          "outcome" : "right",
+          "want" : 560.89
+        },
+        "unitPrice" : {
+          "got" : 50.989999999999995,
+          "outcome" : "right",
+          "want" : 50.99
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-170-gilbarco-veeder-root-teboil-zero-padded-preset-11-litres-third-party-ru.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 68.8,
+          "outcome" : "right",
+          "want" : 68.8
+        },
+        "total" : {
+          "got" : 2834.56,
+          "outcome" : "right",
+          "want" : 2834.56
+        },
+        "unitPrice" : {
+          "got" : 41.2,
+          "outcome" : "right",
+          "want" : 41.2
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-174-wayne-keypad-lukoil-ekto-diesel-680px-third-party-ru.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 42.53,
+          "outcome" : "right",
+          "want" : 42.53
+        },
+        "total" : {
+          "got" : 8038.17,
+          "outcome" : "right",
+          "want" : 8038.17
+        },
+        "unitPrice" : {
+          "got" : 189,
+          "outcome" : "right",
+          "want" : 189
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-175-gilbarco-veeder-root-zero-padded-189-third-party-ru.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 65.67999999999999,
+          "outcome" : "right",
+          "want" : 65.68
+        },
+        "total" : {
+          "got" : 3533.5800000000004,
+          "outcome" : "right",
+          "want" : 3533.58
+        },
+        "unitPrice" : {
+          "got" : 53.8,
+          "outcome" : "right",
+          "want" : 53.8
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-179-gilbarco-veeder-root-lukoil-winter-four-prices-third-party-ru.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 20.759999999999998,
+          "outcome" : "right",
+          "want" : 20.76
+        },
+        "total" : {
+          "got" : 44.82,
+          "outcome" : "right",
+          "want" : 44.82
+        },
+        "unitPrice" : {
+          "got" : 2.159,
+          "outcome" : "right",
+          "want" : 2.159
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-180-gilbarco-veeder-root-cents-per-litre-portrait-third-party-au.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 22.009999999999998,
+          "outcome" : "right",
+          "want" : 22.01
+        },
+        "total" : {
+          "got" : 887,
+          "outcome" : "right",
+          "want" : 887
+        },
+        "unitPrice" : {
+          "got" : 40.3,
+          "outcome" : "right",
+          "want" : 40.3
+        }
+      },
+      "head" : "tatsuno",
+      "name" : "pump-186-tatsuno-amber-led-night-third-party-ru.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "outcome" : "abstained",
+          "want" : 20
+        },
+        "total" : {
+          "outcome" : "abstained",
+          "want" : 876
+        },
+        "unitPrice" : {
+          "outcome" : "abstained",
+          "want" : 43.8
+        }
+      },
+      "head" : "tatsuno",
+      "name" : "pump-187-tatsuno-amber-led-night-preset-20-third-party-ru.jpg",
+      "reason" : "notADisplay",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "outcome" : "abstained",
+          "want" : 49.66
+        },
+        "total" : {
+          "outcome" : "unscored"
+        },
+        "unitPrice" : {
+          "outcome" : "abstained",
+          "want" : 145
+        }
+      },
+      "head" : "tokheim",
+      "name" : "pump-190-tokheim-tenge-fog-third-party-kz.jpg",
+      "reason" : "notADisplay",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 96.47,
+          "outcome" : "right",
+          "want" : 96.47
+        },
+        "total" : {
+          "got" : 4968.21,
+          "outcome" : "right",
+          "want" : 4968.21
+        },
+        "unitPrice" : {
+          "got" : 51.5,
+          "outcome" : "right",
+          "want" : 51.5
+        }
+      },
+      "head" : "tokheim",
+      "name" : "pump-194-tokheim-4968-dusk-third-party-ru.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 7.15,
+          "outcome" : "right",
+          "want" : 7.15
+        },
+        "total" : {
+          "got" : 426.43,
+          "outcome" : "right",
+          "want" : 426.43
+        },
+        "unitPrice" : {
+          "got" : 59.64,
+          "outcome" : "right",
+          "want" : 59.64
+        }
+      },
+      "head" : "tokheim",
+      "name" : "pump-198-tokheim-lukoil-426-reflection-third-party-ru.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 30.089999999999996,
+          "outcome" : "right",
+          "want" : 30.09
+        },
+        "total" : {
+          "got" : 1630.8799999999999,
+          "outcome" : "right",
+          "want" : 1630.88
+        },
+        "unitPrice" : {
+          "got" : 54.2,
+          "outcome" : "right",
+          "want" : 54.2
+        }
+      },
+      "head" : "tokheim",
+      "name" : "pump-199-tokheim-1630-large-cells-third-party-ru.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 24.97,
+          "outcome" : "right",
+          "want" : 24.97
+        },
+        "total" : {
+          "got" : 64.92,
+          "outcome" : "right",
+          "want" : 64.92
+        },
+        "unitPrice" : {
+          "got" : 2.6,
+          "outcome" : "right",
+          "want" : 2.6
+        }
+      },
+      "head" : "tokheim",
+      "name" : "pump-201-tokheim-belarus-night-third-party-by.jpg",
+      "split" : "heldout"
+    },
+    {
+      "caution" : "unclosed",
+      "fields" : {
+        "liters" : {
+          "outcome" : "abstained",
+          "want" : 97.07,
+          "warned" : 9.707
+        },
+        "total" : {
+          "outcome" : "abstained",
+          "want" : 4816.61,
+          "warned" : 4816.61
+        },
+        "unitPrice" : {
+          "outcome" : "unscored"
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-208-gilbarco-veeder-root-night-rain-price-dim-third-party-ru.jpg",
+      "reason" : "nothingClosed",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "outcome" : "abstained",
+          "want" : 46.749
+        },
+        "total" : {
+          "outcome" : "unscored"
+        },
+        "unitPrice" : {
+          "outcome" : "abstained",
+          "want" : 73.8
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-209-wayne-pesos-three-decimal-litres-third-party-ph.jpg",
+      "reason" : "notADisplay",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 51.71,
+          "outcome" : "right",
+          "want" : 51.71
+        },
+        "total" : {
+          "got" : 103.37,
+          "outcome" : "right",
+          "want" : 103.37
+        },
+        "unitPrice" : {
+          "got" : 1.999,
+          "outcome" : "unscored"
+        }
+      },
+      "head" : "wayne",
+      "name" : "pump-275-wayne-neste-night-10337-5171l-board-ee.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 17.54,
+          "outcome" : "right",
+          "want" : 17.54
+        },
+        "total" : {
+          "got" : 34.36,
+          "outcome" : "right",
+          "want" : 34.36
+        },
+        "unitPrice" : {
+          "got" : 1.959,
+          "outcome" : "right",
+          "want" : 1.959
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-277-gilbarco-circlek-peetri-night-pump2-1754l-1959-ee.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 3.2299999999999995,
+          "outcome" : "right",
+          "want" : 3.23
+        },
+        "total" : {
+          "got" : 7.05,
+          "outcome" : "right",
+          "want" : 7.05
+        },
+        "unitPrice" : {
+          "got" : 2.184,
+          "outcome" : "right",
+          "want" : 2.184
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-280-gilbarco-circlek-night-pump11-323l-2184-ee.jpg",
+      "split" : "heldout"
+    },
+    {
+      "fields" : {
+        "liters" : {
+          "got" : 23.490000000000002,
+          "outcome" : "right",
+          "want" : 23.49
+        },
+        "total" : {
+          "got" : 45.78,
+          "outcome" : "right",
+          "want" : 45.78
+        },
+        "unitPrice" : {
+          "got" : 1.9490000000000003,
+          "outcome" : "right",
+          "want" : 1.949
+        }
+      },
+      "head" : "gilbarco",
+      "name" : "pump-281-gilbarco-circlek-night-pump12-2349l-1949-ee.jpg",
+      "split" : "heldout"
+    }
+  ],
+  "totals" : {
+    "committed" : 140,
+    "committedCorrect" : 138,
+    "numericTotal" : 183
+  }
+}
