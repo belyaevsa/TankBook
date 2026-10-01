@@ -30,7 +30,7 @@ public class PayloadRegistryTests : IClassFixture<PostgresFixture>
             "SELECT entity_type, schema_version FROM payload_schemas ORDER BY entity_type");
 
         var registered = rows.ToList();
-        Assert.Equal(11, registered.Count);
+        Assert.Equal(12, registered.Count);
 
         var expectedEntities = Directory.EnumerateFiles(DocPaths.SchemasV1, "*.schema.json")
             .Select(f => Path.GetFileName(f)[..^".schema.json".Length])

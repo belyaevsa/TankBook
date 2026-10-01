@@ -247,6 +247,10 @@ struct RecentlyDeletedView: View {
             return "\(ManualFillUpFormat.decimal(display, fractionDigits: 1)) \(L10n.volumeUnit(unit))"
         case let charge as ChargeSession:
             return "\(ManualFillUpFormat.decimal(charge.energyKWh, fractionDigits: 0)) \(L10n.kWh)"
+        case let adBlue as AdBlueFill:
+            let unit = vehicles[adBlue.vehicleId]?.units.volume ?? .l
+            let display = ManualFillUpMath.displayVolume(from: adBlue.volumeL, unit: unit)
+            return "\(ManualFillUpFormat.decimal(display, fractionDigits: 1)) \(L10n.volumeUnit(unit))"
         default:
             return nil
         }
@@ -267,6 +271,7 @@ struct RecentlyDeletedView: View {
         case is ChargeSession: entityType = ChargeSession.entityType
         case is ServiceRecord: entityType = ServiceRecord.entityType
         case is Expense: entityType = Expense.entityType
+        case is AdBlueFill: entityType = AdBlueFill.entityType
         default: entityType = "entry"
         }
         do {

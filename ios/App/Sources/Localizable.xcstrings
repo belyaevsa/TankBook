@@ -20225,6 +20225,74 @@
         }
       }
     },
+    "AdBlue": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AdBlue"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AdBlue"
+          }
+        }
+      }
+    },
+    "Save AdBlue": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save AdBlue"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранить AdBlue"
+          }
+        }
+      }
+    },
+    "%1$@/1000 %2$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@/1000 %2$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@/1000 %2$@"
+          }
+        }
+      }
+    },
+    "last %1$@ %2$@ · %3$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "last %1$@ %2$@ · %3$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "долив %1$@ %2$@ · %3$@"
+          }
+        }
+      }
+    },
     "Rescan page": {
       "extractionState": "manual",
       "localizations": {

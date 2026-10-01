@@ -459,3 +459,38 @@ private func round2(_ value: Double) -> Double {
                                                 windowDays: 90, asOf: asOf, homeCurrency: .eur)
     #expect(abs((latePerKm?.perKm ?? 0) - 50.0 / 500.0) < 0.001)
 }
+
+// MARK: - AdBlue never reaches the fuel figures
+
+/// The golden drivers with an AdBlue top-up between every pair of fills must
+/// produce the same Home figures as without them: AdBlue is its own entity and
+/// no fuel figure reads it (docs/SCHEMA.md -> AdBlueFill).
+@Test func driversD1ThroughD4AreUnchangedByInterleavedAdBlue() throws {
+    let fixture = try loadFixture()
+    let vehicle = Vehicle(id: UUID.v7(), createdAt: fixture.asOf, updatedAt: fixture.asOf,
+                          name: "Diesel", powertrain: .ice, fuelKinds: [.diesel],
+                          tankCapacityL: 60, homeCurrency: .eur,
+                          units: Vehicle.Units(distance: .km, volume: .l,
+                                               consumption: .lPer100, energy: .kWhPer100))
+
+    for driver in fixture.drivers {
+        let fills: [any Entry] = driver.fills.map { makeFill($0, vehicleID: vehicle.id) }
+        var adBlue: [any Entry] = []
+        for (earlier, later) in zip(driver.fills, driver.fills.dropFirst()) {
+            let midpoint = earlier.date.addingTimeInterval(later.date.timeIntervalSince(earlier.date) / 2)
+            adBlue.append(AdBlueFill(id: UUID.v7(), createdAt: midpoint, updatedAt: midpoint,
+                                     vehicleId: vehicle.id, date: midpoint,
+                                     odometer: (earlier.odometer + later.odometer) / 2,
+                                     provenance: .manual, volumeL: 10))
+        }
+        let plain = HomeStats(vehicle: vehicle, entries: fills, asOf: fixture.asOf)
+        let mixed = HomeStats(vehicle: vehicle, entries: fills + adBlue, asOf: fixture.asOf)
+
+        #expect(!adBlue.isEmpty, "\(driver.id) needs AdBlue between its fills or the test is vacuous")
+        #expect(mixed.segments == plain.segments, "\(driver.id) segments")
+        #expect(mixed.headline == plain.headline, "\(driver.id) headline")
+        #expect(mixed.lifetime.map(round1) == driver.expectedLifetime, "\(driver.id) lifetime")
+        #expect(mixed.provenance == plain.provenance, "\(driver.id) provenance")
+        #expect(mixed.fillPattern == plain.fillPattern, "\(driver.id) fill pattern")
+    }
+}

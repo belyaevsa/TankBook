@@ -78,6 +78,11 @@ extension TankbookRepository {
             row.syncScn = try preservingScn(.dirty, table: TankbookSchema.expense,
                                             id: expense.id, in: db)
             try row.save(db)
+        case let adBlue as AdBlueFill:
+            var row = AdBlueFillRow(adBlueFill: adBlue, syncState: .dirty)
+            row.syncScn = try preservingScn(.dirty, table: TankbookSchema.adBlueFill,
+                                            id: adBlue.id, in: db)
+            try row.save(db)
         default:
             break
         }

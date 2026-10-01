@@ -59,6 +59,15 @@ extension TankbookRepository {
                 }
             result.append(contentsOf: expenses)
 
+            let adBlue: [DeletedEntry] = try AdBlueFillRow
+                .filter(predicate).fetchAll(db)
+                .compactMap { row in
+                    guard row.adBlueFill.deletedAt != nil,
+                          !isCoTombstoned(row.adBlueFill.vehicleId, row.adBlueFill.deletedAt, stamps: coTombstoneStamps) else { return nil }
+                    return DeletedEntry(entry: row.adBlueFill)
+                }
+            result.append(contentsOf: adBlue)
+
             return result.sorted { ($0.deletedAt, $0.entry.date) > ($1.deletedAt, $1.entry.date) }
         }
     }

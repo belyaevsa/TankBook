@@ -58,6 +58,7 @@ struct EditEntryView: View {
     @State var charge: ChargeSession?
     @State var service: ServiceRecord?
     @State var expense: Expense?
+    @State var adBlue: AdBlueFill?
     /// The tire set a `.parts` expense bought, when the link exists. Loaded with
     /// the entry; written by `makeTireSet`.
     @State var linkedTireSet: TireSet?
@@ -102,7 +103,7 @@ struct EditEntryView: View {
     @State var attachReading = 0
     var attachProcessing: Bool { attachReading > 0 }
 
-    var currentEntry: (any Entry)? { fillUp ?? charge ?? service ?? expense }
+    var currentEntry: (any Entry)? { fillUp ?? charge ?? service ?? expense ?? adBlue }
     private var volumeUnit: VolumeUnit { vehicle?.units.volume ?? .l }
     var distanceUnit: DistanceUnit { vehicle?.units.distance ?? .km }
 
@@ -564,6 +565,9 @@ struct EditEntryView: View {
             } else if let expense = expense {
                 try loggedWrite(AppLog.shared, op: .delete, entityType: Expense.entityType,
                                 entityId: expense.id, source: .manual) { try repository.softDeleteExpense(id: expense.id) }
+            } else if let adBlue = adBlue {
+                try loggedWrite(AppLog.shared, op: .delete, entityType: AdBlueFill.entityType,
+                                entityId: adBlue.id, source: .manual) { try repository.softDeleteAdBlueFill(id: adBlue.id) }
             }
             toastCenter.noteEntryChanged()
             dismiss()

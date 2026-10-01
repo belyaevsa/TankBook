@@ -24,7 +24,7 @@ public enum TankbookMigrations {
         var migrator = DatabaseMigrator()
         migrator.registerMigration("v1") { db in
             try createVehicle(db)
-            for entryTable in TankbookSchema.entryTables {
+            for entryTable in v1EntryTables {
                 try createEntryTable(named: entryTable, db: db)
             }
             try createServiceItem(db)
@@ -82,7 +82,7 @@ public enum TankbookMigrations {
             // entry it belongs to (the validator's INPUT - docs/SCHEMA.md ->
             // Validation -> Acceptance). TEXT JSON, NULL = never accepted, same
             // shape as the `conflict` column beside it.
-            for table in TankbookSchema.entryTables {
+            for table in v1EntryTables {
                 try db.alter(table: table) { definition in
                     definition.add(column: "flagAcceptance", .text)
                 }
@@ -129,8 +129,27 @@ public enum TankbookMigrations {
                 table.add(column: "tireReading", .text)   // JSON TireReading?
             }
         }
+        migrator.registerMigration("v13") { db in
+            // AdBlue top-ups: their own entry table, so no fuel query reads them
+            // (docs/SCHEMA.md -> AdBlueFill). Created whole, with the columns
+            // v9 added to the older entry tables.
+            try createEntryTable(named: TankbookSchema.adBlueFill, db: db)
+            try createEntryIndexes(on: TankbookSchema.adBlueFill, db: db)
+        }
         return migrator
     }
+
+    /// The tables as the v1 schema created them. Migrations replay against
+    /// these frozen lists, not `TankbookSchema`'s current ones, so a table a
+    /// later migration creates is never touched before it exists.
+    private static let v1EntryTables = [
+        TankbookSchema.fillUp, TankbookSchema.chargeSession, TankbookSchema.serviceRecord, TankbookSchema.expense,
+    ]
+    private static let v1SyncedTables = [
+        TankbookSchema.vehicle, TankbookSchema.fillUp, TankbookSchema.chargeSession, TankbookSchema.serviceRecord,
+        TankbookSchema.expense, TankbookSchema.reminder, TankbookSchema.station, TankbookSchema.tariff,
+        TankbookSchema.tireSet, TankbookSchema.attachment, TankbookSchema.preferences,
+    ]
 
     // MARK: - Date columns (P4.11)
 
@@ -144,14 +163,14 @@ public enum TankbookMigrations {
     /// envelope; the rest are the per-entity date fields plus the flattened
     /// Money `rateDate` and the local `exchangeRate.date` cache.
     private static let dateColumns: [(table: String, column: String)] = {
-        let envelopeTables = TankbookSchema.syncedTables + [TankbookSchema.duplicateResolution]
+        let envelopeTables = v1SyncedTables + [TankbookSchema.duplicateResolution]
         var columns: [(String, String)] = []
         for table in envelopeTables {
             columns.append((table, "createdAt"))
             columns.append((table, "updatedAt"))
             columns.append((table, "deletedAt"))
         }
-        for table in TankbookSchema.entryTables {
+        for table in v1EntryTables {
             columns.append((table, "date"))
             columns.append((table, "rateDate"))
         }
@@ -217,6 +236,7 @@ public enum TankbookMigrations {
             case TankbookSchema.chargeSession: chargeSessionColumns(on: table)
             case TankbookSchema.serviceRecord: serviceRecordColumns(on: table)
             case TankbookSchema.expense: expenseColumns(on: table)
+            case TankbookSchema.adBlueFill: adBlueFillColumns(on: table)
             default: break
             }
         }
@@ -259,6 +279,13 @@ public enum TankbookMigrations {
         table.column("socStartPct", .double)
         table.column("socEndPct", .double)
         table.column("extraction", .text)               // JSON ExtractionMeta?
+    }
+
+    private static func adBlueFillColumns(on table: TableDefinition) {
+        table.column("flagAcceptance", .text)           // JSON FlagAcceptance?
+        table.column("volumeL", .double).notNull()
+        table.column("unitPrice", .text)                // Decimal
+        table.column("stationId", .text)
     }
 
     private static func serviceRecordColumns(on table: TableDefinition) {
@@ -443,26 +470,30 @@ public enum TankbookMigrations {
     // MARK: - Indexes (the queries Phase 1 actually runs)
 
     private static func createIndexes(_ db: Database) throws {
-        for entryTable in TankbookSchema.entryTables {
-            // Log / timeline queries order entries by date within a vehicle:
-            try db.create(index: "idx_\(entryTable)_vehicle_date",
-                          on: entryTable, columns: ["vehicleId", "date"])
-            // Odometer lookups ("last known value" pre-fill) and validation:
-            try db.create(index: "idx_\(entryTable)_vehicle_odometer",
-                          on: entryTable, columns: ["vehicleId", "odometer"])
-            // Tombstone filtering: live rows only, per vehicle, date-ordered.
-            try db.create(index: "idx_\(entryTable)_live",
-                          on: entryTable, columns: ["vehicleId", "date"],
-                          condition: Column("deletedAt") == nil)
-            // Dirty-row lookup for the sync queue:
-            try db.create(index: "idx_\(entryTable)_sync",
-                          on: entryTable, columns: ["syncState", "updatedAt"])
+        for entryTable in v1EntryTables {
+            try createEntryIndexes(on: entryTable, db: db)
         }
-        for table in TankbookSchema.syncedTables where !TankbookSchema.entryTables.contains(table) {
+        for table in v1SyncedTables where !v1EntryTables.contains(table) {
             try db.create(index: "idx_\(table)_sync",
                           on: table, columns: ["syncState", "updatedAt"])
         }
         // Rolling "keep ~2 years" purge of the local rate cache:
         try db.create(index: "idx_exchangeRate_date", on: TankbookSchema.exchangeRate, columns: ["date"])
+    }
+
+    private static func createEntryIndexes(on entryTable: String, db: Database) throws {
+        // Log / timeline queries order entries by date within a vehicle:
+        try db.create(index: "idx_\(entryTable)_vehicle_date",
+                      on: entryTable, columns: ["vehicleId", "date"])
+        // Odometer lookups ("last known value" pre-fill) and validation:
+        try db.create(index: "idx_\(entryTable)_vehicle_odometer",
+                      on: entryTable, columns: ["vehicleId", "odometer"])
+        // Tombstone filtering: live rows only, per vehicle, date-ordered.
+        try db.create(index: "idx_\(entryTable)_live",
+                      on: entryTable, columns: ["vehicleId", "date"],
+                      condition: Column("deletedAt") == nil)
+        // Dirty-row lookup for the sync queue:
+        try db.create(index: "idx_\(entryTable)_sync",
+                      on: entryTable, columns: ["syncState", "updatedAt"])
     }
 }

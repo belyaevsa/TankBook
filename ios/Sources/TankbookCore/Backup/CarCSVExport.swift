@@ -1,7 +1,7 @@
 import Foundation
 
 // The per-car CSV export (PJ.38, docs/SCHEMA.md -> "Export formats"). One file
-// per entry type - fill-ups, charge sessions, service, expenses - with flat
+// per entry type - fill-ups, charge sessions, service, expenses, AdBlue - with flat
 // rows named after SCHEMA.md's canonical field names, the original + home money
 // PAIR (hard rule 3 - money is a pair, never one number), ISO-8601 dates in
 // UTC, and tombstoned rows INCLUDED (a row whose `deletedAt` is non-empty is
@@ -14,14 +14,15 @@ import Foundation
 // them. A column rename or a date-format change is therefore a visible diff.
 
 public enum CarCSVExport {
-    /// The four per-type file names (one file per entry type).
+    /// The per-type file names (one file per entry type).
     public static let fillUpsFile = "fill-ups.csv"
     public static let chargeSessionsFile = "charge-sessions.csv"
     public static let serviceFile = "service.csv"
     public static let expensesFile = "expenses.csv"
+    public static let adBlueFile = "adblue.csv"
 
     public static let fileNames = [
-        fillUpsFile, chargeSessionsFile, serviceFile, expensesFile
+        fillUpsFile, chargeSessionsFile, serviceFile, expensesFile, adBlueFile
     ]
 
     // The shared envelope columns, in fixed order. Field names are SCHEMA.md's
@@ -33,23 +34,25 @@ public enum CarCSVExport {
         "deletedAt", "note"
     ]
 
-    /// Renders the four CSV files for `vehicleID` as `[fileName: contents]`,
+    /// Renders the CSV files for `vehicleID` as `[fileName: contents]`,
     /// tombstones included. Deterministic and locale-independent.
     public static func render(vehicleID: UUID, repository: TankbookRepository) throws -> [String: String] {
         let fills = try repository.fillUpsIncludingDeleted(forVehicle: vehicleID)
         let charges = try repository.chargeSessionsIncludingDeleted(forVehicle: vehicleID)
         let services = try repository.serviceRecordsIncludingDeleted(forVehicle: vehicleID)
         let expenses = try repository.expensesIncludingDeleted(forVehicle: vehicleID)
+        let adBlue = try repository.adBlueFillsIncludingDeleted(forVehicle: vehicleID)
 
         return [
             fillUpsFile: renderFillUps(fills),
             chargeSessionsFile: renderChargeSessions(charges),
             serviceFile: renderServiceRecords(services),
-            expensesFile: renderExpenses(expenses)
+            expensesFile: renderExpenses(expenses),
+            adBlueFile: renderAdBlueFills(adBlue)
         ]
     }
 
-    /// Writes the four CSVs into `directory`, returning the written URLs. The
+    /// Writes the CSVs into `directory`, returning the written URLs. The
     /// per-car export places them INSIDE the archive directory so the share
     /// sheet carries both (docs/SCHEMA.md -> Backup format).
     @discardableResult
@@ -115,6 +118,17 @@ public enum CarCSVExport {
         for expense in expenses {
             lines.append(csvLine(common(expense)
                 + [expenseCategoryString(expense.category), expense.title]))
+        }
+        return lines.joined(separator: "\n") + "\n"
+    }
+
+    private static func renderAdBlueFills(_ fills: [AdBlueFill]) -> String {
+        var lines = [csvLine(commonColumns + ["volumeL", "unitPrice", "stationId"])]
+        for fill in fills {
+            lines.append(csvLine(common(fill)
+                + [doubleString(fill.volumeL),
+                   decimalString(fill.unitPrice),
+                   uuidString(fill.stationId)]))
         }
         return lines.joined(separator: "\n") + "\n"
     }

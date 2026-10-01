@@ -22,9 +22,9 @@ import TankbookCore
 /// the OCR total.
 struct ManualFillUpView: View {
     @Binding var hasUnsavedChanges: Bool
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss) var dismiss
     @Environment(AppCarSelection.self) private var carSelection
-    @Environment(ReminderNotificationCoordinator.self) private var notificationCoordinator
+    @Environment(ReminderNotificationCoordinator.self) var notificationCoordinator
     @Environment(AppConfigService.self) private var config
     @Environment(AppToastCenter.self) var toastCenter
     @Environment(AppInbox.self) private var inbox
@@ -42,7 +42,7 @@ struct ManualFillUpView: View {
     /// gateway's captureId. The same id the save writes, so a drained outbox
     /// answer (whose payload carries the captureId) maps straight back to the
     /// entry - no separate capture->entry mapping to keep in sync.
-    @State private var entryId = UUID.v7()
+    @State var entryId = UUID.v7()
     @State var existingEntries: [any Entry] = []
     /// PJ.14: the last-known odometer + entry date, driving the live delta caption.
     @State private var lastKnown: OdometerLastKnown?
@@ -66,13 +66,13 @@ struct ManualFillUpView: View {
     @State private var showTankLevel = false
     @State private var didLoad = false
     @State private var verifyCrop: VerifyCrop?
-    @State private var detection: MixedReceiptDetection = .notMixed
-    @State private var acceptedLineIDs: Set<UUID> = []
+    @State var detection: MixedReceiptDetection = .notMixed
+    @State var acceptedLineIDs: Set<UUID> = []
     /// P6.3: the cloud-reading session (docs/API.md -> "The device's side of
     /// /extract"). Idle for the typed path; started when a scan carries a photo
     /// and a gateway is available. Drives the RV.57 proceed note and, for a
     /// within-budget answer, the fill-blanks-only apply.
-    @State private var gatewaySession = GatewayScanSession()
+    @State var gatewaySession = GatewayScanSession()
     /// The fields the ON-DEVICE extraction resolved (the pre-fill already on
     /// screen). A late gateway answer never refills one of these (F4).
     @State var gatewayOnDeviceResolved: Set<FieldRef> = []
@@ -107,7 +107,7 @@ struct ManualFillUpView: View {
     /// handed, and only on the success path (a throw or a cancel leaves the
     /// presenter alone, hard rule 8: a failed save must not destroy the photo
     /// and the typing behind it).
-    private let onSaved: (() -> Void)?
+    let onSaved: (() -> Void)?
 
     init(prefill: ConfirmPrefill? = nil,
          hasUnsavedChanges: Binding<Bool>,
@@ -167,7 +167,7 @@ struct ManualFillUpView: View {
                     PumpDisplayAlphaNotice(shown: (prefill?.pumpAlpha ?? false) && !pumpReadFailed && prefill?.verified == nil)
                     PumpReadingCautionNotice(caution: prefill?.verified == nil ? prefill?.pumpCaution : nil,
                                              complete: prefill?.extraction?.readsAllThree ?? true)
-                    if !form.isFull {
+                    if !form.isFull && !form.isAdBlue {
                         TankLevelRow(isFull: form.isFull,
                                      tankLevelAfterPct: form.tankLevelAfterPct,
                                      action: { showTankLevel = true })
@@ -543,19 +543,6 @@ private extension ManualFillUpView {
         return form.canSave(volumeUnit: volumeUnit)
     }
 
-    /// The save-bar label. On a mixed receipt it counts the accepted Expenses
-    /// ("Save fill-up + 1 expense"), so the user knows exactly what Save writes.
-    func saveTitle() -> String {
-        guard case .mixed(let lines, _, _) = detection else {
-            return L10n.localize("Save fill-up")
-        }
-        let accepted = lines.filter { acceptedLineIDs.contains($0.id) }.count
-        if accepted > 0 {
-            return String(localized: "Save fill-up + \(accepted) expenses")
-        }
-        return L10n.localize("Save fill-up")
-    }
-
     func save() {
         guard let vehicle, let derived = form.derived(volumeUnit: volumeUnit) else { return }
         // OB.2: the door that wrote the entry - capture (a prefill was applied) vs typed (hard rule 15).
@@ -598,6 +585,11 @@ private extension ManualFillUpView {
                 if receiptWrite.lostPhoto {
                     AppLog.shared.emit(GroupedSaveReceiptLost(expenseCount: rows.count))
                 }
+            }
+            if form.isAdBlue {
+                return try saveAdBlue(vehicle: vehicle, derived: derived, receiptWrite: receiptWrite,
+                                      provenance: scanned.provenance, purchaseGroupId: plan?.purchaseGroupId,
+                                      source: source, repository: repository)
             }
             try loggedWrite(AppLog.shared, op: .create, entityType: FillUp.entityType,
                             entityId: toSave.id, source: source) { try repository.upsertFillUp(toSave) }

@@ -373,6 +373,9 @@ public struct MoneyBackfillService: Sendable {
         case var expense as Expense:
             expense.money = money
             try repository.upsertExpense(expense, syncState: .dirty)
+        case var adBlue as AdBlueFill:
+            adBlue.money = money
+            try repository.upsertAdBlueFill(adBlue, syncState: .dirty)
         default:
             break
         }

@@ -114,6 +114,7 @@ extension ArchiveImportRecord {
         case .chargeSession(let charge): return charge.vehicleId
         case .serviceRecord(let service): return service.vehicleId
         case .expense(let expense): return expense.vehicleId
+        case .adBlueFill(let adBlue): return adBlue.vehicleId
         case .reminder(let reminder): return reminder.vehicleId
         case .station, .tariff, .attachment: return nil
         }

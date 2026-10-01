@@ -31,6 +31,9 @@ struct ManualFillUpFormState: Equatable {
     /// control was inert for the user, not merely awkward for the test.
     var isCurrencyExpanded = false
     var fuelKind: FuelKind = .petrol95
+    /// The AdBlue chip: the sheet saves an `AdBlueFill`, not a `FillUp`, and
+    /// the full-tank and tank-level rows step aside (docs/SCHEMA.md -> AdBlueFill).
+    var isAdBlue = false
     var isFull = true
     /// The tank level after this fill-up (docs/SCHEMA.md: 0-100, 100 = full).
     /// Set through the tank-level sheet (P1.9); `nil` on a bare partial fill.
@@ -221,6 +224,7 @@ struct ManualFillUpFormState: Equatable {
         if total != initialTotal || liters != initialLiters || pricePerL != initialPricePerL { return true }
         // A tank level set on a partial fill is a real edit (100 on a full
         // fill is the toggle's own state, not an edit).
+        if isAdBlue { return true }
         if !isFull && tankLevelAfterPct != nil { return true }
         // Format-on-blur puts a thin-space grouped string back into the field
         // (HANDOVER.md open item 0); it is not an edit, so compare ungrouped.

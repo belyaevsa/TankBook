@@ -183,6 +183,22 @@ private func fullyPopulatedExpense() -> Expense {
     )
 }
 
+private func fullyPopulatedAdBlueFill() -> AdBlueFill {
+    AdBlueFill(
+        id: UUID(uuidString: "abababab-abab-7bab-8bab-abababababab")!,
+        createdAt: testTimestamp, updatedAt: testTimestamp, deletedAt: testTimestamp,
+        vehicleId: UUID(uuidString: "11111111-1111-7111-8111-111111111111")!,
+        date: testTimestamp, odometer: 121480,
+        money: convertedMoney(),
+        note: "Neste",
+        attachments: [UUID(uuidString: "aaaaaaaa-aaaa-7aaa-8aaa-aaaaaaaaaaaa")!],
+        provenance: .manual, conflict: .none,
+        purchaseGroupId: UUID(uuidString: "99999999-9999-7999-8999-999999999999")!,
+        volumeL: 5.75, unitPrice: Decimal(string: "0.899")!,
+        stationId: UUID(uuidString: "77777777-7777-7777-8777-777777777777")!
+    )
+}
+
 private func fullyPopulatedReminder() -> Reminder {
     Reminder(
         id: UUID(uuidString: "66666666-6666-7666-8666-666666666666")!,
@@ -300,6 +316,7 @@ private var sampleEntities: [any SyncedEntity] {
         fullyPopulatedChargeSession(),
         fullyPopulatedServiceRecord(),
         fullyPopulatedExpense(),
+        fullyPopulatedAdBlueFill(),
         fullyPopulatedReminder(),
         fullyPopulatedStation(),
         fullyPopulatedTariff(),
@@ -449,6 +466,30 @@ func unknownTopLevelFieldSurvivesDecodeEncode(_ entityType: String) throws {
     let reencodedProvenanceBytes = try reencodedPayload["provenance"]?.jsonData()
     #expect(reencodedProvenanceBytes == originalProvenanceBytes,
             "unknown provenance tag must round-trip byte-identically")
+}
+
+/// `fillUp.fuelKind` is a raw-value enum: an unknown value fails the decode,
+/// which on pull stops the cycle before its cursor saves. A new fuel kind is
+/// therefore a breaking change for every installed build, and AdBlue syncs as
+/// its own entity type instead (docs/API.md -> payload change verdicts).
+@Test func unknownFuelKindIsRejectedByTheReleasedFillUpDecoder() throws {
+    let fixture = try loadJSON(fixtureURL(for: "fillUp"))
+    var payload = fixture.objectValue ?? [:]
+    payload["fuelKind"] = .string("adBlue")
+    let envelope = PayloadEnvelope(entityType: "fillUp",
+                                   schemaVersion: PayloadCodec.currentSchemaVersion,
+                                   payload: .object(payload))
+
+    do {
+        _ = try PayloadCodec.decode(envelope, as: FillUp.self)
+        Issue.record("the released client unexpectedly accepted adBlue")
+    } catch let error as PayloadCodec.Error {
+        guard case .decodeFailed(let detail) = error else {
+            Issue.record("unexpected codec error: \(error)")
+            return
+        }
+        #expect(detail.contains("fuelKind"))
+    }
 }
 
 /// An envelope with an unknown entityType is stored opaquely and re-emitted

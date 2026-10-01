@@ -177,7 +177,7 @@ public struct LogStream: Equatable, Sendable {
 
     /// An entry's kind in the stream - the accent dot's meaning.
     public enum Kind: Equatable, Sendable {
-        case fuel, charge, service, expense
+        case fuel, charge, service, expense, adBlue
     }
 
     /// The quantity an entry card can carry: litres for a fill, kWh for a charge.
@@ -668,17 +668,20 @@ extension LogStream.LogEntry {
             self.showsFuelKind = false
             self.consumptionPer100 = nil
         default:
-            // A future entry type: render as a neutral expense-like row rather
+            // An AdBlue top-up is fluid, not fuel: no fuel kind, no consumption
+            // figure, always titled "AdBlue" (docs/DESIGN.md -> AdBlue rows). A
+            // future entry type renders as a neutral expense-like row rather
             // than a crash - nothing is lost silently (hard rule 8).
-            self.kind = .expense
-            self.stationId = nil
+            let adBlue = entry as? AdBlueFill
+            self.kind = adBlue == nil ? .expense : .adBlue
+            self.stationId = adBlue?.stationId
             self.provider = nil
             self.vendor = nil
             self.entryTitle = nil
             self.serviceItemTitles = []
             self.serviceCategory = nil
             self.expenseCategory = nil
-            self.quantity = nil
+            self.quantity = adBlue.map { .volumeL($0.volumeL) }
             self.fuelKind = nil
             self.showsFuelKind = false
             self.consumptionPer100 = nil

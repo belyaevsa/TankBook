@@ -82,6 +82,13 @@ extension EditEntryView {
             expense.conflict = updated.conflict
             expense.flagAcceptance = updated.flagAcceptance
             try repository.upsertExpense(expense)
+        case var adBlue as AdBlueFill:
+            if let display = Double(form.volume.replacingOccurrences(of: ",", with: ".")), display > 0 {
+                adBlue.volumeL = ManualFillUpMath.volumeL(from: display, unit: vehicle.units.volume)
+            }
+            adBlue.conflict = updated.conflict
+            adBlue.flagAcceptance = updated.flagAcceptance
+            try repository.upsertAdBlueFill(adBlue)
         default:
             break
         }

@@ -107,6 +107,8 @@ struct EditEntryNonFillForm: Equatable {
     var odometer = ""
     var note = ""
     var energyKWh = ""
+    /// An AdBlue top-up's volume, in the car's display unit.
+    var volume = ""
     var provider = ""
     var vendor = ""
     var title = ""

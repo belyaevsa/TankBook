@@ -9,8 +9,10 @@ import TankbookCore
 /// A fill shows its station (else its fuel kind); a charge its provider; a
 /// service its vendor, else its first named line item (with a count when it has
 /// more), else its category, else the bare type name; an expense its title,
-/// else its category, else the bare type name. The bare type name is the LAST
-/// resort - never the answer while better text exists.
+/// else its category, else the bare type name. An AdBlue top-up is always
+/// "AdBlue": its kind label is always shown (docs/DESIGN.md -> AdBlue rows).
+/// Otherwise the bare type name is the LAST resort - never the answer while
+/// better text exists.
 enum EntryTitle {
     static func text(_ entry: any Entry, stations: [Station]) -> String {
         switch entry {
@@ -29,6 +31,8 @@ enum EntryTitle {
                                 category: service.items.first?.category)
         case let expense as Expense:
             return expenseTitle(expense.title, category: expense.category)
+        case is AdBlueFill:
+            return L10n.localize("AdBlue")
         default:
             return L10n.localize("Entry")
         }
@@ -50,6 +54,8 @@ enum EntryTitle {
                                 category: entry.serviceCategory)
         case .expense:
             return expenseTitle(entry.entryTitle, category: entry.expenseCategory)
+        case .adBlue:
+            return L10n.localize("AdBlue")
         }
     }
 

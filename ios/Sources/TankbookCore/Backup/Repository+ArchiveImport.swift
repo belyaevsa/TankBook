@@ -16,6 +16,7 @@ public enum ArchiveImportRecord: Sendable {
     case chargeSession(ChargeSession)
     case serviceRecord(ServiceRecord)
     case expense(Expense)
+    case adBlueFill(AdBlueFill)
     case reminder(Reminder)
     case station(Station)
     case tariff(Tariff)
@@ -31,6 +32,7 @@ public enum ArchiveImportRecord: Sendable {
         case .chargeSession(let charge): charge
         case .serviceRecord(let service): service
         case .expense(let expense): expense
+        case .adBlueFill(let adBlue): adBlue
         default: nil
         }
     }
@@ -59,6 +61,11 @@ public enum ArchiveImportRecord: Sendable {
             copy.conflict = conflict
             copy.flagAcceptance = acceptance
             return .expense(copy)
+        case .adBlueFill(let adBlue):
+            var copy = adBlue
+            copy.conflict = conflict
+            copy.flagAcceptance = acceptance
+            return .adBlueFill(copy)
         default:
             return self
         }
@@ -73,6 +80,7 @@ public enum ArchiveImportRecord: Sendable {
         case (.chargeSession(let lhs), .chargeSession(let rhs)): lhs.id == rhs.id
         case (.serviceRecord(let lhs), .serviceRecord(let rhs)): lhs.id == rhs.id
         case (.expense(let lhs), .expense(let rhs)): lhs.id == rhs.id
+        case (.adBlueFill(let lhs), .adBlueFill(let rhs)): lhs.id == rhs.id
         case (.vehicle(let lhs), .vehicle(let rhs)): lhs.id == rhs.id
         case (.reminder(let lhs), .reminder(let rhs)): lhs.id == rhs.id
         case (.station(let lhs), .station(let rhs)): lhs.id == rhs.id
@@ -123,6 +131,12 @@ extension TankbookRepository {
     public func chargeSessionsIncludingDeleted(forVehicle vehicleId: UUID) throws -> [ChargeSession] {
         try database.read { db in
             try rowsIncludingDeleted(ChargeSessionRow.self, forVehicle: vehicleId, in: db).map(\.chargeSession)
+        }
+    }
+
+    public func adBlueFillsIncludingDeleted(forVehicle vehicleId: UUID) throws -> [AdBlueFill] {
+        try database.read { db in
+            try rowsIncludingDeleted(AdBlueFillRow.self, forVehicle: vehicleId, in: db).map(\.adBlueFill)
         }
     }
 
@@ -254,6 +268,10 @@ extension TankbookRepository {
                 var row = ExpenseRow(expense: expense, syncState: syncState)
                 row.syncScn = try preservingScn(syncState, table: TankbookSchema.expense, id: expense.id, in: db)
                 try row.save(db)
+            case .adBlueFill(let adBlue):
+                var row = AdBlueFillRow(adBlueFill: adBlue, syncState: syncState)
+                row.syncScn = try preservingScn(syncState, table: TankbookSchema.adBlueFill, id: adBlue.id, in: db)
+                try row.save(db)
             case .reminder(let reminder):
                 var row = ReminderRow(reminder: reminder, syncState: syncState)
                 row.syncScn = try preservingScn(syncState, table: TankbookSchema.reminder, id: reminder.id, in: db)
@@ -315,6 +333,7 @@ extension TankbookRepository {
         let charges: [any Entry] = try ChargeSessionRow.filter(predicate).fetchAll(db).map(\.chargeSession)
         let services: [any Entry] = try ServiceRecordRow.filter(predicate).fetchAll(db).map(\.service)
         let expenses: [any Entry] = try ExpenseRow.filter(predicate).fetchAll(db).map(\.expense)
-        return fills + charges + services + expenses
+        let adBlue: [any Entry] = try AdBlueFillRow.filter(predicate).fetchAll(db).map(\.adBlueFill)
+        return fills + charges + services + expenses + adBlue
     }
 }

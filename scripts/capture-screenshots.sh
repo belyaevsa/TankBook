@@ -1841,6 +1841,17 @@ if [ "${#CAPTURED[@]}" -gt 0 ]; then
 fi
 rm -f "${MANIFEST_TSV}"
 
+# P1.14: AdBlue is its own entry. A diesel car with two top-ups shows the quiet
+# AdBlue line on its Home card and the rate card under the Trends tiles; the
+# manual form offers the AdBlue chip after the fuel chips.
+CAPTURE_SLEEP=6
+capture P1.14-home-adblue               en -seedSettingsSignedIn -seedHomeAdBlueTwo
+capture P1.14-home-adblue-ru            ru -seedSettingsSignedIn -seedHomeAdBlueTwo
+capture P1.14-trends-adblue             en -seedSettingsSignedIn -seedHomeAdBlueTwo -selectTrendsTab
+capture P1.14-trends-adblue-ru          ru -seedSettingsSignedIn -seedHomeAdBlueTwo -selectTrendsTab
+capture P1.14-adblue-chip               en -seedVehicleForUITests -seedVehicleDieselOnly -presentScreen confirmManual
+capture P1.14-adblue-chip-ru            ru -seedVehicleForUITests -seedVehicleDieselOnly -presentScreen confirmManual
+
 echo
 echo "Done. NOW OPEN THEM - this script proves a file was written, not that it"
 echo "shows the intended screen. A wrong seed renders an empty or error state"

@@ -30,6 +30,7 @@ enum CSVFixtureSeed {
     static let charge = UUID(uuidString: "00000000-0000-7000-8000-000000000203")!
     static let service = UUID(uuidString: "00000000-0000-7000-8000-000000000204")!
     static let expense = UUID(uuidString: "00000000-0000-7000-8000-000000000205")!
+    static let adBlue = UUID(uuidString: "00000000-0000-7000-8000-000000000206")!
 
     static func date(_ iso: String) -> Date {
         let formatter = ISO8601DateFormatter()
@@ -46,6 +47,14 @@ enum CSVFixtureSeed {
         try seedVehicleAndStations(into: repo)
         try seedFills(into: repo)
         try seedChargeAndServiceAndExpense(into: repo)
+        try repo.upsertAdBlueFill(AdBlueFill(
+            id: adBlue, createdAt: date("2026-08-11T07:00:00Z"),
+            updatedAt: date("2026-08-11T07:00:00Z"), deletedAt: nil,
+            vehicleId: vehicle, date: date("2026-08-11T08:05:00Z"), odometer: 82_400,
+            money: Money(amount: Decimal(string: "5.17")!, currency: .eur, homeCurrency: .eur),
+            note: nil, attachments: [], provenance: .manual, conflict: .none,
+            purchaseGroupId: nil, volumeL: 5.75, unitPrice: Decimal(string: "0.899")!,
+            stationId: station1))
     }
 
     private static func seedVehicleAndStations(into repo: TankbookRepository) throws {

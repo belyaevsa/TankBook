@@ -8,8 +8,9 @@ import Foundation
 //       "reminders": [<payload>...],
 //       "stations":  [<payload>...],
 //       "tariffs":   [<payload>...],
-//       "attachments":[<payload>...]   // the matching attachment records
-//     }
+//       "attachments":[<payload>...],  // the matching attachment records
+//       "adBlueFills":[<payload>...]   // optional; a reader that predates it
+//     }                                // ignores the key and imports the rest
 //
 // Every payload is exactly the sync payload shape (`PayloadCodec.encode` -
 // decimals as strings, dates ISO-8601 UTC, tombstones included via `deletedAt`)
@@ -28,6 +29,7 @@ struct VehicleArchiveContents: Sendable, Equatable {
     var chargeSessions: [ChargeSession] = []
     var serviceRecords: [ServiceRecord] = []
     var expenses: [Expense] = []
+    var adBlueFills: [AdBlueFill] = []
     var reminders: [Reminder] = []
     var stations: [Station] = []
     var tariffs: [Tariff] = []
@@ -36,7 +38,7 @@ struct VehicleArchiveContents: Sendable, Equatable {
     var blobs: [String: Data] = [:]
 
     var entryCount: Int {
-        fillUps.count + chargeSessions.count + serviceRecords.count + expenses.count
+        fillUps.count + chargeSessions.count + serviceRecords.count + expenses.count + adBlueFills.count
     }
 
     /// Every record in apply order: the vehicle(s) first (the entry FKs point
@@ -53,6 +55,7 @@ struct VehicleArchiveContents: Sendable, Equatable {
         records += chargeSessions.map(ArchiveImportRecord.chargeSession)
         records += serviceRecords.map(ArchiveImportRecord.serviceRecord)
         records += expenses.map(ArchiveImportRecord.expense)
+        records += adBlueFills.map(ArchiveImportRecord.adBlueFill)
         records += reminders.map(ArchiveImportRecord.reminder)
         return records
     }
@@ -81,8 +84,11 @@ struct ArchiveDataTree {
     var stations: [JSONValue]
     var tariffs: [JSONValue]
     var attachments: [JSONValue]
+    /// Kept out of `entries`: a build that predates AdBlue rejects an unknown
+    /// entry type there, but ignores a top-level key it does not read.
+    var adBlueFills: [JSONValue] = []
 
-    var entryCount: Int { entries.count }
+    var entryCount: Int { entries.count + adBlueFills.count }
 
     /// The single-typed arrays plus their fixed entity types, as the reader
     /// walks them.
@@ -92,7 +98,8 @@ struct ArchiveDataTree {
             ("reminder", reminders),
             ("station", stations),
             ("tariff", tariffs),
-            ("attachment", attachments)
+            ("attachment", attachments),
+            (AdBlueFill.entityType, adBlueFills)
         ]
     }
 }
@@ -149,6 +156,9 @@ enum ArchiveDataJSON {
         tree["stations"] = .array(try payloads(contents.stations))
         tree["tariffs"] = .array(try payloads(contents.tariffs))
         tree["attachments"] = .array(try payloads(contents.attachments))
+        if !contents.adBlueFills.isEmpty {
+            tree["adBlueFills"] = .array(try payloads(contents.adBlueFills))
+        }
 
         return .object(tree)
     }
@@ -200,6 +210,7 @@ enum ArchiveDataJSON {
             reminders: try payloadObjects("reminders"),
             stations: try payloadObjects("stations"),
             tariffs: try payloadObjects("tariffs"),
-            attachments: try optionalPayloadObjects("attachments"))
+            attachments: try optionalPayloadObjects("attachments"),
+            adBlueFills: try optionalPayloadObjects("adBlueFills"))
     }
 }

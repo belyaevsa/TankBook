@@ -1,0 +1,23 @@
+{
+  "id": "aaaaaaaa-aaaa-7aaa-8aaa-aaaaaaaaaaaa",
+  "createdAt": "2026-09-30T08:10:00.000Z",
+  "updatedAt": "2026-09-30T08:10:00.000Z",
+  "vehicleId": "11111111-1111-7111-8111-111111111111",
+  "date": "2026-09-30T08:05:00.000Z",
+  "odometer": 121480,
+  "money": {
+    "amount": "5.17",
+    "currency": "EUR",
+    "homeAmount": "5.17",
+    "homeCurrency": "EUR",
+    "rate": "1",
+    "rateSource": "ecb"
+  },
+  "attachments": [],
+  "provenance": { "tag": "manual" },
+  "conflict": { "tag": "none" },
+  "purchaseGroupId": "99999999-9999-7999-8999-999999999999",
+  "volumeL": 5.75,
+  "unitPrice": "0.899",
+  "stationId": "55555555-5555-7555-8555-555555555555"
+}

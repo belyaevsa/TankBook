@@ -48,6 +48,7 @@ protocol SyncRowState {
 extension VehicleRow: SyncRowState {}
 extension FillUpRow: SyncRowState {}
 extension ChargeSessionRow: SyncRowState {}
+extension AdBlueFillRow: SyncRowState {}
 extension ServiceRecordRow: SyncRowState {}
 extension ExpenseRow: SyncRowState {}
 extension ReminderRow: SyncRowState {}
@@ -68,6 +69,7 @@ extension TankbookRepository {
         case Vehicle.entityType: TankbookSchema.vehicle
         case FillUp.entityType: TankbookSchema.fillUp
         case ChargeSession.entityType: TankbookSchema.chargeSession
+        case AdBlueFill.entityType: TankbookSchema.adBlueFill
         case ServiceRecord.entityType: TankbookSchema.serviceRecord
         case Expense.entityType: TankbookSchema.expense
         case Reminder.entityType: TankbookSchema.reminder
@@ -90,6 +92,8 @@ extension TankbookRepository {
                 return fetchLocal(FillUpRow.self, id: id, entityType: entityType, in: db) { $0.fillUp }
             case ChargeSession.entityType:
                 return fetchLocal(ChargeSessionRow.self, id: id, entityType: entityType, in: db) { $0.chargeSession }
+            case AdBlueFill.entityType:
+                return fetchLocal(AdBlueFillRow.self, id: id, entityType: entityType, in: db) { $0.adBlueFill }
             case ServiceRecord.entityType:
                 return fetchServiceRecord(id: id, entityType: entityType, in: db)
             case Expense.entityType:
@@ -209,6 +213,10 @@ extension TankbookRepository {
         case ChargeSession.entityType:
             return try apply(record, syncState: syncState, as: ChargeSession.self, vehicleIds: { [$0.vehicleId] }) {
                 try upsertChargeSession($0, syncState: $1)
+            }
+        case AdBlueFill.entityType:
+            return try apply(record, syncState: syncState, as: AdBlueFill.self, vehicleIds: { [$0.vehicleId] }) {
+                try upsertAdBlueFill($0, syncState: $1)
             }
         case ServiceRecord.entityType:
             return try apply(record, syncState: syncState, as: ServiceRecord.self, vehicleIds: { [$0.vehicleId] }) {
@@ -393,6 +401,10 @@ extension TankbookRepository {
             var entity = try PayloadCodec.decode(envelope, as: ChargeSession.self).entity
             entity.updatedAt = date
             try upsertChargeSession(entity, syncState: .dirty)
+        case AdBlueFill.entityType:
+            var entity = try PayloadCodec.decode(envelope, as: AdBlueFill.self).entity
+            entity.updatedAt = date
+            try upsertAdBlueFill(entity, syncState: .dirty)
         case ServiceRecord.entityType:
             var entity = try PayloadCodec.decode(envelope, as: ServiceRecord.self).entity
             entity.updatedAt = date
@@ -501,6 +513,7 @@ extension TankbookRepository {
             records += try fetchAllRecords(VehicleRow.self, entityType: Vehicle.entityType, in: db) { $0.vehicle }
             records += try fetchAllRecords(FillUpRow.self, entityType: FillUp.entityType, in: db) { $0.fillUp }
             records += try fetchAllRecords(ChargeSessionRow.self, entityType: ChargeSession.entityType, in: db) { $0.chargeSession }
+            records += try fetchAllRecords(AdBlueFillRow.self, entityType: AdBlueFill.entityType, in: db) { $0.adBlueFill }
             records += try allServiceRecords(in: db)
             records += try fetchAllRecords(ExpenseRow.self, entityType: Expense.entityType, in: db) { $0.expense }
             records += try fetchAllRecords(ReminderRow.self, entityType: Reminder.entityType, in: db) { $0.reminder }
@@ -598,6 +611,7 @@ extension TankbookRepository {
         switch entry {
         case is FillUp: TankbookSchema.fillUp
         case is ChargeSession: TankbookSchema.chargeSession
+        case is AdBlueFill: TankbookSchema.adBlueFill
         case is ServiceRecord: TankbookSchema.serviceRecord
         case is Expense: TankbookSchema.expense
         default: nil

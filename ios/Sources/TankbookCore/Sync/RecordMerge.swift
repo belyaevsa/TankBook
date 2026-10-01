@@ -149,6 +149,7 @@ public enum RecordMerge {
         case Vehicle.entityType: return equivalent(local, remote, Vehicle.self)
         case FillUp.entityType: return equivalent(local, remote, FillUp.self)
         case ChargeSession.entityType: return equivalent(local, remote, ChargeSession.self)
+        case AdBlueFill.entityType: return equivalent(local, remote, AdBlueFill.self)
         case ServiceRecord.entityType: return equivalent(local, remote, ServiceRecord.self)
         case Expense.entityType: return equivalent(local, remote, Expense.self)
         case Reminder.entityType: return equivalent(local, remote, Reminder.self)

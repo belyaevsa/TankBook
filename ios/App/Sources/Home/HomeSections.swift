@@ -92,8 +92,21 @@ struct HomeGarageCard: View {
     let odometer: Int?
     let updatedAt: Date?
     let photoData: Data?
+    /// The car's AdBlue figures; nil for a car with no top-up, which shows no line.
+    var adBlue: AdBlueStats?
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            carRow
+            if let adBlue {
+                HomeAdBlueLine(stats: adBlue, vehicle: vehicle)
+            }
+        }
+        .padding(14)
+        .formCard()
+    }
+
+    private var carRow: some View {
         HStack(spacing: 12) {
             photo
             VStack(alignment: .leading, spacing: 2) {
@@ -117,8 +130,6 @@ struct HomeGarageCard: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(14)
-        .formCard()
     }
 
     /// The car's photo through the one shared tile (RV.275). Home passes its

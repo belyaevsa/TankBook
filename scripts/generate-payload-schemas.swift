@@ -306,6 +306,25 @@ let fillUpProperties: [String: Any] = [
     "fiscalIdentity": schemaRef("fiscalDocumentIdentity"),
 ]
 
+let adBlueFillProperties: [String: Any] = [
+    "id": schemaUUID,
+    "createdAt": schemaDate,
+    "updatedAt": schemaDate,
+    "deletedAt": schemaDate,
+    "vehicleId": schemaUUID,
+    "date": schemaDate,
+    "odometer": schemaInteger,
+    "money": schemaRef("money"),
+    "note": schemaString,
+    "attachments": schemaArray(schemaUUID),
+    "provenance": schemaRef("provenance"),
+    "conflict": schemaRef("conflictState"),
+    "purchaseGroupId": schemaUUID,
+    "volumeL": schemaNumber,
+    "unitPrice": schemaDecimal,
+    "stationId": schemaUUID,
+]
+
 let chargeSessionProperties: [String: Any] = [
     "id": schemaUUID,
     "createdAt": schemaDate,
@@ -471,6 +490,7 @@ let entities: [String: ([String: Any], [String])] = [
     ]),
     "fillUp": (fillUpProperties, entryCommonRequired + ["volumeL", "fuelKind", "isFull", "crossCheck"]),
     "chargeSession": (chargeSessionProperties, entryCommonRequired + ["energyKWh", "chargeType"]),
+    "adBlueFill": (adBlueFillProperties, entryCommonRequired + ["volumeL"]),
     "serviceRecord": (serviceRecordProperties, entryCommonRequired + ["items", "usedParts"]),
     "expense": (expenseProperties, entryCommonRequired + ["category", "title"]),
     "reminder": (reminderProperties, ["id", "createdAt", "updatedAt", "vehicleId", "title", "category", "status"]),

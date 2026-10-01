@@ -226,7 +226,8 @@ public struct VehicleArchiveReader {
             "reminders": .array(data.reminders),
             "stations": .array(data.stations),
             "tariffs": .array(data.tariffs),
-            "attachments": .array(data.attachments)
+            "attachments": .array(data.attachments),
+            "adBlueFills": .array(data.adBlueFills)
         ])
         while version < policy.currentVersion {
             guard let migrator = policy.migrators[version] else {
@@ -277,6 +278,8 @@ public struct VehicleArchiveReader {
             return .serviceRecord(try decodeEntity(ServiceRecord.self, envelope: envelope, entityType: entityType))
         case Expense.entityType:
             return .expense(try decodeEntity(Expense.self, envelope: envelope, entityType: entityType))
+        case AdBlueFill.entityType:
+            return .adBlueFill(try decodeEntity(AdBlueFill.self, envelope: envelope, entityType: entityType))
         case Reminder.entityType:
             return .reminder(try decodeEntity(Reminder.self, envelope: envelope, entityType: entityType))
         case Station.entityType:
@@ -306,6 +309,7 @@ public struct VehicleArchiveReader {
         case .chargeSession(let value): contents.chargeSessions.append(value)
         case .serviceRecord(let value): contents.serviceRecords.append(value)
         case .expense(let value): contents.expenses.append(value)
+        case .adBlueFill(let value): contents.adBlueFills.append(value)
         case .reminder(let value): contents.reminders.append(value)
         case .station(let value): contents.stations.append(value)
         case .tariff(let value): contents.tariffs.append(value)

@@ -172,6 +172,20 @@ registry lives in the database"). Checked against build 1368 (the store build): 
 keys it does not know byte-identically on decode -> encode (`PayloadContractTests`), so a set or a
 swap it edits and re-pushes does not lose the new members.
 
+**Payload change verdict (P1.14, 2026-10-01): additive - a new entity type, not a new fuel kind.**
+AdBlue top-ups sync as `entityType: "adBlueFill"` (`docs/SCHEMA.md` -> AdBlueFill) with their own
+registered schema; `fillUp` is unchanged and `schemaVersion` stays 1. The first design - an
+`adBlue` value in `fillUp.fuelKind` - was **rejected** because it breaks build 1368 (the store
+build): its `PayloadCodec` decodes `fuelKind` as a raw-value enum and throws on an unknown
+string, `SyncEngine+Pull` parks only missing-parent failures, so the pull would stop before saving
+its cursor and replay the same page every cycle - an account that never syncs again. An unknown
+**entity type** is the path build 1368 already tolerates: checked against the `v1.0` tag's
+`Repository+Sync.applyRecord`, whose `default` branch returns no touched vehicles and lets the
+cursor advance, so an old phone skips the top-up and keeps every other record. The server accepts
+the type (registered schema, refreshed by migration 029; an older server would accept it
+unvalidated as an unknown type). What an older client loses is only the AdBlue rows themselves -
+it shows none of them, and its fuel figures were never meant to include them.
+
 **Payload validation** (per-item `rejected` codes, full contract in `SYNC.md` → "Payload contract and versioning"): `payload_invalid` (not an object, >256 KB, bad entityType), `schema_version_unsupported` (newer than the server knows – the *server* needs updating, and the message says so), `payload_schema_violation` (fails the registered JSON Schema; `pointer` names the offending field). A **known** entityType is strictly validated; an **unknown** one with a well-formed envelope is accepted unvalidated, which is what keeps the entity set open for older servers.
 
 ## Attachments (blob pipeline – `SYNC.md`)

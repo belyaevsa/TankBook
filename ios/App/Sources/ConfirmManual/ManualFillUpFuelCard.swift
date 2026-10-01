@@ -10,10 +10,19 @@ struct ManualFillUpFuelFullCard: View {
     var body: some View {
         VStack(spacing: 0) {
             fuelKindSection
-            CardDivider()
-            fullToggleRow
+            if !form.isAdBlue {
+                CardDivider()
+                fullToggleRow
+            }
         }
         .formCard()
+    }
+
+    /// A diesel car is offered an AdBlue chip beside its fuel (docs/SCHEMA.md
+    /// -> AdBlueFill). It is not a fuel kind: choosing it saves a top-up that
+    /// no fuel figure reads.
+    private var offersAdBlue: Bool {
+        fuelKinds.contains(.diesel) || form.isAdBlue
     }
 
     /// THE LIKELY OFFER SET (P2.3c): `Vehicle.fuelKinds` is a suggestion, not a
@@ -44,7 +53,7 @@ struct ManualFillUpFuelFullCard: View {
 
     private var fuelKindSection: some View {
         FieldRow("Fuel") {
-            if offeredKinds.count > 1 {
+            if offeredKinds.count + (offersAdBlue ? 1 : 0) > 1 {
                 chooser
             } else if offeredKinds.count == 1 {
                 singleKindValue()
@@ -71,6 +80,9 @@ struct ManualFillUpFuelFullCard: View {
         FuelChipFlow(spacing: 6, rowSpacing: 6) {
             ForEach(visibleKinds, id: \.self) { kind in
                 chip(kind)
+            }
+            if offersAdBlue {
+                adBlueChip
             }
             if !remainingKinds.isEmpty {
                 addMenu
@@ -114,6 +126,7 @@ struct ManualFillUpFuelFullCard: View {
             ForEach(remainingKinds, id: \.self) { kind in
                 Button {
                     form.fuelKind = kind
+                    form.isAdBlue = false
                 } label: {
                     Text(kind.labelKey)
                 }
@@ -134,11 +147,24 @@ struct ManualFillUpFuelFullCard: View {
     }
 
     private func chip(_ kind: FuelKind) -> some View {
-        let selected = form.fuelKind == kind
-        return Button {
+        chipButton(label: Text(kind.labelKey), selected: !form.isAdBlue && form.fuelKind == kind,
+                   identifier: "manualFillUpFuelKind_\(kind.rawValue)") {
             form.fuelKind = kind
-        } label: {
-            Text(kind.labelKey)
+            form.isAdBlue = false
+        }
+    }
+
+    private var adBlueChip: some View {
+        chipButton(label: Text("AdBlue"), selected: form.isAdBlue,
+                   identifier: "manualFillUpAdBlueChip") {
+            form.isAdBlue = true
+        }
+    }
+
+    private func chipButton(label: Text, selected: Bool, identifier: String,
+                            action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            label
                 .font(.footnote.weight(selected ? .bold : .semibold))
                 .foregroundStyle(selected ? Theme.Palette.ink : Theme.Palette.inkSoft)
                 .lineLimit(1)
@@ -151,7 +177,7 @@ struct ManualFillUpFuelFullCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? .isSelected : [])
-        .accessibilityIdentifier("manualFillUpFuelKind_\(kind.rawValue)")
+        .accessibilityIdentifier(identifier)
     }
 
     private var fullToggleRow: some View {

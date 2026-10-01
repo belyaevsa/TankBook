@@ -48,6 +48,7 @@ extension EditEntryNonFillForm {
         switch entry {
         case is ChargeSession: return .charge
         case is Expense: return .expense
+        case is AdBlueFill: return .fillUp
         default: return .service
         }
     }

@@ -138,6 +138,7 @@ extension EditEntryView {
         case let charge as ChargeSession: self.charge = charge
         case let service as ServiceRecord: self.service = service
         case let expense as Expense: self.expense = expense
+        case let adBlue as AdBlueFill: self.adBlue = adBlue
         default: break
         }
         // Single source of truth with the RV.31 discard baseline

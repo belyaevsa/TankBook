@@ -90,6 +90,10 @@ struct TrendsView: View {
     private func fullLayout(_ stats: TrendsStats) -> some View {
         if stats.home.hasEntries {
             tileGrid(stats)
+            if let adBlue = AdBlueStats.compute(entries: entries),
+               let rate = AdBlueFormat.rate(adBlue, vehicle: stats.vehicle) {
+                TrendsAdBlueCard(stats: adBlue, rate: rate, vehicle: stats.vehicle)
+            }
             if let pattern = stats.home.fillPattern {
                 HomeFillPatternCard(pattern: pattern, vehicle: stats.vehicle)
             }

@@ -146,6 +146,9 @@ private func lossyServerCopy(_ payload: JSONValue) -> JSONValue {
         ("chargeSession", makeSyncRecord(charge, clientUpdatedAt: byteT0)),
         ("serviceRecord", makeSyncRecord(service, clientUpdatedAt: byteT0)),
         ("expense", makeSyncRecord(expense, clientUpdatedAt: byteT0)),
+        ("adBlueFill", makeSyncRecord(AdBlueFill(
+            id: UUID.v7(), createdAt: byteT0, updatedAt: byteT0, vehicleId: vehicleId,
+            date: byteT0, provenance: .manual, volumeL: 5.75), clientUpdatedAt: byteT0)),
         ("reminder", makeSyncRecord(reminder, clientUpdatedAt: byteT0)),
         ("station", makeSyncRecord(station, clientUpdatedAt: byteT0)),
         ("tariff", makeSyncRecord(tariff, clientUpdatedAt: byteT0)),

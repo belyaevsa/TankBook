@@ -224,6 +224,7 @@ struct ExcludedEntriesView: View {
         case is ChargeSession: .charge
         case is ServiceRecord: .service
         case is Expense: .expense
+        case is AdBlueFill: .adBlue
         default: .expense
         }
     }

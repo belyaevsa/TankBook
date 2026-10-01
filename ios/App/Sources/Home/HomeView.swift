@@ -276,7 +276,8 @@ struct HomeView: View {
         HomeRemindersEntryRow(attentionCount: dueRemindersAcrossCars)
         headerRow(stats.vehicle)
         HomeGarageCard(vehicle: stats.vehicle, odometer: stats.odometer,
-                       updatedAt: stats.updatedAt, photoData: photoData)
+                       updatedAt: stats.updatedAt, photoData: photoData,
+                       adBlue: AdBlueStats.compute(entries: entries))
             .simultaneousGesture(swipeToSwitchGesture)
         HomeHeadlineBlock(stats: stats, vehicle: stats.vehicle,
                           onTypeIt: { presentSheet(.confirmManual) })

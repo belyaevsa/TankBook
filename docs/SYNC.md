@@ -56,6 +56,14 @@ Opaque does not mean unchecked. A payload nobody validates is a payload any bugg
 
 ### The envelope
 
+**Raw-value enums are closed to old clients (P1.14, 2026-10-01).** The unknown-field and
+unknown *tagged*-enum preservation rules do not cover a raw-value enum such as
+`FillUp.fuelKind`: build 1368's `PayloadCodec.decode` throws on a value it does not know and the
+pull cycle stops before saving its cursor. A new value in such a field is therefore a breaking
+change under hard rule 16. A new **entity type** is not - an old client's `applyRecord` skips a
+type it does not know and the cursor advances - which is why AdBlue syncs as its own
+`adBlueFill` type (`docs/API.md` -> payload change verdicts).
+
 `records` carries the version as a **column**, not buried in JSON, so the server can filter and migrate without parsing domain content:
 
 ```sql

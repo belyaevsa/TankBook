@@ -20,6 +20,10 @@ extension ChargeSession: SyncedEntity {
     public static let entityType = "chargeSession"
 }
 
+extension AdBlueFill: SyncedEntity {
+    public static let entityType = "adBlueFill"
+}
+
 extension ServiceRecord: SyncedEntity {
     public static let entityType = "serviceRecord"
 }
@@ -62,6 +66,7 @@ public enum SyncedEntityCatalog {
             Vehicle.self,
             FillUp.self,
             ChargeSession.self,
+            AdBlueFill.self,
             ServiceRecord.self,
             Expense.self,
             Reminder.self,
@@ -103,7 +108,7 @@ internal enum PayloadContract {
                 TaggedEnumField(path: ["provenance"], knownTags: provenanceTags, benignDefault: .object(["tag": .string("manual")])),
                 TaggedEnumField(path: ["crossCheck"], knownTags: crossCheckTags, benignDefault: .object(["tag": .string("verified")])),
             ]
-        case ChargeSession.entityType:
+        case ChargeSession.entityType, AdBlueFill.entityType:
             return [
                 TaggedEnumField(path: ["conflict"], knownTags: conflictTags, benignDefault: .object(["tag": .string("none")])),
                 TaggedEnumField(path: ["provenance"], knownTags: provenanceTags, benignDefault: .object(["tag": .string("manual")])),

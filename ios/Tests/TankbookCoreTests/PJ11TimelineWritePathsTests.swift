@@ -252,7 +252,7 @@ struct PJ11WritePathGuardTests {
     /// sources (test-seed fixtures excluded) and pins the decision for each.
     /// A fifth write path cannot appear unflagged.
     ///
-    /// The class: `repository.upsert{FillUp,ChargeSession,ServiceRecord,Expense}`
+    /// The class: `repository.upsert{FillUp,ChargeSession,ServiceRecord,Expense,AdBlueFill}`
     /// and `repository.commitImport`. Each found site is decided here:
     ///
     /// STAMPS - the validator is consulted on this write:
@@ -265,6 +265,10 @@ struct PJ11WritePathGuardTests {
     ///   `buildUpdatedFill` (EditEntryFormState.swift)
     /// - ManualFillUpView.save (upsertFillUp) - the manual fill, stamped inside
     ///   `buildFillUp`
+    /// - ManualFillUpView+AdBlue.saveAdBlue (upsertAdBlueFill) - the AdBlue
+    ///   top-up, stamped inside `buildAdBlueFill`
+    /// - EditEntryView+NonFillSave.writeNonFill (upsertAdBlueFill) - the
+    ///   top-up edit, stamped with the other non-fill types
     /// - ImportFlowModel.confirmImport (commitImport) - stamped at commit by
     ///   core's `stampingImportConflicts` (Repository+ArchiveImport.swift).
     ///   Lives in `ImportFlowModel+Wizard.swift`, so the scan reports it under
@@ -286,7 +290,7 @@ struct PJ11WritePathGuardTests {
     ///   fuel path is RV.38's, the service and expense paths are RV.201's
     ///   (the same one merge over entry kind).
     /// - ExpenseReceiptLink.joinSource (upsertFillUp / upsertChargeSession /
-    ///   upsertServiceRecord / upsertExpense) - PJ.41's "Add expense from this
+    ///   upsertServiceRecord / upsertExpense / upsertAdBlueFill) - PJ.41's "Add expense from this
     ///   receipt" writes ONE field, the source entry's `purchaseGroupId`, after
     ///   the expense saves; date, odometer and the stored `conflict` are carried
     ///   through untouched, so the validator's verdict cannot change.
@@ -316,6 +320,8 @@ struct PJ11WritePathGuardTests {
             "(EditEntryView+NonFillSave, upsertExpense)",
             "(EditEntryView, upsertFillUp)",
             "(ManualFillUpView, upsertFillUp)",
+            "(ManualFillUpView+AdBlue, upsertAdBlueFill)",
+            "(EditEntryView+NonFillSave, upsertAdBlueFill)",
             "(ImportFlowModel+Wizard, commitImport)",
         ]
         let exemptions: Set<String> = [
@@ -328,6 +334,7 @@ struct PJ11WritePathGuardTests {
             "(ExpenseReceiptLink, upsertChargeSession)",
             "(ExpenseReceiptLink, upsertServiceRecord)",
             "(ExpenseReceiptLink, upsertExpense)",
+            "(ExpenseReceiptLink, upsertAdBlueFill)",
         ]
 
         let pinned = stamps.union(exemptions)
@@ -402,7 +409,7 @@ struct PJ11WritePathGuardTests {
     private static func entryWriteCallSites() throws -> Set<String> {
         let app = iosRoot.appendingPathComponent("App/Sources", isDirectory: true)
         let signatures = ["upsertFillUp", "upsertChargeSession",
-                          "upsertServiceRecord", "upsertExpense", "commitImport"]
+                          "upsertServiceRecord", "upsertExpense", "upsertAdBlueFill", "commitImport"]
         var found = Set<String>()
         for file in try swiftFiles(under: app) {
             let name = file.deletingPathExtension().lastPathComponent

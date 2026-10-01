@@ -67,6 +67,10 @@ extension EditEntryView {
         case let expense as Expense:
             form.title = expense.title
             form.category = expense.category
+        case let adBlue as AdBlueFill:
+            form.volume = ManualFillUpFormat.decimal(
+                ManualFillUpMath.displayVolume(from: adBlue.volumeL, unit: vehicle.units.volume),
+                fractionDigits: 2)
         default:
             break
         }

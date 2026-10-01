@@ -30,7 +30,7 @@ public struct TankbookRepository {
     private static let vehicleScopedTables = [
         TankbookSchema.fillUp, TankbookSchema.chargeSession, TankbookSchema.serviceRecord,
         TankbookSchema.expense, TankbookSchema.reminder, TankbookSchema.tireSet,
-        TankbookSchema.tariff,
+        TankbookSchema.tariff, TankbookSchema.adBlueFill,
     ]
 
     /// (table, sync entity type) pairs for the dirty-queue lookup.
@@ -38,6 +38,7 @@ public struct TankbookRepository {
         (TankbookSchema.vehicle, "vehicle"),
         (TankbookSchema.fillUp, "fillUp"),
         (TankbookSchema.chargeSession, "chargeSession"),
+        (TankbookSchema.adBlueFill, "adBlueFill"),
         (TankbookSchema.serviceRecord, "serviceRecord"),
         (TankbookSchema.expense, "expense"),
         (TankbookSchema.reminder, "reminder"),
@@ -248,7 +249,9 @@ extension TankbookRepository {
             let services: [any Entry] = try attachServiceItems(serviceRows, in: db)
             let expenses: [any Entry] = try ExpenseRow.filter(predicate)
                 .order(Column("date"), Column("createdAt")).fetchAll(db).map(\.expense)
-            return (fills + charges + services + expenses)
+            let adBlue: [any Entry] = try AdBlueFillRow.filter(predicate)
+                .order(Column("date"), Column("createdAt")).fetchAll(db).map(\.adBlueFill)
+            return (fills + charges + services + expenses + adBlue)
                 .sorted(by: EntryOrder.ascending)
         }
     }
@@ -627,7 +630,7 @@ extension TankbookRepository {
                                   arguments: [id.uuidString])
     }
 
-    private func fetchLive<Record: FetchableRecord & TableRecord>(
+    func fetchLive<Record: FetchableRecord & TableRecord>(
         _ type: Record.Type, vehicleId: UUID, in db: Database
     ) throws -> [Record] {
         try Record
@@ -671,7 +674,7 @@ extension TankbookRepository {
             """, arguments: [stamp, stamp, id.uuidString])
     }
 
-    private func restoreRow(table: String, id: UUID, at stamp: TimeInterval, in db: Database) throws {
+    func restoreRow(table: String, id: UUID, at stamp: TimeInterval, in db: Database) throws {
         try db.execute(sql: """
             UPDATE \(table)
             SET deletedAt = NULL, updatedAt = ?, syncState = 'dirty'

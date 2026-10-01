@@ -62,6 +62,8 @@ extension TankbookRepository {
                row.service.deletedAt == nil { return row.service }
             if let row = try ExpenseRow.fetchOne(db, key: id.uuidString),
                row.expense.deletedAt == nil { return row.expense }
+            if let row = try AdBlueFillRow.fetchOne(db, key: id.uuidString),
+               row.adBlueFill.deletedAt == nil { return row.adBlueFill }
             return nil
         }
     }
@@ -74,6 +76,7 @@ extension TankbookRepository {
         case let charge as ChargeSession: try upsertChargeSession(charge)
         case let service as ServiceRecord: try upsertServiceRecord(service)
         case let expense as Expense: try upsertExpense(expense)
+        case let adBlue as AdBlueFill: try upsertAdBlueFill(adBlue)
         default: break
         }
     }

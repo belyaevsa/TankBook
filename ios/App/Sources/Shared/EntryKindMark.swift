@@ -12,15 +12,18 @@ extension LogStream.Kind {
         case is FillUp: self = .fuel
         case is ChargeSession: self = .charge
         case is ServiceRecord: self = .service
+        case is AdBlueFill: self = .adBlue
         default: self = .expense
         }
     }
 
     /// taillight = fuel, headlight = electric (hard rule 5); service and
-    /// expense are inert inkSoft - the accent is meaning, never chrome.
+    /// expense are inert inkSoft - the accent is meaning, never chrome. AdBlue
+    /// is a pump purchase, so it keeps taillight and differs by its droplet
+    /// glyph (docs/DESIGN.md -> AdBlue rows).
     var color: Color {
         switch self {
-        case .fuel: return Theme.Palette.taillight
+        case .fuel, .adBlue: return Theme.Palette.taillight
         case .charge: return Theme.Palette.headlight
         case .service, .expense: return Theme.Palette.inkSoft
         }
@@ -37,6 +40,7 @@ extension LogStream.Kind {
         case .charge: return "bolt.fill"
         case .service: return "wrench.adjustable.fill"
         case .expense: return "tag.fill"
+        case .adBlue: return "drop.fill"
         }
     }
 
@@ -49,6 +53,7 @@ extension LogStream.Kind {
         case .charge: return L10n.localize("Charge")
         case .service: return L10n.localize("Service")
         case .expense: return L10n.localize("Expense")
+        case .adBlue: return L10n.localize("AdBlue")
         }
     }
 }

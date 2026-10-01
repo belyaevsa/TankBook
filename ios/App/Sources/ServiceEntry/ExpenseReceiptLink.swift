@@ -62,6 +62,10 @@ extension ExpenseReceiptLink {
             expense.purchaseGroupId = group
             expense.updatedAt = now
             try repository.upsertExpense(expense)
+        case var adBlue as AdBlueFill:
+            adBlue.purchaseGroupId = group
+            adBlue.updatedAt = now
+            try repository.upsertAdBlueFill(adBlue)
         default:
             return false
         }

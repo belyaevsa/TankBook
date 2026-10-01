@@ -5,11 +5,11 @@ import TankbookCore
 /// Which field of the non-fill edit form holds focus (drives the whole-row
 /// tap-to-focus of RV.47 and the odometer's format-on-blur).
 enum EditEntryNonFillFocus: Hashable {
-    case amount, energy, provider, vendor, title, odometer
+    case amount, energy, volume, provider, vendor, title, odometer
 }
 
-/// The edit form for the three non-FillUp entry types (docs/SCHEMA.md, Entry):
-/// a charge, a service record or an expense. Compact editable rows - amount +
+/// The edit form for the non-FillUp entry types (docs/SCHEMA.md, Entry): a
+/// charge, a service record, an expense or an AdBlue top-up. Compact editable rows - amount +
 /// currency chips (the lifted `CurrencyChipRow`), the type's own headline field,
 /// date, odometer and note. Every value is a default input, never a fact
 /// (hard rule 13).
@@ -232,6 +232,24 @@ struct EditEntryNonFillView: View {
                 }
                 CardDivider()
                 categoryRow(current: expense.category)
+            }
+            .formCard()
+        case is AdBlueFill:
+            FocusableFieldRow("AdBlue", $focus, equals: .volume,
+                              rowIdentifier: "editEntryAdBlueVolumeRow") {
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    TextField("0", text: $form.volume)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .font(.custom(AppFonts.dinAlternateBold, size: 24))
+                        .foregroundStyle(Theme.Palette.ink)
+                        .focused($focus, equals: .volume)
+                        .accessibilityIdentifier("editEntryAdBlueVolumeField")
+                        .numericInput($form.volume, kind: .decimal)
+                    Text(L10n.volumeUnit(vehicle.units.volume))
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                }
             }
             .formCard()
         default:

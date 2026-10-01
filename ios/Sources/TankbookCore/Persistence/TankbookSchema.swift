@@ -8,6 +8,7 @@ public enum TankbookSchema {
     public static let vehicle = "vehicle"
     public static let fillUp = "fillUp"
     public static let chargeSession = "chargeSession"
+    public static let adBlueFill = "adBlueFill"
     public static let serviceRecord = "serviceRecord"
     public static let serviceItem = "serviceItem"
     public static let expense = "expense"
@@ -38,13 +39,13 @@ public enum TankbookSchema {
     /// Every synced entity table (has the envelope + syncState bookkeeping).
     /// The reference data (exchangeRate) is deliberately NOT here.
     public static let syncedTables: [String] = [
-        vehicle, fillUp, chargeSession, serviceRecord, expense,
+        vehicle, fillUp, chargeSession, adBlueFill, serviceRecord, expense,
         reminder, station, tariff, tireSet, attachment, preferences,
     ]
 
     /// Entry tables: carry the EntryCommon envelope plus a vehicle FK.
     public static let entryTables: [String] = [
-        fillUp, chargeSession, serviceRecord, expense,
+        fillUp, chargeSession, adBlueFill, serviceRecord, expense,
     ]
 
     /// Money columns are flattened per docs/SCHEMA.md (Money). Unprefixed on

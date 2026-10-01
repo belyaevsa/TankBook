@@ -87,12 +87,14 @@ public struct VehicleArchiveWriter {
         contents.chargeSessions = charges
         contents.serviceRecords = services
         contents.expenses = expenses
+        let adBlueFills = try repository.adBlueFillsIncludingDeleted(forVehicle: vehicleID)
+        contents.adBlueFills = adBlueFills
         contents.reminders = try repository.remindersIncludingDeleted(forVehicle: vehicleID)
 
         // Stations: the ones this car's entries reference - live or tombstoned,
         // because a tombstoned station a live entry still points at must import
         // with it (nothing lost silently, hard rule 8).
-        let referencedStationIDs = Set(fillUps.compactMap(\.stationId))
+        let referencedStationIDs = Set(fillUps.compactMap(\.stationId) + adBlueFills.compactMap(\.stationId))
         contents.stations = try repository.stationsIncludingDeleted()
             .filter { referencedStationIDs.contains($0.id) }
 
@@ -106,7 +108,7 @@ public struct VehicleArchiveWriter {
         // Attachments: referenced by any entry (live or tombstoned), plus the
         // vehicle photo.
         var referencedAttachmentIDs = Set<AttachmentID>()
-        let entryLists: [any Entry] = fillUps + charges + services + expenses
+        let entryLists: [any Entry] = fillUps + charges + services + expenses + adBlueFills
         for entry in entryLists {
             referencedAttachmentIDs.formUnion(entry.attachments)
         }
@@ -148,6 +150,7 @@ public struct VehicleArchiveWriter {
             contents.chargeSessions += try repository.chargeSessionsIncludingDeleted(forVehicle: vehicle.id)
             contents.serviceRecords += try repository.serviceRecordsIncludingDeleted(forVehicle: vehicle.id)
             contents.expenses += try repository.expensesIncludingDeleted(forVehicle: vehicle.id)
+            contents.adBlueFills += try repository.adBlueFillsIncludingDeleted(forVehicle: vehicle.id)
             contents.reminders += try repository.remindersIncludingDeleted(forVehicle: vehicle.id)
         }
         contents.stations = try repository.stationsIncludingDeleted()
@@ -155,7 +158,7 @@ public struct VehicleArchiveWriter {
 
         var referencedAttachmentIDs = Set<AttachmentID>()
         let entryLists: [any Entry] = contents.fillUps + contents.chargeSessions
-            + contents.serviceRecords + contents.expenses
+            + contents.serviceRecords + contents.expenses + contents.adBlueFills
         for entry in entryLists {
             referencedAttachmentIDs.formUnion(entry.attachments)
         }

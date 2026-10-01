@@ -268,6 +268,11 @@ struct FlaggedEntriesView: View {
                                 entityId: row.id, source: .manual) {
                     try repository.softDeleteExpense(id: row.id)
                 }
+            case .adBlue:
+                try loggedWrite(AppLog.shared, op: .delete, entityType: AdBlueFill.entityType,
+                                entityId: row.id, source: .manual) {
+                    try repository.softDeleteAdBlueFill(id: row.id)
+                }
             }
             toastCenter.noteEntryChanged()
             Task { await sync.refresh() }

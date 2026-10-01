@@ -637,7 +637,7 @@ CHECK 2    Pace: implied km/day against neighbors ≤ vehicle.paceLimitKmPerDay.
            carries no timezone field. The comparison across a day boundary stays in fractional
            days; the rule is the calendar day, never "less than 24 hours".
 CHECK 3    Cross-check: volume × unitPrice ≈ FillUp.money.amount (tolerance max(0.02, amount × 0.005)).
-CHECK 4    AdBlue (2026-08-30): `.adBlue` in Vehicle.fuelKinds requires `.diesel` in the same set; an AdBlue fill never opens, closes or feeds a fuel segment (FuelKind.family) - see → AdBlue.
+CHECK 4    AdBlue (2026-08-30, entity 2026-10-01): an AdBlue top-up is an `AdBlueFill`, never a `FillUp`, so it never opens, closes or feeds a fuel segment; the AdBlue chip is offered on cars whose fuelKinds include `.diesel` - see → AdBlue.
            SYMMETRY LIMIT: multiplication is commutative, so this check passes just as happily on a
            SWAPPED volume/unitPrice pair. It validates the product, never the assignment – deciding
            which operand is which is the job of the resolution ladder in Reference data → Fuel price
@@ -886,42 +886,55 @@ which is the J9 trade (false alarms erode trust fastest). Retuning the constant 
 re-reading this derivation is how the number lost its reason in the first place; the code
 comment at `AnomalyEngine.minimumRelativeDrift` names this rule and links here.
 
-### AdBlue (added 2026-08-30, product owner)
+### AdBlue (added 2026-08-30, product owner; entity decided 2026-10-01)
 
-**AdBlue is logged as a fill-up and is never a fuel.** Diesel drivers buy it at the pump, in
-litres, at a price per litre, with an odometer reading and a receipt - every property of a
-`FillUp` - and the question they ask is a consumption question ("how much AdBlue does this car
-use?"). So it is `FuelKind.adBlue`, not an `Expense` category. What keeps it out of the fuel
-math is structural, not a flag:
+**AdBlue is logged like a fill-up and is never a fuel.** Diesel drivers buy it at the pump, in
+litres, at a price per litre, with an odometer reading and a receipt, and the question they ask
+is a consumption question ("how much AdBlue does this car use?"). **It is its own entity,
+`AdBlueFill`, not a `FuelKind`** (product owner, 2026-10-01). The 2026-08-30 plan was
+`FuelKind.adBlue` with a fuel *family*; it was dropped because a new raw value in
+`fillUp.fuelKind` stops build 1368's sync for good (`API.md` -> payload change verdicts,
+`SYNC.md` -> raw-value enums), while an unknown entity type is skipped. The separate type is
+also the stronger fence: the consumption engine takes `[FillUp]`, so no AdBlue litre can reach
+L/100 km, the headline, the lifetime average, the anomaly engine or the D1-D4 vectors by
+construction, not by a filter someone has to remember.
 
-- **Its own family.** `FuelKind.family` is `combustion / electric / adBlue`. A segment never
-  spans families, so no AdBlue litre can reach L/100 km, the headline, the lifetime average, the
-  anomaly engine or the D1-D4 vectors. `isFull` is stored but meaningless for AdBlue (the tank
-  is topped up, not filled) and is ignored by every algorithm.
-- **Its own metric.** `ADBLUE RATE = Σ volume of AdBlue fills except the last ÷ (odo(last) −
-  odo(first))`, in **L / 1000 km**, distance-weighted over the car's lifetime - never full-to-full,
-  because AdBlue fills are not full. Needs ≥ 2 AdBlue fills with odometers, else unavailable and
-  shown as `–` (never estimated, the tire-mileage rule). Rendered in Trends as one small tile
-  only when the car has ≥ 2 AdBlue fills; absent otherwise.
-- **Its money is car money.** AdBlue spend counts wherever fuel spend counts - monthly totals,
-  cost/km, the J13 dossier - and never in litres.
-- **Offer set.** `Vehicle.fuelKinds` may contain `.adBlue` only alongside `.diesel` (invariant,
-  enforced on AddVehicle and Vehicle detail; CHECK 4). The catalog offers it for diesel cars with
-  SCR, i.e. Euro 6 / 2015 onward, as a default the user may remove (hard rule 13). On a
-  `[.diesel, .adBlue]` car the Confirm fuel row shows two chips - a real choice, per the
-  `DESIGN.md` input rule.
-- **On a receipt.** A diesel receipt carrying an AdBlue line is a **mixed receipt** whose extra
-  line becomes a second `FillUp(.adBlue)` in the same purchase group - not an Expense - and the
-  fuel line is still the diesel line (CHECK 3 applies to each fill against its own line).
-  **An AdBlue line is never the fuel line**: the extractor must not select it for a diesel car's
-  fill even when its litres × price cross-check locks (`EXTRACTION.md` → AdBlue). A standalone
-  AdBlue purchase (a 10 L can at a shop) is a plain `FillUp(.adBlue)` with `provenance` as usual.
+**`AdBlueFill`** (Entry: the common envelope, `date`, `odometer`, `money`, `note`,
+`attachments`, `provenance`, `conflict`, `flagAcceptance`, `purchaseGroupId`), plus
+`volumeL: Double` (litres, required), `unitPrice: Decimal?` (per litre), `stationId: UUID?`.
+No fuel kind, no `isFull`, no tank level: a top-up is never a full tank. Payload
+`entityType: "adBlueFill"`, schema `docs/schemas/v1/adBlueFill.schema.json`; table `adBlueFill`
+(migration v13). Archives carry top-ups in a top-level `adBlueFills` array, not in `entries`:
+a reader that predates AdBlue rejects an unknown entry type but ignores a key it does not read.
+The per-car CSV export writes `adblue.csv`.
+
+- **Its own metric.** `ADBLUE RATE = Σ volume of the top-ups except the first ÷ (odo(last) −
+  odo(first))` over the top-ups that carry a reading, per **1000 units of the car's distance** -
+  L / 1000 km on a metric car. Each top-up refills what the distance since the previous one used,
+  so the first top-up's litres are the ones the window does not measure. Distance-weighted over
+  the car's lifetime, never full-to-full. Needs ≥ 2 top-ups with readings spanning a positive
+  distance, else unavailable and shown as `–` (never estimated). `AdBlueStats` derives it with the
+  last top-up; nothing is stored (hard rule 2).
+- **Where it shows** (product owner, 2026-10-01). One quiet line on the car's Home card for a car
+  with at least one top-up: the droplet, "AdBlue", the last top-up's volume and day, and the rate
+  (`–` with one top-up). It is never a second headline: the main last fill-up, price and
+  consumption stay fuel-only. Trends shows a small AdBlue card under the four tiles once the rate
+  exists (`DESIGN.md` -> AdBlue rows).
+- **Its money is car money.** AdBlue spend counts wherever entry money counts - monthly totals,
+  cost/km, the J13 dossier - and never in litres or in the fuel price.
+- **Offer set.** The manual fill-up form offers an **AdBlue chip** beside the fuel on any car whose
+  `fuelKinds` contains `.diesel`; choosing it hides the full-tank and tank-level rows and the save
+  writes an `AdBlueFill`. A car without diesel is not offered it.
+- **Timeline.** A top-up's odometer orders the timeline like any entry, but it is an annotation,
+  not travel (`TimelineValidator.measuresTravel`), so it may share a reading with the diesel fill
+  it was bought with.
+- **On a receipt.** **An AdBlue line is never the fuel line**: the extractor must not select it for
+  a diesel car's fill even when its litres × price cross-check locks (`EXTRACTION.md` -> AdBlue).
+  A scanned standalone AdBlue receipt opens the same form; the user picks the AdBlue chip (hard
+  rule 13 - the scan suggests, the user decides). Turning a mixed receipt's AdBlue line into a
+  second entry in the purchase group is not built yet.
 - **Import.** Sources that carry AdBlue (Spritmonitor, MFM's "AdBlue" fuel type where present)
-  map to `.adBlue`; unknown sources leave it as the user's manual re-kind. Never guessed.
-- **Payload contract.** Adding the enum value is **additive** in `fillUp.schema.json` (registry
-  bump, no `minSchemaVersion` change, no transform); old clients that pull an `.adBlue` fill
-  treat the unknown kind per the SYNC.md unknown-value rule - kept, displayed as its raw string,
-  never dropped (hard rule 8).
+  map to `AdBlueFill` once an importer reads them; never guessed.
 
 ### Recalculation on edit (normative)
 
