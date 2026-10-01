@@ -547,6 +547,14 @@ capture P3.5-reminder-complete           en -seedReminderComplete -presentScreen
 capture P3.5-reminder-complete-ru        ru -seedReminderComplete -presentScreen reminders -presentReminderComplete
 capture PJ.43-stale-odometer            en -seedReminderComplete -seedStaleOdometer -presentScreen reminders -presentReminderComplete
 capture PJ.43-stale-odometer-ru         ru -seedReminderComplete -seedStaleOdometer -presentScreen reminders -presentReminderComplete
+# PJ.42: the first-entry card offers the sample receipt; -openDemoReceipt opens
+# it, and the verify screen reads it with the real reader (hence the wait).
+CAPTURE_SLEEP=12
+capture PJ.42-first-entry              en -clearSessionAtLaunch -seedHomeEmptyVehicle
+capture PJ.42-first-entry-ru           ru -clearSessionAtLaunch -seedHomeEmptyVehicle
+capture PJ.42-demo-verify              en -clearSessionAtLaunch -seedHomeEmptyVehicle -openDemoReceipt
+capture PJ.42-demo-verify-ru           ru -clearSessionAtLaunch -seedHomeEmptyVehicle -openDemoReceipt
+CAPTURE_SLEEP=6
 # PJ.16: the readiness hints on an injected preview (the simulator has no
 # camera): a dark frame offers the torch, and an empty frame offers Type it
 # after the no-detection window - hence the longer wait. The Settings row is

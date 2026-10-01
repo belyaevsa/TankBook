@@ -32,6 +32,7 @@ struct HomeGuestLayout<LogContent: View>: View {
     /// read time by Home from the same live rows the merged list groups.
     let attentionCount: Int
     let presentSheet: (SheetRoute) -> Void
+    @State private var showDemo = false
     let logStream: LogContent
 
     init(vehicle: Vehicle?, stats: HomeStats?, photoData: Data?,
@@ -237,7 +238,25 @@ struct HomeGuestLayout<LogContent: View>: View {
             // the guest's typed door offers Service and Expense too - nothing
             // about being a guest gates them.
             HomeTypeItControl(presentSheet: presentSheet)
+            // PJ.42: a quieter third door for someone with no receipt to hand -
+            // the sample runs the real reader and saves nothing. Only before the
+            // first entry, and never above Scan or Type it (hard rule 15).
+            if stats?.hasEntries != true {
+                Button { showDemo = true } label: {
+                    Text("No receipt to hand? Try a sample")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.action)
+                }
+                .buttonStyle(.plain)
+                .frame(minHeight: 44)
+                .accessibilityIdentifier("homeTryDemoReceipt")
+            }
         }
+        .fullScreenCover(isPresented: $showDemo) { DemoReceiptView() }
+        #if DEBUG
+        // `-openDemoReceipt`: opens the sample after load, for `simctl` screenshots.
+        .onAppear { if ProcessInfo.processInfo.arguments.contains("-openDemoReceipt") { showDemo = true } }
+        #endif
         .frame(maxWidth: .infinity)
         .padding(16)
         .background(Theme.Palette.dash)

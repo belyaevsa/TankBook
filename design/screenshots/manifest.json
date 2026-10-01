@@ -1335,6 +1335,26 @@
       "device": "iPhone 18 Pro",
       "runtime": "iOS.27.0"
     },
+    "PJ.42-demo-verify": {
+      "commit": "7507eaf4",
+      "device": "iPhone 18 Pro",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.42-demo-verify-ru": {
+      "commit": "7507eaf4",
+      "device": "iPhone 18 Pro",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.42-first-entry": {
+      "commit": "7507eaf4",
+      "device": "iPhone 18 Pro",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.42-first-entry-ru": {
+      "commit": "7507eaf4",
+      "device": "iPhone 18 Pro",
+      "runtime": "iOS.27.0"
+    },
     "PJ.43-page-not-saved": {
       "commit": "38503ae4",
       "device": "iPhone 18 Pro Max",

@@ -18,6 +18,9 @@ struct CaptureVerifyView: View {
     let onRetake: () -> Void
     /// The photo is not a fuel document: open it in the Service or Expense form.
     var onOpenAs: (CaptureEntryForm) -> Void = { _ in }
+    /// PJ.42: the sample receipt. The screen says it is a sample, and its one
+    /// action is "Done – now try your own" - there is nothing to continue into.
+    var demo: Bool = false
 
     @FocusState private var focus: ManualFillUpMath.Field?
 
@@ -80,6 +83,12 @@ struct CaptureVerifyView: View {
                     .font(.subheadline)
                     .foregroundStyle(Theme.Palette.inkSoft)
                     .multilineTextAlignment(.center)
+                if demo {
+                    Text("A sample receipt – nothing is saved.")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.action)
+                        .accessibilityIdentifier("captureVerifyDemoLabel")
+                }
             }
         }
         .padding(.horizontal, Theme.Spacing.screenMargin)
@@ -248,25 +257,44 @@ struct CaptureVerifyView: View {
 
     private var actions: some View {
         VStack(spacing: 10) {
-            Button { session.afterRecognition(onContinue) } label: {
-                HStack(spacing: 8) {
-                    if session.continuePending { ProgressView().controlSize(.small) }
-                    Text("Continue")
+            if demo {
+                Button(action: onContinue) {
+                    Text("Done – now try your own")
+                        .font(.body.weight(.bold))
+                        .foregroundStyle(Theme.Palette.midnight)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(Theme.Palette.taillight)
+                        .clipShape(RoundedRectangle(cornerRadius: 15))
                 }
-                    .font(.body.weight(.bold))
-                    .foregroundStyle(Theme.Palette.midnight)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .background(Theme.Palette.taillight)
-                    .clipShape(RoundedRectangle(cornerRadius: 15))
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("captureVerifyDemoDoneButton")
+            } else {
+                standardActions
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("captureVerifyContinueButton")
-            secondary("Re-take", identifier: "captureVerifyRetakeButton", action: onRetake)
         }
         .padding(.horizontal, Theme.Spacing.screenMargin)
         .padding(.top, 12)
         .padding(.bottom, 16)
+    }
+
+    @ViewBuilder
+    private var standardActions: some View {
+        Button { session.afterRecognition(onContinue) } label: {
+            HStack(spacing: 8) {
+                if session.continuePending { ProgressView().controlSize(.small) }
+                Text("Continue")
+            }
+                .font(.body.weight(.bold))
+                .foregroundStyle(Theme.Palette.midnight)
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+                .background(Theme.Palette.taillight)
+                .clipShape(RoundedRectangle(cornerRadius: 15))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("captureVerifyContinueButton")
+        secondary("Re-take", identifier: "captureVerifyRetakeButton", action: onRetake)
     }
 
     private func secondary(_ label: LocalizedStringKey, identifier: String,

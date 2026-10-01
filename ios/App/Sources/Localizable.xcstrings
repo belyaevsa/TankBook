@@ -4402,6 +4402,57 @@
         }
       }
     },
+    "No receipt to hand? Try a sample": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No receipt to hand? Try a sample"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет чека под рукой? Попробуйте на примере"
+          }
+        }
+      }
+    },
+    "A sample receipt – nothing is saved.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A sample receipt – nothing is saved."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Это пример чека – ничего не сохранится."
+          }
+        }
+      }
+    },
+    "Done – now try your own": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done – now try your own"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Готово – теперь попробуйте свой"
+          }
+        }
+      }
+    },
     "Add receipt": {
       "extractionState": "manual",
       "localizations": {

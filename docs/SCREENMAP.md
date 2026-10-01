@@ -161,6 +161,7 @@ flowchart TD
     EditEntry -.->|X| Back4[return to opener]
     EditEntry -->|receipt chip| AttachmentViewer
     EditEntry -->|Add expense from this receipt (PJ.41)| ExpenseEntry
+    Home -->|Try a sample, first entry only (PJ.42)| DemoReceipt[Sample receipt verify - saves nothing]
     AttachmentViewer -.->|Close / swipe-down| EditEntry
 
     Settings -->|account card, guest| SignIn
