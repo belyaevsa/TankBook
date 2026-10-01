@@ -221,8 +221,13 @@ public final class RateStore: @unchecked Sendable {
     /// `.background`; a user-initiated fetch would pass `.userInitiated`.
     /// Every branch records itself as a `rates.refresh` log event (RV.139) when
     /// a log is wired.
+    ///
+    /// `pendingFrom` is the earliest date a rate-pending entry still needs: the
+    /// request reaches back to it (within the window) so a date the cache never
+    /// held, or the server had not yet published, is asked for again. A caller
+    /// that joins a refresh already in flight gets that refresh's span.
     @discardableResult
-    public func refresh(trigger: PowerWorkTrigger = .background) async -> Bool {
+    public func refresh(trigger: PowerWorkTrigger = .background, pendingFrom: Date? = nil) async -> Bool {
         // RV.139: the no-fetcher guard records itself. This store is always
         // built WITH a fetcher in the app (ManualFillUpCurrencySupport makes
         // one), so the branch is unreachable there - but while it emits nothing,
@@ -267,7 +272,7 @@ public final class RateStore: @unchecked Sendable {
             }
             let task = Task {
                 defer { self.lock.withLock { state in state.inFlightRefresh = nil } }
-                await self.fetchAndMerge(fetcher: fetcher)
+                await self.fetchAndMerge(fetcher: fetcher, pendingFrom: pendingFrom)
             }
             state.inFlightRefresh = task
             return .started(task)
@@ -286,9 +291,10 @@ public final class RateStore: @unchecked Sendable {
     /// The single-flight fetch body: fetch what the rolling `packWindowDays`
     /// window lacks and merge it into the cache. A fetch failure is silent - a
     /// miss is not an error (docs/SCHEMA.md -> Exchange rates, F9).
-    private func fetchAndMerge(fetcher: any RateFetcher) async {
+    private func fetchAndMerge(fetcher: any RateFetcher, pendingFrom: Date?) async {
         let now = clock()
-        guard let pack = try? await fetcher.fetchPack(from: refreshStart(now: now), to: now, base: .eur) else {
+        let from = refreshStart(now: now, pendingFrom: pendingFrom)
+        guard let pack = try? await fetcher.fetchPack(from: from, to: now, base: .eur) else {
             return
         }
         merge(pack.rates)
@@ -302,18 +308,22 @@ public final class RateStore: @unchecked Sendable {
 
     /// Where a refresh starts: the rolling window's first day on a cold cache;
     /// otherwise `refreshOverlapDays` before the newest EUR-based day the cache
-    /// holds, never earlier than the window. Past days never change, so asking
-    /// for the whole window on every foreground re-downloaded ~1.2 MB each time -
-    /// long enough that a switch to another app cut it off (the 499s in the
-    /// production log, 2026-09-26).
-    func refreshStart(now: Date) -> Date {
+    /// holds - or `pendingFrom`, when a rate-pending entry needs an earlier day -
+    /// never earlier than the window. Past days never change, so asking for the
+    /// whole window on every foreground re-downloaded ~1.2 MB each time - long
+    /// enough that a switch to another app cut it off (the 499s in the
+    /// production log). The newest cached day says nothing about the days
+    /// before it (the bundled seed pack covers one month), so a pending entry
+    /// inside the window pulls the start back to its own date.
+    func refreshStart(now: Date, pendingFrom: Date? = nil) -> Date {
         let windowStart = calendar.date(byAdding: .day, value: -(Self.packWindowDays - 1), to: now) ?? now
         let newest = lock.withLock { state in
             state.rates.lazy.filter { $0.base == .eur }.map(\.date).max()
         }
         guard let newest, newest >= windowStart else { return windowStart }
         let overlap = calendar.date(byAdding: .day, value: -Self.refreshOverlapDays, to: min(newest, now)) ?? newest
-        return max(windowStart, overlap)
+        let start = pendingFrom.map { min(overlap, calendar.startOfDay(for: $0)) } ?? overlap
+        return max(windowStart, start)
     }
 
     /// Fetches the rate pack for an explicit date span and merges it - the

@@ -93,7 +93,8 @@ enum AppRates {
     /// failed fetch leaves the cache (and any pending entries) exactly as they
     /// were - the backfill over the unchanged cache is still safe and silent.
     static func refresh() async {
-        let refreshed = await store.refresh()
+        let pendingFrom = (try? AppStore.repository()).flatMap { try? MoneyBackfillService.earliestPendingDate(in: $0) }
+        let refreshed = await store.refresh(pendingFrom: pendingFrom)
         // `RateStore.refresh` returns false only for a Low Power deferral (the
         // store always has a fetcher here): the fetch is opportunistic work
         // (docs/SYNC.md -> Low Power Mode table), so it waits for power and

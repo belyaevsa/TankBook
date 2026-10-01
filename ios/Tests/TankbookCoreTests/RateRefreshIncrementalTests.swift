@@ -34,11 +34,27 @@ struct RateRefreshIncrementalTests {
         ExchangeRate(base: base, quote: .usd, date: date, rate: Decimal(string: "1.1")!, source: .ecb)
     }
 
-    private func requestedStart(seed: [ExchangeRate]) async throws -> Date {
+    private func requestedStart(seed: [ExchangeRate], pendingFrom: Date? = nil) async throws -> Date {
         let fetcher = RecordingFetcher()
         let store = RateStore(seed: seed, fetcher: fetcher, clock: { Self.now }, calendar: Self.calendar)
-        await store.refresh(trigger: .userInitiated)
+        await store.refresh(trigger: .userInitiated, pendingFrom: pendingFrom)
         return try #require(fetcher.ranges.first).0
+    }
+
+    @Test("a pending entry before the newest cached day pulls the start back to its date")
+    func pendingEntryPullsTheStartBack() async throws {
+        let seed = [rate(day(-60)), rate(day(-30))]
+        let start = try await requestedStart(seed: seed, pendingFrom: day(-100))
+        #expect(Self.calendar.isDate(start, inSameDayAs: day(-100)))
+    }
+
+    @Test("a pending entry never widens the request past the window, nor narrows it")
+    func pendingEntryIsBoundedByTheWindowAndTheOverlap() async throws {
+        let seed = [rate(day(-2))]
+        let old = try await requestedStart(seed: seed, pendingFrom: day(-900))
+        #expect(Self.calendar.isDate(old, inSameDayAs: day(-(RateStore.packWindowDays - 1))))
+        let recent = try await requestedStart(seed: seed, pendingFrom: day(-1))
+        #expect(Self.calendar.isDate(recent, inSameDayAs: day(-2 - RateStore.refreshOverlapDays)))
     }
 
     @Test("a cold cache asks for the whole window")

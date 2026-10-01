@@ -744,6 +744,7 @@ dispatch ledger moved to `docs/TASKS-HISTORY.md`.*
 | RV.321 | (J7 the invoice split; J3 receipt capture) On a document with no station line, the station extr | `[x]` | TASKS-DONE.md · AD · Debug cases and the admin viewer (product owner, 2026-09-24) |
 | AD.10 | no-scenario: the owner's debugging tool The owner's read key and scripts/case.sh | `[x]` | TASKS-DONE.md · AD · Debug cases and the admin viewer (product owner, 2026-09-24) |
 | AD.11 | no-scenario: the owner's debugging path (the tester's half) "Send diagnostics" (About → Experim | `[x]` | TASKS-DONE.md · AD · Debug cases and the admin viewer (product owner, 2026-09-24) |
+| RV.338 | (F9 currency rate unavailable for that date) A rate-pending entry inside the window is asked fo | `[x]` | TASKS-DONE.md · AD · Debug cases and the admin viewer (product owner, 2026-09-24) |
 | AD.13 | no-scenario: the owner's debugging path (a send that does not keep the tester waiting) The case | `[x]` | TASKS-DONE.md · AD · Debug cases and the admin viewer (product owner, 2026-09-24) |
 | AD.14 | no-scenario: the owner's debugging path (the tester's half) "Uploaded x of n files" while a cas | `[x]` | TASKS-DONE.md · AD · Debug cases and the admin viewer (product owner, 2026-09-24) |
 | AD.4 | no-scenario: the owner's debugging tool The admin viewer: the service, passkey sign-in, the acc | `[x]` | TASKS-DONE.md · AD · Debug cases and the admin viewer (product owner, 2026-09-24) |

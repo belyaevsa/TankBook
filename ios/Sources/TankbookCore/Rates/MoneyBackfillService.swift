@@ -147,6 +147,13 @@ public struct MoneyBackfillService: Sendable {
     /// rate - the one walk the demand drain uses to enumerate what to ask for
     /// and to re-check what a pass left pending. The S8 backfill's own
     /// whole-garage pass fills; this walk only names the rows.
+    /// The date of the oldest rate-pending entry across the garage, or nil when
+    /// nothing is pending - where the launch refresh must reach back to
+    /// (`RateStore.refresh(pendingFrom:)`).
+    public static func earliestPendingDate(in repository: TankbookRepository) throws -> Date? {
+        try pendingEntries(in: repository).map(\.date).min()
+    }
+
     private static func pendingEntries(in repository: TankbookRepository) throws -> [any Entry] {
         var pending: [any Entry] = []
         for vehicle in try repository.liveVehicles() {
