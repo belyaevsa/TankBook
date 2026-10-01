@@ -113,6 +113,7 @@ The PJ.43 odometer-age threshold is a tier C compiled constant:
 | Constant | Value | Placement | Reason |
 |---|---|---|---|
 | `OdometerStaleness.threshold` | 30 days | `TankbookCore/Domain/OdometerDelta.swift` | A month without a recorded reading can materially shift a distance recurrence. The boundary is pinned by `OdometerStalenessTests`. |
+| `CaptureHintMachine.Tuning` (PJ.16) | dark below 0.16 / clears above 0.22 luma, 1 s smoothing, 4 s no-detection, 0.7 s steady, 0.03 tolerance | `TankbookCore/Extraction/CaptureHintMachine.swift` | Tier C: the capture hints' feel, tuned on device and shipped with a build; pinned by `CaptureHintMachineTests`. The 4 s is `ERRORS.md`'s "Nothing detected for ~4s". |
 
 Rules that follow:
 

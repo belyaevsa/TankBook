@@ -270,6 +270,8 @@ struct SettingsView: View {
             AppearanceRow(selection: $appearance)
             CardDivider()
             languageRow
+            CardDivider()
+            AutoShutterRow()
         }
         .formCard()
     }

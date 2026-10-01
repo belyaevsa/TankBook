@@ -24,7 +24,14 @@ final class CameraController: NSObject {
     private var captureContinuation: CheckedContinuation<UIImage?, Never>?
     /// The video device `start()` attached, retained so the Capture Lab can
     /// configure it per preset. Nil on the simulator.
-    private var device: AVCaptureDevice?
+    /// Internal for `CameraController+Readiness.swift` (torch, PJ.16).
+    private(set) var device: AVCaptureDevice?
+    /// PJ.16: the session is configured and started on this queue -
+    /// `startRunning()` blocks for hundreds of milliseconds on older phones.
+    private let sessionQueue = DispatchQueue(label: "app.tankbook.capture-session")
+    /// True between `start()` and the session reporting ready, so a shutter tap
+    /// in that window waits instead of reading as a camera fault.
+    private(set) var isStarting = false
     #if EXPERIMENTS
     /// Retains the lab capture's delegate until its continuation resumes.
     private var labDelegate: LabCaptureDelegate?
@@ -37,11 +44,18 @@ final class CameraController: NSObject {
     /// caption and overlay. Nothing runs until `setGuidanceActive(true)`.
     let guidance = PreviewGuidance()
 
+    /// PJ.16: the readiness hints (dark, fill the frame) and auto-shutter.
+    let hints = CaptureHints()
+    /// Bumped when the torch is toggled, so views reading `torchOn` (a
+    /// UserDefaults value, which `@Observable` cannot see) redraw.
+    var torchRevision = 0
+
     /// Runs the detector on the video frames and forwards the rows to
     /// `guidance` on the main actor. `lazy` so its `@Sendable` handler can
     /// capture the already-initialised `guidance`; ignored by `@Observable`,
     /// which cannot track a lazily-initialised property.
-    @ObservationIgnored private lazy var frameAnalyzer = PreviewFrameAnalyzer { [guidance] rows, size, ms in
+    /// Internal for `CameraController+Readiness.swift` (the hint sampler, PJ.16).
+    @ObservationIgnored lazy var frameAnalyzer = PreviewFrameAnalyzer { [guidance] rows, size, ms in
         Task { @MainActor in
             guidance.observe(rows: rows, frameSize: size, analysisMs: ms)
         }
@@ -53,7 +67,7 @@ final class CameraController: NSObject {
     /// false and a UI test could not tell a started session from an unstarted
     /// one. `-captureFixtureImage` cannot stand in here because it bypasses
     /// `capture()` entirely. Production never passes the argument.
-    private var testFrame: UIImage? {
+    var testFrame: UIImage? {
         guard let path = ProcessInfo.processInfo.arguments.captureCameraTestFramePath else {
             return nil
         }
@@ -83,51 +97,33 @@ final class CameraController: NSObject {
         #endif
         guard let device = AVCaptureDevice.default(for: .video) else { return }
         self.device = device
-        do {
-            let input = try AVCaptureDeviceInput(device: device)
-            guard session.canAddInput(input), session.canAddOutput(photoOutput) else { return }
-            session.addInput(input)
-            session.addOutput(photoOutput)
-            // PU.40b: a second output on the SAME session delivers frames to
-            // the detector. Late frames are dropped so a slow analysis never
-            // queues up; the delegate queue serialises what remains.
-            if session.canAddOutput(videoOutput) {
-                session.addOutput(videoOutput)
-                videoOutput.alwaysDiscardsLateVideoFrames = true
-                frameAnalyzer.attach(to: videoOutput)
-                // The sensor delivers landscape pixels; rotate them upright so
-                // the detector (trained on upright displays) sees what the user
-                // sees, and the normalised rows match the preview's space.
-                if let connection = videoOutput.connection(with: .video),
-                   connection.isVideoRotationAngleSupported(90) {
-                    connection.videoRotationAngle = 90
-                }
+        isStarting = true
+        let setup = CaptureSessionSetup(session: session, photoOutput: photoOutput, videoOutput: videoOutput,
+                                 device: device, analyzer: frameAnalyzer)
+        sessionQueue.async {
+            let running = setup.configureAndRun()
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                isStarting = false
+                isReady = running
+                if running { restoreTorch() }
             }
-            // `.photo` delivers the sensor's full photo resolution, not the
-            // default `.high` (~1080p) - the app OCRs small print, and every
-            // pixel the sensor can spare is a pixel the recognizer can read.
-            if session.canSetSessionPreset(.photo) {
-                session.sessionPreset = .photo
-            }
-            // Receipts and pump displays are shot from up close; restrict the
-            // focus range to `.near` when the hardware supports it so the digits
-            // the pipeline must read are in focus, not the forecourt behind.
-            try device.lockForConfiguration()
-            if device.isAutoFocusRangeRestrictionSupported {
-                device.autoFocusRangeRestriction = .near
-            }
-            device.unlockForConfiguration()
-            session.startRunning()
-            isReady = true
-        } catch {
-            // No camera available: capture() returns nil, the manual door stands.
         }
     }
+}
 
+extension CameraController {
     /// Captures one photo frame. Returns nil when no camera is available or the
     /// capture fails; a nil from this real-camera path is the caller's cue to
     /// surface the camera-fault next step (`CaptureView.captureFrame`).
     func capture() async -> UIImage? {
+        // A tap during the off-main start waits for the session (up to 3 s)
+        // rather than reading as a camera fault.
+        var waited = 0
+        while isStarting, waited < 30 {
+            try? await Task.sleep(for: .milliseconds(100))
+            waited += 1
+        }
         guard isReady, captureContinuation == nil else { return nil }
         #if DEBUG
         if let testFrame { return testFrame }

@@ -255,8 +255,8 @@ user-initiated vs automatic, never "rates are noisy now". The surface split:
 | Camera permission denied (F8) | Capture opens the manual form with a top card: "Scanning needs the camera – enable in Settings." | Deep link to Settings · Type it (full manual path) · Photos (library) |
 | Camera permission restricted by device policy (F8) | Capture opens the manual form with a top card: "The camera is blocked by a device policy – type the entry instead." There is no Settings toggle for the user to flip, so the card never names Settings | Type it (the manual form) |
 | Camera fault / camera in use (F8) | The live surface stays, with a card: "The camera didn't respond – type the entry instead." The card never names Settings, because a grant cannot fix a busy camera | Type it (the manual form) · the shutter stays for a retry · Photos remains on the surface |
-| Too dark / glare detected | Live hint: "Dark – tap for torch" | Torch toggle · shoot anyway |
-| Nothing detected for ~4s | Hint: "Fill the frame with the receipt – or type it instead." | Keep trying · Type it |
+| Too dark (PJ.16) | Live hint in the caption slot: "Dark – tap for torch" (RU "Темно – включите фонарик") – the hint IS the torch switch; shown only on a camera with a torch and while the torch is off; the preview's mean brightness is smoothed over ~1 s with hysteresis so it does not flicker (`CaptureHintMachine`) | Torch toggle (also top right) · shoot anyway |
+| Nothing detected for ~4s (PJ.16) | Hint: "Fill the frame with the receipt – or type it instead." with a **Type it** link that opens the manual form; never while the pump-display guidance sees rows (it has its own captions) | Keep trying · Type it |
 | Storage full (can't save photo) | Warn sheet: "No space to keep the photo. The entry can still be saved without it." | Save without photo · manage storage (deep link) |
 
 #### Capture verify (PJ.505, Fill-up mode)

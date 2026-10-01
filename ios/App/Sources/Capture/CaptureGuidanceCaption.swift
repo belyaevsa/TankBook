@@ -11,6 +11,10 @@ extension CaptureView {
     /// pointed at. Expense, Service and charge modes keep the plain caption.
     func updateGuidance() {
         camera.setGuidanceActive(mode == .fillUpAuto)
+        // PJ.16: the readiness hints run in every photo mode; Service opens the
+        // document camera, which has its own guidance.
+        camera.setHintsActive(mode != .service)
+        camera.hints.onAutoShutter = { captureFrame() }
     }
 
     /// True while the detector has something to say about the live frame. A
@@ -34,6 +38,10 @@ extension CaptureView {
                 .padding(.bottom, 22)
                 .accessibilityIdentifier("captureGuidance")
                 .accessibilityValue(guidanceAccessibilityValue)
+        } else if camera.hints.hint == .dark, camera.hasTorch, !torchIsOn {
+            darkHint
+        } else if camera.hints.hint == .fillFrame {
+            fillFrameHint
         } else if pumpTipVisible, mode == .fillUpAuto {
             Text("No receipt? Shoot the pump display")
                 .font(.system(size: 12))
@@ -96,5 +104,95 @@ extension CaptureView {
     private var guidanceAccessibilityValue: String {
         "\(camera.guidance.state.rawValue) frames=\(camera.guidance.framesAnalysed) "
             + "ms=\(camera.guidance.lastAnalysisMs)"
+    }
+
+    // MARK: - PJ.16 readiness: torch and hints
+
+    private var torchIsOn: Bool {
+        _ = camera.torchRevision
+        return camera.torchOn
+    }
+
+    /// "Dark – tap for torch": the hint IS the torch switch. It never blocks
+    /// the shutter ("shoot anyway" is simply pressing it).
+    private var darkHint: some View {
+        Button {
+            camera.setTorch(true)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "flashlight.on.fill")
+                Text("Dark – tap for torch")
+            }
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(Theme.Palette.action)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 36)
+        .padding(.bottom, 22)
+        .accessibilityIdentifier("captureDarkHint")
+    }
+
+    /// "Fill the frame – or type it instead.", with the manual door right in it.
+    private var fillFrameHint: some View {
+        VStack(spacing: 6) {
+            Text("Fill the frame with the receipt – or type it instead.")
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .multilineTextAlignment(.center)
+                .lineLimit(3)
+            Button {
+                openManualEntry()
+            } label: {
+                Text("Type it")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Theme.Palette.action)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("captureFillHintTypeIt")
+        }
+        .padding(.horizontal, 36)
+        .padding(.bottom, 22)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("captureFillHint")
+    }
+
+    /// The torch toggle, top right, on a camera that has one.
+    @ViewBuilder
+    var torchToggle: some View {
+        if camera.hasTorch, surface == .live {
+            Button {
+                camera.setTorch(!torchIsOn)
+            } label: {
+                Image(systemName: torchIsOn ? "flashlight.on.fill" : "flashlight.off.fill")
+                    .font(.system(size: 17, weight: .regular))
+                    .foregroundStyle(torchIsOn ? Theme.Palette.action : Theme.Palette.inkSoft)
+                    .frame(width: 42, height: 42)
+                    .background(RoundedRectangle(cornerRadius: 11)
+                        .fill(Theme.Palette.midnight.opacity(0.8)))
+                    .overlay(RoundedRectangle(cornerRadius: 11)
+                        .stroke(Theme.Palette.ink.opacity(0.15), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .padding(.trailing, 16)
+            .padding(.top, 8)
+            .accessibilityLabel("Torch")
+            .accessibilityValue(torchIsOn ? "on" : "off")
+            .accessibilityIdentifier("captureTorchToggle")
+        }
+    }
+}
+
+extension View {
+    /// The capture screen's readiness chrome (PJ.16) in one modifier: the torch
+    /// toggle top right, and on leaving the screen the guidance and hints stop
+    /// and the light goes off.
+    func captureReadiness<Toggle: View>(camera: CameraController,
+                                        @ViewBuilder torch: () -> Toggle) -> some View {
+        overlay(alignment: .topTrailing) { torch() }
+            .onDisappear {
+                camera.setGuidanceActive(false)
+                camera.setHintsActive(false)
+                camera.suspendTorch()
+            }
     }
 }

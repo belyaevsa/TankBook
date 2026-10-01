@@ -124,6 +124,10 @@ final class PreviewFrameAnalyzer: NSObject, AVCaptureVideoDataOutputSampleBuffer
     private var active = false
     private var lastAnalysisAt: CFAbsoluteTime = 0
     private let onRows: RowsHandler
+    /// PJ.16: the capture-readiness sampler (`CaptureHintSampler`), run on the
+    /// same delegate queue as the detector, independent of whether the pump
+    /// guidance is active. Nil when the hints are off.
+    private var hintSampler: CaptureHintSampler?
 
     init(onRows: @escaping RowsHandler) {
         self.onRows = onRows
@@ -152,9 +156,20 @@ final class PreviewFrameAnalyzer: NSObject, AVCaptureVideoDataOutputSampleBuffer
         }
     }
 
+    /// PJ.16: starts or stops the readiness sampler on this output's frames.
+    func setHintSampler(_ sampler: CaptureHintSampler?) {
+        lock.lock()
+        hintSampler = sampler
+        lock.unlock()
+    }
+
     func captureOutput(_ output: AVCaptureVideoDataOutput, didOutput sampleBuffer: CMSampleBuffer,
                        from connection: AVCaptureConnection) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        lock.lock()
+        let sampler = hintSampler
+        lock.unlock()
+        sampler?.sample(pixelBuffer)
         let size = CGSize(width: CVPixelBufferGetWidth(pixelBuffer), height: CVPixelBufferGetHeight(pixelBuffer))
         analyze(size: size) { reader in reader.detectedRows(in: pixelBuffer) }
     }

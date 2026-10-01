@@ -935,6 +935,36 @@
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },
+    "PJ.16-auto-shutter-setting": {
+      "commit": "a51b4cf8",
+      "device": "iPhone 18 Pro",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.16-auto-shutter-setting-ru": {
+      "commit": "a51b4cf8",
+      "device": "iPhone 18 Pro",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.16-dark-hint": {
+      "commit": "a51b4cf8",
+      "device": "iPhone 18 Pro",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.16-dark-hint-ru": {
+      "commit": "a51b4cf8",
+      "device": "iPhone 18 Pro",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.16-fill-hint": {
+      "commit": "a51b4cf8",
+      "device": "iPhone 18 Pro",
+      "runtime": "iOS.27.0"
+    },
+    "PJ.16-fill-hint-ru": {
+      "commit": "a51b4cf8",
+      "device": "iPhone 18 Pro",
+      "runtime": "iOS.27.0"
+    },
     "PJ.17b-empty-scan-caption": {
       "commit": "8d4d01e",
       "device": "iPhone 17",

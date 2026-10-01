@@ -547,6 +547,18 @@ capture P3.5-reminder-complete           en -seedReminderComplete -presentScreen
 capture P3.5-reminder-complete-ru        ru -seedReminderComplete -presentScreen reminders -presentReminderComplete
 capture PJ.43-stale-odometer            en -seedReminderComplete -seedStaleOdometer -presentScreen reminders -presentReminderComplete
 capture PJ.43-stale-odometer-ru         ru -seedReminderComplete -seedStaleOdometer -presentScreen reminders -presentReminderComplete
+# PJ.16: the readiness hints on an injected preview (the simulator has no
+# camera): a dark frame offers the torch, and an empty frame offers Type it
+# after the no-detection window - hence the longer wait. The Settings row is
+# the auto-shutter switch, off by default.
+CAPTURE_SLEEP=10
+capture PJ.16-dark-hint                en -homeResetDatabase -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureHintsEnabled -captureFakeTorch -captureHintLuma 0.05
+capture PJ.16-dark-hint-ru             ru -homeResetDatabase -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureHintsEnabled -captureFakeTorch -captureHintLuma 0.05
+capture PJ.16-fill-hint                en -homeResetDatabase -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureHintsEnabled -captureFakeTorch
+capture PJ.16-fill-hint-ru             ru -homeResetDatabase -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureHintsEnabled -captureFakeTorch
+CAPTURE_SLEEP=6
+capture PJ.16-auto-shutter-setting     en -presentScreen settings -seedSettingsGuest
+capture PJ.16-auto-shutter-setting-ru  ru -presentScreen settings -seedSettingsGuest
 # PJ.41: an entry with a receipt photo offers "Add expense from this receipt";
 # -openExpenseFromReceipt taps it after load, so the second pair shows the
 # Expense sheet filed with that receipt.

@@ -514,7 +514,8 @@ Preferences {
 // DEVICE-LOCAL – UserDefaults/AppStorage, never synced, never in backups:
 //   appearance (.system|.dark|.light)  – people legitimately run dark phone / light iPad
 //   language override                  – follows each device's locale by default
-//   capture conveniences               – torch preference, last capture mode
+//   capture conveniences               – torch preference (`capture.torchOn`), the auto-shutter
+//                                        setting (`capture.autoShutter`, off), last capture mode
 //   last-viewed tab, collapsed sections, draft states
 //   sync cursor & auth tokens          – infrastructure, not preferences (tokens in Keychain)
 ```

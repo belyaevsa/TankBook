@@ -122,7 +122,7 @@ struct CaptureView: View {
             updateGuidance()
         }
         .onChange(of: mode) { _, _ in updateGuidance() }
-        .onDisappear { camera.setGuidanceActive(false) }
+        .captureReadiness(camera: camera) { torchToggle }
         .onChange(of: scenePhase) { _, phase in
             #if DEBUG
             if phase == .background {
@@ -421,7 +421,7 @@ struct CaptureView: View {
     /// The shutter: takes a real frame (or, under `-captureFixtureImage`, a
     /// test-injected one) and hands it to the RV.5 review step. In Service
     /// mode it is still the door into the document camera (J7).
-    private func captureFrame() {
+    func captureFrame() {
         guard !isProcessing else { return }
         isProcessing = true
         // PU.40b: what the preview had told the user at the moment they pressed.

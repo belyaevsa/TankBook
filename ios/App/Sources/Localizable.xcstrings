@@ -4317,6 +4317,91 @@
         }
       }
     },
+    "Dark – tap for torch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dark – tap for torch"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Темно – включите фонарик"
+          }
+        }
+      }
+    },
+    "Fill the frame with the receipt – or type it instead.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fill the frame with the receipt – or type it instead."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Поместите чек в кадр целиком – или введите вручную."
+          }
+        }
+      }
+    },
+    "Torch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Torch"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Фонарик"
+          }
+        }
+      }
+    },
+    "Capture automatically": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capture automatically"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Снимать автоматически"
+          }
+        }
+      }
+    },
+    "Takes the photo by itself once a receipt holds still in the frame.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Takes the photo by itself once a receipt holds still in the frame."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Делает снимок сам, когда чек неподвижно лежит в кадре."
+          }
+        }
+      }
+    },
     "Add receipt": {
       "extractionState": "manual",
       "localizations": {
