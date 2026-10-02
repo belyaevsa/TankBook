@@ -279,6 +279,7 @@ struct HomeView: View {
                        updatedAt: stats.updatedAt, photoData: photoData,
                        adBlue: AdBlueStats.compute(entries: entries))
             .simultaneousGesture(swipeToSwitchGesture)
+        HomeCityAskCard(vehicle: stats.vehicle)
         HomeHeadlineBlock(stats: stats, vehicle: stats.vehicle,
                           onTypeIt: { presentSheet(.confirmManual) })
         HomeVitalsRow(stats: stats, vehicle: stats.vehicle)

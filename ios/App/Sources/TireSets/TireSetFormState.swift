@@ -14,6 +14,7 @@ struct TireSetFormState: Equatable {
     var productionWeek = ""
     var treadwear = ""
     var newTreadDepth = ""
+    var season: TireSeason?
 
     /// The values the form opened with, for the discard guard.
     var initial = TireSetDraft(name: "")
@@ -21,7 +22,7 @@ struct TireSetFormState: Equatable {
     var draft: TireSetDraft {
         TireSetDraft(name: name, make: make, model: model, size: size,
                      productionWeek: productionWeek, treadwear: treadwear,
-                     newTreadDepth: newTreadDepth)
+                     newTreadDepth: newTreadDepth, season: season)
     }
 
     var readiness: TireSetDraft.SaveReadiness { draft.readiness }
@@ -48,6 +49,7 @@ struct TireSetFormState: Equatable {
         state.productionWeek = tireSet.productionWeek ?? ""
         state.treadwear = tireSet.treadwear.map(String.init) ?? ""
         state.newTreadDepth = TireMeasure.depthText(tireSet.newTreadDepthMm)
+        state.season = tireSet.season
         state.initial = state.draft
         return state
     }

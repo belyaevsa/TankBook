@@ -47,6 +47,12 @@ let package = Package(
                 // brands): a name typed or imported on day one still groups
                 // under its chain, offline.
                 .copy("Stations/StationBrands.seed.json"),
+                // Bundled city dictionary (docs/SCHEMA.md -> Places): the car's
+                // home city is suggested and picked offline.
+                .copy("Places/Cities.seed.json"),
+                // Bundled tyre-law table (docs/SCHEMA.md -> Tyre laws): the
+                // country's winter-tyre rule is known offline.
+                .copy("Tires/TireLaws.seed.json"),
                 // Bundled payload JSON Schemas (docs/SCHEMA.md -> Payload
                 // schemas). The per-car archive reader validates every payload
                 // against the registered contract before it imports anything;

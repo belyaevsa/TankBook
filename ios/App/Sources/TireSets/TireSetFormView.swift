@@ -37,6 +37,7 @@ struct TireSetFormView: View {
                     noVehicleCard
                 } else {
                     TireSetNameCard(name: $form.name, focused: $nameFocused)
+                    TireSeasonCard(season: $form.season)
                     TireSetSpecsCard(form: $form)
                     if let purchaseExpense {
                         TireSetPurchaseInfoCard(expense: purchaseExpense)

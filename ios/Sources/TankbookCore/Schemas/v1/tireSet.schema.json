@@ -571,6 +571,9 @@
       "format" : "uuid",
       "type" : "string"
     },
+    "season" : {
+      "type" : "string"
+    },
     "size" : {
       "type" : "string"
     },

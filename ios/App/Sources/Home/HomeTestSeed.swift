@@ -87,7 +87,7 @@ enum HomeTestSeed {
             ("-seedHomeRV152", RV152HomeTestSeed.seed),
             ("-seedHomeRejected", seedRejected)
         ]
-        return (actions + P114HomeTestSeed.actions).first { arguments.contains($0.argument) }?.seed
+        return (actions + P114HomeTestSeed.actions + HomeCityTestSeed.actions).first { arguments.contains($0.argument) }?.seed
     }
 
     // MARK: - Seeds

@@ -53,6 +53,7 @@ RUN dotnet restore src/Tankbook.Api/Tankbook.Api.csproj -r linux-$TARGETARCH
 COPY backend/src/ src/
 # Outside backend/, and required: the csproj embeds these by relative path.
 COPY docs/schemas/ ../docs/schemas/
+COPY ios/Sources/TankbookCore/Places/Cities.seed.json ../ios/Sources/TankbookCore/Places/
 
 # appsettings.json is gitignored (docs/SECURITY.md) and therefore absent from a
 # clean checkout, so the image would otherwise ship without the NON-SECRET

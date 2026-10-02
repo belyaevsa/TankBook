@@ -17,6 +17,9 @@
 # without them.
 !docs/schemas/
 
+# Embedded too: the city dictionary served as GET /v1/reference/cities.
+!ios/Sources/TankbookCore/Places/Cities.seed.json
+
 # Never worth sending even from inside the allowed paths: build output, and the
 # gitignored runtime config whose committed *.template.json sibling is what the
 # image renders instead (a real appsettings.json here would bake a developer's

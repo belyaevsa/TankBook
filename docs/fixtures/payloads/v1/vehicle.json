@@ -8,7 +8,10 @@
   "year": 2021,
   "plate": "ABC-123",
   "powertrain": "hybrid",
-  "fuelKinds": ["petrol95", "electricity"],
+  "fuelKinds": [
+    "petrol95",
+    "electricity"
+  ],
   "tankCapacityL": 71,
   "batteryCapacityKWh": 11.6,
   "homeCurrency": "EUR",
@@ -22,5 +25,12 @@
   "archived": true,
   "archivedAt": "2026-08-01T10:00:00.000Z",
   "paceLimitKmPerDay": 1500,
-  "initialOdometer": 119486
+  "initialOdometer": 119486,
+  "homeCity": {
+    "cityId": 588409,
+    "name": "Tallinn",
+    "country": "EE",
+    "latitude": 59.437,
+    "longitude": 24.7535
+  }
 }

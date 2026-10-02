@@ -42,6 +42,7 @@ extension ManualFillUpView {
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         toastCenter.noteEntryChanged()
         reportLostReceiptPhoto(receiptWrite, toastCenter: toastCenter)
+        HomeCityAsk.noteScannedSave(vehicle: vehicle, prefill: prefill)
         gatewaySession.markSaved(entryID: adBlue.id)
         Task { await notificationCoordinator.reconcile(vehicleId: vehicle.id) }
         dismiss()

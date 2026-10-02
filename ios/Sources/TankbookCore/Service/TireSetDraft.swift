@@ -20,9 +20,12 @@ public struct TireSetDraft: Equatable, Sendable {
     public var treadwear: String
     /// The new tread depth in millimetres as typed; a comma decimal is accepted.
     public var newTreadDepth: String
+    /// Summer, winter or all-season; nil = not said.
+    public var season: TireSeason?
 
     public init(name: String, make: String = "", model: String = "", size: String = "",
-                productionWeek: String = "", treadwear: String = "", newTreadDepth: String = "") {
+                productionWeek: String = "", treadwear: String = "", newTreadDepth: String = "",
+                season: TireSeason? = nil) {
         self.name = name
         self.make = make
         self.model = model
@@ -30,6 +33,7 @@ public struct TireSetDraft: Equatable, Sendable {
         self.productionWeek = productionWeek
         self.treadwear = treadwear
         self.newTreadDepth = newTreadDepth
+        self.season = season
     }
 
     /// Whether the form can save, as a decision the view and its tests share.
@@ -72,6 +76,7 @@ public struct TireSetDraft: Equatable, Sendable {
         updated.productionWeek = Self.text(productionWeek)
         updated.treadwear = TireMeasure.treadwear(treadwear).value
         updated.newTreadDepthMm = TireMeasure.depth(newTreadDepth).value
+        updated.season = season
         return updated
     }
 

@@ -1,0 +1,217 @@
+{
+  "version": 1,
+  "rows": [
+    {
+      "country": "EE",
+      "vehicleClass": "M1",
+      "kind": "dated",
+      "from": "12-01",
+      "to": "03-01",
+      "criteria": "Winter tyres on all wheels; studless tyres require 3PMSF; winter tread at least 3 mm.",
+      "seasonGate": {
+        "autumnFrom": "09-01",
+        "autumnTo": "12-15",
+        "springFrom": "03-01",
+        "springTo": "05-15"
+      },
+      "sourceURL": "https://transpordiamet.ee/mootorsoidukijuht",
+      "checked": "2026-10-02",
+      "status": "verified",
+      "note": "The authority includes 1 March; N1 and O2 are outside this M1 row."
+    },
+    {
+      "country": "LV",
+      "vehicleClass": "upTo3500kg",
+      "kind": "dated",
+      "from": "12-01",
+      "to": "03-01",
+      "criteria": "Winter tyres designed for snow and ice with 3PMSF marking; minimum tread 4 mm.",
+      "seasonGate": {
+        "autumnFrom": "09-01",
+        "autumnTo": "12-15",
+        "springFrom": "03-01",
+        "springTo": "05-15"
+      },
+      "sourceURL": "https://www.sam.gov.lv/lv/jaunums/csdd-atgadina-no-1-decembra-celu-satiksme-tikai-ar-atbilstosam-ziemas-riepam",
+      "checked": "2026-10-02",
+      "status": "verified",
+      "note": "The transport ministry publishes the current CSDD explanation for light vehicles."
+    },
+    {
+      "country": "LT",
+      "vehicleClass": "M1",
+      "kind": "dated",
+      "from": "11-10",
+      "to": "03-31",
+      "criteria": "Summer tyres prohibited; winter, all-season or studded tyres allowed, with at least 3 mm tread.",
+      "seasonGate": {
+        "autumnFrom": "09-01",
+        "autumnTo": "12-15",
+        "springFrom": "03-01",
+        "springTo": "05-15"
+      },
+      "sourceURL": "https://utena.policija.lrv.lt/lt/struktura-ir-kontaktai/naujienos/policija-primena-laikas-pasikeisti-padangas-ir-prisiminti-kad-keiciasi-vaziavimo-greitis-RPVr/",
+      "checked": "2026-10-02",
+      "status": "verified",
+      "note": "Police describe the seasonal prohibition on summer tyres."
+    },
+    {
+      "country": "RU",
+      "vehicleClass": "M1",
+      "kind": "dated",
+      "from": "12-01",
+      "to": "02-29",
+      "criteria": "Winter tyres on every wheel; 3PMSF or M+S, M&S, M S marking; tread on snow or ice must exceed 4 mm absent wear indicators.",
+      "seasonGate": {
+        "autumnFrom": "09-01",
+        "autumnTo": "12-15",
+        "springFrom": "03-01",
+        "springTo": "05-15"
+      },
+      "sourceURL": "https://government.ru/docs/all/147878/",
+      "checked": "2026-10-02",
+      "status": "verified",
+      "note": "December through February for M1 and N1; regional extensions require separate rows."
+    },
+    {
+      "country": "KZ",
+      "vehicleClass": "M1",
+      "kind": "dated",
+      "from": "12-01",
+      "to": "02-29",
+      "criteria": "Winter tyres on all wheels with 3PMSF and M+S, M&S or M S marking, as described by police.",
+      "seasonGate": {
+        "autumnFrom": "09-01",
+        "autumnTo": "12-15",
+        "springFrom": "03-01",
+        "springTo": "05-15"
+      },
+      "sourceURL": "https://www.gov.kz/memleket/entities/mvd-vko/press/news/details/875341?lang=ru",
+      "checked": "2026-10-02",
+      "status": "verified",
+      "note": "Government police guidance names December through February."
+    },
+    {
+      "country": "FI",
+      "vehicleClass": "M1",
+      "kind": "conditional",
+      "from": "11-01",
+      "to": "03-31",
+      "criteria": "Winter tyres if weather or road conditions require them; non-studded tyres require 3PMSF and winter tread at least 3 mm.",
+      "seasonGate": {
+        "autumnFrom": "09-01",
+        "autumnTo": "12-15",
+        "springFrom": "03-01",
+        "springTo": "05-15"
+      },
+      "sourceURL": "https://www.traficom.fi/fi/autoilijat/vinkkeja-liikenteeseen/auton-kesa-ja-talvirenkaat",
+      "checked": "2026-10-02",
+      "status": "verified",
+      "note": "Weather-dependent duty; no unconditional change deadline."
+    },
+    {
+      "country": "SE",
+      "vehicleClass": "upTo3500kg",
+      "kind": "conditional",
+      "from": "12-01",
+      "to": "03-31",
+      "criteria": "Winter tyres or equivalent equipment in snow, ice, slush or frost; car tyres must be 3PMSF or studded, with at least 3 mm tread.",
+      "seasonGate": {
+        "autumnFrom": "09-01",
+        "autumnTo": "12-15",
+        "springFrom": "03-01",
+        "springTo": "05-15"
+      },
+      "sourceURL": "https://www.transportstyrelsen.se/en/road/vehicles/winter-tyres/",
+      "checked": "2026-10-02",
+      "status": "verified",
+      "note": "Police decide whether a road has winter conditions."
+    },
+    {
+      "country": "AT",
+      "vehicleClass": "upTo3500kg",
+      "kind": "conditional",
+      "from": "11-01",
+      "to": "04-15",
+      "criteria": "Winter tyres on all wheels in wintry conditions, marked M+S, M.S., M&S or snowflake; chains can substitute on continuous snow or ice.",
+      "seasonGate": {
+        "autumnFrom": "09-01",
+        "autumnTo": "12-15",
+        "springFrom": "03-01",
+        "springTo": "05-15"
+      },
+      "sourceURL": "https://www.oesterreich.gv.at/en/themen/mobilitaet/kfz/10/2/Seite.063100",
+      "checked": "2026-10-02",
+      "status": "verified",
+      "note": "Only when driven in snow, slush or ice."
+    },
+    {
+      "country": "DE",
+      "vehicleClass": "M1",
+      "kind": "conditional",
+      "from": "01-01",
+      "to": "12-31",
+      "criteria": "All wheels must have tyres satisfying StVZO section 36(4), including the Alpine symbol, in black ice, snow, slush, ice or frost.",
+      "seasonGate": {
+        "autumnFrom": "09-01",
+        "autumnTo": "12-15",
+        "springFrom": "03-01",
+        "springTo": "05-15"
+      },
+      "sourceURL": "https://www.gesetze-im-internet.de/stvo_2013/__2.html",
+      "checked": "2026-10-02",
+      "status": "verified",
+      "note": "Full-year range represents possible situational applicability, not a national change date."
+    },
+    {
+      "country": "NO",
+      "vehicleClass": "upTo3500kg",
+      "kind": "none",
+      "criteria": "Sufficient grip required year-round; winter tread and studded-tyre periods have separate dates.",
+      "seasonGate": {
+        "autumnFrom": "09-01",
+        "autumnTo": "12-15",
+        "springFrom": "03-01",
+        "springTo": "05-15"
+      },
+      "sourceURL": "https://www.vegvesen.no/en/vehicles/own-and-maintain/tyre-requirements/",
+      "checked": "2026-10-02",
+      "status": "verified",
+      "note": "No nationwide fixed winter-tyre change date for light vehicles; northern regions have different tread and studded-tyre periods."
+    },
+    {
+      "country": "PL",
+      "vehicleClass": "M1",
+      "kind": "none",
+      "criteria": "No statutory winter-tyre obligation; safe road grip remains the driver's responsibility.",
+      "seasonGate": {
+        "autumnFrom": "09-01",
+        "autumnTo": "12-15",
+        "springFrom": "03-01",
+        "springTo": "05-15"
+      },
+      "sourceURL": "https://rybnik.policja.gov.pl/k22/informacje/wiadomosci/426952%2CWymiana-opon-na-zimowe-zadbaj-o-bezpieczenstwo-swoje-i-innych.html",
+      "checked": "2026-10-02",
+      "status": "verified",
+      "note": "Polish police expressly state there is no statutory winter-tyre obligation."
+    },
+    {
+      "country": "CZ",
+      "vehicleClass": "upTo3500kg",
+      "kind": "conditional",
+      "from": "11-01",
+      "to": "03-31",
+      "criteria": "Winter tyres when continuous snow, ice or frost is on the road or expected during travel; minimum tread 4 mm.",
+      "seasonGate": {
+        "autumnFrom": "09-01",
+        "autumnTo": "12-15",
+        "springFrom": "03-01",
+        "springTo": "05-15"
+      },
+      "sourceURL": "https://md.gov.cz/Media/Media-a-tiskove-zpravy/Ridicum-zacala-povinnost-prezout-na-zimni-pneumati",
+      "checked": "2026-10-02",
+      "status": "verified",
+      "note": "Weather-dependent duty; road signs can add local requirements."
+    }
+  ]
+}

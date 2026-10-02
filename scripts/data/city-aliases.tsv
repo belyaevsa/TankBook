@@ -1,0 +1,4 @@
+# Extra spellings for the city dictionary (scripts/build-city-dictionary.py):
+# the forms receipts actually print and the OCR misreads the corpus has shown.
+# geonameid<TAB>alias  - one per line; lines starting with # are comments.
+588409	TALLlNN

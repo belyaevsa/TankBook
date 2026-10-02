@@ -256,6 +256,22 @@ endpoint, but it is an idempotent queue write and the only way the server learns
 actually needs - the backfill horizon is the demand, not a fixed window.
 
 
+### `GET /reference/cities` (RV.124a)
+
+The city dictionary the device suggests and picks a car's home city from (`docs/SCHEMA.md` ->
+Places). **Public**, ETag + `Cache-Control`, **no query parameter** - the pack never varies per
+request, so the server learns nothing about who asks or where they are. The body is the committed
+`Cities.seed.json`, embedded at build time: `{ "version": 20261002, "source": "...", "cities": [ { "id",
+"name", "en", "ru"?, "c", "lat", "lon", "pop", "alt"? } ] }`. The device keeps the higher `version`
+of its bundled copy and this pack. Additive (hard rule 16): a new endpoint; an older build never calls it.
+
+**Payload change verdict (RV.124b/d, 2026-10-02): additive.** `vehicle` gains an optional
+`homeCity` object and `tireSet` an optional `season` string - nothing becomes required, no type
+narrows, `schemaVersion` stays 1, migration 030 refreshes the registry. Checked against build 1368:
+its codec keeps unknown keys byte-identically on decode -> encode, so a car or set it edits and
+re-pushes keeps both. `season` is deliberately a free string in the schema and an open set in the
+client, so a later season value is never a raw-value enum an old build fails on.
+
 ### `GET /reference/station-brands` (RV.115, shipped 2026-09-18)
 
 The station **brand** vocabulary, so four spellings of one chain group as one. Same contract as

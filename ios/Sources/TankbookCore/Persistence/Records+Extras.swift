@@ -170,7 +170,8 @@ public struct TireSetRow: FetchableRecord, PersistableRecord {
             size: row["size"],
             productionWeek: row["productionWeek"],
             treadwear: row["treadwear"],
-            newTreadDepthMm: row["newTreadDepthMm"])
+            newTreadDepthMm: row["newTreadDepthMm"],
+            season: (row["season"] as String?).map(TireSeason.init(rawValue:)))
         (syncState, syncScn) = decodeSync(row)
     }
 
@@ -186,6 +187,7 @@ public struct TireSetRow: FetchableRecord, PersistableRecord {
         container["productionWeek"] = tireSet.productionWeek
         container["treadwear"] = tireSet.treadwear
         container["newTreadDepthMm"] = tireSet.newTreadDepthMm
+        container["season"] = tireSet.season?.rawValue
     }
 }
 

@@ -39,6 +39,9 @@
          per-entity code change (docs/SYNC.md "The schema registry lives in the
          database, not in code"). -->
     <EmbeddedResource Include="..\..\..\docs\schemas\v1\*.schema.json" Link="PayloadSchemas\v1\%(Filename)%(Extension)" />
+    <!-- The city dictionary the app bundles (ios/.../Places/Cities.seed.json),
+         served as GET /v1/reference/cities: one committed file, two consumers. -->
+    <EmbeddedResource Include="..\..\..\ios\Sources\TankbookCore\Places\Cities.seed.json" LogicalName="Tankbook.Api.Reference.Cities.seed.json" />
   </ItemGroup>
 
   <ItemGroup>

@@ -278,6 +278,13 @@ let vehicleProperties: [String: Any] = [
     // odometer reading is valid (docs/ERRORS.md -> Add car: the implausible
     // reading is a warning that never blocks save).
     "initialOdometer": schemaInteger,
+    "homeCity": schemaObject([
+        "cityId": schemaInteger,
+        "name": schemaString,
+        "country": ["type": "string", "pattern": "^[A-Z]{2}$"],
+        "latitude": schemaNumber,
+        "longitude": schemaNumber,
+    ], ["name", "country", "latitude", "longitude"]),
 ]
 
 let fillUpProperties: [String: Any] = [
@@ -444,6 +451,9 @@ let tireSetProperties: [String: Any] = [
     "productionWeek": schemaString,
     "treadwear": schemaInteger,
     "newTreadDepthMm": schemaNumber,
+    // An open string, not an enum: a season a later app offers must still
+    // validate on this server (TireSeason).
+    "season": schemaString,
 ]
 
 let attachmentProperties: [String: Any] = [

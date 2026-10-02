@@ -195,6 +195,7 @@ public enum RecordMerge {
         case "units": target.units = source.units
         case "paceLimitKmPerDay": target.paceLimitKmPerDay = source.paceLimitKmPerDay
         case "archived": target.archived = source.archived
+        case "homeCity": target.homeCity = source.homeCity
         default: break
         }
     }

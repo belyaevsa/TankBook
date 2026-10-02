@@ -577,6 +577,9 @@ catalog.MapGet("", CatalogEndpoints.GetCatalog);
 // packs are written to the database (migration 025 seeds the first).
 var reference = v1.MapGroup("/reference");
 reference.MapGet("/station-brands", Tankbook.Api.Reference.StationBrandEndpoints.GetStationBrands);
+// The city dictionary (docs/API.md "GET /reference/cities"): the committed file,
+// embedded, public and ETag'd.
+reference.MapGet("/cities", Tankbook.Api.Reference.CityEndpoints.GetCities);
 
 // Import parsing (docs/API.md "Import parsing"): the one endpoint that reads
 // what a field means, plus the public format list and the stored-parse read and

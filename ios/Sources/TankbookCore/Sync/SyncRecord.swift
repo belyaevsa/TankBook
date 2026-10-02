@@ -54,6 +54,7 @@ public enum VehicleMergeFields {
         "units",
         "paceLimitKmPerDay",
         "archived",
+        "homeCity",
     ]
 }
 

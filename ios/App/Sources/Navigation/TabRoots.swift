@@ -532,7 +532,10 @@ struct AppRootView: View {
             AutomaticPassRunner.Step(code: .feedback) { await FeedbackService.outbox.flush() },
             // RV.115: the brand vocabulary's since_version refresh (public
             // reference data; a failure leaves the held pack standing).
-            AutomaticPassRunner.Step(code: .stationBrands) { await AppStationBrands.refresh() }
+            AutomaticPassRunner.Step(code: .stationBrands) { await AppStationBrands.refresh() },
+            // The city dictionary (public reference data; a failure leaves the
+            // held pack standing).
+            AutomaticPassRunner.Step(code: .cities) { await AppCities.refresh() }
         ], log: AppLog.shared)
     }
 

@@ -578,6 +578,8 @@ unknown category string is dropped, never guessed.
 
 ## Periodic
 
+**Home city (RV.124b, product owner 2026-10-02):** after a car's first scanned receipt, Home asks once where the car is usually kept, offering the city that receipt printed ("Yes, Tallinn") beside "Another city" and "Not now"; the answer lives on the car, editable in its details. It is what the seasonal tyre advice and the country's tyre law read (RV.124e); no location permission is ever asked. A tire set says what it is for - summer, winter or all-season (RV.124d).
+
 ### J7d · A reminder is born **[v1.1]**
 **Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J7d-2026-09-12b)
 

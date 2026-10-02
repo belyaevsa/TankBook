@@ -163,7 +163,7 @@ private func makeExpense(id: UUID = UUID.v7(), vehicleId: UUID, date: Date = tim
     let database = try TankbookDatabase.inMemory(upTo: "v5")
     let repo = TankbookRepository(database: database)
     let vehicle = makeVehicle()
-    try repo.upsertVehicle(vehicle, syncState: .synced(scn: 5))
+    try seedVehicleAtOlderSchema(vehicle, syncState: .synced(scn: 5), repo: repo, database: database)
 
     // Seed the fillUp in RAW SQL, not `repo.upsertFillUp`: the current
     // `FillUpRow.encode` writes the v9 `flagAcceptance` column (RV.104), which a
@@ -209,7 +209,7 @@ private func makeExpense(id: UUID = UUID.v7(), vehicleId: UUID, date: Date = tim
     let database = try TankbookDatabase.inMemory(upTo: "v9")
     let repo = TankbookRepository(database: database)
     let vehicle = makeVehicle()
-    try repo.upsertVehicle(vehicle)
+    try seedVehicleAtOlderSchema(vehicle, repo: repo, database: database)
     let expense = makeExpense(vehicleId: vehicle.id)
     try repo.upsertExpense(expense)
 
@@ -695,3 +695,4 @@ private func makeExpense(id: UUID = UUID.v7(), vehicleId: UUID, date: Date = tim
     try repo.softDeleteExpense(id: expense.id)
     #expect(try repo.liveEntries(forVehicle: vehicleId).map(\.id) == [fill.id, charge.id])
 }
+

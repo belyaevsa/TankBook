@@ -31,6 +31,9 @@ struct VehicleDetailFormState {
     var paceLimit = ""
     var units = Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100, energy: .kWhPer100)
     var photo: Data?
+    /// Where the car is usually kept (docs/SCHEMA.md -> Vehicle.homeCity): the
+    /// owner's own choice, editable here at any time (hard rule 13).
+    var homeCity: HomeCity?
     /// The vehicle's current attachment id + photo bytes, so saving can tell an
     /// unchanged photo (keep the id) from a replaced or removed one.
     var originalPhotoID: AttachmentID?
@@ -66,6 +69,7 @@ struct VehicleDetailFormState {
             DistanceMath.display(fromKilometres: vehicle.paceLimitKmPerDay,
                                  unit: vehicle.units.distance))
         units = vehicle.units
+        homeCity = vehicle.homeCity
         photo = photoData
         originalPhotoID = vehicle.photo
         originalPhotoData = photoData
@@ -185,6 +189,7 @@ struct VehicleDetailFormState {
         vehicle.homeCurrency = homeCurrency
         vehicle.units = units
         vehicle.initialOdometer = odometerValue
+        vehicle.homeCity = homeCity
         // The field held the car's distance unit; storage is kilometres, so the
         // typed figure converts IN here (RV.271). `units.distance` (the form's
         // unit - the one the field was shown in) is the source of truth.

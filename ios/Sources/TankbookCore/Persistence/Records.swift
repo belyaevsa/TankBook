@@ -228,7 +228,8 @@ public struct VehicleRow: FetchableRecord, PersistableRecord {
             archived: row["archived"] as Bool,
             archivedAt: (row["archivedAt"] as Double?).map(Date.init(timeIntervalSinceReferenceDate:)),
             paceLimitKmPerDay: row["paceLimitKmPerDay"] as Double,
-            initialOdometer: row["initialOdometer"] as Int?)
+            initialOdometer: row["initialOdometer"] as Int?,
+            homeCity: try decodeOptionalJSON(HomeCity.self, from: row, column: "homeCity"))
         (syncState, syncScn) = decodeSync(row)
     }
 
@@ -254,6 +255,7 @@ public struct VehicleRow: FetchableRecord, PersistableRecord {
         container["archivedAt"] = vehicle.archivedAt?.timeIntervalSinceReferenceDate
         container["paceLimitKmPerDay"] = vehicle.paceLimitKmPerDay
         container["initialOdometer"] = vehicle.initialOdometer
+        container["homeCity"] = try encodeOptionalJSON(vehicle.homeCity)
     }
 }
 

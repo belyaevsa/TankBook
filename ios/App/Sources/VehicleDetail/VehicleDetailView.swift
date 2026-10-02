@@ -161,6 +161,9 @@ struct VehicleDetailView: View {
                                  idPrefix: "vehicleDetail")
             }
             VehicleDetailOdometerCard(form: $form, focus: $focus, units: form.units)
+            section("Home city") {
+                VehicleHomeCityRow(homeCity: $form.homeCity, vehicleName: vehicle.name)
+            }
             managementRows(vehicle)
             section("Your data") {
                 VehicleExportRow(vehicle: vehicle)

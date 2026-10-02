@@ -32,6 +32,8 @@ public enum AutomaticPassMark: String, Sendable, CaseIterable, Equatable {
     case feedback
     /// Reaching the station-brand pack refresh (RV.115).
     case stationBrands
+    /// Reaching the city dictionary refresh.
+    case cities
     /// The pass returned from its last step.
     case finished
 }

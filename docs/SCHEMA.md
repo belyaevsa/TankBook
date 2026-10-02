@@ -51,8 +51,22 @@ Vehicle {
   archivedAt: Date?             // when it was archived; nil = never archived (J13)
   paceLimitKmPerDay: Double = 1500   // plausibility bound for timeline validation (F9a)
   initialOdometer: Int?         // "Current odometer" from Add car, in the vehicle's distance unit
+  homeCity: HomeCity?           // where the car is usually kept, as its owner confirmed it (see below)
 }
+
+HomeCity { cityId: Int?         // the dictionary entry it came from (GeoNames id); nil = typed under "Other"
+           name: String; country: String   // ISO 3166-1 alpha-2
+           latitude: Double; longitude: Double }
 ```
+
+**On `homeCity`** (RV.124b, product owner 2026-10-02): the city the car is usually kept in, for the
+seasonal tyre advice and the country's tyre law (`### Tyre laws`). It is **asked once per car, after
+the car's first scanned receipt**: a card on Home offers the city that receipt printed
+(`ReceiptCityFinder` over the bundled dictionary, `### Places`) as a one-tap "Yes", another city through
+the picker, or "Not now"; the per-car ask state lives on the device and a later scan never asks again.
+It is editable in the car's details at any time and can be cleared (hard rule 13). The car stores its
+**own copy** - name, country, coordinate - so a dictionary update never rewrites it. Field-merged on
+sync like the other user decisions (`VehicleMergeFields`). No location permission is involved, ever.
 
 **On `initialOdometer`** (added 2026-08-23, when P1.2 found the Add-car artboard collecting a value the model could not store): the Add-car screen asks for the car's current odometer, and without this field that input was silently discarded. It is the reading **as of `createdAt`**, and it is the one odometer value that is *not* on an entry.It does not violate "stats are derived, never stored". A derived odometer would be `max(entry.odometer)` over the timeline; this is **user-entered baseline data** for the moment before any entry exists. It earns its place twice:
 
@@ -295,6 +309,9 @@ TireSet: Entity {
   productionWeek: String?       // the DOT date code as printed, week + year: "3624"
   treadwear: Int?               // UTQG treadwear grade, 1...2000 (`TireMeasure.treadwearRange`)
   newTreadDepthMm: Double?      // tread depth when new, mm, 0...30 (`TireMeasure.depthRange`)
+  season: TireSeason?           // "summer" | "winter" | "allSeason" (RV.124d) - an OPEN string set, not a
+                                // closed enum: a value a later build adds round-trips here unchanged, so
+                                // it can never stop an older build's sync (the P1.14 lesson). nil = not said.
   // km on this set is DERIVED: sum of odometer spans between ServiceRecords that mounted/unmounted it
   // (tireSetId marks mounting; the next tire-swap record ends the span). Never stored – same rule as segments.
 }
@@ -937,6 +954,51 @@ The per-car CSV export writes `adblue.csv`.
 - **Import.** Sources that carry AdBlue (Spritmonitor, MFM's "AdBlue" fuel type where present)
   map to `AdBlueFill` once an importer reads them; never guessed. The MFM export the importer was
   built from has fuel codes 1 and 2 only, so the mapping waits for a real export carrying AdBlue.
+
+### Places
+
+The **city dictionary** (RV.124a) - `ios/Sources/TankbookCore/Places/Cities.seed.json` - is where a
+car's home city is suggested and picked from. Built by `scripts/build-city-dictionary.py` from GeoNames
+`cities15000` (CC BY 4.0) for the countries the app serves, without city districts: id (GeoNames),
+name, English and Russian names, country, coordinate, population, and the aliases it is matched by
+(English, Russian, the country's first two languages, plus `scripts/data/city-aliases.tsv` - receipt
+spellings and OCR misreads, kept by hand). Names meet through one key: uppercase, diacritics folded,
+the homoglyph canonicalisation the receipt vocabularies use, punctuation as spaces.
+
+**Updated without a release**: the generated file is committed; it ships bundled (the offline floor)
+**and** is served as `GET /v1/reference/cities` (`docs/API.md`), and the device keeps whichever has
+the higher `version`. A city it lacks is typed under "Other" and found by Apple's geocoder; only
+whether it was found is logged (`homeCity.typed`), never the name.
+
+**Finding the receipt's city** (`ReceiptCityFinder`): one-, two- and three-word runs of the header
+lines; a run beside a street word (`ул. Ленинградская`, `PETERBURI TEE`) or a highway (`автодороги
+Москва-Санкт-Петербург`) loses; a run after `г.` (also across a line break), at a line's end or in
+the receipt currency's country wins; till words that are some city's name (`KASSA` = Košice) never
+count alone. On the receipt corpus it names a city for 57 of 113 receipts, two of them wrong (a
+registered office in another city; a subsidiary named for its region) - which is why it is a
+suggestion the user confirms, never a value written silently.
+
+### Tyre laws
+
+`Tires/TireLaws.seed.json` is a versioned reference table: `{ "version": 1, "rows": [...] }`.
+Each row has an ISO 3166-1 alpha-2 `country`, optional `jurisdiction`, `vehicleClass`, `kind`,
+optional inclusive `from` and `to` in `MM-DD` form, free-text `criteria`, a `seasonGate`,
+`sourceURL`, ISO `checked` date, `status`, and `note`. The gate has `autumnFrom`, `autumnTo`,
+`springFrom`, and `springTo` in `MM-DD` form. It bounds forecast advice; it does not alter a
+legal obligation. A window may cross New Year. `02-29` means the last day of February in a
+non-leap year.
+
+`dated` means a fixed winter-tyre period; `conditional` means the rule applies in the stated
+period only when winter road conditions exist; `none` means no national fixed winter-tyre
+date. `verified` means a primary legal or government source was checked, `reviewDue` means a
+source or scope needs review, and `withdrawn` means the row is retired. Unknown kind or status
+values are skipped. **Only a verified dated row may say winter tyres are required from a
+date.** A verified conditional row may describe its conditions without an unconditional
+deadline. Unknown, review-due, and withdrawn rows make no legal claim.
+
+Review the source table before each autumn and spring, and after a legal change. A correction
+creates a new `version`. The bundled file is the offline floor; a reference-data refresh will
+be added by the separate endpoint task.
 
 ### Recalculation on edit (normative)
 

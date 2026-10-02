@@ -137,6 +137,7 @@ struct RV139AutomaticPassTests {
             AutomaticPassRunner.Step(code: .delivery) {},
             AutomaticPassRunner.Step(code: .feedback) {},
             AutomaticPassRunner.Step(code: .stationBrands) {},
+            AutomaticPassRunner.Step(code: .cities) {},
         ], log: log)
 
         #expect(sink.automaticPassMarks() == AutomaticPassMark.allCases,

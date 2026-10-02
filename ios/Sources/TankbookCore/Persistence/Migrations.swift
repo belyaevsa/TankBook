@@ -136,6 +136,16 @@ public enum TankbookMigrations {
             try createEntryTable(named: TankbookSchema.adBlueFill, db: db)
             try createEntryIndexes(on: TankbookSchema.adBlueFill, db: db)
         }
+        migrator.registerMigration("v14") { db in
+            // Where the car is usually kept (docs/SCHEMA.md -> Vehicle.homeCity)
+            // and the tyre set's season (-> TireSet.season); both optional.
+            try db.alter(table: TankbookSchema.vehicle) { table in
+                table.add(column: "homeCity", .text)          // JSON HomeCity?
+            }
+            try db.alter(table: TankbookSchema.tireSet) { table in
+                table.add(column: "season", .text)
+            }
+        }
         return migrator
     }
 

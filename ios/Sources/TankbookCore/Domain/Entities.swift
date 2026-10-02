@@ -69,6 +69,8 @@ public struct Vehicle: Entity, Codable, Sendable, Equatable {
     /// second. Once entries exist the derived value takes over; this stays as
     /// the floor and is never rewritten.
     public var initialOdometer: Int?
+    /// Where the car is usually kept (docs/SCHEMA.md -> Vehicle.homeCity).
+    public var homeCity: HomeCity?
 
     /// Memberwise initializer, public so the app target can build a `Vehicle`.
     ///
@@ -82,7 +84,7 @@ public struct Vehicle: Entity, Codable, Sendable, Equatable {
                 homeCurrency: CurrencyCode, units: Units, photo: AttachmentID? = nil,
                 archived: Bool = false, archivedAt: Date? = nil,
                 paceLimitKmPerDay: Double = 1500,
-                initialOdometer: Int? = nil) {
+                initialOdometer: Int? = nil, homeCity: HomeCity? = nil) {
         self.id = id
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -103,6 +105,7 @@ public struct Vehicle: Entity, Codable, Sendable, Equatable {
         self.archivedAt = archivedAt
         self.paceLimitKmPerDay = paceLimitKmPerDay
         self.initialOdometer = initialOdometer
+        self.homeCity = homeCity
     }
 
     /// Units of measure for a vehicle (docs/SCHEMA.md, Vehicle.units).
@@ -389,27 +392,8 @@ public struct TireSet: Entity, Codable, Sendable, Equatable {
     public var treadwear: Int?
     /// Tread depth when new, in millimetres.
     public var newTreadDepthMm: Double?
-}
-
-/// The condition of the tires a swap mounts, read at that swap
-/// (docs/SCHEMA.md -> ServiceRecord.tireReading). Stored on the mounting
-/// `ServiceRecord`, never on the set, so each stint of a set carries the
-/// reading taken when it began.
-public struct TireReading: Codable, Sendable, Equatable {
-    /// Measured tread depth in millimetres.
-    public var treadDepthMm: Double?
-    /// Free text on wear or damage: "even wear", "sidewall cut".
-    public var note: String?
-
-    public init(treadDepthMm: Double? = nil, note: String? = nil) {
-        self.treadDepthMm = treadDepthMm
-        self.note = note
-    }
-
-    /// A reading with neither value says nothing and is not stored.
-    public var isEmpty: Bool {
-        treadDepthMm == nil && (note?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
-    }
+    /// Summer, winter or all-season (docs/SCHEMA.md -> TireSet.season).
+    public var season: TireSeason?
 }
 
 /// A service reminder (docs/SCHEMA.md, Reminder).

@@ -575,6 +575,34 @@
       },
       "type" : "array"
     },
+    "homeCity" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "cityId" : {
+          "type" : "integer"
+        },
+        "country" : {
+          "pattern" : "^[A-Z]{2}$",
+          "type" : "string"
+        },
+        "latitude" : {
+          "type" : "number"
+        },
+        "longitude" : {
+          "type" : "number"
+        },
+        "name" : {
+          "type" : "string"
+        }
+      },
+      "required" : [
+        "name",
+        "country",
+        "latitude",
+        "longitude"
+      ],
+      "type" : "object"
+    },
     "homeCurrency" : {
       "pattern" : "^[A-Z]{3}$",
       "type" : "string"

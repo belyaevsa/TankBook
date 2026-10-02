@@ -1863,6 +1863,14 @@ capture P1.15-mixed-adblue-ru           ru -seedVehicleForUITests -seedVehicleDi
 capture P1.15-adblue-scan               en -seedVehicleForUITests -seedVehicleDieselOnly -presentScreen confirmManual -seedConfirmPrefillAdBlue
 capture P1.15-adblue-scan-ru            ru -seedVehicleForUITests -seedVehicleDieselOnly -presentScreen confirmManual -seedConfirmPrefillAdBlue
 
+# RV.124b/d: the one-time home-city question on Home (after the car's first
+# scanned receipt, here seeded) and the tire set's season chips. The picker and
+# the details row are posed by ScrolledScreenshotUITests (they need a tap/scroll).
+capture RV.124b-home-question           en -seedSettingsSignedIn -seedHomeCityQuestion
+capture RV.124b-home-question-ru        ru -seedSettingsSignedIn -seedHomeCityQuestion
+capture RV.124d-tire-season             en -seedTireSets -presentScreen tireSetHistory
+capture RV.124d-tire-season-ru          ru -seedTireSets -presentScreen tireSetHistory
+
 echo
 echo "Done. NOW OPEN THEM - this script proves a file was written, not that it"
 echo "shows the intended screen. A wrong seed renders an empty or error state"

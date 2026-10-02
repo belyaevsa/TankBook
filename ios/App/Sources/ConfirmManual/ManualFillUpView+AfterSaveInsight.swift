@@ -23,6 +23,7 @@ extension ManualFillUpView {
             toastCenter.noteEntryChanged()
         }
         reportLostReceiptPhoto(receiptWrite, toastCenter: toastCenter)
+        HomeCityAsk.noteScannedSave(vehicle: vehicle, prefill: prefill)
     }
 
     /// The stats over the vehicle's entries AFTER the write, derived the way
