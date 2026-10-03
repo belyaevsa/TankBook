@@ -13,7 +13,7 @@ import TankbookCore
 /// whenever the two disagree. The sum is computed by the ONE shared function
 /// the create screen's header also uses, so the two doors cannot drift
 /// ([RV.169]'s complaint). This suite pins the sum, the independent Amount, the
-/// mismatch in both directions, and the mixed-currency refusal.
+/// mismatch in both directions, and lines following the entry's currency.
 ///
 /// Oracle for every figure: the items' own exact `Decimal` costs
 /// (docs/SCHEMA.md -> Money, ServiceItem) - never a `Double`.
@@ -147,10 +147,8 @@ final class RV199ServiceLineSumTests: XCTestCase {
         XCTAssertFalse(form.lineSumDiffersFromAmount(homeCurrency: .eur),
                        "matching the sum again must clear the mismatch")
 
-        // A currency difference alone is a disagreement even when the digits
-        // match. The lines are LOADED (their stored EUR pair is kept), while the
-        // Amount's currency is the user's own - a typed row follows the form's
-        // currency (RV.279), so only a loaded row can state a different one.
+        // Switching the invoice's currency moves its loaded lines with it, so
+        // matching digits still agree (docs/SCHEMA.md -> ServiceRecord).
         form.items = [
             ServiceEntryItemDraft(from: ServiceItem(title: "Oil service", category: .oil,
                                                     cost: eur("89.00"))),
@@ -158,8 +156,8 @@ final class RV199ServiceLineSumTests: XCTestCase {
                                                     cost: eur("59.00")))
         ]
         form.currency = .usd
-        XCTAssertTrue(form.lineSumDiffersFromAmount(homeCurrency: .eur),
-                      "148.00 USD against 148.00 EUR is still a disagreement")
+        XCTAssertFalse(form.lineSumDiffersFromAmount(homeCurrency: .eur),
+                       "the lines follow the invoice into USD, so 148.00 agrees")
     }
 
     /// With no costed item there is nothing to compare, so no mismatch is
@@ -172,12 +170,12 @@ final class RV199ServiceLineSumTests: XCTestCase {
         XCTAssertFalse(form.lineSumDiffersFromAmount(homeCurrency: .eur))
     }
 
-    // MARK: - L1: a mixed-currency set states no summed total (hard rule 3)
+    // MARK: - L1: an invoice has one currency, so its lines sum to one figure
 
-    /// Two currencies have no common quantity, so the set is `.mixed` and
-    /// `summedAmount` is nil - a renderer must state the per-currency breakdown,
-    /// never a summed cross-currency figure (hard rule 3, the RV.145 rule).
-    func testMixedCurrencyItemsProduceNoSummedTotal() {
+    /// A line loaded in another currency is stated in the entry's currency
+    /// (docs/SCHEMA.md -> ServiceRecord): the lines follow the invoice, so the
+    /// sum is a single figure in that currency, never a per-currency split.
+    func testLinesFollowTheEntrysCurrency() {
         var form = EditEntryNonFillForm()
         form.currency = .eur
         form.amount = "148.00"
@@ -189,16 +187,12 @@ final class RV199ServiceLineSumTests: XCTestCase {
         ]
 
         let sum = form.lineSum(homeCurrency: .eur)
-        XCTAssertNil(sum.summedAmount,
-                     "a mixed-currency set must never produce a summed total")
-        guard case .mixed(let subtotals) = sum else {
-            return XCTFail("expected .mixed, got \(sum)")
-        }
-        XCTAssertEqual(subtotals.count, 2)
-        XCTAssertEqual(subtotals.first { $0.currency == .eur }?.amount, Decimal(string: "89.00"))
-        XCTAssertEqual(subtotals.first { $0.currency == .usd }?.amount, Decimal(string: "59.00"))
-        XCTAssertTrue(form.lineSumDiffersFromAmount(homeCurrency: .eur),
-                      "no single line total can match the single Amount")
+        XCTAssertEqual(sum, .summed(amount: Decimal(string: "148.00")!, currency: .eur))
+        XCTAssertFalse(form.lineSumDiffersFromAmount(homeCurrency: .eur))
+
+        form.currency = .kzt
+        XCTAssertEqual(form.lineSum(homeCurrency: .eur).summedCurrency, .kzt,
+                       "switching the invoice's currency moves every line with it")
     }
 
     // MARK: - L1: create and edit state the SAME sum, asserted from both paths

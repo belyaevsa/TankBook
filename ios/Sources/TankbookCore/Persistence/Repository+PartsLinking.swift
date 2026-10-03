@@ -13,6 +13,7 @@ extension TankbookRepository {
     /// moves: linking is provenance, not a price (docs/PHASES.md, P3 exit gate).
     public func upsertServiceRecord(_ service: ServiceRecord, linkedParts expenses: [Expense],
                                     syncState: SyncState = .dirty) throws {
+        let service = service.withItemsInRecordCurrency()
         try database.write { db in
             var recordRow = ServiceRecordRow(service: service, syncState: syncState)
             recordRow.syncScn = try preservingScn(syncState, table: TankbookSchema.serviceRecord, id: service.id, in: db)

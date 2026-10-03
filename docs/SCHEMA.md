@@ -257,7 +257,13 @@ ServiceRecord: EntryCommon {    // work DONE to the car: annual service, repairs
   // pointers for one relationship would be two sources of truth.
 }
 ServiceItem {
-  title: String; category: ServiceCategory; cost: Money?
+  title: String; category: ServiceCategory
+  cost: Money?                  // the AMOUNT is the line's own; the currency, rate and home side are
+                                // the record's (PJ.300, product owner 2026-10-02): an invoice has one
+                                // currency, so every write and read sets each line's pair from the
+                                // record's `money` (`withItemsInRecordCurrency`). Changing the
+                                // invoice's currency, a rate landing or a re-home reaches every line.
+                                // A record with no total leaves its lines as they are.
   partNumber: String?           // "MANN W 712/75" – enables reorder and lifetime tracking
   lifetime: { km: Int?, months: Int? }?   // set → the record proposes the next reminder itself;
                                           // the item's own interval overrides the category default (J7)
@@ -268,8 +274,9 @@ ServiceCategory: .oil | .brakes | .tires | .battery | .filters | .inspection | .
 // legitimately differs from its lines (tax, a discount, an un-itemised line), so it is never
 // derived from them and never rewritten when a line changes (hard rule 13). The edit screen
 // states the items' sum beside it and marks a disagreement as attention, never a gate (RV.199).
-// The sum is over each item's ORIGINAL cost amount, grouped by currency - a set spanning
-// currencies has no single total and is shown as a per-currency breakdown (hard rule 3).
+// The sum is over each item's ORIGINAL cost amount. The lines share the record's currency, so
+// it is one figure; only the lines of a record with no total can span currencies, and those
+// are shown as a per-currency breakdown (hard rule 3).
 
 Expense: EntryCommon {          // money NOT tied to work: insurance, tax, parking, tolls, fines, accessories –
                                 // and PARTS bought standalone (online order, shelf stock)

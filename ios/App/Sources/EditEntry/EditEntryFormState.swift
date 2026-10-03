@@ -206,8 +206,10 @@ struct EditEntryNonFillForm: Equatable {
         items.lineSum(currency: currency, homeCurrency: homeCurrency)
     }
 
-    /// True when the Amount and the line sum both state a figure and disagree,
-    /// or the lines span currencies so no single figure can match. ATTENTION,
+    /// True when the Amount and the line sum both state a figure and disagree.
+    /// Every line is in the entry's currency (`ServiceEntryItemDraft.serviceItem`),
+    /// so the sum is a single figure; `.mixed` is answered as a mismatch only
+    /// to keep the switch total. ATTENTION,
     /// never a gate: the Amount stays independently editable - an invoice's
     /// grand total legitimately differs from its lines (tax, a discount, an
     /// un-itemised line) and the user's value is theirs (hard rule 13) - so the

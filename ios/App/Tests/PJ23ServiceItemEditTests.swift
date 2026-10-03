@@ -185,16 +185,17 @@ final class PJ23ServiceItemEditTests: XCTestCase {
     /// An untouched foreign-currency cost keeps its snapshot byte-identical
     /// (hard rule 3): editing the title must not re-convert a written rate. The
     /// draft holds the amount as text, so this pins that the conversion is
-    /// preserved rather than rebuilt from the typed digits.
+    /// preserved rather than rebuilt from the typed digits. The invoice is in
+    /// PLN too - a line shares its invoice's currency and rate.
     func testAnUntouchedForeignCostKeepsItsSnapshot() throws {
         let (repository, vehicle) = try makeVehicle()
         let day = Date(timeIntervalSince1970: 1_750_000_000)
-        let cost = Money(amount: 100, currency: .pln, homeCurrency: .eur)
-            .converted(using: RateSnapshot(rate: Decimal(string: "4.27")!,
-                                           rateDate: day, source: .ecb))
-        let original = service(vehicle: vehicle, items: [
+        let snapshot = RateSnapshot(rate: Decimal(string: "4.27")!, rateDate: day, source: .ecb)
+        let cost = Money(amount: 100, currency: .pln, homeCurrency: .eur).converted(using: snapshot)
+        var original = service(vehicle: vehicle, items: [
             ServiceItem(title: "Oil service", category: .oil, cost: cost)
         ])
+        original.money = Money(amount: 148, currency: .pln, homeCurrency: .eur).converted(using: snapshot)
         try repository.upsertServiceRecord(original)
 
         var form = EditEntryView.pristineNonFillForm(for: original, vehicle: vehicle)

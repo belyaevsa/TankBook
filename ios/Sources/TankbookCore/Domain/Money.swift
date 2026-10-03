@@ -165,6 +165,23 @@ public struct Money: Codable, Hashable, Sendable {
         return copy
     }
 
+    /// Money of `newAmount` in this money's currency, converted at this money's
+    /// snapshot: the same rate, rate date and source, or rate-pending when this
+    /// is. A service line takes its invoice's currency and rate this way, so a
+    /// line can never disagree with the total it belongs to.
+    public func sharingSnapshot(amount newAmount: Decimal) -> Money {
+        var copy = self
+        copy.amount = newAmount
+        if currency == homeCurrency {
+            copy.homeAmount = newAmount
+        } else if let rate, homeAmount != nil, rate > 0 {
+            copy.homeAmount = (newAmount / rate).rounded(decimalPlaces: homeCurrency.minorUnits)
+        } else {
+            copy.homeAmount = nil
+        }
+        return copy
+    }
+
     /// A copy with `currency` replaced. Editing the currency clears any existing
     /// snapshot for re-conversion.
     public func replacingCurrency(_ newCurrency: CurrencyCode) -> Money {

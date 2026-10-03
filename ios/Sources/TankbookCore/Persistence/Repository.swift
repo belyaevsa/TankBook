@@ -659,11 +659,11 @@ extension TankbookRepository {
         for itemRow in itemRows {
             itemsByRecord[itemRow.serviceRecordId, default: []].append(itemRow.item)
         }
-        var services = rows.map(\.service)
-        for index in services.indices {
-            services[index].items = itemsByRecord[services[index].id] ?? []
+        return rows.map { row in
+            var service = row.service
+            service.items = itemsByRecord[service.id] ?? []
+            return service.withItemsInRecordCurrency()
         }
-        return services
     }
 
     func tombstone(table: String, id: UUID, at stamp: TimeInterval, in db: Database) throws {

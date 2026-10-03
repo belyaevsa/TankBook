@@ -52,7 +52,10 @@ extension EditEntryView {
         form.amount = entry.money.map {
             ManualFillUpFormat.decimal($0.amount, fractionDigits: 2)
         } ?? ""
-        form.currency = entry.money?.currency ?? vehicle.homeCurrency
+        // A service with no total takes its lines' currency, so opening it
+        // does not move its lines into the home currency on save.
+        let lineCurrency = (entry as? ServiceRecord)?.items.lazy.compactMap(\.cost?.currency).first
+        form.currency = entry.money?.currency ?? lineCurrency ?? vehicle.homeCurrency
         form.date = entry.date
         form.odometer = entry.odometer.map(OdometerFormat.grouped) ?? ""
         form.note = entry.note ?? ""

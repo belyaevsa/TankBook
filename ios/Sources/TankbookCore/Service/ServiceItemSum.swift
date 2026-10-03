@@ -19,7 +19,9 @@ import Foundation
 /// Two currencies have no common quantity, so a set whose costs span currencies
 /// has no single total. It is `.mixed`, and a renderer shows the per-currency
 /// breakdown - never a summed cross-currency figure (hard rule 3, the RV.145
-/// rule).
+/// rule). A saved record's lines share its currency
+/// (`ServiceRecord.withItemsInRecordCurrency`), so `.mixed` arises only for the
+/// lines of a record with no total.
 public enum ServiceItemSum: Equatable, Sendable {
     /// No item carries a cost. Nothing is stated; a renderer shows no sum row.
     case none

@@ -67,11 +67,12 @@ struct ServiceEntryItemDraft: Identifiable, Equatable {
         return Decimal(string: trimmed)
     }
 
-    /// The stored line item this draft represents. `currency` is used only when
-    /// a new cost is typed - a row the user added is minted in the entry's
-    /// chosen currency, so the record and its items agree (PJ.58). `original` is
-    /// the item this row loaded from, whose `cost` pair is kept byte-identical
-    /// when the amount is untouched (hard rule 3 - a snapshot is immutable).
+    /// The stored line item this draft represents, always in the entry's chosen
+    /// `currency`: an invoice has one currency, so switching it moves every line
+    /// with it (docs/SCHEMA.md -> ServiceRecord). `original` is the item this
+    /// row loaded from, whose `cost` pair is kept byte-identical while neither
+    /// the amount nor the currency changed (hard rule 3 - a snapshot is
+    /// immutable).
     /// `partNumber` and `lifetime` are the draft's own values, not fallbacks:
     /// the editors own them, so clearing either clears it instead of
     /// resurrecting the stored one. A row the user added has `original == nil`
@@ -79,10 +80,8 @@ struct ServiceEntryItemDraft: Identifiable, Equatable {
     func serviceItem(currency: CurrencyCode, homeCurrency: CurrencyCode) -> ServiceItem {
         let money: Money?
         if let amount = costDecimal {
-            if let originalCost = original?.cost, originalCost.amount == amount {
-                money = originalCost
-            } else if let originalCost = original?.cost {
-                money = originalCost.replacingAmount(amount)
+            if let originalCost = original?.cost, originalCost.currency == currency {
+                money = originalCost.amount == amount ? originalCost : originalCost.replacingAmount(amount)
             } else {
                 money = Money(amount: amount, currency: currency, homeCurrency: homeCurrency)
             }
@@ -112,9 +111,8 @@ extension Array where Element == ServiceEntryItemDraft {
     /// THE line sum of an editable service, shared by the create screen's
     /// header and the edit screen's money card so the two doors cannot state
     /// different totals for the same items. The rows are converted through the
-    /// SAME `serviceItem(currency:homeCurrency:)` the save path uses - a new
-    /// row's cost is in the entry's chosen currency, a loaded row keeps its
-    /// stored cost pair - and the sum itself is the core
+    /// SAME `serviceItem(currency:homeCurrency:)` the save path uses - every
+    /// row's cost is in the entry's chosen currency - and the sum itself is the core
     /// `[ServiceItem].costSum()`, so this is a mapping, never a second
     /// summation ([RV.169]'s defect).
     func lineSum(currency: CurrencyCode, homeCurrency: CurrencyCode) -> ServiceItemSum {

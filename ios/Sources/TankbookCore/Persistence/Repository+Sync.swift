@@ -130,6 +130,7 @@ extension TankbookRepository {
         var service = row.service
         service.items = (try? ServiceItemRow.filter(Column("serviceRecordId") == id.uuidString)
             .order(Column("position")).fetchAll(db).map(\.item)) ?? []
+        service = service.withItemsInRecordCurrency()
         return makeLocal(service, entityType: entityType, id: id, updatedAt: service.updatedAt,
                          deletedAt: service.deletedAt, scn: row.syncScn, state: row.syncState)
     }

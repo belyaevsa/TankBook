@@ -254,7 +254,8 @@ extension TankbookRepository {
                 row.syncScn = try preservingScn(syncState, table: TankbookSchema.chargeSession,
                                                 id: charge.id, in: db)
                 try row.save(db)
-            case .serviceRecord(let service):
+            case .serviceRecord(let incoming):
+                let service = incoming.withItemsInRecordCurrency()
                 var row = ServiceRecordRow(service: service, syncState: syncState)
                 row.syncScn = try preservingScn(syncState, table: TankbookSchema.serviceRecord,
                                                 id: service.id, in: db)
