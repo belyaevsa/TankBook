@@ -203,11 +203,17 @@ struct AboutView: View {
     }
 
     private var footer: some View {
-        Text("Made for drivers who'd rather drive than type.")
-            .font(.caption)
-            .foregroundStyle(Theme.Palette.inkSoft.opacity(0.7))
-            .multilineTextAlignment(.center)
-            .padding(.top, 6)
+        VStack(spacing: 6) {
+            Text("Made for drivers who'd rather drive than type.")
+            // The city dictionary is GeoNames data under CC BY 4.0, which
+            // requires this credit wherever the data ships.
+            Text("City data © GeoNames (geonames.org), CC BY 4.0")
+                .accessibilityIdentifier("aboutGeoNamesCredit")
+        }
+        .font(.caption)
+        .foregroundStyle(Theme.Palette.inkSoft.opacity(0.7))
+        .multilineTextAlignment(.center)
+        .padding(.top, 6)
     }
 
     /// DEBUG/screenshot only: `-diagnosticsAutoOpenPreview` opens the diagnostics

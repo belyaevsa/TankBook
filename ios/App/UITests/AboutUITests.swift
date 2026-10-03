@@ -49,6 +49,21 @@ final class AboutUITests: XCTestCase {
                                  file: file, line: line)
     }
 
+    /// The city dictionary is GeoNames data under CC BY 4.0, which requires the
+    /// credit to ship with it: About carries it, reachable on screen.
+    func testTheGeoNamesCreditIsShown() {
+        let app = launch(["-presentScreen", "about"])
+        let credit = app.staticTexts["aboutGeoNamesCredit"]
+        XCTAssertTrue(credit.waitForExistence(timeout: 10), "the GeoNames credit is on About")
+        var swipes = 0
+        while !app.windows.firstMatch.frame.contains(credit.frame), swipes < 8 {
+            app.swipeUp()
+            swipes += 1
+        }
+        XCTAssertTrue(credit.label.contains("GeoNames") && credit.label.contains("CC BY 4.0"), credit.label)
+        XCTAssertTrue(app.windows.firstMatch.frame.contains(credit.frame), "the credit sits inside the window")
+    }
+
     /// The feedback row renders: category chips, the text editor, the consent
     /// toggle (default off - the value itself is an L1 assertion), the
     /// device-model toggle, and the send button.

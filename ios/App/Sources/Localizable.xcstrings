@@ -20669,6 +20669,23 @@
         }
       }
     },
+    "City data © GeoNames (geonames.org), CC BY 4.0": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "City data © GeoNames (geonames.org), CC BY 4.0"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Данные о городах © GeoNames (geonames.org), CC BY 4.0"
+          }
+        }
+      }
+    },
     "Rescan page": {
       "extractionState": "manual",
       "localizations": {

@@ -78,6 +78,20 @@ final class ScrolledScreenshotUITests: XCTestCase {
         try write(details, "RV.124b-vehicle-detail-home-city")
     }
 
+    /// About's foot, with the GeoNames credit the city data requires.
+    func testAboutGeoNamesCredit() throws {
+        try XCTSkipUnless(environment["SCROLLED_SHOT_DIR"] != nil, "scrolled screenshots are opt-in")
+        let app = launchSeeded(["-presentScreen", "about"])
+        let credit = app.staticTexts["aboutGeoNamesCredit"]
+        XCTAssertTrue(credit.waitForExistence(timeout: 10))
+        var swipes = 0
+        while !app.windows.firstMatch.frame.contains(credit.frame), swipes < 8 {
+            app.swipeUp()
+            swipes += 1
+        }
+        try write(app, "RV.124a-about-geonames-credit")
+    }
+
     func testMixedReceiptAdBlueRow() throws {
         try XCTSkipUnless(environment["SCROLLED_SHOT_DIR"] != nil, "scrolled screenshots are opt-in")
         try shot("P1.15-mixed-adblue-row",
