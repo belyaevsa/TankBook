@@ -444,3 +444,79 @@ its own data. Signed into the same account, the two are simply two of the accoun
 
 The beta talks to the same live API as the store app, so hard rule 16 applies to it unchanged.
 
+
+## 9 · iOS 27 product page: header, search-results asset, iPhone Duo (2026-10-09)
+
+Apple added two **creative assets** and an **iPhone Duo** screenshot size (developer news,
+2026-10-05; `developer.apple.com/app-store/asset-best-practices/`, the creative-assets and
+screenshot specification pages in App Store Connect Help). Creative assets show on **iOS 27 and
+later only**; an older iOS keeps showing screenshots, so sections 4b and `STORE-COPY.md` stay the
+base set. Everything here is optional until April 2027.
+
+### What Apple accepts
+
+| Asset | Shape | Size | Image | Video |
+|---|---|---|---|---|
+| Product page header | 21:9 | 3840 x 1646 | jpeg/png | 5-30 s, 30/60 fps, mov/m4v/mp4, loops, muted by default |
+| Search results | 3:2 | 1920 x 1280 to 3840 x 2560 | jpeg/png | same as the header |
+| Universal (header **and** search results) | 16:9 | 5244 x 2950 | png only | - |
+| iPhone Duo screenshot, inner display | portrait | 2007 x 2853 | jpeg/png | - |
+| iPhone Duo screenshot, outer display | portrait | 1398 x 2034 | jpeg/png | - |
+
+No alpha channel in any image. Assets are localized like screenshots, can be submitted ahead of a
+version through **Asset Library** (reviewed against the live version), and the version page's
+**Preview** shows header and search results per language and device. **April 2027**: a build made
+with the iOS 27.1 SDK or later must carry iPhone Duo screenshots.
+
+### Apple's rules that touch our copy
+
+- No prices, discounts, URLs or the © sign in an asset; no unverifiable claims; no other platforms
+  or stores by name. "No subscription" is a product fact, not a price, but "free" is not used.
+- Text is **a short phrase that adds to the picture, not a caption of it**, centered in a safe area,
+  localized per language.
+- Header: one idea, for a first-time visitor. Search results: "state the obvious" – show the app.
+
+### The plan for the next release (1.3)
+
+The two slogans (product owner, 2026-10-09; RU decided, EN proposed). No closing full stop – a
+banner line is not a sentence in running text:
+
+| Placement | RU | EN (proposed) | Picture |
+|---|---|---|---|
+| Product page header (21:9) | «Чека нет? Снимите табло колонки» | "No receipt? Snap the pump" | a pump display and the check screen with its litres, price and total filled in |
+| Search results (3:2) | «Знаете, во что вам обходится машина?» | "What your car burns, and what it costs" | Home: the consumption headline, the month's cost and the log |
+
+Why the header is the pump: reading the pump display is what no competitor ships
+(`COMPETITORS.md`), and the header is the one idea a first-time visitor keeps. The slogan never
+says "the only app" – Apple rejects unverifiable claims – it names the moment (no receipt) and
+the answer. Search results "state the obvious": what the app is for, in the driver's own words.
+"Snap it or type it" stays on screenshot panel 3, where hard rule 15 is shown, not stated.
+
+**Built 2026-10-09:** `design/store/creative/{header,search}-{en,ru}.png`, by
+`design/store/creative.py` (generated night photos in `design/store/assets/creative-*-ground.png`;
+the search image's phone is `design/store/site/home-month{,-ru}.png`, captured from the 1.2
+Debug build with `-seedHomeMonthGlance` (the site's hero uses the same capture); the pump photo is a close-up of the real one with no brand
+in frame).
+
+1. **The two stills first**, one per language: header 3840 x 1646, search results 3840 x 2560
+   (two dedicated assets, not the universal 16:9 one – the two placements carry different ideas).
+2. **Header video later** (21:9, 5-30 s, silent loop): pump photo -> check -> saved. The site's
+   recordings (`site/assets/video/doors/`) are 600 x 860, far too small, so it is **re-recorded**
+   at simulator resolution, not upscaled.
+3. **iPhone Duo screenshots** from the Duo simulator, both displays, EN and RU – after the app is
+   checked on the device (below). Built by `design/store/build.py` like the other panels.
+
+### iPhone Duo: the app has to be checked first
+
+Tankbook is iPhone-only and portrait-locked, built with Xcode 27.0 (iOS 27 SDK). On Duo's inner
+display Apple says an iOS 27 SDK app is resized to fill most of the screen; with the **27.1 SDK** it
+goes edge to edge and **tab bars and toolbars move to a vertical bar** – a different layout for the
+tab bar, the capture mode row and every bottom action. Apple names fixed orientations as a cause of
+broken layouts. To check on the Duo simulator (Xcode 27.1, not installed on this machine yet):
+
+- every tab, the capture screen (camera preview, rotation of the saved photo - `CameraCapture.applyRotation`
+  reads the scene's interface orientation), the check screen with the keyboard up, sheets;
+- both displays, folded and open, and the switch between them mid-flow;
+- EN and RU – Russian labels in a vertical tab bar are the likely overflow.
+
+The code audit found no `UIScreen.main`, idiom or device-size checks in `ios/App/Sources`.
