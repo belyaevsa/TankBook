@@ -205,6 +205,20 @@
   font-size: 42px;
 }
 
+.page-banner {
+  padding-top: 120px;
+  padding-bottom: 88px;
+}
+
+.page-banner h1 {
+  font-size: 42px;
+  max-width: 640px;
+}
+
+.page--bannered {
+  padding-top: 40px;
+}
+
 .page__body {
   margin-top: 24px;
   max-width: 640px;

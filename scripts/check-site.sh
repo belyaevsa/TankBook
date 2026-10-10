@@ -192,7 +192,7 @@ fi
 # so the match is on `screenshots/<base>` - it catches the WebP source variants
 # and the PNG fallbacks alike, without hard-coding Hugo's hash naming.
 
-for f in P1.4-home P2.3-confirm P2.5-confirm-foreign; do
+for f in home-month P2.3-confirm P2.5-confirm-foreign; do
   if grep -q "screenshots/$f" site/public/index.html; then
     pass "EN landing references real screenshot $f by explicit name"
   else

@@ -1,6 +1,17 @@
 {{ define "main" }}
-<article class="page container">
+{{- /* An article may carry a generated banner (front matter `banner`, a scene
+      name for the ground partial): the title stays live HTML over it. */ -}}
+{{- with .Params.banner -}}
+<header class="page-banner section--ambience section--photo" style="{{ partial "ground.html" . }}">
+  <div class="container">
+    <h1>{{ $.Title }}</h1>
+  </div>
+</header>
+{{- end }}
+<article class="page container{{ with .Params.banner }} page--bannered{{ end }}">
+  {{- if not .Params.banner }}
   <h1>{{ .Title }}</h1>
+  {{- end }}
   <div class="page__body">
     {{ .Content }}
   </div>

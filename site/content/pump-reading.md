@@ -1,4 +1,5 @@
 +++
+banner = "pump"
 title = "How Tankbook reads a pump display"
 description = "Follow a pump photo from tilted digit rows to editable fill-up figures, including the arithmetic check, warning states and measured reader changes."
 +++

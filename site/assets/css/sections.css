@@ -25,6 +25,49 @@
   background-size: cover;
 }
 
+/* A generated PHOTO ground (hero, the check section, article banners): the
+   light sits on the right, and a wash of the page colour from the left keeps
+   the copy's contrast on any crop. The ground partial supplies a night and a
+   day rendition; the theme picks one, and --midnight flips the wash with it. */
+.section--photo {
+  --ground: var(--ground-night);
+  background-image:
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--midnight) 96%, transparent) 0%,
+      color-mix(in srgb, var(--midnight) 90%, transparent) 46%,
+      color-mix(in srgb, var(--midnight) 55%, transparent) 72%,
+      color-mix(in srgb, var(--midnight) 40%, transparent) 100%),
+    var(--ground);
+  background-position: center, right center;
+}
+
+/* The day photo carries its subject in daylight mid-tones, so the light wash
+   stays on the copy and leaves the right half nearly clear. */
+@media (prefers-color-scheme: light) {
+  .section--photo {
+    --ground: var(--ground-day);
+    background-image:
+      linear-gradient(90deg,
+        color-mix(in srgb, var(--midnight) 96%, transparent) 0%,
+        color-mix(in srgb, var(--midnight) 92%, transparent) 60%,
+        color-mix(in srgb, var(--midnight) 15%, transparent) 74%,
+        transparent 100%),
+      var(--ground);
+  }
+}
+
+/* On a phone the copy spans the full width, so a left-to-right wash cannot
+   keep the light off it: the ground becomes an even tint instead.
+   It comes after the light-mode rule so it wins in both themes. */
+@media (max-width: 720px) {
+  .section--photo {
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--midnight) 86%, transparent),
+                      color-mix(in srgb, var(--midnight) 86%, transparent)),
+      var(--ground);
+  }
+}
+
 .section--footer-gap {
   padding-bottom: 0;
 }

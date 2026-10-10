@@ -235,6 +235,19 @@ as the screenshots, for the same reason: no test asserts appearance, and an agen
 image cannot see it. Look for stray glyph fragments, sixth fingers, repeated texture tiles, and
 watermark remnants.
 
+**Every photo ground comes as a pair, night and day** (product owner, 2026-10-10). The site
+follows the visitor's theme, so a scene exists as `<scene>-night.png` and `<scene>-day.png` in
+`site/assets/generated/`, and `site/layouts/_partials/ground.html` refuses to build with one of
+them missing. A single dark photo hidden in light mode was tried first and rejected: light-mode
+visitors got a different site, and an article banner turned into an empty band. The light sits
+on the right; `.section--photo` washes the left with the page colour (in light mode it clears by
+three quarters of the width, so the day scene stays visible), and on a phone it tints the whole
+ground evenly, because there the copy spans the full width. Night scenes are bokeh, wet tarmac
+and canopy light. Day scenes are exposed for daylight mid-tones with a recognisable subject - a
+street with a car, a canopy with pumps - softly out of focus: a first high-key day set was
+rejected because nothing in it could be recognised (product owner, 2026-10-10). No badge, plate,
+sign or logo in either.
+
 **Provenance is recorded.** `site/assets/generated/MANIFEST.md` lists every generated file with its
 prompt and date, so nobody later mistakes an illustration for a photograph, or re-uses one under an
 assumption about where it came from.

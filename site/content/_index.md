@@ -12,9 +12,9 @@ hero_cta_primary = "Open in the App Store"
 hero_cta_secondary = "See what's shipped"
 hero_cta_secondary_url = "/releases/"
 hero_note = "Free on the App Store, iPhone with iOS 18 or later. No badge, no fake ratings – the mail reaches a human."
-hero_shot = "P1.4-home.png"
-hero_shot_alt = '''Tankbook's Log screen: a Volvo V60 at 123 600 km, average consumption 5.3 L/100km set large, September spend 147 €, and a stream of real entries'''
-hero_shot_caption = '''The real app, not a render – note "Type it" sits beside the camera.'''
+hero_shot = "home-month.png"
+hero_shot_alt = '''Tankbook's Log screen: a Volvo V60 at 101 800 km, Fill-up, Service and Expense one tap each, average consumption 6.7 L/100km set large, and September at 150 €, 0.19 €/km, 25% lower than August'''
+hero_shot_caption = '''The real app, not a render – Fill-up, Service and Expense are one tap each, beside the camera.'''
 
 doors_eyebrow = "Three ways in"
 doors_title = "Snap it or type it – both take seconds."

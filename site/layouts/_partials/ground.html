@@ -1,0 +1,13 @@
+{{- /* A section's generated photo ground, as the value of a style attribute (`style="{{ partial "ground.html" "hero" }}"`): the night
+      rendition for the dark site and the day one for the light site, so both
+      themes get the same scene (site/assets/generated/MANIFEST.md). Param: the
+      scene name; assets/generated/<name>-night.png and <name>-day.png must both
+      exist, or the build fails. Served processed, never raw (check-site.sh). */ -}}
+{{- $night := resources.Get (printf "generated/%s-night.png" .) -}}
+{{- $day := resources.Get (printf "generated/%s-day.png" .) -}}
+{{- if not (and $night $day) -}}
+  {{- errorf (printf "ground %s: the night or the day rendition is missing in assets/generated" .) -}}
+{{- end -}}
+{{- $night = $night.Resize "1920x webp q60" -}}
+{{- $day = $day.Resize "1920x webp q60" -}}
+{{- return (printf "--ground-night: url('%s'); --ground-day: url('%s')" $night.RelPermalink $day.RelPermalink | safeCSS) -}}
