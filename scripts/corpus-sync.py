@@ -90,8 +90,25 @@ def credentials() -> None:
 
 def client():
     import boto3  # noqa: PLC0415 - optional dependency, imported when used
+    from botocore.config import Config  # noqa: PLC0415
 
-    return boto3.client("s3", endpoint_url=ENDPOINT, region_name=REGION)
+    # boto3's defaults (60 s socket timeout, 3 attempts) lose a 35 MB
+    # corpus.sqlite on a slow or lossy link: a part write times out and the
+    # whole push dies. Long timeouts and adaptive retries ride that out.
+    return boto3.client(
+        "s3",
+        endpoint_url=ENDPOINT,
+        region_name=REGION,
+        config=Config(connect_timeout=60, read_timeout=600, retries={"max_attempts": 15, "mode": "adaptive"}),
+    )
+
+
+def transfer():
+    """Small parts sent one at a time, so a dropped connection costs one 5 MB
+    part's retry instead of several parallel 8 MB parts competing for a thin link."""
+    from boto3.s3.transfer import TransferConfig  # noqa: PLC0415
+
+    return TransferConfig(multipart_chunksize=5 * 1024 * 1024, max_concurrency=1)
 
 
 def md5(path: Path) -> str:
@@ -153,7 +170,7 @@ def push(s3, dry: bool = False) -> None:
                 skipped += 1
                 continue
             if not dry:
-                s3.upload_file(str(path), BUCKET, key)
+                s3.upload_file(str(path), BUCKET, key, Config=transfer())
                 print(f"  up {key} ({size // 1024} KB)")
             sent += 1
             sent_bytes += size
@@ -182,7 +199,7 @@ def push_frames(s3, dry: bool = False) -> None:
                 skipped += 1
             else:
                 if not dry:
-                    s3.upload_file(str(path), BUCKET, key)
+                    s3.upload_file(str(path), BUCKET, key, Config=transfer())
                 sent += 1
                 sent_bytes += size
             # Set the key whenever the object is in the bucket, not only on a
@@ -215,7 +232,7 @@ def pull_frames(s3, selector: str) -> None:
             if path.exists() and path.stat().st_size == size and ("-" in etag or md5(path) == etag):
                 skipped += 1
                 continue
-            s3.download_file(BUCKET, key, str(path))
+            s3.download_file(BUCKET, key, str(path), Config=transfer())
             got += 1
             print(f"  down {key} ({size // 1024} KB)")
     print(f"{FRAMES_PREFIX}: {got} downloaded, {skipped} already local")
@@ -243,7 +260,7 @@ def push_index(s3) -> None:
         if key in remote and remote[key][0] == size and remote[key][1] == md5(path):
             skipped += 1
             continue
-        s3.upload_file(str(path), BUCKET, key)
+        s3.upload_file(str(path), BUCKET, key, Config=transfer())
         sent += 1
         print(f"  up {key} ({size // 1024} KB)")
     print(f"index/: {sent} uploaded, {skipped} already there")
@@ -258,7 +275,7 @@ def pull(s3) -> None:
             if path.exists() and path.stat().st_size == size and ("-" in etag or md5(path) == etag):
                 skipped += 1
                 continue
-            s3.download_file(BUCKET, key, str(path))
+            s3.download_file(BUCKET, key, str(path), Config=transfer())
             got += 1
             print(f"  down {key} ({size // 1024} KB)")
         print(f"{prefix}: {got} downloaded, {skipped} already local")
@@ -311,7 +328,7 @@ def push_models(s3, dry: bool = False) -> None:
             sent += 1
             sent_bytes += size
             if not dry:
-                s3.upload_file(str(path), BUCKET, key)
+                s3.upload_file(str(path), BUCKET, key, Config=transfer())
         meta = json.dumps(model_meta(entry, commit, pushed_at), indent=1).encode()
         if not dry:
             s3.put_object(Bucket=BUCKET, Key=f"{MODELS_PREFIX}{entry['id']}/meta.json", Body=meta,
@@ -338,7 +355,7 @@ def pull_models(s3, selector: str) -> None:
                 skipped += 1
                 continue
             path.parent.mkdir(parents=True, exist_ok=True)
-            s3.download_file(BUCKET, key, str(path))
+            s3.download_file(BUCKET, key, str(path), Config=transfer())
             got += 1
     print(f"models/: {got} downloaded, {skipped} already local")
 
