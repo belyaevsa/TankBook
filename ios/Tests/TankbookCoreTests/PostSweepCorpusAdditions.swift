@@ -170,7 +170,11 @@ enum PostSweepCorpusAdditions {
             // Case 3GQZB-BC5VF (2026-09-30): in-app second shots of the batch 18 papers.
             "receipt-112-alexela-sikupilli-diesel-1508l-2059-second-shot-ee.jpg",
             "receipt-113-neste-vesse-futura-d-1500l-2089-second-shot-pair-ee.jpg",
-            "receipt-114-neste-vesse-adblue-575l-0899-second-shot-ee.jpg"
+            "receipt-114-neste-vesse-adblue-575l-0899-second-shot-ee.jpg",
+            // 2026-10-10: two Lukoil Astana AI-92 papers (KZT, VAT 16%), one printing an
+            // integer volume.
+            "receipt-115-lukoil-astana-92-35l-integer-volume-kzt-vat16-kz.jpg",
+            "receipt-116-lukoil-astana-92-27180l-kzt-vat16-kz.jpg"
         ],
         "pump": pump,
         "screenshots": [

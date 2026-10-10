@@ -457,6 +457,9 @@ extension PostSweepCorpusAdditions {
         "pump-371-unknown-neste-vesse-black-lcd-pump4-3134-1500l-board-glare-pair-ee.jpg",
         "pump-372-wayne-neste-vesse-adblue-truck-lcd-idle-0899-ee.jpg",
         // Case 3GQZB-BC5VF (2026-09-30): the in-app shot of pump-371's fill, head-on.
-        "pump-373-unknown-neste-vesse-black-lcd-pump4-3134-1500l-board-headon-pair-ee.jpg"
+        "pump-373-unknown-neste-vesse-black-lcd-pump4-3134-1500l-board-headon-pair-ee.jpg",
+        // 2026-10-10: the corpus's first US still, a Chevron `This Sale` / `Gallons` head at dusk
+        // (heldout2).
+        "pump-374-unknown-chevron-this-sale-gallons-4034-13914gal-night-us.jpg"
     ]
 }

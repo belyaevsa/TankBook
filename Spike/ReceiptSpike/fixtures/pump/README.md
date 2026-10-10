@@ -1662,3 +1662,15 @@ too. Boxes unreviewed (the owner's check). No mark moves (pump is scored on held
 **Split:** `pump-369`/`370` (two whole dark-display fills that no other capture shows - a face the
 heldout sets lack) are **heldout2**; `pump-371` and `pump-373` stay train because `video-056` shows
 the same fill, and the rest train. No mark moves (pump is scored on heldout only).
+
+## Added 2026-10-10 (the first US still - 1 still)
+
+- `pump-374` - a **Chevron** dispenser (make not on the face), USA, at dusk: `This Sale` / `$` over
+  `Gallons`, **40.34 / 13.914** in black segments on a backlit face, a Walmart ad on the screen below.
+  **No unit-price window** (`unitPrice` blank; the quotient is 2.899 $/gal, `13.914 x 2.899 = 40.34`
+  closes) and `volumeUnit: gal` in `windows.json`: the `liters` cell carries **gallons**, the
+  convention the US videos (`video-024`, `-029`, `-054`) already use. Windows drawn by hand.
+
+**Split:** **heldout2** - the corpus's first US still, a country the heldout sets do not show; the
+classifier has seen US faces through the three train videos. No mark moves (pump is scored on
+heldout only).

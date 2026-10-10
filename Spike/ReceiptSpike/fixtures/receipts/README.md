@@ -1205,3 +1205,14 @@ Each has a Live record (`pump-live/README.md` → Batch 18).
 
 Measured on the iOS 27 simulator: receipts 385/517 -> 400/545 (15 of the 28 new cells read; through
 compression 380 -> 392), stations 50/92 -> 51/98.
+
+## Added 2026-10-10 (two Lukoil Astana papers - 2 receipts)
+
+- `receipt-115` - Lukoil Astana (ТОО "ЛУКОЙЛ Лубрикантс Центральная Азия"), АИ-92, **35 x 247.00 =
+  8645.00** KZT, VAT 16% - the volume printed as a **bare integer** (`35`, no decimals), unlike the
+  three-decimal `27.180` of its sibling; a thumb over the right edge and a crease through the VAT line.
+- `receipt-116` - the same station and pump, АИ-92, 27.180 x 247.00 = 6713.00 KZT, VAT 16%, shadow
+  across the top half.
+
+Both are Telegram-routed 960x1280 photos, EXIF stripped. Measured on the iOS 27 simulator: receipts
+400/545 -> 410/555 (all 10 new cells read; through compression 392 -> 402), stations 51/98 -> 53/100.
