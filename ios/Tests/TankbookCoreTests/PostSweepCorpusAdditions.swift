@@ -174,7 +174,11 @@ enum PostSweepCorpusAdditions {
             // 2026-10-10: two Lukoil Astana AI-92 papers (KZT, VAT 16%), one printing an
             // integer volume.
             "receipt-115-lukoil-astana-92-35l-integer-volume-kzt-vat16-kz.jpg",
-            "receipt-116-lukoil-astana-92-27180l-kzt-vat16-kz.jpg"
+            "receipt-116-lukoil-astana-92-27180l-kzt-vat16-kz.jpg",
+            // 2026-10-11: the papers of pump-375 (Lukoil M-10, a loyalty discount) and pump-376
+            // (Rosneft Tver, blurred).
+            "receipt-117-lukoil-m10-km178-ai95-939l-7111-discount-pair-ru.jpg",
+            "receipt-118-rn-tver-tn250-pulsar95-3000l-7200-blurred-pair-ru.jpg"
         ],
         "pump": pump,
         "screenshots": [

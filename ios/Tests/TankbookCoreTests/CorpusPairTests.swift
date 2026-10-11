@@ -77,7 +77,10 @@ private let matchedPairs: [MatchedPair] = [
     // in hand, so each shot of the paper pairs with each shot of the display.
     MatchedPair(pump: "pump-373", receipt: "receipt-113"),
     MatchedPair(pump: "pump-371", receipt: "receipt-113"),
-    MatchedPair(pump: "pump-373", receipt: "receipt-110")
+    MatchedPair(pump: "pump-373", receipt: "receipt-110"),
+    // The display's 667.72 is the sale before the loyalty discount; both CSV rows carry the paid 667.00.
+    MatchedPair(pump: "pump-375", receipt: "receipt-117"),
+    MatchedPair(pump: "pump-376", receipt: "receipt-118")
 ]
 
 @Suite("Matched pump/receipt pairs (RV.114)")

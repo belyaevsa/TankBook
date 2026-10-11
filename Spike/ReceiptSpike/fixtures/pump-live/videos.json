@@ -16594,5 +16594,149 @@
   ],
   "reviewed": false,
   "note": "IMG_6493.MOV cropped to the head (crop=iw:ih*0.45:0:ih*0.06; a person's reflection sits below it), no audio, no metadata - Wayne AdBlue truck head at Neste Vesse, Estonia, counting up at 0,899 to 5.17 / 5.75; the fill of pump-372 (idle) and receipt-111; reference quads placed by the orchestrator on the last frame 659, unreviewed"
+ },
+ "video-058-tokheim-rn-tver-tn250-running-display-7200-ru": {
+  "reference": "1182.jpg",
+  "currency": "RUB",
+  "unitPrice": "72.00",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.395,
+      0.27
+     ],
+     [
+      0.672,
+      0.27
+     ],
+     [
+      0.672,
+      0.4
+     ],
+     [
+      0.395,
+      0.4
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.453,
+      0.41
+     ],
+     [
+      0.672,
+      0.41
+     ],
+     [
+      0.672,
+      0.548
+     ],
+     [
+      0.453,
+      0.548
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.594,
+      0.667
+     ],
+     [
+      0.68,
+      0.667
+     ],
+     [
+      0.68,
+      0.757
+     ],
+     [
+      0.594,
+      0.757
+     ]
+    ]
+   }
+  ],
+  "reviewed": false,
+  "note": "IMG_4805.MOV whole (only the display is in frame; the owner reflected in the glass), no audio, no metadata - Tokheim LCD at Rosneft \u0410\u0417\u041a TN250, Tver, Russia, Pulsar AI-95 counting up at 72,0 to 2160,0 / 30,00; the fill of pump-376 and receipt-118; reference quads placed by the orchestrator on the last frame 1182, unreviewed"
+ },
+ "video-059-topaz-lukoil-m10-km178-tft-running-display-7111-ru": {
+  "reference": "198.jpg",
+  "currency": "RUB",
+  "unitPrice": "71.11",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.309,
+      0.125
+     ],
+     [
+      0.398,
+      0.125
+     ],
+     [
+      0.398,
+      0.17
+     ],
+     [
+      0.309,
+      0.17
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.316,
+      0.664
+     ],
+     [
+      0.375,
+      0.664
+     ],
+     [
+      0.375,
+      0.711
+     ],
+     [
+      0.316,
+      0.711
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.7,
+      0.122
+     ],
+     [
+      0.774,
+      0.122
+     ],
+     [
+      0.774,
+      0.167
+     ],
+     [
+      0.7,
+      0.167
+     ]
+    ]
+   }
+  ],
+  "reviewed": false,
+  "note": "IMG_4809.MOV cut to its first 6.6 s (then the camera leaves the display), no audio, no metadata - Topaz TFT at Lukoil M-10 km 178, Russia, AI-95 counting up at 71.11 to 611.55 / 8.60 (the fill ends at 9.39, pump-375); the LCD row below repeats the volume and its \u0421\u0423\u041c\u041c\u0410 cell is a running counter (553429 -> 553432), not the sale; reference quads on the TFT placed by the orchestrator on the last frame 198, unreviewed"
  }
 }

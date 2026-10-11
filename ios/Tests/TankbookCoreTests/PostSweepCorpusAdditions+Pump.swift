@@ -460,6 +460,9 @@ extension PostSweepCorpusAdditions {
         "pump-373-unknown-neste-vesse-black-lcd-pump4-3134-1500l-board-headon-pair-ee.jpg",
         // 2026-10-10: the corpus's first US still, a Chevron `This Sale` / `Gallons` head at dusk
         // (heldout2).
-        "pump-374-unknown-chevron-this-sale-gallons-4034-13914gal-night-us.jpg"
+        "pump-374-unknown-chevron-this-sale-gallons-4034-13914gal-night-us.jpg",
+        // 2026-10-11: a Topaz TFT at Lukoil (heldout2) and a Tokheim LCD at Rosneft Tver.
+        "pump-375-topaz-lukoil-m10-km178-tft-66772-939l-7111-lcd-totalizer-pair-ru.jpg",
+        "pump-376-tokheim-rn-tver-tn250-21600-3000l-720-reflection-pair-ru.jpg"
     ]
 }

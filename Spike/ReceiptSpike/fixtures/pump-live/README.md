@@ -577,6 +577,17 @@ train, as every video is - frames of one clip are near-copies, so none is held o
 | `video-056-unknown-neste-vesse-black-lcd-pump4-running-display-2089-ee` | 891 (2160x3840, 24 fps, 37.1 s) | black LCD at Neste Vesse pump 4, Futura D **counting up** to 31.34 / 15.00 at an oblique angle, the grade board beside it; the fill of `pump-371` and `receipt-110`; IMG_6489.MOV whole, no audio, no metadata. Reference quads placed by the orchestrator on the last frame 891, unreviewed; `pump_reader.track --videos` kept 844 of 891 frames | price `2.089` (`15.00 x 2.089 = 31.34` closes) |
 | `video-057-wayne-neste-vesse-adblue-truck-lcd-running-display-0899-ee` | 659 (2160x1728, 24 fps, 27.5 s) | Wayne **AdBlue** truck head at Neste Vesse, **counting up** to 5.17 / 5.75; IMG_6493.MOV **cropped to the head** (`crop=iw:ih*0.45:0:ih*0.06` - a person's reflection sits below it), no audio, no metadata; the fill of `receipt-111` (`pump-372` is the same head idle). Reference quads placed by the orchestrator on the last frame 659, unreviewed; `pump_reader.track --videos` kept 616 of 659 frames | price `0.899` (`5.75 x 0.899 = 5.17` closes) |
 
+## Batch 19 (2026-10-11, product owner): a Tokheim at Rosneft Tver and a Topaz TFT at Lukoil M-10
+
+Two plain videos of the two fills whose stills and papers joined the corpus the same day
+(`pump-375`/`receipt-117`, `pump-376`/`receipt-118`). Both arrived Telegram-routed (1280x720,
+30 fps, with audio), so they were re-encoded without audio or metadata. Train, as every video is.
+
+| video | frames | what | truth |
+|---|---|---|---|
+| `video-058-tokheim-rn-tver-tn250-running-display-7200-ru` | 1182 (1280x720, 30 fps, 39.4 s) | Tokheim LCD at Rosneft АЗК TN250, Tver, Pulsar AI-95 **counting up** from ~693.4 / 9.63 to **2160,0 / 30,00**, the owner reflected in the glass; IMG_4805.MOV whole (only the display is in frame), no audio, no metadata. Reference quads placed by the orchestrator on the last frame 1182, unreviewed; `pump_reader.track --videos` kept 1182 of 1182 frames | price `72.00` (`30.00 x 72.00 = 2160.00` closes) |
+| `video-059-topaz-lukoil-m10-km178-tft-running-display-7111-ru` | 198 (1280x720, 30 fps, 6.6 s) | Topaz TFT at Lukoil M-10 km 178, AI-95 **counting up** to 611.55 / 8.60 - the clip ends before the fill does (9.39, `pump-375`). The LCD row below lags the TFT's volume by about 0.1 L and its `СУММА` cell is a running counter (553429 -> 553432), not the sale. IMG_4809.MOV **cut to its first 6.6 s** (the camera then leaves the display), no audio, no metadata. Reference quads on the TFT placed by the orchestrator on the last frame 198, unreviewed; `pump_reader.track --videos` kept 191 of 198 frames (the first frames start below the screen) | price `71.11` (`8.60 x 71.11 = 611.55` closes) |
+
 ## Frames and tracking (2026-09-20)
 
 Two scripts in `ml/pump-reader` turn the records into labelled training frames without a

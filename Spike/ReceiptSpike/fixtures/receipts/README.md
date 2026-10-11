@@ -1216,3 +1216,17 @@ compression 380 -> 392), stations 50/92 -> 51/98.
 
 Both are Telegram-routed 960x1280 photos, EXIF stripped. Measured on the iOS 27 simulator: receipts
 400/545 -> 410/555 (all 10 new cells read; through compression 392 -> 402), stations 51/98 -> 53/100.
+
+## Added 2026-10-11 (Lukoil M-10 and Rosneft Tver - 2 receipts, both paired)
+
+- `receipt-117` - ООО "ЛУКОЙЛ-ЦЕНТРНЕФТЕПРОДУКТ" АЗС 69464, M-10 km 178: `ТРК №4 АВТОМОБИЛЬНЫЙ
+  БЕНЗИН АИ-95-К5, Л`, **9.39 X 71.11 =667.72**, then `В ТОМ ЧИСЛЕ ВАША СКИДКА = 0.72` and
+  `ОПЛАТА (РУБ) =667,00` - the total asserted is the **paid 667.00**, as `receipt-027`; a loyalty
+  points block below. Held in hand, the left edge of every line cut by the curl. Pair of `pump-375`.
+- `receipt-118` - АО "РН-Тверь" АЗК TN250: `АИ-95-К5 Pulsar-95 ... 72.00*30 ... =2160.00`, ИТОГ
+  =2160.00 - **motion-blurred** and the left edge cut. Station `rn`. Pair of `pump-376`.
+
+Both Telegram-routed 960x1280 photos, EXIF stripped. Measured on the iOS 27 simulator: receipts
+410/555 -> 416/565 (6 of the 10 new cells read; through compression 402 -> 408), stations
+53/100 -> 54/102 - `receipt-118`'s station reads `AO "PH-ТВЕРЬ"`, two Latin look-alikes in a row,
+which the brand matcher does not fold yet.

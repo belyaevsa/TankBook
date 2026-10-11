@@ -1674,3 +1674,24 @@ the same fill, and the rest train. No mark moves (pump is scored on heldout only
 **Split:** **heldout2** - the corpus's first US still, a country the heldout sets do not show; the
 classifier has seen US faces through the three train videos. No mark moves (pump is scored on
 heldout only).
+
+## Added 2026-10-11 (Lukoil M-10 and Rosneft Tver - 2 stills, both paired)
+
+- `pump-375` - a **Topaz** dispenser at Lukoil (M-10, km 178, Tver region), AI-95: a TFT screen
+  with **667.72 / 9.39 at 71.11** in grey type on light panels around a loyalty ad, and an LCD row
+  below. The LCD's `ОБЪЁМ` repeats the volume, but its **`СУММА` cell shows `553433`** - a running
+  counter (it steps 553429 -> 553433 across the fill in `video-059`), not the sale: a labelled
+  distractor a reader must not take for the total. The TFT is the only face this corpus has of the
+  make. Truth is the receipt's (decision 6): the CSV total is the **paid 667.00** after a 0.72
+  loyalty discount, and `csvDisagrees` records the display's 667.72, as `pump-031`. Pair of
+  `receipt-117`.
+- `pump-376` - a **Tokheim** LCD at Rosneft АЗК TN250, Tver, Pulsar AI-95: **2160,0 / 30,00 at
+  72,0** (one-decimal total and price, comma decimals) behind glass carrying the owner's
+  reflection. Pair of `receipt-118`.
+
+Both Telegram-routed 1280 px JPEGs, EXIF stripped; windows drawn by hand. The running fills are
+`video-058` and `video-059` (`pump-live/README.md` -> Batch 19).
+
+**Split:** `pump-375` is **heldout2** - a make (Topaz TFT) the heldout sets do not show, a whole
+fill, and its video is train so the classifier still sees the face; `pump-376` is train. No mark
+moves (pump is scored on heldout only).
