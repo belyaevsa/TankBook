@@ -153,7 +153,7 @@ absence of either is a valid, well-formed payload.
 - **Upcast completeness**: every v<N> fixture upcasts cleanly to current and validates against the current schema.
 - **Cross-implementation parity** – the important one: the Swift upcaster and the server's declarative transform must produce **byte-identical** output for every fixture. This is what stops the two implementations silently drifting apart, and it is why the transforms are data rather than code in two languages.
 - **Round-trip preservation**: a record with unknown fields and an unknown entity_type survives decode → encode unchanged (the forward-compatibility rule above, made executable).
-- Attachments are content-addressed blobs in S3-compatible storage; `payload` references them by sha256. Upload before push, download lazily after pull.
+- Attachments are content-addressed blobs in private object storage (Azure Blob Storage); `payload` references them by sha256. Upload before push, download lazily after pull.
 - Backups (the F7 restore path and user-held export) become a *byproduct*: a server-side snapshot of `records` at an SCN, in the SCHEMA.md backup format. No separate backup pipeline to maintain.
 
 ## Protocol
@@ -264,25 +264,26 @@ Photos (receipts, invoices, car photos) and PDFs don't ride the record stream �
 
 ### Where they're stored
 
-**Private S3-compatible object storage** (decided over Postgres bytea – sync traffic and size make the DB the wrong home). Provider is an ops choice behind the S3 API: Cloudflare R2 (no egress fees – attractive since every new device re-downloads a garage's photos), Backblaze B2, or self-hosted MinIO; nothing in the design binds to one. Layout: one private bucket, keys `{account_id}/{sha256}` – content-addressed, so identical files dedupe per account and a key never changes. Postgres `blobs` table (already in the schema) holds the index: sha256, size, storage_ref, created_at.
+**Private object storage** (decided over Postgres bytea – sync traffic and size make the DB the wrong home). Since 2026-10-11 the provider is **Azure Blob Storage**: the `tankbook-blobs` container of the `tankbookstorage` account (resource group `tankbook`, North Europe), with Azurite in local dev; Yandex Object Storage before that. Everything provider-specific sits behind `IBlobStorage` (`AzureBlobStorage`). Layout: one private container, keys `{account_id}/{sha256}` – content-addressed, so identical files dedupe per account and a key never changes. Postgres `blobs` table (already in the schema) holds the index: sha256, size, storage_ref, created_at.
 
 **What gets uploaded – the size policy (resolves SCHEMA open question 3):** a *sync rendition* – JPEG, long edge ≤ 2048 px, quality ~80 (≈ 200–600 KB) – which is fully readable for receipts, invoices, and expense reports. **The rendition is also what the device stores (SH.10, 2026-09-27)**: every photo writer (the receipt save, the out-of-save attach, invoice pages) stores `AttachmentRendition.storedPhoto`'s output. The blob source uploads the stored file as it is, so the stored bytes, their `sha256` and the uploaded rendition are one file, from one encoder. The full-resolution capture is read once by the recognizer and is not kept. Before SH.10 the stored file was the full capture at JPEG 0.8, and that full file is what was uploaded, despite this paragraph. Measured to read as well as full size (`StoredRenditionAccuracyTests`: receipts 357/483 against 355, pumps unchanged on the Mac, at about a third of the bytes). Existing full-size attachments are left as they are; no migration rewrites a user's photo. The rendition keeps the photo's EXIF orientation. PDFs pass through unmodified, capped at 10 MB. A tiny thumbnail (~120 px, ≈ 5 KB, base64) travels *inside* the Attachment record payload itself, so lists render photo chips instantly with zero blob fetches.
 
-### Upload (device → storage, never through the API server)
+### Upload (device → API → storage)
 
 ```
 1. Client computes sha256 of the rendition.
 2. POST /blobs/begin { sha256, size, contentType }   (authenticated)
    → { status: exists }                              // dedupe: another device already uploaded it
-   → { status: upload, url: presigned PUT, expires: 15 min }
+   → { status: upload, url: PUT /v1/blobs/upload/{token}, expires: 15 min }
    → 413 / 429                                       // size cap (25 MB) or storage quota exceeded;
                                                      // the 429 body carries quotaUsedPercent
-3. Client PUTs the bytes directly to the presigned URL (resumable retry: just re-begin).
+3. Client PUTs the bytes to that URL with the declared Content-Type; the API checks the token,
+   the type and the exact length, and streams them to the container (resumable retry: just re-begin).
 4. POST /blobs/commit { sha256 } → server verifies object existence + size, inserts the blobs row.
 5. Only THEN does the entry referencing it push – records never point at blobs the server can't serve.
 ```
 
-Presigned upload means the ASP.NET server never proxies file bytes – it stays a small metadata API regardless of photo volume. Uploads queue offline like everything else (S7): the entry syncs text-first with the blob pending, and other devices show the thumbnail (from the payload) with a "photo syncing" shimmer until the blob lands.
+The upload URL is the API's own, not a storage SAS (amended 2026-10-11): an Azure SAS can bind neither the type nor the length, and an Azure PUT needs an `x-ms-blob-type` header the shipped apps never send, so the server streams upload bytes through to storage (`docs/SECURITY.md` → "The server proxies upload bytes"). Downloads are never proxied. The client is unchanged: it PUTs to whatever URL `begin` returns. Uploads queue offline like everything else (S7): the entry syncs text-first with the blob pending, and other devices show the thumbnail (from the payload) with a "photo syncing" shimmer until the blob lands.
 
 ### Delivery (storage → other devices)
 
@@ -295,7 +296,7 @@ Presigned upload means the ASP.NET server never proxies file bytes – it stays 
 
 ### Protection
 
-- **Bucket is fully private** – no public ACLs, no listing; the only access path is a presigned URL minted after account auth, scoped to one object, expiring in minutes. Account isolation is structural: keys are prefixed by `account_id` and the API only ever signs within the caller's prefix.
+- **Container is fully private** – no anonymous access, no listing; the only access paths are an upload token or a read-only SAS minted after account auth, each scoped to one object and expiring in minutes. Account isolation is structural: keys are prefixed by `account_id` and the API only ever signs within the caller's prefix.
 - **At rest:** storage-side encryption (SSE) per the signed-off encryption stance; TLS in transit everywhere, presigned URLs included.
 - **Integrity:** sha256 IS the identity – a corrupted or tampered object fails the client-side hash check on download and is re-fetched.
 - **Hygiene:** contentType allow-list (JPEG/PNG/HEIC/PDF), server-verified size on commit, per-account storage quota (generous free tier, metered like LLM usage), orphan sweep (blobs unreferenced by any live record + grace period → deleted), and account deletion purges the whole prefix.
@@ -850,4 +851,4 @@ tests:
 ## Open questions
 
 1. ~~Push nudges vs poll~~ – decided: **silent APNs nudges ship at v1.x**, throttled server-side, with foreground polling as the permanent fallback (nudges are an optimization, never a dependency). Full notification design: `NOTIFICATIONS.md`.
-2. ~~Blob store~~ – **decided (Aug 23, 2026): S3-compatible object storage, provider-agnostic** – all code targets the S3 API (presigned upload/download, see "Attachments: the blob pipeline"); the concrete provider is a deployment-time ops choice, swappable via config. Local dev runs MinIO in a container.
+2. ~~Blob store~~ – **decided (Aug 23, 2026): object storage behind one interface** (`IBlobStorage`, see "Attachments: the blob pipeline"). **Amended 2026-10-11 (product owner):** the store moved from Yandex Object Storage (S3 API) to Azure Blob Storage; uploads now come through the API (`PUT /v1/blobs/upload/{token}`), downloads redirect to a read-only SAS. Local dev runs Azurite in a container.

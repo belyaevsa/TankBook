@@ -99,7 +99,8 @@ scripts/corpus_db.py sql "select name, present, in_bucket, paired_fixture from m
 through the annotator or `corpus_db`, never by hand; `scripts/corpus_db.py dump` writes the files
 and `check` fails a stale one, and `import` is the one direction back from the files. The
 database is committed beside the files it dumps.
-Access (a static key for `tankbook-corpus-rw`, kept in `~/.config/tankbook/corpus-s3.env`) is
+Access (the `tankbook-corpus` container in Azure Blob Storage; a connection string or SAS in
+`~/.config/tankbook/corpus-azure.env`, or the `az login` session) is
 described in `fixtures/pump-live/README.md` → Access. Extract frames locally with the `ffmpeg`
 line there; `frames/` is gitignored, and `push` uploads them with their key on `frames.s3_key`.
 

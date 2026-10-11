@@ -17,7 +17,7 @@
 #
 #   docker run --rm -p 8080:8080 \
 #     -e ConnectionStrings__Postgres="Host=...;Database=tankbook;Username=tankbook_app;Password=...;SSL Mode=Require" \
-#     -e S3__AccessKey=... -e S3__SecretKey=... \
+#     -e AzureBlob__ConnectionString="DefaultEndpointsProtocol=https;AccountName=...;AccountKey=..." \
 #     -e Tankbook__Logging__HashSalt=... -e Config__SigningKey=... \
 #     -e Auth__JwtSigningKeyBase64=... \
 #     -e Auth__AppleAudiences__0=app.tankbook.Tankbook \

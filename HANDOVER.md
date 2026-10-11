@@ -89,7 +89,7 @@ instruction; review 2's open items (comments, the two input tests green) were fi
 new annotations (16 windows, mostly pump-313..335) - filed as **PU.88**. `SyncWriteTriggerTests`
 (3) went red once under full-suite load and passes alone (the RV.300 shape). **A new model gets a
 registry row, a `models.json` entry and `push --models` in the same change** - weights are not in
-git except the two the app bundles (`corpus-sync.py` needs the ml venv's python for `boto3`).
+git except the two the app bundles (`corpus-sync.py` needs the ml venv's python for the Azure SDK, the `corpus` extra).
 
 **Worktree:** none. `../fuel-counter-ios-wt-pu77` and `wt/pu77` were deleted 2026-09-25 (owner);
 PU.77's checkpoints live in `ml/pump-reader/.out/pu77-s{0,1,2}/` and in the bucket.

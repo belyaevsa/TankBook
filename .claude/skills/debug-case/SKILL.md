@@ -1,6 +1,6 @@
 ---
 name: debug-case
-description: Fetch and diagnose a debug case the owner pasted by id (ten Crockford base32 characters in two groups of five, like 02412-PM1N2 or K7Q2M-9XDRA) - download it from Object Storage with yc, find the scan the owner means, read its record and pipeline trace, and name the stage that lost the reading. Use whenever the owner pastes a case / diagnostics id or says "look at diagnostic <id>".
+description: Fetch and diagnose a debug case the owner pasted by id (ten Crockford base32 characters in two groups of five, like 02412-PM1N2 or K7Q2M-9XDRA) - download it from Azure Blob Storage with az, find the scan the owner means, read its record and pipeline trace, and name the stage that lost the reading. Use whenever the owner pastes a case / diagnostics id or says "look at diagnostic <id>".
 ---
 
 # Debug case
@@ -14,17 +14,23 @@ counts, stage names).
 ## 1. Fetch
 
 ```
-scripts/case-yc.sh <id>          # any spelling: 02412pm1n2 works
+scripts/case-az.sh <id>          # any spelling: 02412pm1n2 works
 ```
 
-Reads `tankbook-blobs/<owner>/cases/<id>/*` with the owner's `yc` profile (folder
-`b1gvsptqkf1ol3rl8ec0`). The owner (account or device id) is not in the case id, so the script
-searches every owner prefix. `scripts/case.sh` (via the admin viewer) is the other route, but it
-only works once AD.8 is deployed and `~/.config/tankbook/admin-read.env` exists. **Use yc.**
+Reads `<owner>/cases/<id>/*` from the `tankbook-blobs` container of the `tankbookstorage` Azure
+storage account (resource group `tankbook`) with the owner's `az login`. The owner (account or
+device id) is not in the case id, so the script searches the container listing for the case
+folder. `scripts/case.sh` (via the admin viewer) is the other route, but it only works once AD.8
+is deployed and `~/.config/tankbook/admin-read.env` exists. **Use az.**
 
-"Not in tankbook-blobs" has three causes. The API spools parts to its own disk and uploads them
-after it responds, usually within seconds, so wait a minute and retry once. Otherwise the case
-is past the 30-day purge, or the id is mistyped. **Try the fetch before telling the owner to
+**Until the backend writes to Azure, new cases land in Yandex only.** The Azure container holds
+what was copied over on 2026-10-11, so a case sent after that is found by `scripts/case-yc.sh <id>`
+(the owner's `yc` profile, folder `b1gvsptqkf1ol3rl8ec0`). Try `case-az.sh` first; on "not in
+tankbookstorage/tankbook-blobs", run `case-yc.sh` before anything else.
+
+"Not in tankbook-blobs" (in both stores) has three causes. The API spools parts to its own disk
+and uploads them after it responds, usually within seconds, so wait a minute and retry once.
+Otherwise the case is past the 30-day purge, or the id is mistyped. **Try the fetch before telling the owner to
 wait.** A case the owner thought was still uploading was already complete (2026-09-27).
 
 ## 2. Find the scan

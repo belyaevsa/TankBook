@@ -589,7 +589,7 @@ public class ExtractEndpointTests : IClassFixture<PostgresFixture>
 
         // The gateway now stores the prompt rendition in blob storage (the call
         // ledger, migration 015), so every extract test needs a storage double -
-        // otherwise the real S3BlobStorage would be resolved and fail.
+        // otherwise the real AzureBlobStorage would be resolved and fail.
         var storageDouble = storage ?? new RecordingBlobStorage(new MutableTimeProvider(Now));
 
         var factory = new WebApplicationFactory<Program>()

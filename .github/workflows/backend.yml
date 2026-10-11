@@ -125,7 +125,7 @@ jobs:
         run: docker build -f backend/Dockerfile -t tankbook-api:pr .
 
   # ---------------------------------------------------------------------------
-  # BUILD HOST. Gates the code and pushes an image to Yandex Container Registry.
+  # BUILD HOST. Gates the code and pushes an image to Azure Container Registry.
   # It never touches production - no database credential, no serving port, no
   # deploy directory - which is the point of the split (2026-09-02).
   #
@@ -337,12 +337,13 @@ jobs:
         # registry as the rollback target. Context is the REPO ROOT - the csproj
         # embeds files outside backend/.
         #
-        # Registry auth uses the service account's authorized key as the
-        # `json_key` docker user, which is Yandex's documented CI path and needs
-        # no yc CLI on the runner. The key is piped on stdin, never in argv.
+        # The registry is Azure Container Registry. Auth is a repository-scoped
+        # ACR token (`tankbook-ci`: push and pull on tankbook-api only) as the
+        # docker user, so the runner needs no az CLI and holds no Azure role.
+        # The password is piped on stdin, never in argv.
         env:
-          YC_REGISTRY_ID: ${{ secrets.YC_REGISTRY_ID }}
-          YC_CI_SA_KEY: ${{ secrets.YC_CI_SA_KEY }}
+          ACR_LOGIN_SERVER: ${{ vars.ACR_LOGIN_SERVER }}
+          ACR_CI_TOKEN: ${{ secrets.ACR_CI_TOKEN }}
         run: |
           set -euo pipefail
           # The registry is REQUIRED now: build and deploy are different hosts,
@@ -354,18 +355,18 @@ jobs:
           # --push rather than build-then-push: buildx cross-platform output does
           # not land in the local image store, so `docker push` afterwards would
           # not find it.
-          if [ -n "$YC_REGISTRY_ID" ] && [ -n "$YC_CI_SA_KEY" ]; then
-            image="cr.yandex/${YC_REGISTRY_ID}/tankbook-api:${GITHUB_SHA::7}"
-            printf '%s' "$YC_CI_SA_KEY" | docker login --username json_key --password-stdin cr.yandex
+          if [ -n "$ACR_LOGIN_SERVER" ] && [ -n "$ACR_CI_TOKEN" ]; then
+            image="${ACR_LOGIN_SERVER}/tankbook-api:${GITHUB_SHA::7}"
+            printf '%s' "$ACR_CI_TOKEN" | docker login --username tankbook-ci --password-stdin "$ACR_LOGIN_SERVER"
             docker buildx build --platform linux/amd64 \
               -f backend/Dockerfile -t "$image" --push .
             # The digest makes the handoff checkable: the deploy prints what it
             # pulled, so "the tested bytes ran" is verifiable rather than assumed
             # - the one thing the single-JOB shape used to give for free.
             echo "pushed $(docker inspect --format '{{index .RepoDigests 0}}' "$image")" >> "$GITHUB_STEP_SUMMARY"
-            docker logout cr.yandex
+            docker logout "$ACR_LOGIN_SERVER"
           else
-            echo "::error::YC_REGISTRY_ID and YC_CI_SA_KEY are required now that build and deploy are on DIFFERENT hosts - the image has nowhere to travel otherwise."
+            echo "::error::vars.ACR_LOGIN_SERVER and secrets.ACR_CI_TOKEN are required now that build and deploy are on DIFFERENT hosts - the image has nowhere to travel otherwise."
             exit 1
           fi
 
@@ -420,10 +421,9 @@ jobs:
         # host and is never touched here. The handover refuses connections for
         # roughly half a second - measured, not estimated.
         env:
-          YC_REGISTRY_ID: ${{ secrets.YC_REGISTRY_ID }}
+          ACR_LOGIN_SERVER: ${{ vars.ACR_LOGIN_SERVER }}
           POSTGRES_CONNECTION: ${{ secrets.POSTGRES_CONNECTION }}
-          S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
-          S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
+          AZURE_BLOB_CONNECTION_STRING: ${{ secrets.AZURE_BLOB_CONNECTION_STRING }}
           TANKBOOK_HASH_SALT: ${{ secrets.TANKBOOK_HASH_SALT }}
           CONFIG_SIGNING_KEY: ${{ secrets.CONFIG_SIGNING_KEY }}
           AUTH_JWT_SIGNING_KEY: ${{ secrets.AUTH_JWT_SIGNING_KEY }}
@@ -431,18 +431,20 @@ jobs:
           APPLE_AUDIENCE: ${{ vars.APPLE_AUDIENCE }}
           APPLE_AUDIENCE_BETA: ${{ vars.APPLE_AUDIENCE_BETA }}
           GOOGLE_AUDIENCE: ${{ vars.GOOGLE_AUDIENCE }}
-          YC_DEPLOY_SA_KEY: ${{ secrets.YC_DEPLOY_SA_KEY }}
+          ACR_DEPLOY_TOKEN: ${{ secrets.ACR_DEPLOY_TOKEN }}
         run: |
           set -euo pipefail
-          if [ -n "${YC_REGISTRY_ID:-}" ] && [ -n "${YC_DEPLOY_SA_KEY:-}" ]; then
-            printf '%s' "$YC_DEPLOY_SA_KEY" | docker login --username json_key --password-stdin cr.yandex
-            export TANKBOOK_IMAGE_REPO="cr.yandex/${YC_REGISTRY_ID}/tankbook-api"
+          # `tankbook-deploy` is a pull-only ACR token, so a compromised deploy
+          # host cannot push an image into the registry.
+          if [ -n "${ACR_LOGIN_SERVER:-}" ] && [ -n "${ACR_DEPLOY_TOKEN:-}" ]; then
+            printf '%s' "$ACR_DEPLOY_TOKEN" | docker login --username tankbook-deploy --password-stdin "$ACR_LOGIN_SERVER"
+            export TANKBOOK_IMAGE_REPO="${ACR_LOGIN_SERVER}/tankbook-api"
           else
-            echo "::error::YC_REGISTRY_ID and YC_DEPLOY_SA_KEY are required - the image is built on another host and can only arrive through the registry."
+            echo "::error::vars.ACR_LOGIN_SERVER and secrets.ACR_DEPLOY_TOKEN are required - the image is built on another host and can only arrive through the registry."
             exit 1
           fi
           bash backend/scripts/deploy-blue-green.sh "${GITHUB_SHA::7}"
-          docker logout cr.yandex 2>/dev/null || true
+          docker logout "$ACR_LOGIN_SERVER" 2>/dev/null || true
 
       - name: Report what is serving
         if: always()

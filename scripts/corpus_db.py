@@ -64,7 +64,9 @@ EXPECTED_FILE = PUMP / "expected.csv"
 VIDEOS_FILE = LIVE / "videos.json"
 LABELS_FILE = Path(os.environ["PUMP_CORPUS_LABELS"]) if os.environ.get("PUMP_CORPUS_LABELS") else LIVE / "video-labels.json"
 CORRECTIONS_FILE = LIVE / "corrections.jsonl"
-S3_ENDPOINT = "https://storage.yandexcloud.net"
+# The media store (Azure Blob Storage, scripts/corpus-sync.py): the `s3_*`
+# column names predate the move and are kept so the schema does not change.
+S3_ENDPOINT = "https://tankbookstorage.blob.core.windows.net"
 S3_BUCKET = "tankbook-corpus"
 S3_MEDIA_PREFIX = "pump-live/"
 

@@ -1,10 +1,10 @@
-using Amazon.S3;
-using Amazon.S3.Model;
+using Azure;
+using Azure.Storage.Blobs;
 
 namespace Tankbook.Admin.Data;
 
 /// <summary>
-/// Reads the API's blob bucket with a read-only key (docs/SECURITY.md -> "The admin viewer").
+/// Reads the API's blob container with a read-only SAS (docs/SECURITY.md -> "The admin viewer").
 /// The keys are the API's own layout: a synced blob at <c>{account:N}/{sha256}</c>
 /// (<c>blobs.storage_ref</c>), an LLM prompt rendition at <c>{account:N}/llm/{sha256}</c>.
 /// </summary>
@@ -19,36 +19,34 @@ public static class BlobKeys
     public static string LlmPrompt(Guid accountId, string sha256) => $"{accountId:N}/llm/{sha256}";
 }
 
-public sealed class S3BlobReader : IBlobReader, IDisposable
+/// <summary>
+/// The API's container in Azure Blob Storage. <c>AzureBlob:ConnectionString</c> is a
+/// SAS connection string whose SAS grants read only (a stored access policy on the
+/// container, so it is revoked by deleting the policy); <c>AzureBlob:Container</c> is
+/// the API's container. A key that could write never reaches the viewer.
+/// </summary>
+public sealed class AzureBlobReader : IBlobReader
 {
-    private readonly AmazonS3Client _client;
-    private readonly string _bucket;
+    // Built on first read, so a viewer with no storage configured still boots
+    // and only a file request fails.
+    private readonly Lazy<BlobContainerClient> _container;
 
-    public S3BlobReader(IConfiguration configuration)
+    public AzureBlobReader(IConfiguration configuration)
     {
-        var s3 = configuration.GetSection("S3");
-        _bucket = s3["Bucket"] ?? "";
-        _client = new AmazonS3Client(s3["AccessKey"], s3["SecretKey"], new AmazonS3Config
-        {
-            ServiceURL = s3["Endpoint"],
-            ForcePathStyle = true,
-        });
+        var azure = configuration.GetSection("AzureBlob");
+        _container = new Lazy<BlobContainerClient>(() => new BlobContainerClient(azure["ConnectionString"], azure["Container"]));
     }
 
     public async Task<byte[]?> ReadAsync(string key, CancellationToken ct)
     {
         try
         {
-            using var response = await _client.GetObjectAsync(new GetObjectRequest { BucketName = _bucket, Key = key }, ct);
-            using var memory = new MemoryStream();
-            await response.ResponseStream.CopyToAsync(memory, ct);
-            return memory.ToArray();
+            var response = await _container.Value.GetBlobClient(key).DownloadContentAsync(ct);
+            return response.Value.Content.ToArray();
         }
-        catch (AmazonS3Exception e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+        catch (RequestFailedException e) when (e.Status == StatusCodes.Status404NotFound)
         {
             return null;
         }
     }
-
-    public void Dispose() => _client.Dispose();
 }

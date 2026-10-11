@@ -34,9 +34,18 @@ Two roles, created once by a database owner with `api/src/Tankbook.Admin/Migrati
 | `ConnectionStrings:ApiRead` | `tankbook_admin_ro` | `SELECT` on accounts, devices, records, blobs, llm_calls - nothing else |
 | `ConnectionStrings:AdminWrite` | `tankbook_admin_rw` | own schema `admin` (passkeys, bootstrap tokens, access log) - nothing outside it |
 
-The bucket is read with a **read-only key** (`S3:Endpoint`, `S3:Bucket`, `S3:AccessKey`,
-`S3:SecretKey`) - synced files at `{account}/{sha256}` (`blobs.storage_ref`), LLM prompt images
-at `{account}/llm/{sha256}`.
+The API's Azure Blob Storage container is read with a **read-only SAS** (`AzureBlob:ConnectionString`
+as a SAS connection string, `AzureBlob:Container` = `tankbook-blobs`) - synced files at
+`{account}/{sha256}` (`blobs.storage_ref`), LLM prompt images at `{account}/llm/{sha256}`. The SAS
+references a stored access policy on the container, so deleting the policy revokes it:
+
+```
+az storage container policy create --account-name tankbookstorage -c tankbook-blobs \
+  -n admin-read --permissions r --expiry <date> --auth-mode key
+az storage container generate-sas --account-name tankbookstorage -n tankbook-blobs \
+  --policy-name admin-read --auth-mode key -o tsv
+# AzureBlob__ConnectionString = "BlobEndpoint=https://tankbookstorage.blob.core.windows.net;SharedAccessSignature=<sas>"
+```
 
 Apply the viewer's schema as its own step: `dotnet run --project api/src/Tankbook.Admin -- --migrate`.
 

@@ -11,6 +11,15 @@ decisions.
 
 ---
 
+## 2026-10-11 · The corpus and debug cases are fetched from Azure Blob Storage
+
+| | |
+|---|---|
+| **Commits** | this change (`scripts/corpus-sync.py`, `scripts/corpus_db.py`, `scripts/case-az.sh`, `.claude/skills/corpus-intake/SKILL.md`, `.claude/skills/debug-case/SKILL.md`) |
+| **Reason** | Product owner moved the object storage from Yandex Cloud to Azure: the `tankbook-corpus` and `tankbook-blobs` buckets were copied to containers of the same names in the `tankbookstorage` account (resource group `tankbook`, North Europe). |
+| **Evidence** | `tankbook-blobs` matched its source by count and size (168 objects, 152,871,396 bytes). The corpus container was built from the local tree, which matched the Yandex bucket except 6 retrained model files (local kept) and 47 `sheet.jpg` restored from Yandex. `corpus-sync.py list` and a `DRY_RUN=1 push` ran against the container, and the dry run matched all 291 media by MD5. `case-az.sh 3GQZB-BC5VF` fetched a real case (17 parts). |
+| **What changed** | `corpus-sync.py` reads and writes the Azure container (connection string, SAS, or the `az login` session; size + Content-MD5 skip). The `debug-case` skill fetches with `case-az.sh`, and falls back to `case-yc.sh` for cases sent while the backend still writes to Yandex. `docs/SECURITY.md` records the owner's fetch on Azure. |
+
 ## 2026-09-27 · A pasted debug case id is fetched from the bucket with yc and walked by the `debug-case` skill
 
 | | |

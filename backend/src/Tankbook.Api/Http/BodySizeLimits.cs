@@ -49,6 +49,10 @@ public static class BodySizeLimits
     /// <summary>Everything else (auth, blobs begin/commit, account push-token): tiny bodies.</summary>
     public const long DefaultBytes = 64L * 1024;
 
+    /// <summary>The largest attachment (an image, docs/SYNC.md: 25 MB); each
+    /// upload is then capped to the exact length its token declares.</summary>
+    public const long BlobUploadBytes = 25L * 1024 * 1024;
+
     /// <summary>
     /// Feedback (docs/API.md: text &lt;= 4 KB). The composer caps the text at
     /// 4,000 characters; 4,000 UTF-8 characters are at most 16 KB (a

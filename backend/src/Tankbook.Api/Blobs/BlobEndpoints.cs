@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.Features;
 using Tankbook.Api.Auth;
 using Tankbook.Api.Http;
 using Tankbook.Api.Logging;
@@ -169,6 +170,52 @@ public static class BlobEndpoints
             GetStatus.DeviceRevoked => Revoked(),
             _ => throw new InvalidOperationException($"Unknown get status {outcome.Status}."),
         };
+    }
+
+    /// <summary>
+    /// <c>PUT /v1/blobs/upload/{token}</c>: the upload URL <c>begin</c> hands out.
+    /// No bearer - the token is the authorization, as the presigned URL was
+    /// before it - and the request must match what the token was minted for: the
+    /// same content type and exactly the declared length (docs/PRACTICES.md S10).
+    /// The body streams straight to storage; a client that disconnects mid-way
+    /// leaves no blob, because a blob exists only once its upload completes.
+    /// </summary>
+    public static async Task<IResult> Upload(
+        HttpContext httpContext,
+        BlobUploadTokens tokens,
+        IBlobStorage storage,
+        string token,
+        CancellationToken cancellationToken)
+    {
+        var grant = tokens.Verify(token);
+        if (grant is null)
+        {
+            return Problem(
+                StatusCodes.Status403Forbidden,
+                TankbookErrorCodes.TokenInvalid,
+                "Upload URL invalid.",
+                "The upload URL is malformed or expired; call POST /blobs/begin for a new one.");
+        }
+
+        var request = httpContext.Request;
+        if (request.ContentLength != grant.ContentLength
+            || !string.Equals(request.ContentType, grant.ContentType, StringComparison.OrdinalIgnoreCase))
+        {
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                TankbookErrorCodes.PayloadInvalid,
+                "Upload does not match begin.",
+                "The Content-Type and Content-Length must be the ones declared to POST /blobs/begin.");
+        }
+
+        var limit = httpContext.Features.Get<IHttpMaxRequestBodySizeFeature>();
+        if (limit is { IsReadOnly: false })
+        {
+            limit.MaxRequestBodySize = grant.ContentLength;
+        }
+
+        await storage.WriteAsync(grant.Key, request.Body, grant.ContentType, cancellationToken);
+        return Results.Created();
     }
 
     private static IResult Revoked()

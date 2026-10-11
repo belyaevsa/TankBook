@@ -24,6 +24,14 @@ public sealed class BlobOptions
     /// <summary>Presigned upload (PUT) lifetime, docs/SYNC.md: ~15 min.</summary>
     public int UploadPresignMinutes { get; set; } = 15;
 
+    /// <summary>
+    /// The API's public origin as a client reaches it (https://api.tankbook.live),
+    /// used to mint upload URLs on <c>PUT /v1/blobs/upload/{token}</c>
+    /// (<see cref="BlobUploadTokens"/>). Behind the proxy the request's own host is
+    /// not the public one, so it is configured, not derived.
+    /// </summary>
+    public string? PublicBaseUrl { get; set; }
+
     /// <summary>Presigned download (GET) lifetime, docs/SYNC.md: ~10 min.</summary>
     public int DownloadPresignMinutes { get; set; } = 10;
 

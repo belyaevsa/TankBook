@@ -19,7 +19,7 @@ var admin = builder.Configuration.GetSection("Admin").Get<AdminOptions>() ?? new
 builder.Services.AddSingleton<Db>();
 builder.Services.AddSingleton<PasskeyStore>();
 builder.Services.AddSingleton<BootstrapTokens>();
-builder.Services.AddSingleton<IBlobReader, S3BlobReader>();
+builder.Services.AddSingleton<IBlobReader, AzureBlobReader>();
 builder.Services.AddMemoryCache();
 
 var fido = builder.Configuration.GetSection("Fido2");

@@ -53,6 +53,13 @@ public sealed class RecordingBlobStorage : IBlobStorage
         return Task.CompletedTask;
     }
 
+    public async Task WriteAsync(string key, Stream content, string contentType, CancellationToken cancellationToken)
+    {
+        using var buffer = new MemoryStream();
+        await content.CopyToAsync(buffer, cancellationToken);
+        await PutObjectAsync(key, buffer.ToArray(), contentType, cancellationToken);
+    }
+
     public Task<byte[]?> GetObjectAsync(string key, CancellationToken cancellationToken)
         => Task.FromResult(_bytes.TryGetValue(key, out var bytes) ? bytes : (byte[]?)null);
 

@@ -1,12 +1,12 @@
 # Tankbook Backend
 
-ASP.NET Core minimal API implementing `docs/API.md`, backed by Postgres (opaque JSONB records, `docs/SYNC.md`) and S3-compatible object storage (MinIO locally). Npgsql + Dapper; RFC 7807 problem+json errors.
+ASP.NET Core minimal API implementing `docs/API.md`, backed by Postgres (opaque JSONB records, `docs/SYNC.md`) and Azure Blob Storage (Azurite locally). Npgsql + Dapper; RFC 7807 problem+json errors.
 
 ## Run locally
 
 ```sh
 ./backend/scripts/generate-appsettings.sh   # REQUIRED on a fresh clone - see below
-./backend/scripts/dev-up.sh                 # Postgres 17 (:5434) + MinIO (:9000 API, :9001 console)
+./backend/scripts/dev-up.sh                 # Postgres 17 (:5434) + Azurite blob (:10000)
 dotnet run --project backend/src/Tankbook.Api
 curl 127.0.0.1:5175/health                  # {"status":"ok","version":"0.1.0"}
 ./backend/scripts/dev-down.sh               # stop and remove the containers
@@ -23,7 +23,7 @@ running server. Re-running the generator is safe – environment wins, then what
 had, then the template's blank, so it never destroys a value you typed in by hand.
 
 Nothing needs to be exported for local work: the generated `appsettings.Development.json` carries
-the localhost Postgres and MinIO defaults, and `dotnet run` picks the Development environment up
+the localhost Postgres and Azurite defaults, and `dotnet run` picks the Development environment up
 automatically.
 
 ## Docker
@@ -54,7 +54,7 @@ the container exactly as on a host.
 cd backend && dotnet build && dotnet test
 ```
 
-Configuration: `ConnectionStrings:Postgres` and `S3` options bind from appsettings + environment variables (`ConnectionStrings__Postgres`, `S3__Endpoint`, ...). Local dev defaults live in `appsettings.Development.json`; never commit real credentials.
+Configuration: `ConnectionStrings:Postgres`, `AzureBlob` and `Blob` options bind from appsettings + environment variables (`ConnectionStrings__Postgres`, `AzureBlob__ConnectionString`, `Blob__PublicBaseUrl`, ...). Production storage is the `tankbook-blobs` container of the `tankbookstorage` account (resource group `tankbook`); uploads arrive on `PUT /v1/blobs/upload/{token}` and stream through to it. Local dev defaults live in `appsettings.Development.json`; never commit real credentials.
 
 ## CI and the self-hosted runner
 
@@ -67,14 +67,15 @@ boundary rather than a preference:
 | `build` | `push` | `self-hosted` | the gate, then the image build (and push, if a registry is configured) |
 | `deploy` | `push` to `main` | `self-hosted` | pulls or reuses that image and hands it the serving port |
 
-**Build and deploy are separate jobs on one host today, and the registry is
-optional.** With both on the same machine the image never has to leave it, so an
-unset `YC_REGISTRY_ID` simply builds a local tag. Set it - plus `YC_CI_SA_KEY`
-and `YC_DEPLOY_SA_KEY` - and the same jobs push and pull through Yandex
-Container Registry instead. Moving the build onto its own machine is then a
-label change and nothing else. The registry (`tankbook`) and two service
-accounts already exist: `tankbook-ci` can push, `tankbook-deployer` can only
-pull, so a compromised deploy host cannot poison the registry.
+**Build and deploy are separate jobs on separate hosts, so the image travels
+through the registry:** Azure Container Registry `tankbook.azurecr.io` (Basic,
+resource group `tankbook`), set as the repository variable `ACR_LOGIN_SERVER`.
+Two repository-scoped ACR tokens log in to it: `tankbook-ci` (secret
+`ACR_CI_TOKEN`) can push and pull `tankbook-api`, `tankbook-deploy` (secret
+`ACR_DEPLOY_TOKEN`) can only pull, so a compromised deploy host cannot poison the
+registry. A token's password is minted straight into its secret and never
+printed: `az acr token credential generate -r tankbook -n <token> --password1
+--query 'passwords[0].value' -o tsv | gh secret set <SECRET>`.
 
 **Pull requests never touch the self-hosted runner.** This repository is public,
 so a `pull_request` job there would execute a stranger's code on the deploy host,

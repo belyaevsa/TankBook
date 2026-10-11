@@ -147,8 +147,9 @@ Conflict rule: if two docs disagree, the more specific one wins (API.md over SYN
    2026-09-26 by the product owner, **one read key the owner holds on their own machine**, which
    reads a single debug case by its id and opens no other route of the viewer, so a script can fetch
    what a tester sent (`scripts/case.sh`) - and, amended 2026-09-27 while the viewer is not deployed,
-   the owner's own `yc` credentials fetch one case's parts by id straight from the bucket
-   (`scripts/case-yc.sh`, no access-log row; `docs/SECURITY.md` → "The owner's storage fetch");
+   the owner's own cloud credentials fetch one case's parts by id straight from the store
+   (`scripts/case-az.sh` on Azure since 2026-10-11, `scripts/case-yc.sh` for Yandex until the
+   backend moves; no access-log row; `docs/SECURITY.md` → "The owner's storage fetch");
    only the read key's SHA-256 lives in the secret store, and each of
    its fetches writes an access-log row like any other look - looks up **by case id, `traceId` or account id only** - no list of users, no
    search over content, no bulk export - and **writes an access-log row for every view**; the
@@ -268,7 +269,7 @@ Golden test vectors: the four-drivers simulation outputs (D1–D4, in `docs/SCHE
 
 ## Decisions already made – do not relitigate
 
-Night Drive palette · Home C/Confirm A/Trends B screen set · rolling-90-day/floor-3 consumption model (time-based, not fill-count) · backend as sync hub (no CloudKit) · TLS + at-rest encryption, no E2E in v1 (signed off) · S3-compatible blob storage, provider-agnostic · no account linking in v1 · sign-in IS registration · free tier: multiple cars, export always free, no retroactive limit changes.
+Night Drive palette · Home C/Confirm A/Trends B screen set · rolling-90-day/floor-3 consumption model (time-based, not fill-count) · backend as sync hub (no CloudKit) · TLS + at-rest encryption, no E2E in v1 (signed off) · private object storage behind one interface (`IBlobStorage`; Azure Blob Storage since 2026-10-11) · no account linking in v1 · sign-in IS registration · free tier: multiple cars, export always free, no retroactive limit changes.
 
 **XcodeGen generates the app project** (decided 2026-08-23, when P1.1 needed an app target and SwiftPM proved unable to produce an iOS `.app`). `project.yml` at the repo root is the source of truth; `Tankbook.xcodeproj` is **generated and gitignored, never committed**. Reasons: a readable YAML file can be edited correctly by an agent or a human, whereas `project.pbxproj` is a generated-looking format with cross-referenced UUIDs that both edit unreliably and that conflicts on every merge – and every new screen touches it. Run `xcodegen generate` after changing `project.yml` or adding files; CI does the same before building. Tuist was considered and rejected as heavier than a single-app project needs.
 

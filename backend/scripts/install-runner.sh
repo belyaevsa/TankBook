@@ -314,14 +314,17 @@ if [ "$ROLE" = build ]; then
 
 This is a BUILD host. It runs the suite and cross-builds the image for the
 deploy host's amd64; it never touches production, so it needs none of the
-database, S3 or signing secrets.
+database, storage or signing secrets.
 
 Still required:
 
   1. Repository secrets, so the image can travel to the deploy host:
-       YC_REGISTRY_ID   crp6ds5aer2bn72891ih
-       YC_CI_SA_KEY     yc iam key create --service-account-name tankbook-ci --output k.json
-                        gh secret set YC_CI_SA_KEY < k.json && rm k.json
+       ACR_LOGIN_SERVER (variable) tankbook.azurecr.io
+                        gh variable set ACR_LOGIN_SERVER --body tankbook.azurecr.io
+       ACR_CI_TOKEN     the push token's password, straight into the secret:
+                        az acr token credential generate -r tankbook -n tankbook-ci
+                          --password1 --query 'passwords[0].value' -o tsv
+                          | gh secret set ACR_CI_TOKEN
   2. Nothing else. If this host is asked for a production secret, something is
      wired wrong - that separation is why the build moved off the deploy box.
 
@@ -332,9 +335,11 @@ else
 
 Still required before a deploy can succeed:
 
-  1. Repository secrets: POSTGRES_CONNECTION, S3_ACCESS_KEY, S3_SECRET_KEY,
+  1. Repository secrets: POSTGRES_CONNECTION, AZURE_BLOB_CONNECTION_STRING,
      TANKBOOK_HASH_SALT, CONFIG_SIGNING_KEY, AUTH_JWT_SIGNING_KEY, LLM_API_KEY,
-     YC_REGISTRY_ID, YC_DEPLOY_SA_KEY
+     ACR_DEPLOY_TOKEN (the pull-only token: az acr token credential generate
+     -r tankbook -n tankbook-deploy --password1 --query 'passwords[0].value'
+     -o tsv | gh secret set ACR_DEPLOY_TOKEN), and the variable ACR_LOGIN_SERVER
      (backend/scripts/generate-secrets.sh --gh-set mints three of them)
   2. Repository variables: APPLE_AUDIENCE, GOOGLE_AUDIENCE - these FAIL CLOSED,
      so sign-in refuses every token until they are set

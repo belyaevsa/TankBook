@@ -20,7 +20,7 @@ The rule of thumb: if a test can fail because something *else* is broken, it is 
 | Level | Tooling | Proves |
 |---|---|---|
 | **L1 Unit** | swift-testing / xUnit; pure functions, no I/O | Algorithms match golden vectors |
-| **L2 Contract** | Backend integration tests against real Postgres + MinIO (Testcontainers); iOS client tests against a recorded/stub server implementing `API.md` | Both sides implement the same API.md |
+| **L2 Contract** | Backend integration tests against real Postgres (Testcontainers) and, when it is running, Azurite; iOS client tests against a recorded/stub server implementing `API.md` | Both sides implement the same API.md |
 | **L3 Scenario** | Multi-client sync simulator: N in-process clients + real backend, scripted interleavings | SYNC.md S1–S9 outcomes, deterministically |
 | **L4 UI** | Snapshot tests per screen/state (dark+light, EN+RU, Dynamic Type L) against `design/screens/` intent; XCUITest for flows | Screens match artboards; flows navigate per SCREENMAP.md |
 | **L5 Accuracy** | The Spike harness grown into CI: fixture corpus + `expected.csv`, per-locale scoring | OCR/parser gates; regression on every parser change |

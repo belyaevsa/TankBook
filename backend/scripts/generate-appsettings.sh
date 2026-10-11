@@ -16,8 +16,8 @@
 #
 # Secrets are read from the environment and never written to a template:
 #
-#   S3_ACCESS_KEY, S3_SECRET_KEY   the Yandex static key for the
-#                                  `tankbook-storage` service account
+#   AZURE_BLOB_CONNECTION_STRING   the `tankbookstorage` account's connection
+#                                  string (it carries the account key)
 #   TANKBOOK_HASH_SALT             docs/LOGGING.md account-id hashing
 #   CONFIG_SIGNING_KEY             the Ed25519 seed that signs config documents
 #   AUTH_JWT_SIGNING_KEY           base64 PKCS#8 RSA access-token key
@@ -47,7 +47,7 @@ with open(template) as handle:
 
 # Whatever the output file already holds. Re-running the generator must never
 # DESTROY a value that is only in the local file - which is exactly what an
-# earlier version did: a run that supplied only the S3 variables silently blanked
+# earlier version did: a run that supplied only the storage variables silently blanked
 # a hand-entered LlmGateway:ApiKey, and the value was unrecoverable because the
 # only other copy was write-only in GitHub Secrets. Precedence is therefore
 # environment > what the file already had > the template's blank.
@@ -76,8 +76,7 @@ def put(path, value):
         node = node.setdefault(key, {})
     node[path[-1]] = value
 
-put(["S3", "AccessKey"], os.environ.get("S3_ACCESS_KEY"))
-put(["S3", "SecretKey"], os.environ.get("S3_SECRET_KEY"))
+put(["AzureBlob", "ConnectionString"], os.environ.get("AZURE_BLOB_CONNECTION_STRING"))
 put(["Tankbook", "Logging", "HashSalt"], os.environ.get("TANKBOOK_HASH_SALT"))
 put(["Config", "SigningKey"], os.environ.get("CONFIG_SIGNING_KEY"))
 put(["Auth", "JwtSigningKeyBase64"], os.environ.get("AUTH_JWT_SIGNING_KEY"))

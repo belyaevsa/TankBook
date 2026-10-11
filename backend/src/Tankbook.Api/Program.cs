@@ -33,11 +33,11 @@ DapperTypeHandlers.Register();
 
 // Options binding. No secrets ever ship in committed files: appsettings.json
 // carries only empty placeholders, and appsettings.Development.json holds the
-// local dev defaults (localhost Postgres + MinIO).
+// local dev defaults (localhost Postgres + Azurite).
 builder.Services.Configure<ConnectionStringsOptions>(
     builder.Configuration.GetSection(ConnectionStringsOptions.SectionName));
-builder.Services.Configure<S3Options>(
-    builder.Configuration.GetSection(S3Options.SectionName));
+builder.Services.Configure<AzureBlobOptions>(
+    builder.Configuration.GetSection(AzureBlobOptions.SectionName));
 builder.Services.Configure<BlobOptions>(
     builder.Configuration.GetSection(BlobOptions.SectionName));
 builder.Services.Configure<ConfigSigningOptions>(
@@ -257,15 +257,18 @@ builder.Services.AddScoped<AuthRepository>();
 builder.Services.AddScoped<AuthService>();
 
 // Blob pipeline (docs/API.md "Attachments", docs/SYNC.md "Attachments: the blob
-// pipeline"). IBlobStorage is the storage seam: S3BlobStorage talks the S3 API
-// (MinIO locally, R2/B2/etc. in deployment - the credentials are server-side,
+// pipeline"). IBlobStorage is the storage seam: AzureBlobStorage talks to Azure
+// Blob Storage (Azurite locally - the connection string is server-side,
 // docs/SECURITY.md) and L2 tests swap in a recording double so presign generation
 // and expiry are assertable without a running container (the same seam
-// IPayloadSchemaProvider uses). The factory is lazy: an app with no S3 config
-// still boots, and only fails if a blob endpoint is actually called.
+// IPayloadSchemaProvider uses). The factory is lazy: an app with no AzureBlob
+// config still boots, and only fails if a blob endpoint is actually called.
+// BlobUploadTokens mints and verifies the upload URLs on PUT /v1/blobs/upload.
+builder.Services.AddSingleton<BlobUploadTokens>();
 builder.Services.AddSingleton<IBlobStorage>(sp =>
-    new S3BlobStorage(
-        sp.GetRequiredService<IOptions<S3Options>>(),
+    new AzureBlobStorage(
+        sp.GetRequiredService<IOptions<AzureBlobOptions>>(),
+        sp.GetRequiredService<BlobUploadTokens>(),
         sp.GetRequiredService<TimeProvider>()));
 builder.Services.AddScoped<BlobRepository>();
 builder.Services.AddScoped<BlobService>();
@@ -633,8 +636,10 @@ sync.MapPost("/push", SyncEndpoints.Push)
     .WithBodySizeLimit(BodySizeLimits.PushBytes);
 
 // Attachments (docs/API.md "Attachments"): the content-addressed blob pipeline.
-// All three bearer endpoints; the server never proxies file bytes - it only
-// mints presigned URLs and keeps the index.
+// Three bearer endpoints mint URLs and keep the index; downloads redirect to a
+// read-only storage URL, and uploads come back to PUT /blobs/upload/{token},
+// whose token (minted by begin) is its only authorization. The server proxies
+// upload bytes, never download bytes (docs/SECURITY.md).
 var blobs = v1.MapGroup("/blobs");
 blobs.MapPost("/begin", BlobEndpoints.Begin)
     .RequireRateLimiting(RateLimitingSetup.BlobBegin)
@@ -642,6 +647,8 @@ blobs.MapPost("/begin", BlobEndpoints.Begin)
 blobs.MapPost("/commit", BlobEndpoints.Commit)
     .WithBodySizeLimit(BodySizeLimits.DefaultBytes);
 blobs.MapGet("/{sha256}", BlobEndpoints.Get);
+blobs.MapPut("/upload/{token}", BlobEndpoints.Upload)
+    .WithBodySizeLimit(BodySizeLimits.BlobUploadBytes);
 
 // Account & devices (docs/API.md "Account & devices"): the manage-devices
 // screen, push-token registration, per-device revocation, and account deletion.

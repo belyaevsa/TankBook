@@ -247,6 +247,53 @@ public class BlobEndpointTests : IClassFixture<PostgresFixture>
         Assert.Equal(123_456L, upload.ContentLength);
     }
 
+    // ---- 6b. The upload URL is ours, and holds the client to its begin -----
+
+    /// <summary>
+    /// The upload URL is <c>PUT /v1/blobs/upload/{token}</c> on this API (Azure's
+    /// SAS cannot bind type and length, and wants a header the shipped apps do not
+    /// send). The request the shipped app makes - a bare PUT with Content-Type and
+    /// the bytes, no bearer - is stored; anything that differs from the token is
+    /// refused and stores nothing.
+    /// </summary>
+    [SkippableFact]
+    public async Task Upload_TheShippedAppsPut_IsStored_AndAnythingElseIsRefused()
+    {
+        var signer = new TestIdTokenSigner();
+        var storage = new RecordingBlobStorage();
+        await using var app = await StartAsync(signer, storage);
+        var tokens = app.Services.GetRequiredService<BlobUploadTokens>();
+        var bytes = new byte[1000];
+        Random.Shared.NextBytes(bytes);
+        var url = tokens.Create("acct/upload", "image/jpeg", bytes.Length, TimeSpan.FromMinutes(15)).Url;
+        var path = new Uri(url).PathAndQuery;
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await PutAsync(app.Client, path, bytes, "image/png")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await PutAsync(app.Client, path, bytes[..999], "image/jpeg")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await PutAsync(app.Client, path[..^4] + "AAAA", bytes, "image/jpeg")).StatusCode);
+        Assert.Empty(storage.ByteObjects);
+
+        Assert.Equal(HttpStatusCode.Created, (await PutAsync(app.Client, path, bytes, "image/jpeg")).StatusCode);
+        Assert.Equal(bytes, storage.ByteObjects["acct/upload"]);
+    }
+
+    [SkippableFact]
+    public async Task Upload_ThenCommit_IsTheWholeFlow()
+    {
+        var signer = new TestIdTokenSigner();
+        var storage = new RecordingBlobStorage();
+        await using var app = await StartAsync(signer, storage);
+        var (token, accountId, _) = await CreateSessionAsync(app, signer, "upload-flow", "upload-flow@example.com");
+        var tokens = app.Services.GetRequiredService<BlobUploadTokens>();
+
+        var sha = Sha('d');
+        Assert.Equal(HttpStatusCode.OK, (await BeginAsync(app.Client, token, sha, 2048, "application/pdf")).StatusCode);
+        var url = tokens.Create(BlobKeys.Key(accountId, sha), "application/pdf", 2048, TimeSpan.FromMinutes(15)).Url;
+        Assert.Equal(HttpStatusCode.Created, (await PutAsync(app.Client, new Uri(url).PathAndQuery, new byte[2048], "application/pdf")).StatusCode);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await CommitAsync(app.Client, token, sha)).StatusCode);
+    }
+
     // ---- 7. Quota is metered and enforced at begin -------------------------
 
     [SkippableFact]
@@ -475,6 +522,7 @@ public class BlobEndpointTests : IClassFixture<PostgresFixture>
                 // filesystem layout can change what this test captures.
                 b.UseSetting("Logging:LogLevel:Microsoft.AspNetCore", "Warning");
                 b.UseSetting("Logging:LogLevel:System.Net.Http.HttpClient", "Warning");
+                b.UseSetting("Blob:PublicBaseUrl", "http://localhost");
                 if (quotaBytes is not null)
                 {
                     b.UseSetting("Blob:QuotaBytes", quotaBytes);
@@ -518,6 +566,14 @@ public class BlobEndpointTests : IClassFixture<PostgresFixture>
         using var request = new HttpRequestMessage(HttpMethod.Post, "/v1/blobs/begin");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         request.Content = JsonContent.Create(new { sha256, size, contentType });
+        return await client.SendAsync(request);
+    }
+
+    private static async Task<HttpResponseMessage> PutAsync(HttpClient client, string path, byte[] bytes, string contentType)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Put, path);
+        request.Content = new ByteArrayContent(bytes);
+        request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
         return await client.SendAsync(request);
     }
 

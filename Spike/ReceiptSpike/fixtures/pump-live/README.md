@@ -1,21 +1,28 @@
 # Live Photo pump captures
 
-**Where the media lives (product owner, 2026-09-19): Yandex Object Storage, not git.** The
-`.mov` and `.heic` files are gitignored; this README and its pairing tables are the record.
+**Where the media lives (product owner, 2026-10-11): Azure Blob Storage, not git** (Yandex
+Object Storage until then). The `.mov` and `.heic` files are gitignored; this README and its
+pairing tables are the record.
 
 ## Access
 
-- Bucket `tankbook-corpus` (S3-compatible endpoint `https://storage.yandexcloud.net`, region
-  `ru-central1`), prefix `pump-live/`. Private; nothing in it is public.
-- Read/write is through the service account `tankbook-corpus-rw` with a **static access key**.
-  Keys are never in the repo (`docs/SECURITY.md`); each person mints their own:
-  `yc iam access-key create --service-account-name tankbook-corpus-rw --format json`
-  (needs `yc init` against the Tankbook folder first) and writes the two values to
-  `~/.config/tankbook/corpus-s3.env` as `AWS_ACCESS_KEY_ID=…` / `AWS_SECRET_ACCESS_KEY=…`
-  (mode 600). Revoke a key with `yc iam access-key delete`.
+- Container `tankbook-corpus` in the storage account `tankbookstorage` (resource group
+  `tankbook`, North Europe, `https://tankbookstorage.blob.core.windows.net`), prefix
+  `pump-live/`. Private; the account allows no anonymous access. The bucket keys are unchanged
+  from Yandex, so every `frames.s3_key` still resolves.
+- Credentials are never in the repo (`docs/SECURITY.md`). `corpus-sync.py` takes the first of:
+  - `AZURE_STORAGE_CONNECTION_STRING` in `~/.config/tankbook/corpus-azure.env` (mode 600) or the
+    environment: `az storage account show-connection-string -n tankbookstorage -g tankbook -o tsv`.
+    It carries the account key; rotate with `az storage account keys renew`.
+  - `AZURE_STORAGE_SAS_TOKEN` there instead: a container SAS with read, write and list, for a
+    time-limited grant (`az storage container generate-sas --account-name tankbookstorage -n
+    tankbook-corpus --permissions rwl --expiry <date> --auth-mode key -o tsv`).
+  - Neither: the `az login` session, which needs the **Storage Blob Data Contributor** role on
+    the `tankbookstorage` account.
 - Sync: `scripts/corpus-sync.py pull` (a fresh machine), `push` (after new captures land),
-  `list`. It compares size and MD5, so a re-run moves nothing already there. Needs `boto3`
-  (`ml/pump-reader/.venv/bin/pip install boto3`, or any Python with it). `push` also uploads the
+  `list`. It compares size and Content-MD5, so a re-run moves nothing already there. Needs the
+  `corpus` extra (`ml/pump-reader/.venv/bin/pip install azure-storage-blob azure-identity`, or
+  any Python with them). `push` also uploads the
   frame JPEGs of every registered record to `pump-live/frames/<record>/` and records each key on
   `frames.s3_key` (the dump does not carry it); `pull --frames <record>` or `pull --frames all`
   fetches them back, and a fresh machine can instead re-extract from the movies with the `ffmpeg`

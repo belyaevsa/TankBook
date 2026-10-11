@@ -192,9 +192,10 @@ it shows none of them, and its fuel figures were never meant to include them.
 
 | Endpoint | Auth | Contract |
 |---|---|---|
-| `POST /blobs/begin` | bearer | `{ sha256, size, contentType }` → `{ status: "exists" }` \| `{ status: "upload", url: <presigned PUT>, expiresAt }` \| `413` size cap (images 25 MB, PDFs 10 MB per `SYNC.md`) \| `429` quota, carrying `quotaUsedPercent` (see "Error envelope"). |
+| `POST /blobs/begin` | bearer | `{ sha256, size, contentType }` → `{ status: "exists" }` \| `{ status: "upload", url: <upload URL>, expiresAt }` \| `413` size cap (images 25 MB, PDFs 10 MB per `SYNC.md`) \| `429` quota, carrying `quotaUsedPercent` (see "Error envelope"). |
 | `POST /blobs/commit` | bearer | `{ sha256 }` → `204` after server verifies object + size. Referencing records must push only after commit. |
-| `GET /blobs/{sha256}` | bearer | `302` → short-lived presigned GET (~10 min, single object). `404` if not owned by this account. |
+| `PUT /blobs/upload/{token}` | the token | The `url` `begin` returned. Body: the bytes, with the declared `Content-Type` and exactly the declared length. `201` once stored; `403` (`token_invalid`) for a malformed or expired token; `400` (`payload_invalid`) when the type or length differs from `begin`. |
+| `GET /blobs/{sha256}` | bearer | `302` → short-lived read-only SAS URL (~10 min, single object). `404` if not owned by this account. |
 
 `begin` refuses a malformed body with `400` (a `sha256` that is not 64 lowercase hex digits, or a
 missing/negative `size`) and a content type outside the allow-list with `415`; it answers `413` per
@@ -202,8 +203,18 @@ type (images 25 MB, PDFs 10 MB) and `429` when the account's metered storage quo
 configurable) would be exceeded. `commit` verifies the stored object against the size declared at
 `begin` (the server remembers it between the two calls) - a commit with no preceding `begin`, no
 uploaded object, or a size mismatch answers `409` and creates no row; it is idempotent (`204` on
-replay). A revoked device or deleted account gets `410` (`device_revoked`) on all three. A presigned URL is never
+replay). A revoked device or deleted account gets `410` (`device_revoked`) on the three bearer endpoints. A
+client treats the upload `url` as opaque - it was a storage URL before 2026-10-11 and is the API's own
+since. A presigned URL is never
 minted for a blob this account does not own, and never appears in a log (`LOGGING.md`).
+
+**Breaking-change verdict (2026-10-11): compatible** - the storage move to Azure. `begin`, `commit`
+and `GET /blobs/{sha256}` keep their requests, responses and codes; only the value of `url` changes,
+and `PUT /blobs/upload/{token}` is a new endpoint. What a shipped client does with `url` is all that
+had to hold: `RemoteBlobTransport.put` PUTs the bytes with the declared `Content-Type` (the length
+comes from the body), sends nothing storage-specific, and accepts any `2xx` (`201` here, `200` from
+S3 before) - unchanged since 2026-08-31 (`c573b919`), so checked against build 1368, the oldest in
+the store.
 
 ## Reference data (public, CDN-cacheable)
 

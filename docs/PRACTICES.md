@@ -59,7 +59,7 @@ it is re-run at each phase gate and dated.
 |---|---|---|---|
 | S8 | **Device identity and account identity are separate.** An anonymous device id from first launch supports no-account users and later linking | Forcing sign-in to use the app is a local-first violation and a conversion cliff | `API.md` device auth; import stored under device identity |
 | S9 | **Rate-limit per device and per account; size-limit every payload; validate against a registered schema before any code reads it** | Unbounded input is the cheapest DoS there is | `API.md` envelope limits; `SYNC.md` payload contract; check limits in section 6 |
-| S10 | **Blobs via presigned URLs, never proxied; content-type and size enforced at the storage layer too** | Proxying blobs makes the API tier the bottleneck and the attack surface | `SYNC.md` blob pipeline |
+| S10 | **Blob downloads via signed URLs, never proxied; every upload bound to its declared content type and exact size** (amended 2026-10-11: uploads stream through `PUT /v1/blobs/upload/{token}` because an Azure SAS cannot bind either, `SECURITY.md`) | Proxying downloads makes the API tier the bottleneck and the attack surface; an unbound upload URL lets any bearer fill the store | `SYNC.md` blob pipeline |
 | S11 | **Retention is a written number honoured by a job, not a promise** | "We delete it eventually" is not a policy | `SECURITY.md`: 30 days for import files, matching the tombstone window |
 | S12 | **Account deletion is a tested feature, not an ops ticket** | Store requirement and a legal one | `API.md` `/account` DELETE; check in section 7 |
 | S13 | **A one-page threat model in writing** | Keeps "should we encrypt this" answers consistent across years of contributors | `SECURITY.md` -> Threat model |

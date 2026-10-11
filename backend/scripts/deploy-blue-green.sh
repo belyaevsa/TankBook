@@ -129,8 +129,7 @@ cleanup() { rm -f "$ENV_FILE"; }
 trap cleanup EXIT
 cat > "$ENV_FILE" <<EOF
 ConnectionStrings__Postgres=${POSTGRES_CONNECTION:-}
-S3__AccessKey=${S3_ACCESS_KEY:-}
-S3__SecretKey=${S3_SECRET_KEY:-}
+AzureBlob__ConnectionString=${AZURE_BLOB_CONNECTION_STRING:-}
 Tankbook__Logging__HashSalt=${TANKBOOK_HASH_SALT:-}
 Config__SigningKey=${CONFIG_SIGNING_KEY:-}
 Auth__JwtSigningKeyBase64=${AUTH_JWT_SIGNING_KEY:-}
@@ -143,30 +142,32 @@ Tankbook__Logging__Format=${TANKBOOK_LOG_FORMAT:-text}
 EOF
 
 # --- 0. sanity-check the credentials we are about to deploy -----------------
-# Nothing checks S3 at startup, so a wrong key surfaces only when a user's first
-# photo fails to sync - which is how a 6-character access key sat in production
-# unnoticed (2026-09-02: the values had been truncated in a copy/paste, and the
-# bucket answered SignatureDoesNotMatch). A shape check cannot prove a key is
-# VALID, but it catches the failure that actually happened, at the moment it can
-# still be fixed for free.
+# Nothing checks blob storage at startup, so a wrong key surfaces only when a
+# user's first photo fails to sync - which is how a 6-character access key sat in
+# production unnoticed (2026-09-02: the values had been truncated in a
+# copy/paste, and the bucket answered SignatureDoesNotMatch). A shape check
+# cannot prove a key is VALID, but it catches the failure that actually
+# happened, at the moment it can still be fixed for free.
 #
-# Yandex static keys: the id begins YCAJE and runs ~25 characters, the secret
-# ~39. The bounds below are deliberately loose - the point is to reject a
-# truncated paste, not to encode a provider's format as a rule that breaks the
-# day it changes.
-check_len() { # <name> <value> <min> <what>
-    local name="$1" value="$2" min="$3" what="$4"
+# An Azure connection string names the account and carries an AccountKey of 88
+# base64 characters; download URLs are signed with that key, so a SAS-only
+# string is refused too. The length bound is loose - the point is to reject a
+# truncated paste, not to encode a provider's format as a rule.
+check_blob_connection() {
+    local value="${AZURE_BLOB_CONNECTION_STRING:-}" key
     if [ -z "$value" ]; then
-        log "::warning::${name} is empty - ${what} will not work"
-    elif [ "${#value}" -lt "$min" ]; then
-        fail "${name} is ${#value} characters, which is too short to be a real ${what}.
+        log "::warning::AZURE_BLOB_CONNECTION_STRING is empty - attachments will not work"
+        return
+    fi
+    key="$(printf '%s' "$value" | tr ';' '\n' | sed -n 's/^AccountKey=//p')"
+    if [ "${#key}" -lt 80 ]; then
+        fail "AZURE_BLOB_CONNECTION_STRING has no AccountKey of a plausible length (${#key} characters).
   This is what a truncated copy/paste looks like; deploying it would fail
-  silently at the first upload. Re-mint and re-set it:
-    yc iam access-key create --service-account-name tankbook-storage"
+  silently at the first upload. Re-read and re-set it:
+    az storage account show-connection-string -n tankbookstorage -g tankbook -o tsv"
     fi
 }
-check_len "S3_ACCESS_KEY" "${S3_ACCESS_KEY:-}" 20 "S3 access key id"
-check_len "S3_SECRET_KEY" "${S3_SECRET_KEY:-}" 30 "S3 secret key"
+check_blob_connection
 
 # The same class of mistake, different blast radius: an empty audience makes the
 # identity-token check fail CLOSED, so every sign-in is refused (docs/SECURITY.md).

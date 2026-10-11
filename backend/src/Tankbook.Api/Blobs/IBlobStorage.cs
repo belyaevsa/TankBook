@@ -5,30 +5,34 @@ public sealed record PresignedUrl(string Url, DateTimeOffset ExpiresAt);
 
 /// <summary>
 /// The storage seam (docs/TESTING.md "mock the boundary"): the server talks to
-/// S3-compatible object storage only through this interface, so the L2 suite can
-/// swap in a recording/in-memory double and assert presign generation and expiry
-/// without a running container. The production implementation is
-/// <see cref="S3BlobStorage"/>; nothing above this interface knows the provider.
+/// object storage only through this interface, so the L2 suite can swap in a
+/// recording/in-memory double and assert presign generation and expiry without a
+/// running container. The production implementation is
+/// <see cref="AzureBlobStorage"/>; nothing above this interface knows the provider.
 /// Keys are always within one account's prefix ({account_id}/{sha256}) - callers
 /// supply the full key, the interface never derives it from untrusted input.
 /// </summary>
 public interface IBlobStorage
 {
     /// <summary>
-    /// Mints a presigned PUT valid for <paramref name="lifetime"/> and bound to the
+    /// Mints an upload URL valid for <paramref name="lifetime"/> and bound to the
     /// declared content type and length, so the URL cannot be reused to upload
     /// bytes of a different kind or size (docs/PRACTICES.md S10, PR.18). Pure
     /// local computation, no network.
     /// </summary>
     PresignedUrl CreateUploadUrl(string key, string contentType, long contentLength, TimeSpan lifetime);
 
+    /// <summary>Writes an object from a stream - the bytes a client PUT to its
+    /// upload URL (<c>PUT /v1/blobs/upload/{token}</c>), passed straight through.</summary>
+    Task WriteAsync(string key, Stream content, string contentType, CancellationToken cancellationToken);
+
     /// <summary>Mints a presigned GET valid for <paramref name="lifetime"/>. Pure local computation, no network.</summary>
     PresignedUrl CreateDownloadUrl(string key, TimeSpan lifetime);
 
     /// <summary>Writes an object's bytes. Used by import parsing (docs/API.md
     /// "Import parsing"): the uploaded file and its parse result are stored here
-    /// server-side, unlike the presigned-URL blob pipeline where the client PUTs
-    /// to storage directly.</summary>
+    /// server-side from bytes the server already holds, unlike an attachment,
+    /// which the client streams through <see cref="WriteAsync"/>.</summary>
     Task PutObjectAsync(string key, byte[] bytes, string contentType, CancellationToken cancellationToken);
 
     /// <summary>Reads an object's bytes, or null when the key does not exist. Used to re-read a stored import result.</summary>

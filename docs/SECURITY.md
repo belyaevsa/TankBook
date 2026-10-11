@@ -40,9 +40,9 @@ The list is deliberately short. **Every item not on it must not exist on the dev
 
 **Why the local DB uses Data Protection rather than SQLCipher:** file protection is enforced by the Secure Enclave-backed keybag with a key we never see, store, or can lose. Rolling our own encryption means owning a key, and an app that can lose the key to a user's seven-year fuel history has created a bigger risk than the one it removed. If a future threat model demands app-level encryption, it arrives as an opt-in with the key in the Keychain – not as a silent default.
 
-**What must never ship in the bundle:** LLM/API keys (this is precisely why the `/extract` gateway is server-side), S3 credentials (clients only ever receive short-lived presigned URLs), the account-hash salt, database credentials, signing keys, and any endpoint carrying credentials in the URL. The Apple/Google client identifiers *are* in the bundle – they are public identifiers, not secrets, and the token exchange is verified server-side.
+**What must never ship in the bundle:** LLM/API keys (this is precisely why the `/extract` gateway is server-side), storage credentials (clients only ever receive short-lived signed URLs), the account-hash salt, database credentials, signing keys, and any endpoint carrying credentials in the URL. The Apple/Google client identifiers *are* in the bundle – they are public identifiers, not secrets, and the token exchange is verified server-side.
 
-**Presigned URLs** are treated as secrets in flight: never logged (`LOGGING.md` Never class), never persisted, never written into a record payload.
+**Presigned URLs** - the read SAS a download redirects to, and the upload URL `POST /blobs/begin` hands out - are treated as secrets in flight: never logged (`LOGGING.md` Never class; the API logs `PUT /v1/blobs/upload/{token}` by route template, and nginx keeps that path out of its access log), never persisted, never written into a record payload.
 
 **The allowlist domain is still a placeholder.** No public domain is registered for the app yet, so `HostAllowlist.allowedDomain` holds a stand-in. Until a real domain is bought and set there (and in `Config.default.json`), the allowlist protects a name we do not own - which an attacker could simply register. **Release blocker**, tracked in `CONFIG.md` → Guardrails.
 
@@ -60,7 +60,7 @@ protection, and it is never synced, never uploaded except through `POST /feedbac
 | Secret | Where |
 |---|---|
 | Postgres connection string | Environment / platform secret store, injected at runtime |
-| S3 access key + secret | Same. Never in a **committed** file – see the generation rule below |
+| Azure Blob Storage connection string (carries the account key) | Same. Never in a **committed** file – see the generation rule below |
 | Apple/Google public key endpoints | Not secret; token signatures verified against fetched JWKS with caching |
 
 ### The runtime config files are generated, never committed (2026-09-01)
@@ -84,14 +84,16 @@ Two things about it were **measured**, and both shaped the design:
 An unset variable leaves the template's blank value rather than inventing one. That is safe because
 `Program.cs`'s startup guard **refuses to start outside Development** with an unset or placeholder
 secret – so a half-filled file fails loudly at boot instead of serving traffic with a key printed in
-this repo. **The guard does not yet cover `S3:AccessKey`/`S3:SecretKey`**: a server with wrong
-credentials starts and fails at the first attachment upload instead.
+this repo. **The guard does not cover `AzureBlob:ConnectionString`**: a server with wrong
+credentials starts and fails at the first attachment upload instead; `deploy-blue-green.sh` refuses
+a connection string without a plausible `AccountKey` before anything is replaced.
 
 **The GitHub Actions secrets** the pipeline reads, mapped in `.github/workflows/backend.yml`:
 
 | GitHub secret | Fills | Source |
 |---|---|---|
-| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | `S3:AccessKey` / `S3:SecretKey` | `yc iam access-key create --service-account-name tankbook-storage` |
+| `AZURE_BLOB_CONNECTION_STRING` | `AzureBlob:ConnectionString` | `az storage account show-connection-string -n tankbookstorage -g tankbook -o tsv`; rotate with `az storage account keys renew` |
+| `ACR_CI_TOKEN` / `ACR_DEPLOY_TOKEN` | docker login to `tankbook.azurecr.io` (not appsettings) | `az acr token credential generate` for `tankbook-ci` (push) / `tankbook-deploy` (pull only), piped into `gh secret set` |
 | `TANKBOOK_HASH_SALT` | `Tankbook:Logging:HashSalt` | Generated once; rotating it re-anonymises every account id (`LOGGING.md`) |
 | `CONFIG_SIGNING_KEY` | `Config:SigningKey` | The Ed25519 seed signing config documents (`CONFIG.md`) |
 | `AUTH_JWT_SIGNING_KEY` | `Auth:JwtSigningKeyBase64` | Base64 PKCS#8 RSA; tokens carry `kid`, so rotation does not invalidate live sessions |
@@ -161,7 +163,7 @@ carry no Tankbook bearer.
 | Account-hash salt (`LOGGING.md`) | Platform secret store, dev default only in `appsettings.Development.json` |
 | LLM provider API key | Platform secret store; never leaves the gateway process |
 
-`appsettings.json` holds only placeholders (the committed dev signing-key placeholder, empty S3/Postgres credentials); `appsettings.Development.json` holds only local-dev values (`localhost`, `tankbook`, `minio`). A CI check greps for anything resembling a real credential.
+`appsettings.json` holds only placeholders (the committed dev signing-key placeholder, empty storage/Postgres credentials); `appsettings.Development.json` holds only local-dev values (`localhost`, `tankbook`, `UseDevelopmentStorage=true` for Azurite). A CI check greps for anything resembling a real credential.
 
 **A committed placeholder is a refusal, not a warning (PR.34).** Outside Development the server
 refuses to start if the account-hash salt (`Tankbook:Logging:HashSalt`) is unset or the committed
@@ -172,9 +174,21 @@ anyone who reads this repo can reproduce and forge, has already lost. The refusa
 and how to supply it (the same next-step rule operators get, `ERRORS.md`). Development and the test
 host are exempt; real deployments are not.
 
-**A presigned PUT is bound to what was declared, not bearer-of-the-URL (PR.18).** `POST /blobs/begin`
-mints a presigned PUT that signs the declared `contentType` and `size` into the URL, so the URL
-cannot be reused to upload bytes of a different kind or length for its whole lifetime. The orphan
+**An upload URL is bound to what was declared, not bearer-of-the-URL (PR.18).** `POST /blobs/begin`
+mints `PUT /v1/blobs/upload/{token}`, whose token is an HMAC (key derived from the JWT signing key)
+over the object key, the declared `contentType`, the exact `size` and the expiry. The endpoint
+refuses an invalid or expired token (`403`) and any request whose `Content-Type` or
+`Content-Length` differs from the token (`400`), then streams exactly that many bytes to storage,
+so the URL cannot be reused to upload bytes of a different kind or length for its whole lifetime.
+(The S3 presign this replaced signed the type but, being SigV2, never the length.)
+
+**The server proxies upload bytes (amended 2026-10-11, product owner).** Storage moved to Azure Blob
+Storage, whose SAS can bind neither a PUT's type nor its length and requires an `x-ms-blob-type`
+header the shipped apps do not send - handing out a SAS would have broken photo upload on every
+installed build. So uploads come through the API and stream to the container; downloads still
+redirect to a read-only SAS and are never proxied. The cost is upload bandwidth and a request held
+for the length of the upload on the API host; what bounds it is the per-token length cap, the
+25 MB body ceiling on that route, and the begin-time quota. The orphan
 sweep (`SweepOrphansAsync` + `DeleteStalePendingAsync`) runs hourly across all accounts, so a
 never-committed upload or an unreferenced blob is cleaned up rather than filling the store forever.
 
@@ -477,6 +491,11 @@ actually captured. One internal tool reads three kinds of user content; these ar
   nothing else. It writes **no access-log row**: the bucket's own access logging is the only record
   of this path. That gap is the reason it is the owner's personal route and not a second viewer.
   It ends when AD.8 ships, and then `case.sh` is the route again.
+  **Amended 2026-10-11 (product owner): the store moved to Azure Blob Storage.** The same route
+  now runs on the owner's own Azure login (`az`, on the owner's machine): `scripts/case-az.sh
+  <id>` reads one case's parts from the `tankbook-blobs` container of `tankbookstorage`, with the
+  same bounds - one case by id, written outside the repo, no access-log row. `case-yc.sh` stays
+  only until the backend writes to Azure, for cases sent before that.
 - The public URL is a surface the tunnel design did not have; what bounds it is the passkey, the
   rate limit, and that nothing on it answers without a session except the sign-in ceremony itself.
 - Lookup is **by case id, `traceId` or account id only** - no list of users, no search over content,

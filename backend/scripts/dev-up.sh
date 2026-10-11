@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Starts local Postgres 17 and MinIO for Tankbook backend development.
+# Starts local Postgres 17 and Azurite (the Azure Blob Storage emulator) for
+# Tankbook backend development.
 # Idempotent: safe to re-run; existing containers are detected and left running.
 # Requires docker. No docker-compose, ever (project rule).
 set -euo pipefail
@@ -15,16 +16,10 @@ POSTGRES_USER="tankbook"
 POSTGRES_PASSWORD="tankbook"
 POSTGRES_VOLUME="tankbook-postgres-data"
 
-MINIO_NAME="tankbook-minio"
-# Docker Hub no longer serves minio/minio (pull is denied); quay.io is the
-# upstream registry.
-MINIO_IMAGE="quay.io/minio/minio"
-MINIO_API_PORT="9000"
-MINIO_CONSOLE_PORT="9001"
-MINIO_ROOT_USER="tankbook"
-MINIO_ROOT_PASSWORD="tankbook123"
-MINIO_BUCKET="tankbook"
-MINIO_VOLUME="tankbook-minio-data"
+AZURITE_NAME="tankbook-azurite"
+AZURITE_IMAGE="mcr.microsoft.com/azure-storage/azurite"
+AZURITE_BLOB_PORT="10000"
+AZURITE_VOLUME="tankbook-azurite-data"
 
 docker info >/dev/null 2>&1 || { echo "ERROR: docker is not running or not installed." >&2; exit 1; }
 
@@ -65,45 +60,27 @@ else
     echo "WARNING: Postgres 17 is still starting on localhost:$POSTGRES_PORT; retry dev-up.sh shortly."
 fi
 
-# --- MinIO -----------------------------------------------------------------
-if [ "$(docker inspect -f '{{.State.Running}}' "$MINIO_NAME" 2>/dev/null)" = "true" ]; then
-    echo "MinIO container '$MINIO_NAME' already running - leaving it alone."
-elif docker container inspect "$MINIO_NAME" >/dev/null 2>&1; then
-    echo "MinIO container '$MINIO_NAME' exists but is stopped - starting it..."
-    docker start "$MINIO_NAME" >/dev/null
+# --- Azurite ---------------------------------------------------------------
+# Blob service only. --skipApiVersionCheck: the SDK the API ships can be newer
+# than the emulator, and Azurite would otherwise refuse its requests. The API
+# creates its container on the first write, so nothing is provisioned here.
+if [ "$(docker inspect -f '{{.State.Running}}' "$AZURITE_NAME" 2>/dev/null)" = "true" ]; then
+    echo "Azurite container '$AZURITE_NAME' already running - leaving it alone."
+elif docker container inspect "$AZURITE_NAME" >/dev/null 2>&1; then
+    echo "Azurite container '$AZURITE_NAME' exists but is stopped - starting it..."
+    docker start "$AZURITE_NAME" >/dev/null
 else
-    echo "Starting MinIO (API $MINIO_API_PORT, console $MINIO_CONSOLE_PORT, root $MINIO_ROOT_USER)..."
+    echo "Starting Azurite (blob $AZURITE_BLOB_PORT)..."
     docker run -d \
-        --name "$MINIO_NAME" \
-        -e MINIO_ROOT_USER="$MINIO_ROOT_USER" \
-        -e MINIO_ROOT_PASSWORD="$MINIO_ROOT_PASSWORD" \
-        -p "$MINIO_API_PORT:9000" \
-        -p "$MINIO_CONSOLE_PORT:9001" \
-        -v "$MINIO_VOLUME:/data" \
-        "$MINIO_IMAGE" server /data >/dev/null
-    echo "MinIO container '$MINIO_NAME' started."
-fi
-
-# Ensure the tankbook bucket exists (idempotent). The minio image bundles `mc`.
-alias_ok=""
-for _ in $(seq 1 15); do
-    if docker exec "$MINIO_NAME" mc alias set local "http://localhost:9000" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null 2>&1; then
-        alias_ok="1"
-        break
-    fi
-    sleep 1
-done
-if [ -n "$alias_ok" ]; then
-    docker exec "$MINIO_NAME" mc mb --ignore-existing "local/$MINIO_BUCKET" >/dev/null 2>&1 || true
-    echo "MinIO bucket '$MINIO_BUCKET' ensured."
-else
-    echo "WARNING: MinIO not reachable yet; bucket '$MINIO_BUCKET' not created. Re-run dev-up.sh shortly."
+        --name "$AZURITE_NAME" \
+        -p "$AZURITE_BLOB_PORT:10000" \
+        -v "$AZURITE_VOLUME:/data" \
+        "$AZURITE_IMAGE" azurite-blob --blobHost 0.0.0.0 --location /data --skipApiVersionCheck >/dev/null
+    echo "Azurite container '$AZURITE_NAME' started."
 fi
 
 echo
 echo "Running local infrastructure:"
 echo "  Postgres   localhost:$POSTGRES_PORT  (db/user/password: $POSTGRES_DB/$POSTGRES_USER/$POSTGRES_PASSWORD)"
-echo "  MinIO API  http://localhost:$MINIO_API_PORT"
-echo "  MinIO web  http://localhost:$MINIO_CONSOLE_PORT  (root: $MINIO_ROOT_USER / $MINIO_ROOT_PASSWORD)"
-echo "  S3 bucket  s3://$MINIO_BUCKET"
-echo "Data persists in named volumes '$POSTGRES_VOLUME' and '$MINIO_VOLUME'."
+echo "  Azurite    http://127.0.0.1:$AZURITE_BLOB_PORT/devstoreaccount1  (AzureBlob:ConnectionString = UseDevelopmentStorage=true)"
+echo "Data persists in named volumes '$POSTGRES_VOLUME' and '$AZURITE_VOLUME'."
