@@ -463,6 +463,11 @@ extension PostSweepCorpusAdditions {
         "pump-374-unknown-chevron-this-sale-gallons-4034-13914gal-night-us.jpg",
         // 2026-10-11: a Topaz TFT at Lukoil (heldout2) and a Tokheim LCD at Rosneft Tver.
         "pump-375-topaz-lukoil-m10-km178-tft-66772-939l-7111-lcd-totalizer-pair-ru.jpg",
-        "pump-376-tokheim-rn-tver-tn250-21600-3000l-720-reflection-pair-ru.jpg"
+        "pump-376-tokheim-rn-tver-tn250-21600-3000l-720-reflection-pair-ru.jpg",
+        // 2026-10-17: three Gazprom Neft Tokheim LCDs, one-decimal totals; two carry the owner's
+        // reflection.
+        "pump-377-tokheim-gazpromneft-azs12089-21474-3000l-7158-dusk-pair-ru.jpg",
+        "pump-378-tokheim-gazpromneft-edrovo-36766-5100l-7209-reflection-pair-ru.jpg",
+        "pump-379-tokheim-gazpromneft-15723-2200l-7147-reflection-pair-ru.jpg"
     ]
 }

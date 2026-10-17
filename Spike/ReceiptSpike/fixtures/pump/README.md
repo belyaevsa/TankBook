@@ -1695,3 +1695,22 @@ Both Telegram-routed 1280 px JPEGs, EXIF stripped; windows drawn by hand. The ru
 **Split:** `pump-375` is **heldout2** - a make (Topaz TFT) the heldout sets do not show, a whole
 fill, and its video is train so the classifier still sees the face; `pump-376` is train. No mark
 moves (pump is scored on heldout only).
+
+## Added 2026-10-17 (Gazprom Neft - 3 Tokheim stills, all paired)
+
+- `pump-377` - a **Tokheim** LCD at Gazprom Neft АЗС 12089 (M-10 km 175, Tver region), G-Drive 95:
+  **2147,4 / 30,00 at 71,58**, at dusk with trees reflected in the glass. Pair of `receipt-119`.
+- `pump-378` - the same make at Gazprom Neft АЗС 10031, Edrovo: **3676,6 / 51,00 at 72,09**, the
+  owner reflected across the panel. The one-decimal total rounds the receipt's 3676.59; the CSV
+  asserts the receipt (decision 6) and the checker accepts the rounding, as `pump-065`. Pair of
+  `receipt-120`.
+- `pump-379` - a Tokheim at a Gazprom Neft station whose paper has no header: **1572,3 / 22,00 at
+  71,47**, the owner reflected and the **price cell under a glare band** (its window is marked
+  `legibility: partial`). The CSV total is the receipt's 1572.34. Pair of `receipt-121`.
+
+All Telegram-routed 1280 px JPEGs, EXIF stripped; windows drawn by the orchestrator. The running
+fills are `video-060`..`062` (`pump-live/README.md` -> Batch 20).
+
+**Split:** all three are **train** - the Tokheim LCD with a one-decimal total is the corpus's most
+common Russian face (`pump-065`, `083`, `109`), so nothing here is a condition the heldout sets
+lack. No mark moves (pump is scored on heldout only).

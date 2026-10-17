@@ -7,7 +7,7 @@ paper before any station extractor existed, cross-checked against the OCR text (
 INPUT, never its output). Where the two cannot agree the cell is empty and the reason is here - a
 blank for any other reason is a miss hiding, which is the RV.161 trap.
 
-Asserted: 102 of 118 receipts (the 2026-09-21/22 eleven all assert; of the 2026-09-22 French batch, seven assert; the 2026-09-25 Capture lab receipt asserts; the 2026-09-27 three - Circle K and the Olerex pair - assert; the 2026-09-28 two Circle K papers assert; of the later 2026-09-28 five Circle K Peterburi papers, four assert; the 2026-09-30 three - the Alexela Sikupilli paper and the two Neste Vesse ones - assert, and so do their three in-app second shots; the 2026-10-10 two Lukoil Astana papers assert, and so do the 2026-10-11 Lukoil M-10 and Rosneft Tver papers). Blank, with the reason:
+Asserted: 104 of 121 receipts (the 2026-09-21/22 eleven all assert; of the 2026-09-22 French batch, seven assert; the 2026-09-25 Capture lab receipt asserts; the 2026-09-27 three - Circle K and the Olerex pair - assert; the 2026-09-28 two Circle K papers assert; of the later 2026-09-28 five Circle K Peterburi papers, four assert; the 2026-09-30 three - the Alexela Sikupilli paper and the two Neste Vesse ones - assert, and so do their three in-app second shots; the 2026-10-10 two Lukoil Astana papers assert, and so do the 2026-10-11 Lukoil M-10 and Rosneft Tver papers; of the 2026-10-17 three Gazprom Neft papers, two assert). Blank, with the reason:
 
 | fixture | why the cell is blank |
 |---|---|
@@ -27,6 +27,7 @@ Asserted: 102 of 118 receipts (the 2026-09-21/22 eleven all assert; of the 2026-
 | `receipt-057-gpn-valday-95-occluded-ru.jpg` | brand not legible in the OCR text (the filename names it, the read does not carry it on any line) |
 | `receipt-096-unknown-gazole-3463l-1843-no-total-cropped-fr.jpg` | the photo is cropped above the header: no station name is on the paper that was photographed, only `TICKET CLIENT A CONSERVER` |
 | `receipt-105-circlek-peterburi-diesel-4161l-2184-zoom2x-total-cut-ee.jpg` | the Capture lab's 2x zoom cuts the left edge: the header reads `rcle K Peterburi`, so the brand is not on the paper that was photographed |
+| `receipt-121-gazpromneft-header-cut-gdrive95-2200l-7147-fuelcard-pair-ru.jpg` | the photo starts below the header: the paper as photographed carries no chain name, only `G-Drive 95` and the fuel-card lines |
 
 `receipt-006` (`ИП Гридяева А.В.`) and `receipt-043` (`ООО "Артемовск-Газсервис"`) are single
 stations, not chains, and the filename names them - asserted as `gridyaeva` and

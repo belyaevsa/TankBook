@@ -588,6 +588,19 @@ Two plain videos of the two fills whose stills and papers joined the corpus the 
 | `video-058-tokheim-rn-tver-tn250-running-display-7200-ru` | 1182 (1280x720, 30 fps, 39.4 s) | Tokheim LCD at Rosneft АЗК TN250, Tver, Pulsar AI-95 **counting up** from ~693.4 / 9.63 to **2160,0 / 30,00**, the owner reflected in the glass; IMG_4805.MOV whole (only the display is in frame), no audio, no metadata. Reference quads placed by the orchestrator on the last frame 1182, unreviewed; `pump_reader.track --videos` kept 1182 of 1182 frames | price `72.00` (`30.00 x 72.00 = 2160.00` closes) |
 | `video-059-topaz-lukoil-m10-km178-tft-running-display-7111-ru` | 198 (1280x720, 30 fps, 6.6 s) | Topaz TFT at Lukoil M-10 km 178, AI-95 **counting up** to 611.55 / 8.60 - the clip ends before the fill does (9.39, `pump-375`). The LCD row below lags the TFT's volume by about 0.1 L and its `СУММА` cell is a running counter (553429 -> 553432), not the sale. IMG_4809.MOV **cut to its first 6.6 s** (the camera then leaves the display), no audio, no metadata. Reference quads on the TFT placed by the orchestrator on the last frame 198, unreviewed; `pump_reader.track --videos` kept 191 of 198 frames (the first frames start below the screen) | price `71.11` (`8.60 x 71.11 = 611.55` closes) |
 
+## Batch 20 (2026-10-17, product owner): three Gazprom Neft Tokheims
+
+Three plain videos of the three fills whose stills and papers joined the corpus the same day
+(`pump-377`/`receipt-119`, `pump-378`/`receipt-120`, `pump-379`/`receipt-121`). All arrived
+Telegram-routed (1280x720, 30 fps, with audio) and show only the display, so each was re-encoded
+whole without audio or metadata. Train, as every video is.
+
+| video | frames | what | truth |
+|---|---|---|---|
+| `video-060-tokheim-gazpromneft-azs12089-running-display-7158-ru` | 1338 (44.6 s) | Tokheim LCD at Gazprom Neft АЗС 12089 (M-10 km 175, Tver region), G-Drive 95 **counting up** at 71,58 from 225,5 / 3,15 to 2134,5 / 29,82 at dusk, trees reflected in the glass; IMG_4903.MOV whole. Reference quads placed by the orchestrator on the last frame 1338, unreviewed; tracked 1338/1338 | fill ends at 2147,4 / 30,00 (`pump-377`, `receipt-119`) |
+| `video-061-tokheim-gazpromneft-edrovo-running-display-7209-ru` | 1733 (58.0 s) | Tokheim LCD at Gazprom Neft АЗС 10031, Edrovo (M-11 km 368), G-Drive 95 **counting up** at 72,09 from 723,9 / 10,08 to 3659,3 / 50,76, the owner reflected in the glass; IMG_4865.MOV whole. Reference quads on the last frame 1733, unreviewed; tracked 1733/1733 | fill ends at 3676,6 / 51,00 (`pump-378`, `receipt-120`) |
+| `video-062-tokheim-gazpromneft-running-display-7147-reflection-ru` | 836 (27.9 s) | Tokheim LCD at a Gazprom Neft station (the paper's header is cut off), G-Drive 95 **counting up** at 71,47 from 428,8 / 6,09 to 1568,8 / 21,95, the owner reflected and the price cell under glare; IMG_4868.MOV whole. Reference quads on the last frame 836, unreviewed; tracked 836/836 | fill ends at 1572,3 / 22,00 (`pump-379`, `receipt-121`) |
+
 ## Frames and tracking (2026-09-20)
 
 Two scripts in `ml/pump-reader` turn the records into labelled training frames without a

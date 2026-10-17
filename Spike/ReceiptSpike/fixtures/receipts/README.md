@@ -1230,3 +1230,17 @@ Both Telegram-routed 960x1280 photos, EXIF stripped. Measured on the iOS 27 simu
 410/555 -> 416/565 (6 of the 10 new cells read; through compression 402 -> 408), stations
 53/100 -> 54/102 - `receipt-118`'s station reads `AO "PH-ТВЕРЬ"`, two Latin look-alikes in a row,
 which the brand matcher does not fold yet.
+
+## Added 2026-10-17 (Gazprom Neft - 3 fuel-card receipts, all paired)
+
+- `receipt-119` - ООО "Газпромнефть-Центр" АЗС №12089 (M-10, Tver region): `Бензин G-Drive 95(АИ-95-К5)`,
+  **71.58 X 30.000 =2147.40**, ИТОГО =2147.40, paid by fuel card. Pair of `pump-377`.
+- `receipt-120` - the same company's АЗС №10031, Edrovo (Valday district, km 368): **72.09 X
+  51.000 =3676.59**, ИТОГО mostly under the owner's thumb. Pair of `pump-378`.
+- `receipt-121` - a Gazprom Neft fuel-card paper photographed **from below the header**: **71.47 X
+  22.000 =1572.34**, ИТОГО =1572.34. No chain name is on the photographed paper, so the station
+  cell is blank (`stations.md`). Pair of `pump-379`.
+
+All Telegram-routed 960x1280 photos, EXIF stripped. Measured on the iOS 27 simulator: receipts
+416/565 -> 429/580 (13 of the 15 new cells read; through compression 408 -> 421), stations
+54/102 -> 56/104.

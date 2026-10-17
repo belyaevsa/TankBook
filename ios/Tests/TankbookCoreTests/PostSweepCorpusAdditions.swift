@@ -178,7 +178,12 @@ enum PostSweepCorpusAdditions {
             // 2026-10-11: the papers of pump-375 (Lukoil M-10, a loyalty discount) and pump-376
             // (Rosneft Tver, blurred).
             "receipt-117-lukoil-m10-km178-ai95-939l-7111-discount-pair-ru.jpg",
-            "receipt-118-rn-tver-tn250-pulsar95-3000l-7200-blurred-pair-ru.jpg"
+            "receipt-118-rn-tver-tn250-pulsar95-3000l-7200-blurred-pair-ru.jpg",
+            // 2026-10-17: three Gazprom Neft fuel-card papers, the fills of pump-377..379; one
+            // with its header cut off.
+            "receipt-119-gazpromneft-azs12089-gdrive95-3000l-7158-fuelcard-pair-ru.jpg",
+            "receipt-120-gazpromneft-edrovo-gdrive95-5100l-7209-fuelcard-pair-ru.jpg",
+            "receipt-121-gazpromneft-header-cut-gdrive95-2200l-7147-fuelcard-pair-ru.jpg"
         ],
         "pump": pump,
         "screenshots": [

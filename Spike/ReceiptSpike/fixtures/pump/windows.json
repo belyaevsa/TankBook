@@ -46197,5 +46197,425 @@
    }
   ],
   "reviewed": true
+ },
+ "pump-374-unknown-chevron-this-sale-gallons-4034-13914gal-night-us.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "40.34",
+    "quad": [
+     [
+      0.435,
+      0.318
+     ],
+     [
+      0.62,
+      0.318
+     ],
+     [
+      0.62,
+      0.388
+     ],
+     [
+      0.435,
+      0.388
+     ]
+    ],
+    "placedBy": "hand"
+   },
+   {
+    "field": "liters",
+    "text": "13.914",
+    "quad": [
+     [
+      0.43,
+      0.383
+     ],
+     [
+      0.58,
+      0.383
+     ],
+     [
+      0.58,
+      0.428
+     ],
+     [
+      0.43,
+      0.428
+     ]
+    ],
+    "placedBy": "hand"
+   }
+  ],
+  "volumeUnit": "gal"
+ },
+ "pump-375-topaz-lukoil-m10-km178-tft-66772-939l-7111-lcd-totalizer-pair-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "667.72",
+    "quad": [
+     [
+      0.262,
+      0.198
+     ],
+     [
+      0.367,
+      0.198
+     ],
+     [
+      0.367,
+      0.242
+     ],
+     [
+      0.262,
+      0.242
+     ]
+    ],
+    "placedBy": "hand"
+   },
+   {
+    "field": "unitPrice",
+    "text": "71.11",
+    "quad": [
+     [
+      0.672,
+      0.203
+     ],
+     [
+      0.754,
+      0.203
+     ],
+     [
+      0.754,
+      0.242
+     ],
+     [
+      0.672,
+      0.242
+     ]
+    ],
+    "placedBy": "hand"
+   },
+   {
+    "field": "liters",
+    "text": "9.39",
+    "quad": [
+     [
+      0.273,
+      0.62
+     ],
+     [
+      0.344,
+      0.62
+     ],
+     [
+      0.344,
+      0.658
+     ],
+     [
+      0.273,
+      0.658
+     ]
+    ],
+    "placedBy": "hand"
+   }
+  ],
+  "csvDisagrees": {
+   "total": "the display shows 667.72 (9.39 x 71.11 = 667.72); expected.csv asserts the RECEIPT total 667.00 after the Lukoil loyalty discount (\u0421\u041a\u0418\u0414\u041a\u0410 0.72) - a pump reader is right to read 667.72, as pump-031"
+  }
+ },
+ "pump-376-tokheim-rn-tver-tn250-21600-3000l-720-reflection-pair-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "2160,0",
+    "quad": [
+     [
+      0.426,
+      0.273
+     ],
+     [
+      0.699,
+      0.273
+     ],
+     [
+      0.699,
+      0.367
+     ],
+     [
+      0.426,
+      0.367
+     ]
+    ],
+    "placedBy": "hand"
+   },
+   {
+    "field": "liters",
+    "text": "30,00",
+    "quad": [
+     [
+      0.484,
+      0.367
+     ],
+     [
+      0.699,
+      0.367
+     ],
+     [
+      0.699,
+      0.467
+     ],
+     [
+      0.484,
+      0.467
+     ]
+    ],
+    "placedBy": "hand"
+   },
+   {
+    "field": "unitPrice",
+    "text": "72,0",
+    "quad": [
+     [
+      0.575,
+      0.55
+     ],
+     [
+      0.699,
+      0.55
+     ],
+     [
+      0.699,
+      0.609
+     ],
+     [
+      0.575,
+      0.609
+     ]
+    ],
+    "placedBy": "hand"
+   }
+  ]
+ },
+ "pump-377-tokheim-gazpromneft-azs12089-21474-3000l-7158-dusk-pair-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "2147,4",
+    "quad": [
+     [
+      0.434,
+      0.13
+     ],
+     [
+      0.848,
+      0.13
+     ],
+     [
+      0.848,
+      0.286
+     ],
+     [
+      0.434,
+      0.286
+     ]
+    ],
+    "placedBy": "hand"
+   },
+   {
+    "field": "liters",
+    "text": "30,00",
+    "quad": [
+     [
+      0.523,
+      0.292
+     ],
+     [
+      0.84,
+      0.292
+     ],
+     [
+      0.84,
+      0.443
+     ],
+     [
+      0.523,
+      0.443
+     ]
+    ],
+    "placedBy": "hand"
+   },
+   {
+    "field": "unitPrice",
+    "text": "71,58",
+    "quad": [
+     [
+      0.678,
+      0.575
+     ],
+     [
+      0.857,
+      0.575
+     ],
+     [
+      0.857,
+      0.668
+     ],
+     [
+      0.678,
+      0.668
+     ]
+    ],
+    "placedBy": "hand"
+   }
+  ]
+ },
+ "pump-378-tokheim-gazpromneft-edrovo-36766-5100l-7209-reflection-pair-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "3676,6",
+    "quad": [
+     [
+      0.41,
+      0.203
+     ],
+     [
+      0.766,
+      0.203
+     ],
+     [
+      0.766,
+      0.333
+     ],
+     [
+      0.41,
+      0.333
+     ]
+    ],
+    "placedBy": "hand"
+   },
+   {
+    "field": "liters",
+    "text": "51,00",
+    "quad": [
+     [
+      0.488,
+      0.344
+     ],
+     [
+      0.766,
+      0.344
+     ],
+     [
+      0.766,
+      0.474
+     ],
+     [
+      0.488,
+      0.474
+     ]
+    ],
+    "placedBy": "hand"
+   },
+   {
+    "field": "unitPrice",
+    "text": "72,09",
+    "quad": [
+     [
+      0.62,
+      0.575
+     ],
+     [
+      0.778,
+      0.575
+     ],
+     [
+      0.778,
+      0.655
+     ],
+     [
+      0.62,
+      0.655
+     ]
+    ],
+    "placedBy": "hand"
+   }
+  ]
+ },
+ "pump-379-tokheim-gazpromneft-15723-2200l-7147-reflection-pair-ru.jpg": {
+  "windows": [
+   {
+    "field": "total",
+    "text": "1572,3",
+    "quad": [
+     [
+      0.469,
+      0.177
+     ],
+     [
+      0.758,
+      0.177
+     ],
+     [
+      0.758,
+      0.292
+     ],
+     [
+      0.469,
+      0.292
+     ]
+    ],
+    "placedBy": "hand"
+   },
+   {
+    "field": "liters",
+    "text": "22,00",
+    "quad": [
+     [
+      0.504,
+      0.297
+     ],
+     [
+      0.75,
+      0.297
+     ],
+     [
+      0.75,
+      0.411
+     ],
+     [
+      0.504,
+      0.411
+     ]
+    ],
+    "placedBy": "hand"
+   },
+   {
+    "field": "unitPrice",
+    "text": "71,47",
+    "quad": [
+     [
+      0.62,
+      0.507
+     ],
+     [
+      0.757,
+      0.507
+     ],
+     [
+      0.757,
+      0.576
+     ],
+     [
+      0.62,
+      0.576
+     ]
+    ],
+    "legibility": "partial",
+    "placedBy": "hand"
+   }
+  ]
  }
 }

@@ -16738,5 +16738,221 @@
   ],
   "reviewed": false,
   "note": "IMG_4809.MOV cut to its first 6.6 s (then the camera leaves the display), no audio, no metadata - Topaz TFT at Lukoil M-10 km 178, Russia, AI-95 counting up at 71.11 to 611.55 / 8.60 (the fill ends at 9.39, pump-375); the LCD row below repeats the volume and its \u0421\u0423\u041c\u041c\u0410 cell is a running counter (553429 -> 553432), not the sale; reference quads on the TFT placed by the orchestrator on the last frame 198, unreviewed"
+ },
+ "video-060-tokheim-gazpromneft-azs12089-running-display-7158-ru": {
+  "reference": "1338.jpg",
+  "currency": "RUB",
+  "unitPrice": "71.58",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.31,
+      0.21
+     ],
+     [
+      0.71,
+      0.21
+     ],
+     [
+      0.71,
+      0.375
+     ],
+     [
+      0.31,
+      0.375
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.4,
+      0.375
+     ],
+     [
+      0.7,
+      0.375
+     ],
+     [
+      0.7,
+      0.555
+     ],
+     [
+      0.4,
+      0.555
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.55,
+      0.715
+     ],
+     [
+      0.73,
+      0.715
+     ],
+     [
+      0.73,
+      0.85
+     ],
+     [
+      0.55,
+      0.85
+     ]
+    ]
+   }
+  ],
+  "reviewed": false,
+  "note": "IMG_4903.MOV whole (only the display is in frame, trees reflected in the glass at dusk), no audio, no metadata - Tokheim LCD at Gazprom Neft \u0410\u0417\u0421 12089, M-10 km 175, Tver region, Russia, G-Drive 95 counting up at 71,58 from 225,5 / 3,15 to 2134,5 / 29,82 (the fill ends at 2147,4 / 30,00, pump-377 and receipt-119); reference quads placed by the orchestrator on the last frame 1338, unreviewed"
+ },
+ "video-061-tokheim-gazpromneft-edrovo-running-display-7209-ru": {
+  "reference": "1733.jpg",
+  "currency": "RUB",
+  "unitPrice": "72.09",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.47,
+      0.105
+     ],
+     [
+      0.865,
+      0.105
+     ],
+     [
+      0.865,
+      0.305
+     ],
+     [
+      0.47,
+      0.305
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.56,
+      0.305
+     ],
+     [
+      0.86,
+      0.305
+     ],
+     [
+      0.86,
+      0.495
+     ],
+     [
+      0.56,
+      0.495
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.7,
+      0.61
+     ],
+     [
+      0.865,
+      0.61
+     ],
+     [
+      0.865,
+      0.73
+     ],
+     [
+      0.7,
+      0.73
+     ]
+    ]
+   }
+  ],
+  "reviewed": false,
+  "note": "IMG_4865.MOV whole (only the display is in frame; the owner reflected in the glass), no audio, no metadata - Tokheim LCD at Gazprom Neft \u0410\u0417\u0421 10031, Edrovo, M-11 km 368, Russia, G-Drive 95 counting up at 72,09 from 723,9 / 10,08 to 3659,3 / 50,76 (the fill ends at 3676,6 / 51,00, pump-378 and receipt-120); reference quads placed by the orchestrator on the last frame 1733, unreviewed"
+ },
+ "video-062-tokheim-gazpromneft-running-display-7147-reflection-ru": {
+  "reference": "836.jpg",
+  "currency": "RUB",
+  "unitPrice": "71.47",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.36,
+      0.15
+     ],
+     [
+      0.76,
+      0.15
+     ],
+     [
+      0.76,
+      0.35
+     ],
+     [
+      0.36,
+      0.35
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.405,
+      0.35
+     ],
+     [
+      0.76,
+      0.35
+     ],
+     [
+      0.76,
+      0.555
+     ],
+     [
+      0.405,
+      0.555
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.555,
+      0.695
+     ],
+     [
+      0.74,
+      0.695
+     ],
+     [
+      0.74,
+      0.835
+     ],
+     [
+      0.555,
+      0.835
+     ]
+    ]
+   }
+  ],
+  "reviewed": false,
+  "note": "IMG_4868.MOV whole (only the display is in frame; the owner reflected in the glass, the price cell under glare), no audio, no metadata - Tokheim LCD at a Gazprom Neft station (the paper's header is cut off), Russia, G-Drive 95 counting up at 71,47 from 428,8 / 6,09 to 1568,8 / 21,95 (the fill ends at 1572,3 / 22,00, pump-379 and receipt-121); reference quads placed by the orchestrator on the last frame 836, unreviewed"
  }
 }
