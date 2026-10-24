@@ -16954,5 +16954,77 @@
   ],
   "reviewed": false,
   "note": "IMG_4868.MOV whole (only the display is in frame; the owner reflected in the glass, the price cell under glare), no audio, no metadata - Tokheim LCD at a Gazprom Neft station (the paper's header is cut off), Russia, G-Drive 95 counting up at 71,47 from 428,8 / 6,09 to 1568,8 / 21,95 (the fill ends at 1572,3 / 22,00, pump-379 and receipt-121); reference quads placed by the orchestrator on the last frame 836, unreviewed"
+ },
+ "video-063-adast-running-display-lpg-112-kz": {
+  "reference": "243.jpg",
+  "currency": "KZT",
+  "unitPrice": "112",
+  "windows": [
+   {
+    "field": "total",
+    "quad": [
+     [
+      0.515,
+      0.29
+     ],
+     [
+      0.74,
+      0.29
+     ],
+     [
+      0.74,
+      0.45
+     ],
+     [
+      0.515,
+      0.45
+     ]
+    ]
+   },
+   {
+    "field": "liters",
+    "quad": [
+     [
+      0.51,
+      0.45
+     ],
+     [
+      0.74,
+      0.45
+     ],
+     [
+      0.74,
+      0.6
+     ],
+     [
+      0.51,
+      0.6
+     ]
+    ]
+   },
+   {
+    "field": "unitPrice",
+    "quad": [
+     [
+      0.585,
+      0.6
+     ],
+     [
+      0.74,
+      0.6
+     ],
+     [
+      0.74,
+      0.765
+     ],
+     [
+      0.585,
+      0.765
+     ]
+    ]
+   }
+  ],
+  "reviewed": false,
+  "note": "IMG_6659.MOV whole (only the display is in frame; the owner's hand reflected in the glass), no audio, no metadata - Adast LCD, Kazakhstan, LPG counting up at 112 from 2239 / 19,99 to 2486 / 22,20 beside the other side's finished 5184 / 46,29; reference quads placed by the orchestrator on the last frame 243, unreviewed"
  }
 }

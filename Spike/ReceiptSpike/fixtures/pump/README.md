@@ -1714,3 +1714,23 @@ fills are `video-060`..`062` (`pump-live/README.md` -> Batch 20).
 **Split:** all three are **train** - the Tokheim LCD with a one-decimal total is the corpus's most
 common Russian face (`pump-065`, `083`, `109`), so nothing here is a condition the heldout sets
 lack. No mark moves (pump is scored on heldout only).
+
+## Added 2026-10-24 (Adast, Kazakhstan - 3 stills, one heldout2)
+
+- `pump-380` - an **Adast** LCD in Kazakhstan: **5003 / 15,44 at 324** (whole tenge), a block of
+  flats reflected across the whole display, the liters and price cells read through it (both
+  windows `legibility: partial`). **The shipped reader reads nothing on it** - no cell from the
+  reader, none from the rules arm - which is why it is the batch's **heldout2** still.
+- `pump-381` - the same make, LPG: **3077 / 27,47 at 112** in bright sun; the other side's display,
+  cut off at the left edge, shows `pump-382`'s fill.
+- `pump-382` - LPG on the other side: **5994 / 53,52 at 112** in bright sun.
+
+HEIC key frames converted to JPEG, EXIF stripped; windows drawn by the orchestrator. Each has its
+Live record (`live-6660`..`6662`) and `video-063` is a third LPG fill on the same head
+(`pump-live/README.md` -> Batch 21).
+
+**Split:** `pump-380` is **heldout2** - a whole fill no other still shows, and the reflection is
+the condition the shipped model fails on. Measured with the shipped reader on iOS 27 before the
+split was set: with currency KZT, `pump-381` and `pump-382` read all three cells right and are
+**train**. No mark moves (pump is scored on heldout only). Kazakh currency matters to the read: without
+KZT the reader scales the same digits as 1.12 / 30.77 and 1.12 / 59.94.

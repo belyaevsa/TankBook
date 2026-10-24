@@ -601,6 +601,24 @@ whole without audio or metadata. Train, as every video is.
 | `video-061-tokheim-gazpromneft-edrovo-running-display-7209-ru` | 1733 (58.0 s) | Tokheim LCD at Gazprom Neft АЗС 10031, Edrovo (M-11 km 368), G-Drive 95 **counting up** at 72,09 from 723,9 / 10,08 to 3659,3 / 50,76, the owner reflected in the glass; IMG_4865.MOV whole. Reference quads on the last frame 1733, unreviewed; tracked 1733/1733 | fill ends at 3676,6 / 51,00 (`pump-378`, `receipt-120`) |
 | `video-062-tokheim-gazpromneft-running-display-7147-reflection-ru` | 836 (27.9 s) | Tokheim LCD at a Gazprom Neft station (the paper's header is cut off), G-Drive 95 **counting up** at 71,47 from 428,8 / 6,09 to 1568,8 / 21,95, the owner reflected and the price cell under glare; IMG_4868.MOV whole. Reference quads on the last frame 836, unreviewed; tracked 836/836 | fill ends at 1572,3 / 22,00 (`pump-379`, `receipt-121`) |
 
+## Batch 21 (2026-10-24, product owner): Adast heads in Kazakhstan
+
+Three Live records beside their stills and one plain video, Adast LCDs at one Kazakh station, prices
+in whole tenge. `pump-380` (324 KZT, a building reflected across the whole LCD) is the one still
+the shipped reader read **nothing** on, so it is heldout2 with its Live record; `pump-381` and
+`pump-382` (LPG at 112, bright sun) read all three cells and are train. The video is a third LPG
+fill at the same price, train as every video is.
+
+| live | frames | what | paired still / truth |
+|---|---|---|---|
+| `live-6660` | 84 | Live record of the pump still (heldout2) | `pump-380` |
+| `live-6661` | 88 | Live record of the pump still | `pump-381` |
+| `live-6662` | 89 | Live record of the pump still | `pump-382` |
+
+| video | frames | what | truth |
+|---|---|---|---|
+| `video-063-adast-running-display-lpg-112-kz` | 243 (3840x2160, 24 fps, 10.1 s) | Adast LCD, Kazakhstan, LPG **counting up** at 112 from 2239 / 19,99 to 2486 / 22,20, beside the other side's finished 5184 / 46,29; the owner's hand reflected in the glass; IMG_6659.MOV whole, no audio, no metadata. Reference quads placed by the orchestrator on the last frame 243, unreviewed; tracked 243/243 | price `112` (`22.20 x 112 = 2486` closes) |
+
 ## Frames and tracking (2026-09-20)
 
 Two scripts in `ml/pump-reader` turn the records into labelled training frames without a

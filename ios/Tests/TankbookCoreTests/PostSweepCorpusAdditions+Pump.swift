@@ -468,6 +468,11 @@ extension PostSweepCorpusAdditions {
         // reflection.
         "pump-377-tokheim-gazpromneft-azs12089-21474-3000l-7158-dusk-pair-ru.jpg",
         "pump-378-tokheim-gazpromneft-edrovo-36766-5100l-7209-reflection-pair-ru.jpg",
-        "pump-379-tokheim-gazpromneft-15723-2200l-7147-reflection-pair-ru.jpg"
+        "pump-379-tokheim-gazpromneft-15723-2200l-7147-reflection-pair-ru.jpg",
+        // 2026-10-24: three Adast LCDs in Kazakhstan, whole-tenge prices; one with a building
+        // reflected across the display.
+        "pump-380-adast-5003-1544l-324-reflection-kz.jpg",
+        "pump-381-adast-3077-2747l-112-lpg-sun-kz.jpg",
+        "pump-382-adast-5994-5352l-112-lpg-sun-kz.jpg"
     ]
 }
