@@ -270,7 +270,7 @@ rule 12). "Keep the entries as they are" writes no line - it changes nothing
 the log does not already record.
 
 ### The automatic foreground pass (RV.139b)
-`automatic.pass` – `step` (`started` / `config` / `summary` / `sync` / `rates` /
+`automatic.pass` – `step` (`started` / `config` / `summary` / `sync` / `timeline` / `rates` /
 `delivery` / `feedback` / `finished`). One line per mark, emitted by
 `AutomaticPassRunner` **before** the step it names is awaited, at most once per
 foreground pass (`TabRoots.runAutomaticPass`; `didRunAutomaticPass` dedupes the

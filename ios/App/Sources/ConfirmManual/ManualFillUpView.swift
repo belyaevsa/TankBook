@@ -158,7 +158,8 @@ struct ManualFillUpView: View {
                                              volumeUnit: vehicle!.units.volume, conflict: odometerConflict,
                                              onFixDate: { showDatePicker = true },
                                              lastKnown: lastKnown,
-                                             paceLimitKmPerDay: vehicle!.paceLimitKmPerDay)
+                                             paceLimitKmPerDay: TimelineValidator.paceLimit(
+                                                for: existingEntries, vehicle: vehicle!))
                     ManualFillUpStationRow(stations: $stations, selection: $selectedStation,
                                            onChose: { stationChosenByUser = true },
                                            currency: form.currency)

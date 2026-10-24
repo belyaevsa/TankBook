@@ -133,6 +133,7 @@ struct RV139AutomaticPassTests {
             AutomaticPassRunner.Step(code: .config) {},
             AutomaticPassRunner.Step(code: .summary) {},
             AutomaticPassRunner.Step(code: .sync) {},
+            AutomaticPassRunner.Step(code: .timeline) {},
             AutomaticPassRunner.Step(code: .rates) {},
             AutomaticPassRunner.Step(code: .delivery) {},
             AutomaticPassRunner.Step(code: .feedback) {},

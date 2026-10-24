@@ -546,11 +546,10 @@ final class EditEntryUITests: XCTestCase {
         let app = launchOnConflict()
         let odometer = statementText(app, "neighbourhoodOdometerStatement")
         XCTAssertTrue(odometer.waitForExistence(timeout: 10))
-        // The lower end is order-derived (previous + 1), exact and stable; the
-        // pace-derived upper end depends on the sub-day float gap between the
-        // two seeded `Date()`s, so assert the interval SHAPE with the exact
-        // lower bound rather than a brittle full number.
-        XCTAssertTrue(odometer.label.contains("must be between \(grouped(118_501)) and"),
+        // The lower end is order-derived (previous + 1). The seeded car has
+        // fewer fills than the pace check learns from, so no pace bound closes
+        // the upper end (RV.341).
+        XCTAssertTrue(odometer.label.contains("must be at least \(grouped(118_501)) km"),
                       "the odometer sentence must name the interval's lower endpoint, got '\(odometer.label)'")
         XCTAssertTrue(odometer.label.contains(" km"),
                       "the sentence must carry the distance unit, got '\(odometer.label)'")

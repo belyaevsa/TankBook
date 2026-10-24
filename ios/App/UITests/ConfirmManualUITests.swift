@@ -626,10 +626,14 @@ extension ConfirmManualUITests {
         replaceOdometer(app, "119000")
         waitForCaption(app, "Odometer went backwards – check it.")
 
-        // A forward value whose implied daily rate exceeds the limit warns too
-        // (10 514 km / 6 days = 1 752/day > the seeded 1 500).
+        // A forward value far over 1 500 km/day is not a pace warn on this car:
+        // it has fewer fills than the pace check needs to learn from, so the
+        // caption stays the plain forward delta (RV.341).
         replaceOdometer(app, "130000")
-        waitForCaption(app, "Daily pace over the limit – check it.")
+        let caption = app.staticTexts["manualFillUpOdometerCaption"]
+        expectation(for: NSPredicate(format: "label BEGINSWITH '+' AND label ENDSWITH 'since last'"),
+                    evaluatedWith: caption)
+        waitForExpectations(timeout: 5)
     }
 
     func testOdometerWarnNeverBlocksTheSave() {

@@ -524,6 +524,7 @@ struct AppRootView: View {
                     await sync.runOpportunisticSync()
                 }
             },
+            AutomaticPassRunner.Step(code: .timeline) { AppTimeline.revalidateAll(toastCenter.noteEntryChanged) },
             // PJ.8: a rate pack refresh fills rate-pending entries (S8 backfill).
             AutomaticPassRunner.Step(code: .rates) { await AppRates.refresh() },
             // RV.44: drain the delivery outbox (signed-in only, best-effort).
@@ -533,8 +534,7 @@ struct AppRootView: View {
             // RV.115: the brand vocabulary's since_version refresh (public
             // reference data; a failure leaves the held pack standing).
             AutomaticPassRunner.Step(code: .stationBrands) { await AppStationBrands.refresh() },
-            // The city dictionary (public reference data; a failure leaves the
-            // held pack standing).
+            // The city dictionary (public reference data; a failure keeps the held pack).
             AutomaticPassRunner.Step(code: .cities) { await AppCities.refresh() }
         ], log: AppLog.shared)
     }

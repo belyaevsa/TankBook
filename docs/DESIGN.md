@@ -79,7 +79,7 @@ The scan-confirm card is styled as an echo of the pump readout the user just loo
   - typed **>** last: `+N km since last` in `inkSoft` – the positive delta.
   - typed **=** last: `Same as last` in `inkSoft` – neutral, never amber. Equal is a legitimate state (no distance driven since the last entry) and it is the pre-fill's own initial state, so amber would alarm on the default screen.
   - typed **<** last: amber `Odometer went backwards – check it.`
-  - implied daily pace over `vehicle.paceLimitKmPerDay` (default 1 500 km/day, `docs/SCHEMA.md`): amber `Daily pace over the limit – check it.`
+  - implied daily pace over the car's pace limit (learned from the car's own fills, or the user's own `paceLimitKmPerDay` - `docs/SCHEMA.md` CHECK 2): amber `Daily pace over the limit – check it.`
   - Amber is attention, never alarm (hard rule 5); the warn states never block the save – an implausible odometer warns and the user decides (hard rule 13), exactly as `TimelineValidator` flags on save. RU spells out the unit (`+N километров с прошлой заправки`) so the count governs a real one/few/many plural (the 11/21 edge), and the whole caption is one composed phrase per language, never concatenation.
 - The **cross-check line** is validation made visible: while `liters × price ≈ total` is unresolved it renders as a thin `inkSoft` rule; when it locks, it fills `taillight` with a tick and a light haptic. If it can't lock, the mismatched field gets a `warn` amber underline and the tap-to-edit affordance – never a modal alert.
 - Low-confidence OCR fields render at 60% opacity until confirmed by tap or edit. Confidence is shown, not hidden.

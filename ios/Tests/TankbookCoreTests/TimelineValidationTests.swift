@@ -169,12 +169,14 @@ private func fill(date: Date, odometer: Int, volumeL: Double = 40,
     let first = fill(date: epoch, odometer: 10_000)
     let candidate = fill(date: epoch + 1 * day, odometer: 11_500) // 1500 km/day
 
-    let atLimit = TimelineValidator.validate(entries: [first, candidate], vehicle: vehicle())
+    let atLimit = TimelineValidator.validate(entries: [first, candidate], vehicle: vehicle(),
+                                             pace: .vehicleLimit)
         .first { $0.entryID == candidate.id }
     #expect(atLimit?.flags.contains { $0.kind == .pace } == false)
 
     let over = fill(date: epoch + 1 * day, odometer: 11_501) // 1501 km/day
-    let overLimit = TimelineValidator.validate(entries: [first, over], vehicle: vehicle())
+    let overLimit = TimelineValidator.validate(entries: [first, over], vehicle: vehicle(),
+                                               pace: .vehicleLimit)
         .first { $0.entryID == over.id }
     #expect(overLimit?.flags.contains { $0.kind == .pace } == true)
 }

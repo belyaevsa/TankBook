@@ -63,7 +63,9 @@ private func fill(date: Date, odometer: Int?, id: UUID = UUID.v7()) -> FillUp {
 
 private func validation(_ entries: [any Entry], _ id: UUID, limit: Double = 1500)
     -> TimelineValidator.EntryValidation? {
-    TimelineValidator.validate(entries: entries, vehicle: vehicle(paceLimit: limit))
+    // The range math under a given limit; learning is `RV341PaceLearningTests`.
+    TimelineValidator.validate(entries: entries, vehicle: vehicle(paceLimit: limit),
+                               pace: .vehicleLimit)
         .first { $0.entryID == id }
 }
 

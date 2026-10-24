@@ -24,6 +24,8 @@ public enum AutomaticPassMark: String, Sendable, CaseIterable, Equatable {
     case summary
     /// Reaching the opportunistic sync cycle.
     case sync
+    /// Reaching the re-check of every car's stored timeline flags.
+    case timeline
     /// Reaching `AppRates.refresh()` - the step whose silence RV.139 chased.
     case rates
     /// Reaching the delivery-outbox drain.

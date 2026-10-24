@@ -57,7 +57,7 @@ public struct Vehicle: Entity, Codable, Sendable, Equatable {
     /// (docs/SCHEMA.md, Vehicle). Set on archive, cleared on unarchive;
     /// `archived == false` implies `archivedAt == nil`.
     public var archivedAt: Date?
-    public var paceLimitKmPerDay: Double = 1500
+    public var paceLimitKmPerDay: Double = TimelineValidator.defaultPaceLimitKmPerDay
 
     /// The car's odometer as of `createdAt`, in the vehicle's distance unit -
     /// the "Current odometer" field on Add car (docs/SCHEMA.md, Vehicle).
@@ -83,7 +83,7 @@ public struct Vehicle: Entity, Codable, Sendable, Equatable {
                 tankCapacityL: Double? = nil, batteryCapacityKWh: Double? = nil,
                 homeCurrency: CurrencyCode, units: Units, photo: AttachmentID? = nil,
                 archived: Bool = false, archivedAt: Date? = nil,
-                paceLimitKmPerDay: Double = 1500,
+                paceLimitKmPerDay: Double = TimelineValidator.defaultPaceLimitKmPerDay,
                 initialOdometer: Int? = nil, homeCity: HomeCity? = nil) {
         self.id = id
         self.createdAt = createdAt

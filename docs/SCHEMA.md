@@ -49,7 +49,7 @@ Vehicle {
   photo: AttachmentID?
   archived: Bool                // sold cars: history retained, out of active stats (J13)
   archivedAt: Date?             // when it was archived; nil = never archived (J13)
-  paceLimitKmPerDay: Double = 1500   // plausibility bound for timeline validation (F9a)
+  paceLimitKmPerDay: Double = 1500   // pace bound (F9a): at the default, CHECK 2 learns the car's own; any other value is the user's
   initialOdometer: Int?         // "Current odometer" from Add car, in the vehicle's distance unit
   homeCity: HomeCity?           // where the car is usually kept, as its owner confirmed it (see below)
 }
@@ -655,11 +655,25 @@ INVARIANT  For a vehicle's entries with odometer set, sorted by date (same-day t
 CHECK 1    Order: odometer fits between date-neighbors. A falling reading conflicts for every
            kind; an equal reading conflicts ONLY between two travel-measuring entries on
            DIFFERENT calendar days. Violation → discrepancy UI.
-CHECK 2    Pace: implied km/day against neighbors ≤ vehicle.paceLimitKmPerDay. A neighbour on the
+CHECK 2    Pace: implied km/day against neighbors ≤ the car's pace limit. A neighbour on the
            same CALENDAR DAY contributes no pace bound (RV.192): "same day" is decided by an
            injected `Calendar` defaulting to `.current` - the device's zone - because `Vehicle`
-           carries no timezone field. The comparison across a day boundary stays in fractional
-           days; the rule is the calendar day, never "less than 24 hours".
+           carries no timezone field. A neighbour on a different day counts AT LEAST ONE DAY
+           (RV.341): a km/day limit divided over a few hours is an average-speed limit (1 500
+           km/day is 62.5 km/h), which a motorway leg across midnight beats - the owner's report,
+           296 km three hours after the previous fill, flagged at 2 368 km/day.
+           THE LIMIT (RV.341, product owner 2026-10-24: "relative to user's behavior ... after
+           10-15 fills"): a `paceLimitKmPerDay` other than the default 1 500 is the user's and
+           applies as set from the first pair (hard rule 13). At the default the limit is LEARNED,
+           derived on every pass and never stored: OFF until the car has 12 travel readings with
+           an odometer; then 4 × the 75th percentile of its consecutive different-day paces
+           (each with the one-day minimum), at least 800 km/day (a full day of motorway, so a
+           commuter's first long trip passes) and at most 1 500. A 10× misread digit stays far
+           outside it. Stored flags are re-derived for every car on each foreground pass
+           (`automatic.pass` step `timeline`), because the learned limit moves as entries arrive.
+           The Confirm screen's live odometer caption asks the same pair rule
+           (`TimelineValidator.exceedsPace`) against the same derived limit, so it cannot warn
+           where the flag would not.
 CHECK 3    Cross-check: volume × unitPrice ≈ FillUp.money.amount (tolerance max(0.02, amount × 0.005)).
 CHECK 4    AdBlue (2026-08-30, entity 2026-10-01): an AdBlue top-up is an `AdBlueFill`, never a `FillUp`, so it never opens, closes or feeds a fuel segment; the AdBlue chip is offered on cars whose fuelKinds include `.diesel` - see → AdBlue.
            SYMMETRY LIMIT: multiplication is commutative, so this check passes just as happily on a
@@ -723,6 +737,8 @@ ODOMETER RANGE   The readings valid for the entry's date (integers, inclusive):
                              next − limit × days(entry → next))   //   between two travel entries on
                  upper = min(next − (strict ? 1 : 0),         //   DIFFERENT days; inclusive for
                              previous + limit × days(previous → entry)) // an annotation OR a same-day
+                 (days(·) is the CHECK 2 interval: at least one day; no pace term at all
+                 while CHECK 2 is still learning)
                                                                         // neighbour (RV.276)
                  `strict` means BOTH this entry and that neighbour measure travel
                  (FillUp/ChargeSession) AND their dates fall on different calendar

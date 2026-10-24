@@ -128,8 +128,10 @@ public enum TimelineValidator {
     ///   An equal reading is a conflict only between two travel-measuring
     ///   entries whose dates fall on DIFFERENT calendar days; on one day it is
     ///   one stop (docs/SCHEMA.md, Validation).
-    /// - CHECK 2 (pace): implied km/day against each neighbour must be ≤
-    ///   `vehicle.paceLimitKmPerDay`.
+    /// - CHECK 2 (pace): implied km/day against each neighbour must be ≤ the
+    ///   limit `pace` selects - by default the car's own
+    ///   (`paceLimit(for:vehicle:calendar:)`), which is off until the car has
+    ///   enough readings to learn from.
     /// - CHECK 3 (cross-check): `volumeL x unitPrice ≈ amount` for FillUps.
     /// - CHECK 5 (consumption outlier, F2 residue): the segment a FillUp closes
     ///   must imply a consumption inside the vehicle powertrain's plausible band
@@ -146,15 +148,84 @@ public enum TimelineValidator {
     /// timezone has entries stamped in two zones and is judged by the device's.
     public static func validate(entries: [any Entry], vehicle: Vehicle,
                                 attachments: [Attachment] = [],
-                                calendar: Calendar = .current) -> [EntryValidation] {
+                                calendar: Calendar = .current,
+                                pace: PacePolicy = .learned) -> [EntryValidation] {
         let attachmentsByID = Dictionary(uniqueKeysWithValues: attachments.map { ($0.id, $0) })
         let sorted = entries.sorted(by: entryOrder)
-        let constraints = Constraints(limit: vehicle.paceLimitKmPerDay, calendar: calendar,
+        let limit = pace == .vehicleLimit
+            ? vehicle.paceLimitKmPerDay
+            : paceLimit(for: sorted, vehicle: vehicle, calendar: calendar)
+        let constraints = Constraints(limit: limit,
+                                      calendar: calendar,
                                       consumption: consumptionConstraints(for: sorted, vehicle: vehicle))
         return sorted.indices.map { index in
             validate(sorted[index], at: index, in: sorted,
                      constraints: constraints, attachmentsByID: attachmentsByID)
         }
+    }
+
+    // MARK: Pace limit (CHECK 2)
+
+    /// Which km/day limit CHECK 2 applies.
+    public enum PacePolicy: Equatable, Sendable {
+        /// The car's own limit (`paceLimit(for:vehicle:calendar:)`).
+        case learned
+        /// `vehicle.paceLimitKmPerDay` as it stands, from the first reading.
+        case vehicleLimit
+    }
+
+    /// The pace limit a car starts with (`Vehicle.paceLimitKmPerDay`). While a
+    /// car still carries it, CHECK 2 learns the car's own limit; a different
+    /// value is the user's and applies as set.
+    public static let defaultPaceLimitKmPerDay: Double = 1500
+
+    /// Travel readings a car needs before CHECK 2 judges it. Below this the
+    /// app has not seen how the car is driven, and a guessed limit flags real
+    /// fills (a first road trip, a taxi shift).
+    public static let paceLearningReadings = 12
+    /// The learned limit is this multiple of the car's 75th-percentile pace.
+    /// The check exists to catch a misread digit, which is an error of 10x or
+    /// more, so the margin is wide.
+    public static let paceLearnedMultiplier = 4.0
+    /// The learned limit never falls below a full day of motorway driving, so
+    /// a commuter's first long trip is not flagged.
+    public static let paceLearnedFloorKmPerDay = 800.0
+
+    /// CHECK 2 for one pair: `distance` between two readings exceeds `limit`.
+    /// Never on the same calendar day, and at least one day apart otherwise;
+    /// nil `limit` (the check still learning) never exceeds. The live odometer
+    /// caption (`OdometerDelta`) asks this, so it cannot disagree with the flag.
+    public static func exceedsPace(distance: Int, from: Date, to: Date, limit: Double?,
+                                   calendar: Calendar = .current) -> Bool {
+        guard let limit, !calendar.isDate(from, inSameDayAs: to) else { return false }
+        return Double(distance) / paceDays(from, to) > limit
+    }
+
+    /// The km/day limit CHECK 2 applies to this car, or nil while the check is
+    /// off. A limit the user set (anything but
+    /// `defaultPaceLimitKmPerDay`) is theirs and applies as set (hard
+    /// rule 13). Otherwise it is learned from the car's own consecutive travel
+    /// readings on different calendar days, each pair's pace measured with the
+    /// one-day minimum CHECK 2 uses: four times their 75th percentile, at
+    /// least `paceLearnedFloorKmPerDay` and at most the default. Derived on
+    /// every pass, never stored (hard rule 2).
+    public static func paceLimit(for entries: [any Entry], vehicle: Vehicle,
+                                 calendar: Calendar = .current) -> Double? {
+        let ceiling = vehicle.paceLimitKmPerDay
+        guard ceiling == TimelineValidator.defaultPaceLimitKmPerDay else { return ceiling }
+        let readings = entries.sorted(by: entryOrder)
+            .filter { measuresTravel($0) && $0.odometer != nil }
+        guard readings.count >= paceLearningReadings else { return nil }
+        var paces: [Double] = []
+        for (previous, entry) in zip(readings, readings.dropFirst()) {
+            guard let from = previous.odometer, let to = entry.odometer, to > from,
+                  !calendar.isDate(previous.date, inSameDayAs: entry.date) else { continue }
+            paces.append(Double(to - from) / paceDays(previous.date, entry.date))
+        }
+        guard !paces.isEmpty else { return ceiling }
+        paces.sort()
+        let p75 = paces[Int((Double(paces.count - 1) * 0.75).rounded(.down))]
+        return Swift.min(ceiling, Swift.max(paceLearnedFloorKmPerDay, p75 * paceLearnedMultiplier))
     }
 
     /// CHECK 3: `volumeL x unitPrice ≈ amount` within tolerance
@@ -182,13 +253,14 @@ public enum TimelineValidator {
         let measuresTravel: Bool
     }
 
-    /// The values every check in one pass shares: the car's pace limit, the
+    /// The values every check in one pass shares: the car's pace limit (nil
+    /// while CHECK 2 is still learning), the
     /// calendar that decides what "same day" means, and the derived consumption
     /// lookup CHECK 5 reads. Bundled so the neighbour walk and the two range
     /// builders stay within the parameter budget as the same-day rule threads
     /// through them.
     private struct Constraints {
-        let limit: Double
+        let limit: Double?
         let calendar: Calendar
         let consumption: ConsumptionConstraints
     }
@@ -282,16 +354,15 @@ public enum TimelineValidator {
             }
 
             // CHECK 2 - pace: implied km/day against each neighbour. A pair on
-            // the same CALENDAR DAY contributes no pace bound - the instant
-            // between two entries hours apart is a fraction of a day, which
-            // would turn a short hop into a pace in the thousands (RV.192).
-            // The comparison stays in fractional days across a day boundary:
-            // the guard is the calendar day, never "less than 24 hours".
-            if let previous {
+            // the same CALENDAR DAY contributes no pace bound, and a pair on
+            // different days counts at least one day (`paceDays`): a km/day
+            // limit over a few hours is an average-speed limit, and a motorway
+            // beats it.
+            if let limit, let previous {
                 if calendar.isDate(previous.date, inSameDayAs: entry.date) {
                     sameDayPaceSuppressions += 1
                 } else {
-                    let days = dayDiff(previous.date, entry.date)
+                    let days = paceDays(previous.date, entry.date)
                     let pace = Double(abs(odo - previous.odometer)) / days
                     if pace > limit {
                         flags.append(Flag(kind: .pace,
@@ -300,11 +371,11 @@ public enum TimelineValidator {
                     }
                 }
             }
-            if let next {
+            if let limit, let next {
                 if calendar.isDate(entry.date, inSameDayAs: next.date) {
                     sameDayPaceSuppressions += 1
                 } else {
-                    let days = dayDiff(entry.date, next.date)
+                    let days = paceDays(entry.date, next.date)
                     let pace = Double(abs(next.odometer - odo)) / days
                     if pace > limit {
                         flags.append(Flag(kind: .pace,
@@ -462,8 +533,8 @@ public enum TimelineValidator {
             let sharesReading = !(entryMeasuresTravel && previous.measuresTravel)
                 || calendar.isDate(previous.date, inSameDayAs: date)
             lower = previous.odometer + (sharesReading ? 0 : 1)
-            if !calendar.isDate(previous.date, inSameDayAs: date) {
-                let days = dayDiff(previous.date, date)
+            if let limit, !calendar.isDate(previous.date, inSameDayAs: date) {
+                let days = paceDays(previous.date, date)
                 upper = paceUpperBound(from: previous.odometer, days: days, limit: limit)
             }
         }
@@ -472,8 +543,8 @@ public enum TimelineValidator {
                 || calendar.isDate(date, inSameDayAs: next.date)
             let orderUpper = next.odometer - (sharesReading ? 0 : 1)
             upper = upper.map { Swift.min($0, orderUpper) } ?? orderUpper
-            if !calendar.isDate(date, inSameDayAs: next.date) {
-                let days = dayDiff(date, next.date)
+            if let limit, !calendar.isDate(date, inSameDayAs: next.date) {
+                let days = paceDays(date, next.date)
                 let paceLower = paceLowerBound(toward: next.odometer, days: days, limit: limit)
                 lower = lower.map { Swift.max($0, paceLower) } ?? paceLower
             }
@@ -511,25 +582,46 @@ public enum TimelineValidator {
         if let next, odometer > next.odometer {
             return .none
         }
+        guard let limit else {
+            return .bounded(lower: previous?.date, upper: next?.date)
+        }
         guard limit > 0 else {
             return (previous == nil && next == nil) ? .bounded(lower: nil, upper: nil) : .none
         }
+        // A distance within one day's limit passes on any date (the one-day
+        // minimum), so the bound is the neighbour's own instant; a longer one
+        // needs that many days, which always lands past the neighbour's day.
         var lower: Date?
         if let previous {
-            let paceLower = previous.date.addingTimeInterval(
-                Double(odometer - previous.odometer) / limit * 86_400)
-            lower = calendar.isDate(paceLower, inSameDayAs: previous.date)
+            let days = Double(odometer - previous.odometer) / limit
+            let paceLower = paceInstant(from: previous.date, distance: odometer - previous.odometer,
+                                        days: days, limit: limit, direction: 1)
+            lower = days <= 1 || calendar.isDate(paceLower, inSameDayAs: previous.date)
                 ? previous.date : paceLower
         }
         var upper: Date?
         if let next {
-            let paceUpper = next.date.addingTimeInterval(
-                -Double(next.odometer - odometer) / limit * 86_400)
-            upper = calendar.isDate(paceUpper, inSameDayAs: next.date)
+            let days = Double(next.odometer - odometer) / limit
+            let paceUpper = paceInstant(from: next.date, distance: next.odometer - odometer,
+                                        days: days, limit: limit, direction: -1)
+            upper = days <= 1 || calendar.isDate(paceUpper, inSameDayAs: next.date)
                 ? next.date : paceUpper
         }
         if let lower, let upper, lower > upper { return .none }
         return .bounded(lower: lower, upper: upper)
+    }
+
+    /// The instant `days` away from a neighbour in `direction` (+1 later, -1
+    /// earlier), stepped outward a second at a time until the validator's own
+    /// expression accepts it, so floating-point drift in date arithmetic
+    /// cannot put a flagged instant inside the range.
+    private static func paceInstant(from neighbour: Date, distance: Int, days: Double,
+                                    limit: Double, direction: Double) -> Date {
+        var instant = neighbour.addingTimeInterval(direction * days * 86_400)
+        while Double(distance) / paceDays(neighbour, instant) > limit {
+            instant = instant.addingTimeInterval(direction)
+        }
+        return instant
     }
 
     /// The largest integer odometer whose implied pace from a previous reading
@@ -557,8 +649,10 @@ public enum TimelineValidator {
                           amount: fill.money?.amount)
     }
 
-    private static func dayDiff(_ a: Date, _ b: Date) -> Double {
-        abs(a.timeIntervalSince(b)) / 86400
+    /// The days CHECK 2 divides by for a pair on different calendar days:
+    /// the real interval, but never less than one day.
+    private static func paceDays(_ from: Date, _ to: Date) -> Double {
+        Swift.max(abs(from.timeIntervalSince(to)) / 86400, 1)
     }
 
     /// Whether an entry's reading measures travel. A FillUp or a ChargeSession

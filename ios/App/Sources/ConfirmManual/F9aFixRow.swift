@@ -137,6 +137,8 @@ struct F9aWarningRow: View {
     private var conflictText: some View {
         if let quote = conflict.quote {
             Text(quote)
+        } else if conflict.flagKind == .pace {
+            Text("Daily pace over the limit – check it.")
         } else {
             Text("Odometer breaks the timeline – check it.")
         }

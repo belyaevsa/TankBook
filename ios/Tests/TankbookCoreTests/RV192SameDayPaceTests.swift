@@ -57,7 +57,7 @@ private func fill(date: Date, odometer: Int, id: UUID = UUID.v7()) -> FillUp {
 private func validation(_ entries: [any Entry], _ id: UUID,
                         limit: Double = 1500) -> TimelineValidator.EntryValidation? {
     TimelineValidator.validate(entries: entries, vehicle: vehicle(paceLimit: limit),
-                               calendar: calendar)
+                               calendar: calendar, pace: .vehicleLimit)
         .first { $0.entryID == id }
 }
 
@@ -99,9 +99,8 @@ struct RV192SameDayPaceTests {
 
     @Test func adjacentCalendarDaysNineHoursApartStillGetTheirPaceBound() {
         // 21:00 -> 06:00, nine hours apart but across midnight, so they are on
-        // ADJACENT calendar days and the pace bound applies: 300 km / 0.375 days
-        // = 800 km/day > 100. A `days >= 1` guard on the fractional value would
-        // wrongly drop this (the named vacuous trap).
+        // ADJACENT calendar days and the pace bound applies, counted as one
+        // full day (the one-day minimum): 300 km/day > 100.
         let entryID = UUID.v7()
         let entries: [any Entry] = [
             fill(date: at(30, 21), odometer: 100_000),
@@ -170,8 +169,10 @@ struct RV192SameDayPaceTests {
                       date: entryDate, limit: limit).isEmpty == false)
 
         // Date side: the previous pace bound is same-day, so the lower end is
-        // the previous instant itself; the upper end is the next pace bound.
-        let dateUpper = nextDate.addingTimeInterval(-500 / limit * 86_400)
+        // the previous instant itself. 500 km to the next reading is one day's
+        // limit, which the one-day minimum allows on any date, so the upper end
+        // is the next instant itself.
+        let dateUpper = nextDate
         #expect(range?.dates == .bounded(lower: previousDate, upper: dateUpper))
         #expect(flags(entries: entriesWith(100_300), id: entryID, odometer: 100_300,
                       date: previousDate, limit: limit).isEmpty)

@@ -200,25 +200,38 @@ enum TimelineNeighbourhoodSentences {
             let lowerText = lower.map { EntryDateText.dayMonth($0) }
             let upperText = upper.map { EntryDateText.dayMonth($0) }
             switch (lowerText, upperText) {
+            case let (lower?, upper?) where lower == upper:
+                // A window of hours inside one day: "between 21 Oct and 21 Oct"
+                // names nothing, the day does.
+                return sentence(String(format: L10n.localize(unit == .km
+                    ? "If the odometer is %1$@ km, the date must be %2$@."
+                    : "If the odometer is %1$@ mi, the date must be %2$@."),
+                              odometerText, lower))
             case let (lower?, upper?):
-                return String(format: L10n.localize(unit == .km
+                return sentence(String(format: L10n.localize(unit == .km
                     ? "If the odometer is %1$@ km, the date must be between %2$@ and %3$@."
                     : "If the odometer is %1$@ mi, the date must be between %2$@ and %3$@."),
-                              odometerText, lower, upper)
+                              odometerText, lower, upper))
             case (nil, let upper?):
-                return String(format: L10n.localize(unit == .km
+                return sentence(String(format: L10n.localize(unit == .km
                     ? "If the odometer is %1$@ km, the date must be no later than %2$@."
                     : "If the odometer is %1$@ mi, the date must be no later than %2$@."),
-                              odometerText, upper)
+                              odometerText, upper))
             case (let lower?, nil):
-                return String(format: L10n.localize(unit == .km
+                return sentence(String(format: L10n.localize(unit == .km
                     ? "If the odometer is %1$@ km, the date must be no earlier than %2$@."
                     : "If the odometer is %1$@ mi, the date must be no earlier than %2$@."),
-                              odometerText, lower)
+                              odometerText, lower))
             case (nil, nil):
                 return nil
             }
         }
+    }
+
+    /// One full stop at the end: an abbreviated month that ends the sentence
+    /// already carries one ("21 окт.").
+    static func sentence(_ text: String) -> String {
+        text.hasSuffix("..") && !text.hasSuffix("...") ? String(text.dropLast()) : text
     }
 
     private static func between(key: String, dateText: String,

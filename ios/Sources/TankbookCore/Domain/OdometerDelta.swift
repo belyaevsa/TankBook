@@ -53,17 +53,19 @@ public struct OdometerDelta: Equatable, Sendable {
     /// no typed odometer, or no last-known value (a new car with no entries -
     /// the odometer field is blank and there is no "last" to measure against).
     ///
-    /// The pace check mirrors `TimelineValidator`'s CHECK 2 (docs/SCHEMA.md):
-    /// implied km/day against the last-known entry's date, flagged only when
-    /// `days > 0` and the rate exceeds the limit. Without a last-known date (the
-    /// value came from `Vehicle.initialOdometer`) the pace check cannot run and
-    /// a positive delta stays `.forward` - the same conservative behaviour the
-    /// validator has when no previous entry exists.
+    /// The pace check is `TimelineValidator`'s CHECK 2 for the pair
+    /// (`TimelineValidator.exceedsPace`), against `paceLimitKmPerDay` - the
+    /// car's limit as `TimelineValidator.paceLimit` derives it, nil while the
+    /// check is still learning. Without a last-known date (the value came from
+    /// `Vehicle.initialOdometer`) the pace check cannot run and a positive
+    /// delta stays `.forward` - the same conservative behaviour the validator
+    /// has when no previous entry exists.
     public static func evaluate(typed: Int?,
                                 lastKnown: Int?,
                                 lastKnownDate: Date?,
                                 entryDate: Date,
-                                paceLimitKmPerDay: Double) -> OdometerDelta? {
+                                paceLimitKmPerDay: Double?,
+                                calendar: Calendar = .current) -> OdometerDelta? {
         guard let typed, let lastKnown else { return nil }
         let km = typed - lastKnown
         if km < 0 {
@@ -72,11 +74,10 @@ public struct OdometerDelta: Equatable, Sendable {
         if km == 0 {
             return OdometerDelta(km: 0, state: .equal)
         }
-        if let lastKnownDate {
-            let days = abs(entryDate.timeIntervalSince(lastKnownDate)) / 86_400
-            if days > 0, Double(km) / days > paceLimitKmPerDay {
-                return OdometerDelta(km: km, state: .pace)
-            }
+        if let lastKnownDate,
+           TimelineValidator.exceedsPace(distance: km, from: lastKnownDate, to: entryDate,
+                                         limit: paceLimitKmPerDay, calendar: calendar) {
+            return OdometerDelta(km: km, state: .pace)
         }
         return OdometerDelta(km: km, state: .forward)
     }

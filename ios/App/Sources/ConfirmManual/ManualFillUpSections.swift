@@ -395,10 +395,10 @@ struct ManualFillUpOdometerCard: View {
     /// caption (docs/VISION.md -> Fill-up log; docs/DESIGN.md -> the Pump
     /// Card). ConfirmManual passes the derived last known; the Edit screen
     /// passes nil (its odometer is not a pre-fill) and renders no caption.
-    /// `paceLimitKmPerDay` is the vehicle's own pace rule (default 1500,
-    /// docs/SCHEMA.md).
+    /// `paceLimitKmPerDay` is the car's CHECK 2 limit as
+    /// `TimelineValidator.paceLimit` derives it; nil while it is still learning.
     var lastKnown: OdometerLastKnown?
-    var paceLimitKmPerDay: Double = 1500
+    var paceLimitKmPerDay: Double?
 
     var body: some View {
         VStack(spacing: 0) {

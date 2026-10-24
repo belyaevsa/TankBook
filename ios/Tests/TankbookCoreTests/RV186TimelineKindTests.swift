@@ -10,6 +10,13 @@ import Foundation
 
 private let kindDay: TimeInterval = 86_400
 private let kindEpoch = Date(timeIntervalSince1970: 1_752_000_000)
+/// "Same day" in UTC: `kindEpoch` is 18:40 UTC, so an hour later is the same
+/// day here and the next day on a machine east of UTC+4.
+private let kindCalendar: Calendar = {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(identifier: "UTC")!
+    return calendar
+}()
 
 private func kindVehicle(paceLimit: Double = 1500) -> Vehicle {
     Vehicle(
@@ -157,16 +164,16 @@ struct RV186TimelineKindTests {
     @Test func invariantHoldsForAnnotationsAndBreaksForTwoFills() {
         #expect(TimelineValidator.invariantHolds(entries: [
             kindFill(date: kindEpoch, odometer: 100_000),
-            kindService(date: kindEpoch + 3600, odometer: 100_000),
-        ]))
+            kindService(date: kindEpoch + 3600, odometer: 100_000)
+        ], calendar: kindCalendar))
         #expect(TimelineValidator.invariantHolds(entries: [
             kindFill(date: kindEpoch, odometer: 100_000),
-            kindFill(date: kindEpoch + 3600, odometer: 100_000),
-        ]))
+            kindFill(date: kindEpoch + 3600, odometer: 100_000)
+        ], calendar: kindCalendar))
         #expect(!TimelineValidator.invariantHolds(entries: [
             kindFill(date: kindEpoch, odometer: 100_000),
-            kindFill(date: kindEpoch + kindDay, odometer: 100_000),
-        ]))
+            kindFill(date: kindEpoch + kindDay, odometer: 100_000)
+        ], calendar: kindCalendar))
     }
 
     /// The valid range mirrors the relaxed order bound: an annotation sharing a
@@ -181,17 +188,20 @@ struct RV186TimelineKindTests {
         let fill = kindFill(date: kindEpoch, odometer: 100_000)
 
         let service = kindService(date: kindEpoch + 3600, odometer: 100_000)
-        let serviceRange = TimelineValidator.validate(entries: [fill, service], vehicle: kindVehicle())
+        let serviceRange = TimelineValidator.validate(entries: [fill, service], vehicle: kindVehicle(),
+                                                         calendar: kindCalendar)
             .first { $0.entryID == service.id }?.validRange
         #expect(lowerBound(serviceRange?.odometer) == 100_000)
 
         let sameDayFill = kindFill(date: kindEpoch + 3600, odometer: 100_000)
-        let sameDayRange = TimelineValidator.validate(entries: [fill, sameDayFill], vehicle: kindVehicle())
+        let sameDayRange = TimelineValidator.validate(entries: [fill, sameDayFill], vehicle: kindVehicle(),
+                                                         calendar: kindCalendar)
             .first { $0.entryID == sameDayFill.id }?.validRange
         #expect(lowerBound(sameDayRange?.odometer) == 100_000)
 
         let nextDayFill = kindFill(date: kindEpoch + kindDay, odometer: 100_000)
-        let nextDayRange = TimelineValidator.validate(entries: [fill, nextDayFill], vehicle: kindVehicle())
+        let nextDayRange = TimelineValidator.validate(entries: [fill, nextDayFill], vehicle: kindVehicle(),
+                                                         calendar: kindCalendar)
             .first { $0.entryID == nextDayFill.id }?.validRange
         #expect(lowerBound(nextDayRange?.odometer) == 100_001)
     }
