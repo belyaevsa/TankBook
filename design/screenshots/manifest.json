@@ -3015,6 +3015,26 @@
       "device": "iPhone 17",
       "runtime": "iOS.27.0"
     },
+    "RV.341-neighbourhood": {
+      "commit": "519826a1",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.341-neighbourhood-ru": {
+      "commit": "519826a1",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.341-pace-banner": {
+      "commit": "519826a1",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
+    "RV.341-pace-banner-ru": {
+      "commit": "519826a1",
+      "device": "iPhone 17",
+      "runtime": "iOS.27.0"
+    },
     "RV.37-replace-ask": {
       "commit": "4e7104f",
       "device": "iPhone 17",

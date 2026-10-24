@@ -285,6 +285,10 @@ capture P1.6-edit-entry-ru         ru -seedEditEntry -presentScreen editEntry
 # `-presentScreen editEntry` always opens the newest).
 capture RV.188-neighbourhood       en -seedEditEntryConflictMiddle -editEntryFlagged -presentScreen editEntry -scrollToNeighbourhood
 capture RV.188-neighbourhood-ru    ru -seedEditEntryConflictMiddle -editEntryFlagged -presentScreen editEntry -scrollToNeighbourhood
+capture RV.341-pace-banner         en -seedEditEntryConflictPace -presentScreen editEntry
+capture RV.341-pace-banner-ru      ru -seedEditEntryConflictPace -presentScreen editEntry
+capture RV.341-neighbourhood       en -seedEditEntryConflictPace -presentScreen editEntry -scrollToNeighbourhood
+capture RV.341-neighbourhood-ru    ru -seedEditEntryConflictPace -presentScreen editEntry -scrollToNeighbourhood
 # RV.276: a same-stop pair (two fills at one reading on one day) is one stop -
 # no amber - and its two coincident chart points get one stacked label block
 # instead of printing over each other. The card opens on the genuinely falling
