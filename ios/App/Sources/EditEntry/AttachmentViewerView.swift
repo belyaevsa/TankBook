@@ -448,19 +448,23 @@ struct AttachmentViewerView: View {
         }
     }
 
-    /// The share-sheet payload. A photo shares the `UIImage` (so "Save Image"
-    /// and the usual image targets appear); a PDF shares a temporary file with
-    /// the right extension. A photo that will not decode falls back to its
-    /// bytes rather than a dead sheet.
+    /// The share-sheet payload: the receipt, then the caption naming what the
+    /// entries made from it say (`ReceiptShareCaption`). A photo shares the
+    /// `UIImage` (so "Save Image" and the usual image targets appear); a PDF
+    /// shares a temporary file with the right extension. A photo that will not
+    /// decode falls back to its bytes rather than a dead sheet.
     private func shareItems(from data: Data) -> [Any] {
+        let receipt: Any
         if attachment.kind == .pdf {
             let url = FileManager.default.temporaryDirectory
                 .appendingPathComponent("receipt-\(attachment.id.uuidString).pdf")
             try? data.write(to: url, options: .atomic)
-            return [url]
+            receipt = url
+        } else {
+            receipt = UIImage(data: data) ?? data
         }
-        if let image = UIImage(data: data) { return [image] }
-        return [data]
+        let caption = ReceiptShareCaption.stored(for: entry, volumeUnit: volumeUnit)
+        return caption.isEmpty ? [receipt] : [receipt, caption]
     }
 
     // MARK: - Loading
